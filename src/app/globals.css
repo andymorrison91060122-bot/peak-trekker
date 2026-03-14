@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
+@import "tailwindcss";
+@import "./components.css";
+
+:root {
+  --bg-primary: #0D0D0D;
+  --bg-secondary: #111111;
+  --bg-card: #1A1A1A;
+  --green-primary: #2D6A4F;
+  --green-bright: #52B788;
+  --green-neon: #39FF14;
+  --text-primary: #E8F5E9;
+  --text-muted: #6B7280;
+  --border-color: #2D2D2D;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Share Tech Mono', monospace;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+.font-pixel {
+  font-family: 'Press Start 2P', monospace;
+}
+
+.pixel-card {
+  background: var(--bg-card);
+  border: 2px solid var(--green-primary);
+  position: relative;
+}
+
+.neon-green {
+  color: var(--green-neon);
+  text-shadow: 0 0 10px var(--green-neon), 0 0 20px var(--green-neon);
+}
+
+.pixel-btn {
+  background: var(--green-primary);
+  color: var(--text-primary);
+  border: none;
+  padding: 8px 16px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.1s;
+  clip-path: polygon(
+    0 4px, 4px 4px, 4px 0,
+    calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
+    4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+  );
+}
+
+.pixel-btn:hover {
+  background: var(--green-bright);
+  transform: translateY(-2px);
+}
+
+.pixel-btn:active {
+  transform: translateY(0);
+}
+
+.scanlines {
+  position: relative;
+}
+
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.05) 2px,
+    rgba(0, 0, 0, 0.05) 4px
+  );
+  pointer-events: none;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); }
+::-webkit-scrollbar-thumb { background: var(--green-primary); }

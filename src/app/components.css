@@ -1,0 +1,213 @@
+/* 像素山脉边框卡片 */
+.mountain-card {
+  background: var(--bg-card);
+  position: relative;
+  padding: 16px;
+}
+
+/* 用 SVG border-image 做山形边框 */
+.mountain-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    /* 四个角 - 像素卡扣感 */
+    linear-gradient(var(--green-primary), var(--green-primary)) top left / 12px 12px,
+    linear-gradient(var(--green-primary), var(--green-primary)) top right / 12px 12px,
+    linear-gradient(var(--green-primary), var(--green-primary)) bottom left / 12px 12px,
+    linear-gradient(var(--green-primary), var(--green-primary)) bottom right / 12px 12px,
+    /* 顶部横线（缺口中间留出，像高度表） */
+    linear-gradient(var(--green-primary), var(--green-primary)) top left / calc(50% - 20px) 2px,
+    linear-gradient(var(--green-primary), var(--green-primary)) top right / calc(50% - 20px) 2px,
+    /* 底部横线 */
+    linear-gradient(var(--green-primary), var(--green-primary)) bottom / 100% 2px,
+    /* 左右竖线 */
+    linear-gradient(var(--green-primary), var(--green-primary)) left / 2px 100%,
+    linear-gradient(var(--green-primary), var(--green-primary)) right / 2px 100%;
+  background-repeat: no-repeat;
+}
+
+/* 等高线纹理卡片 - 用于重点信息 */
+.topo-card {
+  background: var(--bg-card);
+  position: relative;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.topo-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 18px,
+      rgba(45, 106, 79, 0.08) 18px,
+      rgba(45, 106, 79, 0.08) 19px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 18px,
+      rgba(45, 106, 79, 0.04) 18px,
+      rgba(45, 106, 79, 0.04) 19px
+    );
+  pointer-events: none;
+}
+
+.topo-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(var(--green-bright), var(--green-bright)) top left / 8px 8px,
+    linear-gradient(var(--green-bright), var(--green-bright)) top right / 8px 8px,
+    linear-gradient(var(--green-bright), var(--green-bright)) bottom left / 8px 8px,
+    linear-gradient(var(--green-bright), var(--green-bright)) bottom right / 8px 8px,
+    linear-gradient(var(--green-primary), var(--green-primary)) top / 100% 2px,
+    linear-gradient(var(--green-primary), var(--green-primary)) bottom / 100% 2px,
+    linear-gradient(var(--green-primary), var(--green-primary)) left / 2px 100%,
+    linear-gradient(var(--green-primary), var(--green-primary)) right / 2px 100%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+/* 危险/警告卡片（红色调，用于高难度山峰） */
+.danger-card {
+  background: rgba(30, 10, 10, 0.9);
+  position: relative;
+  padding: 16px;
+}
+
+.danger-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(#8B0000, #8B0000) top left / 8px 8px,
+    linear-gradient(#8B0000, #8B0000) top right / 8px 8px,
+    linear-gradient(#8B0000, #8B0000) bottom left / 8px 8px,
+    linear-gradient(#8B0000, #8B0000) bottom right / 8px 8px,
+    linear-gradient(#5C0000, #5C0000) top / 100% 2px,
+    linear-gradient(#5C0000, #5C0000) bottom / 100% 2px,
+    linear-gradient(#5C0000, #5C0000) left / 2px 100%,
+    linear-gradient(#5C0000, #5C0000) right / 2px 100%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+/* 像素标签 badge */
+.pixel-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  background: var(--green-primary);
+  color: var(--text-primary);
+  position: relative;
+  clip-path: polygon(
+    0 3px, 3px 3px, 3px 0,
+    calc(100% - 3px) 0, calc(100% - 3px) 3px, 100% 3px,
+    100% calc(100% - 3px), calc(100% - 3px) calc(100% - 3px), calc(100% - 3px) 100%,
+    3px 100%, 3px calc(100% - 3px), 0 calc(100% - 3px)
+  );
+}
+
+.pixel-badge-dim {
+  background: #1a2a1a;
+  color: var(--green-bright);
+  border: 1px solid var(--green-primary);
+}
+
+/* 海拔进度条 */
+.altitude-bar {
+  height: 6px;
+  background: #1a1a1a;
+  position: relative;
+  overflow: hidden;
+}
+
+.altitude-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green-primary), var(--green-neon));
+  position: relative;
+}
+
+.altitude-bar-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -2px;
+  width: 4px;
+  height: 10px;
+  background: var(--green-neon);
+  box-shadow: 0 0 6px var(--green-neon);
+}
+
+/* 像素分割线 - 山形 */
+.mountain-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+  color: var(--green-primary);
+}
+
+.mountain-divider::before,
+.mountain-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--green-primary));
+}
+
+.mountain-divider::after {
+  background: linear-gradient(90deg, var(--green-primary), transparent);
+}
+
+/* 星点背景动画 */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes float-up {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-4px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 4px var(--green-neon); }
+  50% { box-shadow: 0 0 12px var(--green-neon), 0 0 24px var(--green-neon); }
+}
+
+/* 发光脉冲 */
+.glow-pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* 海拔标签 - 测量感 */
+.altitude-tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--green-bright);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.altitude-tag::before {
+  content: '▲';
+  font-size: 8px;
+  color: var(--green-neon);
+}
+
+/* 难度标签颜色 */
+.diff-beginner { color: #52B788; background: rgba(82, 183, 136, 0.1); }
+.diff-intermediate { color: #F4A261; background: rgba(244, 162, 97, 0.1); }
+.diff-advanced { color: #E76F51; background: rgba(231, 111, 81, 0.1); }
+.diff-expert { color: #E63946; background: rgba(230, 57, 70, 0.1); }

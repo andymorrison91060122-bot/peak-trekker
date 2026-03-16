@@ -46,18 +46,19 @@ export default function RegisterPage() {
       return
     }
 
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').update({
+    // data.user 可能因邮箱确认流程为 null，用 upsert 确保兼容两种情况
+    const userId = data.user?.id
+    if (userId) {
+      await supabase.from('profiles').upsert({
+        id: userId,
         username,
         province,
         province_code: PROVINCE_CODE_MAP[province] ?? '',
-      }).eq('id', data.user.id)
-      if (profileError) {
-        // Profile update failed but user is created - non-fatal, they can update later
-        console.warn('Profile update failed:', profileError.message)
-      }
+        license_level: 'none',
+      }, { onConflict: 'id' })
     }
 
+    // 无论 profile 更新是否成功，注册本身已完成，直接跳转
     router.push('/explore')
     router.refresh()
     setLoading(false)

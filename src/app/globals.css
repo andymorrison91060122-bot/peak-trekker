@@ -4,14 +4,15 @@
 
 :root {
   --bg-primary: #0D0D0D;
-  --bg-secondary: #111111;
-  --bg-card: #1A1A1A;
-  --green-primary: #2D6A4F;
-  --green-bright: #52B788;
-  --green-neon: #39FF14;
-  --text-primary: #E8F5E9;
-  --text-muted: #6B7280;
-  --border-color: #2D2D2D;
+  --bg-secondary: #141414;
+  --bg-card: #1C1C1E;
+  --green-primary: #4ADE80;
+  --green-bright: #86EFAC;
+  --green-neon: #4ADE80;
+  --text-primary: #FFFFFF;
+  --text-secondary: #D1FAE5;
+  --text-muted: #9CA3AF;
+  --border-color: #374151;
 }
 
 * {
@@ -44,28 +45,33 @@ body {
 
 .pixel-btn {
   background: var(--green-primary);
-  color: var(--text-primary);
+  color: #000000;
   border: none;
-  padding: 8px 16px;
+  padding: 12px 20px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 10px;
+  font-size: 11px;
   cursor: pointer;
-  transition: transform 0.1s, background 0.1s;
-  clip-path: polygon(
-    0 4px, 4px 4px, 4px 0,
-    calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
-    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
-    4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
-  );
+  transition: transform 0.1s, background 0.1s, box-shadow 0.1s;
+  border-radius: 8px;
+  min-height: 48px;
+  font-weight: 700;
 }
 
 .pixel-btn:hover {
   background: var(--green-bright);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 222, 128, 0.4);
 }
 
 .pixel-btn:active {
   transform: translateY(0);
+  box-shadow: none;
+}
+
+.pixel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .scanlines {

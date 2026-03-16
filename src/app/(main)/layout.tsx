@@ -1,5 +1,6 @@
 import TabBar from '@/components/layout/TabBar'
 import AppHeader from '@/components/layout/AppHeader'
+import TrekFAB from '@/components/ui/TrekFAB'
 
 export default function MainLayout({
   children,
@@ -12,6 +13,7 @@ export default function MainLayout({
       <main className="max-w-lg mx-auto pb-20">
         {children}
       </main>
+      <TrekFAB />
       <TabBar />
     </div>
   )

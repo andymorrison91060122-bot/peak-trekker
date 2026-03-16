@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { PixelMountainBg, MountainCard, MountainFeatureCard } from '@/components/ui/MountainUI'
 import ExploreClient from './ExploreClient'
+import OnboardingModal from '@/components/ui/OnboardingModal'
 
 export default async function ExplorePage() {
   const supabase = await createSupabaseServerClient()
@@ -23,6 +24,7 @@ export default async function ExplorePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+      <OnboardingModal />
 
       {/* 顶部山脉全景 */}
       <div style={{ position: 'relative', background: 'linear-gradient(180deg, #050f05 0%, #0a1a0a 60%, var(--bg-primary) 100%)' }}>

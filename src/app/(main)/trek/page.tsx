@@ -15,7 +15,7 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): nu
 }
 
 type TrekStatus = 'idle' | 'tracking' | 'checkin_ready' | 'checkin_done'
-type GpsState = { lat: number; lng: number; accuracy: number } | null
+type GpsState = { lat: number; lng: number; accuracy: number; altitude?: number | null } | null
 
 const CHECKIN_RADIUS_METERS = 500
 
@@ -76,8 +76,8 @@ export default function TrekPage() {
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords
-        setGps({ lat: latitude, lng: longitude, accuracy })
+        const { latitude, longitude, accuracy, altitude } = pos.coords
+        setGps({ lat: latitude, lng: longitude, accuracy, altitude })
         setGpsError('')
         trackRef.current.push({ lat: latitude, lng: longitude, ts: Date.now() })
         checkNearby(latitude, longitude)
@@ -253,55 +253,72 @@ function TrackingCard({ gps, elapsed, trackCount, onStop, gpsError }: {
 }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      {/* 计时器 */}
-      <div className="topo-card" style={{ padding: 20, marginBottom: 12, textAlign: 'center' }}>
-        <div style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', marginBottom: 8 }}>ELAPSED TIME</div>
-        <div className="font-pixel neon-green" style={{ fontSize: 24, letterSpacing: 4 }}>{elapsed}</div>
-        <div style={{ marginTop: 8, fontSize: 10, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono' }}>
-          已记录 {trackCount} 个轨迹点
-        </div>
-      </div>
-
-      {/* GPS 状态 */}
-      <div className="mountain-card" style={{ padding: 16, marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <div className="font-pixel" style={{ fontSize: 7, color: 'var(--green-primary)' }}>GPS 定位</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div className="glow-pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: gps ? 'var(--green-neon)' : '#E63946' }} />
-            <span style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: gps ? 'var(--green-neon)' : '#E63946' }}>
-              {gps ? `±${Math.round(gps.accuracy)}m` : '获取中...'}
-            </span>
-          </div>
-        </div>
-        {gps ? (
-          <div style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--text-muted)', lineHeight: 2 }}>
-            <div>N {gps.lat.toFixed(5)}° · E {gps.lng.toFixed(5)}°</div>
-          </div>
-        ) : gpsError ? (
-          <div style={{ fontSize: 11, color: '#E63946', fontFamily: 'Share Tech Mono' }}>⚠ {gpsError}</div>
-        ) : (
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono' }}>正在获取位置信号...</div>
-        )}
-      </div>
-
-      {/* 提示 */}
+      {/* 顶部状态条 */}
       <div style={{
-        padding: '10px 14px', marginBottom: 12,
-        background: 'rgba(45,106,79,0.08)',
-        border: '1px solid rgba(45,106,79,0.2)',
-        borderLeft: '3px solid var(--green-primary)',
-        fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.8,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        marginBottom: 20,
+        background: 'rgba(230, 57, 70, 0.1)',
+        padding: '8px',
+        borderRadius: '20px'
       }}>
-        ⛰ 接近山顶 500m 范围内，将自动触发打卡
+        <div className="glow-pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: '#E63946' }} />
+        <span className="font-pixel" style={{ fontSize: 10, color: '#E63946', letterSpacing: 1 }}>记录中</span>
+        <span style={{ color: 'var(--text-muted)', margin: '0 4px' }}>|</span>
+        <span className="font-pixel" style={{ fontSize: 12, color: 'var(--text-primary)' }}>{elapsed}</span>
       </div>
 
-      <button onClick={onStop} style={{
-        width: '100%', padding: '12px',
-        fontFamily: 'Press Start 2P', fontSize: 8,
-        background: 'transparent', color: '#E63946',
-        border: '1px solid rgba(230,57,70,0.4)', cursor: 'pointer',
+      {/* 大字数据显示区 */}
+      <div className="topo-card" style={{ padding: '32px 20px', marginBottom: 16, textAlign: 'center' }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', marginBottom: 12, letterSpacing: 2 }}>CURRENT ALTITUDE</div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
+          <span style={{ fontSize: 64, fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>
+            {gps?.altitude != null ? Math.round(gps.altitude) : gps ? '---' : '----'}
+          </span>
+          <span style={{ fontSize: 20, color: 'var(--green-primary)', fontFamily: 'Share Tech Mono' }}>m</span>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+        {/* 坐标面板 */}
+        <div className="mountain-card" style={{ padding: 16 }}>
+          <div className="font-pixel" style={{ fontSize: 7, color: 'var(--text-muted)', marginBottom: 8 }}>GPS COORDINATES</div>
+          {gps ? (
+            <div style={{ fontFamily: 'Share Tech Mono', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+              <div>{gps.lat.toFixed(5)}°N</div>
+              <div>{gps.lng.toFixed(5)}°E</div>
+              <div style={{ fontSize: 10, color: 'var(--green-primary)', marginTop: 4 }}>精度 ±{Math.round(gps.accuracy)}m</div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono' }}>
+              {gpsError ? '定位失败' : '获取中...'}
+            </div>
+          )}
+        </div>
+
+        {/* 统计面板 */}
+        <div className="mountain-card" style={{ padding: 16 }}>
+          <div className="font-pixel" style={{ fontSize: 7, color: 'var(--text-muted)', marginBottom: 8 }}>SESSION INFO</div>
+          <div style={{ fontFamily: 'Share Tech Mono', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+            <div>轨迹点: {trackCount}</div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+              最近山峰: 2.4km
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button onClick={onStop} className="pixel-btn" style={{
+        width: '100%',
+        background: 'transparent',
+        border: '2px solid #E63946',
+        color: '#E63946',
+        fontSize: 11,
+        height: '56px'
       }}>
-        ■ 结束记录
+        ■ 停止记录
       </button>
     </div>
   )

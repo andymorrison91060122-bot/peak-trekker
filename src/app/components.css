@@ -3,29 +3,13 @@
   background: var(--bg-card);
   position: relative;
   padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
 }
 
-/* 用 SVG border-image 做山形边框 */
+/* 移除旧的 before 伪元素像素边框 */
 .mountain-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    /* 四个角 - 像素卡扣感 */
-    linear-gradient(var(--green-primary), var(--green-primary)) top left / 12px 12px,
-    linear-gradient(var(--green-primary), var(--green-primary)) top right / 12px 12px,
-    linear-gradient(var(--green-primary), var(--green-primary)) bottom left / 12px 12px,
-    linear-gradient(var(--green-primary), var(--green-primary)) bottom right / 12px 12px,
-    /* 顶部横线（缺口中间留出，像高度表） */
-    linear-gradient(var(--green-primary), var(--green-primary)) top left / calc(50% - 20px) 2px,
-    linear-gradient(var(--green-primary), var(--green-primary)) top right / calc(50% - 20px) 2px,
-    /* 底部横线 */
-    linear-gradient(var(--green-primary), var(--green-primary)) bottom / 100% 2px,
-    /* 左右竖线 */
-    linear-gradient(var(--green-primary), var(--green-primary)) left / 2px 100%,
-    linear-gradient(var(--green-primary), var(--green-primary)) right / 2px 100%;
-  background-repeat: no-repeat;
+  display: none;
 }
 
 /* 等高线纹理卡片 - 用于重点信息 */
@@ -34,6 +18,8 @@
   position: relative;
   padding: 16px;
   overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
 }
 
 .topo-card::after {

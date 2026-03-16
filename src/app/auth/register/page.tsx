@@ -47,17 +47,14 @@ export default function RegisterPage() {
     }
 
     if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
+      const { error: profileError } = await supabase.from('profiles').update({
         username,
         province,
         province_code: PROVINCE_CODE_MAP[province] ?? '',
-        license_level: 'none',
-      })
+      }).eq('id', data.user.id)
       if (profileError) {
-        setError('创建用户信息失败，请重试')
-        setLoading(false)
-        return
+        // Profile update failed but user is created - non-fatal, they can update later
+        console.warn('Profile update failed:', profileError.message)
       }
     }
 

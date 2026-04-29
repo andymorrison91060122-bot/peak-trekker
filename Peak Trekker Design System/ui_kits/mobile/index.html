@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Peak Trekker — Mobile UI Kit</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  html, body { margin: 0; background: #0A0C0E; color: #F5F7F8; font-family: 'Manrope','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif; -webkit-font-smoothing: antialiased; }
+  .stage { padding: 36px 32px 56px; }
+  .head { max-width: 1200px; margin: 0 auto 24px; }
+  .head h1 { font-size: 24px; font-weight: 800; letter-spacing: -.01em; margin: 0 }
+  .head p { color: #8D959B; font-size: 13px; margin: 6px 0 0; max-width: 720px; line-height: 1.55; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 28px; max-width: 1600px; margin: 0 auto; justify-items: center; }
+  .slot { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .label { font-size: 11px; letter-spacing: .12em; color: #8D959B; text-transform: uppercase; font-family: 'IBM Plex Mono', monospace; }
+  .phone { width: 375px; height: 812px; border-radius: 44px; overflow: hidden; background: #121416; box-shadow: 0 24px 60px rgba(0,0,0,.55), 0 0 0 8px #1a1d21, 0 0 0 9px #2a2e33; position: relative; }
+  .phone .inner { position: absolute; inset: 0; overflow: hidden; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="stage">
+  <div class="head">
+    <h1>Peak Trekker · Mobile UI Kit</h1>
+    <p>375 × 812 production frames. v2 screens in focus: Mountain Detail, Home / Intent Split, Share Editor. See <code>HANDOFF.md</code> for per-screen tokens, states, and dev notes.</p>
+  </div>
+  <div class="grid" id="root"></div>
+</div>
+
+<script type="text/babel" src="Primitives.jsx"></script>
+<script type="text/babel" src="HelpPrimitives.jsx"></script>
+<script type="text/babel" src="HomeScreenV4.jsx"></script>
+<script type="text/babel" src="ExploreScreenV3.jsx"></script>
+<script type="text/babel" src="MountainDetailScreenV2.jsx"></script>
+<script type="text/babel" src="TrekScreenV2.jsx"></script>
+<script type="text/babel" src="ActivityDetailV2.jsx"></script>
+<script type="text/babel" src="ArchiveV2.jsx"></script>
+<script type="text/babel" src="ShareScreenV3.jsx"></script>
+<script type="text/babel" src="ProfileScreen.jsx"></script>
+<script type="text/babel" src="IntroFlow.jsx"></script>
+<script type="text/babel" src="ImportFlow.jsx"></script>
+<script type="text/babel" src="EmotionalMoments.jsx"></script>
+<script type="text/babel" src="WeatherMapModules.jsx"></script>
+<script type="text/babel" src="FAQScreen.jsx"></script>
+<script type="text/babel" src="Community.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+
+<script type="text/babel">
+const { useState } = React;
+
+const Phone = ({ label, children }) => (
+  <div className="slot">
+    <div className="label">{label}</div>
+    <div className="phone"><div className="inner">{children}</div></div>
+  </div>
+);
+
+const Flow = () => {
+  const [screen, setScreen] = useState('home');
+  const [mountain, setMountain] = useState(null);
+  const reset = () => setScreen('home');
+  switch (screen) {
+    case 'home': return <HomeScreenV4 onGoExplore={() => setScreen('explore')} onImport={() => setScreen('import')} onArchive={() => setScreen('profile')} onOpenLocked={() => setScreen('detail')} onTab={(t) => t === 'me' && setScreen('profile')} />;
+    case 'explore': return <ExploreScreenV3 onBack={reset} onImport={() => setScreen('import')} onPickMountain={(m) => { setMountain(m); setScreen('detail'); }} />;
+    case 'detail': return <MountainDetailScreenV2 mountain={mountain} onBack={() => setScreen('explore')} onRecord={() => setScreen('activity')} />;
+    case 'activity': return <ActivityDetailV2 onBack={reset} onShare={() => setScreen('share')} onOpenRecords={() => setScreen('profile')} />;
+    case 'share': return <ShareScreenV3 onBack={() => setScreen('activity')} />;
+    case 'import': return <ImportEntry onBack={reset} onUpload={() => setScreen('activity')} onHelp={() => setScreen('import-faq')} />;
+    case 'import-faq': return <ImportFAQ onBack={() => setScreen('import')} />;
+    case 'profile': return <ProfileScreen onTab={reset} onOpenActivity={() => setScreen('activity')} />;
+    default: return null;
+  }
+};
+
+const App = () => (
+  <>
+    <Phone label="01 · Flow (tap through)"><Flow /></Phone>
+    <Phone label="02 · Mountain Detail v2"><MountainDetailScreenV2 /></Phone>
+    <Phone label="03 · Home · Intent Split v4"><HomeScreenV4 /></Phone>
+    <Phone label="04 · Explore v3"><ExploreScreenV3 /></Phone>
+    <Phone label="05 · Explore · not found v2"><ExploreNotFoundV2 /></Phone>
+    <Phone label="07 · Profile · 档案馆"><ProfileScreen /></Phone>
+    <Phone label="08 · Trek · Live v2"><TrekLive /></Phone>
+    <Phone label="09 · Trek · Pre-start"><TrekPreStart /></Phone>
+    <Phone label="10 · Trek · Paused"><TrekPaused /></Phone>
+    <Phone label="11 · Trek · GPS weak"><TrekGpsWeak /></Phone>
+    <Phone label="12 · Trek · Near summit"><TrekNearSummit /></Phone>
+    <Phone label="13 · Trek · Summit confirmed"><TrekSummitConfirmed /></Phone>
+    <Phone label="14 · Trek · No mountain"><TrekNoMountain /></Phone>
+    <Phone label="15 · Trek · Restricted"><TrekRestricted /></Phone>
+    <Phone label="16 · Trek · Permission"><TrekPermissionDenied /></Phone>
+    <Phone label="17 · Trek · Loading"><TrekLoading /></Phone>
+    <Phone label="18 · Activity Detail v2 · Full"><ActivityDetailV2 /></Phone>
+    <Phone label="19 · Activity Detail v2 · Fallback"><ActivityDetailV2Fallback /></Phone>
+    <Phone label="20 · Archive v2 · Populated"><ArchiveV2 /></Phone>
+    <Phone label="21 · Archive v2 · Empty"><ArchiveV2Empty /></Phone>
+    <Phone label="25 · Import · Entry"><ImportEntry /></Phone>
+    <Phone label="26 · Import · Upload empty"><ImportUploadEmpty /></Phone>
+    <Phone label="27 · Import · Upload selected"><ImportUploadSelected /></Phone>
+    <Phone label="28 · Import · Parsing"><ImportUploadParsing /></Phone>
+    <Phone label="29 · Import · Upload error"><ImportUploadError /></Phone>
+    <Phone label="30 · Import · Preview"><ImportPreview /></Phone>
+    <Phone label="31 · Import · Mountain match"><ImportMatch /></Phone>
+    <Phone label="32 · Import · No match"><ImportNoMatch /></Phone>
+    <Phone label="33 · Import · Success"><ImportSuccess /></Phone>
+    <Phone label="34 · Import · FAQ help"><ImportFAQ /></Phone>
+    <Phone label="35 · Share Editor v3 · refined"><ShareScreenV3 /></Phone>
+    <Phone label="36 · Share · Action sheet"><ShareEditorWithSheet /></Phone>
+    <Phone label="37 · Share · Saved toast"><ShareSavedToast /></Phone>
+    <Phone label="38 · Share · Save success"><ShareSavedSuccess /></Phone>
+    <Phone label="39 · Community · Compose"><ShareCommunityCompose /></Phone>
+    <Phone label="40 · Community · Posted success"><ShareCommunityPosted /></Phone>
+
+    <Phone label="41 · Mtn Detail · Weather + Map"><MountainDetailWithModules /></Phone>
+    <Phone label="42 · Mtn Detail · Weather stale"><MountainDetailWeatherStale /></Phone>
+    <Phone label="43 · Mtn Detail · Weather unavailable"><MountainDetailWeatherUnavailable /></Phone>
+    <Phone label="44 · Mtn Detail · Route unavailable"><MountainDetailRouteUnavailable /></Phone>
+    <Phone label="45 · Mtn Detail · Route fallback (text)"><MountainDetailRouteFallback /></Phone>
+    <Phone label="46 · Activity · Route map"><ActivityDetailRouteOnly /></Phone>
+    <Phone label="47 · Trek · Reference map states"><TrekReferenceShowcase /></Phone>
+
+    <Phone label="48 · Trek v3 · Pre-start (refined)"><TrekPreStartV2 /></Phone>
+    <Phone label="49 · Trek v3 · GPS weak (refined)"><TrekGPSWeakV2 /></Phone>
+    <Phone label="50 · Trek v3 · Near summit (refined)"><TrekNearSummitV2 /></Phone>
+    <Phone label="51 · Summit Confirmation"><SummitConfirmationV2 /></Phone>
+    <Phone label="52 · Late Proof · Intro"><LateProofIntro /></Phone>
+    <Phone label="53 · Late Proof · Upload"><LateProofUpload /></Phone>
+    <Phone label="54 · Late Proof · Pending"><LateProofPending /></Phone>
+    <Phone label="55 · Late Proof · Submitted"><LateProofSubmitted /></Phone>
+    <Phone label="56 · Activity · Memory archive page"><MemoryActivityDetail /></Phone>
+    <Phone label="57 · Archive · Hall of Memories"><MemoryArchive /></Phone>
+
+    <Phone label="58 · Intro 1 · Choose your mountain"><IntroScreen1 /></Phone>
+    <Phone label="59 · Intro 2 · Record or import"><IntroScreen2 /></Phone>
+    <Phone label="60 · Intro 3 · Save and share"><IntroScreen3 /></Phone>
+
+    <Phone label="61 · FAQ · All collapsed (entry)"><FAQScreen /></Phone>
+    <Phone label="62 · FAQ · Group + accordion open"><FAQScreenExpanded /></Phone>
+    <Phone label="63 · FAQ · Search active"><FAQScreenSearch /></Phone>
+    <Phone label="64 · FAQ · Search empty"><FAQScreenSearchEmpty /></Phone>
+    <Phone label="65 · FAQ · Deep-link landed"><FAQScreenDeepLink /></Phone>
+    <Phone label="66 · FAQ · Detail (Pattern B)"><FAQDetailScreen /></Phone>
+    <Phone label="67 · Help sheet · GPS weak"><HelpSheetGpsWeak /></Phone>
+    <Phone label="68 · Help sheet · 审核中"><HelpSheetReview /></Phone>
+    <Phone label="69 · Profile · FAQ row inserted"><ProfileSettingsRowFrame /></Phone>
+    <Phone label="70 · Trek pre-start · ? on GPS"><TrekPreStartWithHelpFrame /></Phone>
+    <Phone label="71 · Activity · ? on 审核中"><ActivityProofStripWithHelpFrame /></Phone>
+
+    <Phone label="72 · Community Feed · Populated"><CommunityFeedScreen /></Phone>
+    <Phone label="73 · Community Feed · Top of list"><CommunityFeedScreenTop /></Phone>
+    <Phone label="74 · Community Feed · Empty"><CommunityFeedScreenEmpty /></Phone>
+    <Phone label="75 · Community Feed · Loading"><CommunityFeedScreenLoading /></Phone>
+    <Phone label="76 · Community Card · 5 variants"><CommunityCardVariants /></Phone>
+    <Phone label="77 · Community Feed · Kebab open"><CommunityFeedScreenWithMenu /></Phone>
+    <Phone label="78 · Community Detail · Viewer (other)"><CommunityDetailViewerOther /></Phone>
+    <Phone label="79 · Community Detail · Viewer (author)"><CommunityDetailViewerAuthor /></Phone>
+    <Phone label="80 · Community Detail · Multi-image gallery"><CommunityDetailMultiImage /></Phone>
+    <Phone label="81 · Community Detail · Text-only"><CommunityDetailTextOnly /></Phone>
+    <Phone label="82 · Mtn Detail · Curated module (3 posts)"><MountainDetailWithCurated3 /></Phone>
+    <Phone label="83 · Mtn Detail · Curated (1) + (none)"><MountainDetailWithCurated1 /></Phone>
+  </>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body { margin:0; background:#0A0C0E; color:#F5F7F8; font-family:'Manrope','PingFang SC',sans-serif; }
+  .wrap { padding: 16px 18px; }
+  h3 { font-size: 11px; letter-spacing:.14em; text-transform:uppercase; color:#8D959B; margin:0 0 10px; font-family:'IBM Plex Mono',monospace; }
+  .row { display:flex; gap:10px; overflow-x:auto; padding-bottom:8px; }
+  .mini { width: 110px; flex:0 0 auto; }
+  .mini .frame { width:110px; height:238px; border-radius:16px; overflow:hidden; background:#121416; border:1px solid #23272C; position:relative; }
+  .mini .frame .inner { position:absolute; inset:0; transform: scale(.2933); transform-origin: top left; width:375px; height:812px; overflow:hidden; }
+  .mini .lbl { margin-top:8px; font-size:10px; color:#8D959B; text-align:center; letter-spacing:.04em; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="wrap">
+  <h3>Trek v2 · 10 states</h3>
+  <div class="row" id="row"></div>
+</div>
+<script type="text/babel" src="../ui_kits/mobile/Primitives.jsx"></script>
+<script type="text/babel" src="../ui_kits/mobile/TrekScreenV2.jsx"></script>
+<script type="text/babel">
+const states = [
+  ['Live', <TrekLive/>], ['Pre-start', <TrekPreStart/>], ['Paused', <TrekPaused/>],
+  ['GPS weak', <TrekGpsWeak/>], ['Near summit', <TrekNearSummit/>], ['Summit ✓', <TrekSummitConfirmed/>],
+  ['No mtn', <TrekNoMountain/>], ['Restricted', <TrekRestricted/>], ['Permission', <TrekPermissionDenied/>], ['Loading', <TrekLoading/>],
+];
+ReactDOM.createRoot(document.getElementById('row')).render(
+  <>{states.map(([l, el], i) => (
+    <div className="mini" key={i}>
+      <div className="frame"><div className="inner">{el}</div></div>
+      <div className="lbl">{l}</div>
+    </div>
+  ))}</>
+);
+</script></body></html>

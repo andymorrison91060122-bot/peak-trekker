@@ -1,8 +1,34 @@
-export default function AdminLayout({
+import { redirect } from 'next/navigation'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { canAccessAdminTools } from '@/lib/admin-access'
+
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/auth/login?from=/admin')
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (!canAccessAdminTools({
+    email: user.email,
+    isAdmin: Boolean((profile as { is_admin?: boolean } | null)?.is_admin),
+  })) {
+    redirect('/profile')
+  }
+
   return (
     <div className="min-h-screen" style={{ background: '#0a0a0a' }}>
       {/* 顶部导航 */}
@@ -19,6 +45,7 @@ export default function AdminLayout({
               { href: '/admin/users', label: '用户' },
               { href: '/admin/mountains', label: '山峰' },
               { href: '/admin/checkins', label: '审核' },
+              { href: '/admin/community', label: '社区' },
             ].map(item => (
               <a
                 key={item.href}

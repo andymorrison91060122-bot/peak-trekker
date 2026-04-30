@@ -15,35 +15,39 @@ export default function TrekFAB() {
       aria-label="开始登山"
       style={{
         position: 'fixed',
-        bottom: 88,
-        right: 20,
-        width: 60,
-        height: 60,
-        borderRadius: '50%',
+        bottom: 'calc(80px + env(safe-area-inset-bottom))',
+        right: 16,
+        width: 64,
+        height: 64,
+        borderRadius: 18,
         background: 'var(--green-primary)',
-        color: '#000',
+        color: '#08120d',
         border: 'none',
         cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: '0 4px 16px rgba(74, 222, 128, 0.5)',
+        boxShadow: '0 16px 32px rgba(34, 197, 94, 0.24)',
         zIndex: 900,
-        transition: 'transform 0.2s, box-shadow 0.2s',
-        gap: 2,
+        transition: 'transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease',
+        gap: 4,
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.transform = 'scale(1.1)'
-        e.currentTarget.style.boxShadow = '0 6px 24px rgba(74, 222, 128, 0.6)'
+        e.currentTarget.style.transform = 'translateY(-2px)'
+        e.currentTarget.style.boxShadow = '0 18px 36px rgba(34, 197, 94, 0.32)'
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.transform = 'scale(1)'
-        e.currentTarget.style.boxShadow = '0 4px 16px rgba(74, 222, 128, 0.5)'
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.boxShadow = '0 16px 32px rgba(34, 197, 94, 0.24)'
       }}
-    >
-      <span style={{ fontSize: 20, lineHeight: 1 }}>⛰</span>
-      <span style={{ fontSize: 9, fontWeight: 700, fontFamily: 'Share Tech Mono', lineHeight: 1 }}>出发</span>
+      >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M12 4v13" stroke="#08120d" strokeWidth="2" strokeLinecap="round" />
+        <path d="M8 8c1.4.4 2.8 1.8 4 3.7 1.2-1.9 2.6-3.3 4-3.7" stroke="#08120d" strokeWidth="2" strokeLinecap="round" />
+        <path d="M8.5 20h7" stroke="#08120d" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+      <span style={{ fontSize: 11, fontWeight: 800, lineHeight: 1 }}>开始</span>
     </button>
   )
 }

@@ -1,0 +1,26 @@
+{
+  "before": {
+    "previewKind": "photo_composite",
+    "template": "summit_card",
+    "renderMode": "photo_composite",
+    "imageSrc": "blob:http://127.0.0.1:3100/cae03e36-261c-4ad3-bbae-4496fba3aa9d",
+    "photoPreviewCount": 1
+  },
+  "after": {
+    "previewKind": "photo_composite",
+    "template": "summit_card",
+    "renderMode": "photo_composite",
+    "imageSrc": "blob:http://127.0.0.1:3100/fd7b25ef-05d8-44d9-b24c-0fc331f7ab64",
+    "photoPreviewCount": 1
+  },
+  "requests": [
+    {
+      "renderMode": "photo_composite",
+      "template": "summit_card"
+    },
+    {
+      "renderMode": "photo_composite",
+      "template": "summit_card"
+    }
+  ]
+}

@@ -1,0 +1,238 @@
+[
+  {
+    "scenario": "summit-short-after",
+    "metrics": {
+      "template": "summit",
+      "dataBottom": 1270,
+      "regionTop": 1294,
+      "regionBottom": 1474,
+      "contentTop": 1322,
+      "contentBottom": 1394,
+      "contentHeight": 72,
+      "maxHeight": 338,
+      "overflowMode": "fit",
+      "panelBox": {
+        "x": 92,
+        "y": 1294,
+        "width": 896,
+        "height": 180,
+        "bottom": 1474
+      },
+      "lineBox": {
+        "x": 124,
+        "y": 1322,
+        "width": 480,
+        "height": 46,
+        "bottom": 1368
+      },
+      "labelBox": null,
+      "authorBox": {
+        "x": 123.6044921875,
+        "y": 1370,
+        "width": 130.0048828125,
+        "height": 21,
+        "bottom": 1391
+      },
+      "footerBox": {
+        "x": 124,
+        "y": 1410,
+        "width": 394.640625,
+        "height": 20,
+        "bottom": 1430
+      },
+      "computed": null
+    }
+  },
+  {
+    "scenario": "summit-long-after",
+    "metrics": {
+      "template": "summit",
+      "dataBottom": 1270,
+      "regionTop": 1294,
+      "regionBottom": 1538,
+      "contentTop": 1322,
+      "contentBottom": 1458,
+      "contentHeight": 136,
+      "maxHeight": 338,
+      "overflowMode": "fit",
+      "panelBox": {
+        "x": 92,
+        "y": 1294,
+        "width": 896,
+        "height": 244,
+        "bottom": 1538
+      },
+      "lineBox": {
+        "x": 124,
+        "y": 1322,
+        "width": 672,
+        "height": 32,
+        "bottom": 1354
+      },
+      "labelBox": null,
+      "authorBox": {
+        "x": 123.6044921875,
+        "y": 1434,
+        "width": 94.0048828125,
+        "height": 21,
+        "bottom": 1455
+      },
+      "footerBox": {
+        "x": 124,
+        "y": 1474,
+        "width": 394.640625,
+        "height": 20,
+        "bottom": 1494
+      },
+      "computed": null
+    }
+  },
+  {
+    "scenario": "trek-short-after",
+    "metrics": {
+      "template": "trek",
+      "dataBottom": 1320,
+      "regionTop": 1513,
+      "regionBottom": 1776,
+      "contentTop": 1572,
+      "contentBottom": 1696,
+      "contentHeight": 124,
+      "maxHeight": 237,
+      "overflowMode": "fit",
+      "panelBox": {
+        "x": 92,
+        "y": 1513,
+        "width": 868,
+        "height": 263,
+        "bottom": 1776
+      },
+      "lineBox": {
+        "x": 124,
+        "y": 1572,
+        "width": 720,
+        "height": 46,
+        "bottom": 1618
+      },
+      "labelBox": {
+        "x": 124,
+        "y": 1541,
+        "width": 118.828125,
+        "height": 21,
+        "bottom": 1562
+      },
+      "authorBox": {
+        "x": 123.6044921875,
+        "y": 1672,
+        "width": 173.2236328125,
+        "height": 21,
+        "bottom": 1693
+      },
+      "footerBox": {
+        "x": 124,
+        "y": 1712,
+        "width": 394.640625,
+        "height": 20,
+        "bottom": 1732
+      },
+      "computed": {
+        "labelToQuoteGap": 10
+      }
+    }
+  },
+  {
+    "scenario": "trek-long-after",
+    "metrics": {
+      "template": "trek",
+      "dataBottom": 1320,
+      "regionTop": 1565,
+      "regionBottom": 1776,
+      "contentTop": 1624,
+      "contentBottom": 1696,
+      "contentHeight": 72,
+      "maxHeight": 237,
+      "overflowMode": "fit",
+      "panelBox": {
+        "x": 92,
+        "y": 1565,
+        "width": 868,
+        "height": 211,
+        "bottom": 1776
+      },
+      "lineBox": {
+        "x": 124,
+        "y": 1624,
+        "width": 720,
+        "height": 46,
+        "bottom": 1670
+      },
+      "labelBox": {
+        "x": 124,
+        "y": 1593,
+        "width": 118.828125,
+        "height": 21,
+        "bottom": 1614
+      },
+      "authorBox": {
+        "x": 123.6044921875,
+        "y": 1672,
+        "width": 148.0048828125,
+        "height": 21,
+        "bottom": 1693
+      },
+      "footerBox": {
+        "x": 124,
+        "y": 1712,
+        "width": 394.640625,
+        "height": 20,
+        "bottom": 1732
+      },
+      "computed": {
+        "labelToQuoteGap": 10
+      }
+    }
+  },
+  {
+    "scenario": "historical-long-after",
+    "metrics": {
+      "template": "historical",
+      "dataBottom": 1270,
+      "regionTop": 1294,
+      "regionBottom": 1538,
+      "contentTop": 1322,
+      "contentBottom": 1458,
+      "contentHeight": 136,
+      "maxHeight": 338,
+      "overflowMode": "fit",
+      "panelBox": {
+        "x": 92,
+        "y": 1294,
+        "width": 896,
+        "height": 244,
+        "bottom": 1538
+      },
+      "lineBox": {
+        "x": 124,
+        "y": 1322,
+        "width": 672,
+        "height": 32,
+        "bottom": 1354
+      },
+      "labelBox": null,
+      "authorBox": {
+        "x": 123.6044921875,
+        "y": 1434,
+        "width": 94.0048828125,
+        "height": 21,
+        "bottom": 1455
+      },
+      "footerBox": {
+        "x": 124,
+        "y": 1474,
+        "width": 394.640625,
+        "height": 20,
+        "bottom": 1494
+      },
+      "computed": null
+    }
+  }
+]

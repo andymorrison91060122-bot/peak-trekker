@@ -1,0 +1,108 @@
+{
+  "gpsCheckinId": "b4c657bc-642e-4d48-bc7c-2265e913e9a7",
+  "historicalCheckinId": "c3943209-a627-48f8-a432-b2d728fdd63c",
+  "A_activity_gps": {
+    "label": "A",
+    "before": {
+      "previewKind": "poster",
+      "template": "summit_card",
+      "renderMode": "classic_card",
+      "imageSrc": "blob:http://127.0.0.1:3100/a608a2d6-45a2-4441-aa02-085a5e55ef21",
+      "photoPreviewCount": 0
+    },
+    "after": {
+      "previewKind": "photo_composite",
+      "template": "summit_card",
+      "renderMode": "photo_composite",
+      "imageSrc": "blob:http://127.0.0.1:3100/7049e4ba-a6b0-4ee9-8faf-119519cefb40",
+      "photoPreviewCount": 1
+    },
+    "requests": [
+      {
+        "renderMode": "classic_card",
+        "template": "summit_card"
+      },
+      {
+        "renderMode": "photo_composite",
+        "template": "summit_card"
+      }
+    ]
+  },
+  "B_profile_gps": {
+    "label": "B",
+    "before": {
+      "previewKind": "poster",
+      "template": "summit_card",
+      "renderMode": "classic_card",
+      "imageSrc": "blob:http://127.0.0.1:3100/7cce6f65-d0f0-4464-b047-690e184c62d9",
+      "photoPreviewCount": 0
+    },
+    "after": {
+      "previewKind": "photo_composite",
+      "template": "summit_card",
+      "renderMode": "photo_composite",
+      "imageSrc": "blob:http://127.0.0.1:3100/9810798a-af8e-42bf-ae5d-0b0d9baaac88",
+      "photoPreviewCount": 1
+    },
+    "requests": [
+      {
+        "renderMode": "classic_card",
+        "template": "summit_card"
+      },
+      {
+        "renderMode": "photo_composite",
+        "template": "summit_card"
+      }
+    ]
+  },
+  "C_activity_historical": {
+    "label": "C",
+    "before": {
+      "previewKind": "photo_composite",
+      "template": "summit_card",
+      "renderMode": "photo_composite",
+      "imageSrc": "blob:http://127.0.0.1:3100/2af29f49-65f9-43c7-a10b-a4b49cb0098d",
+      "photoPreviewCount": 1
+    },
+    "after": {
+      "previewKind": "photo_composite",
+      "template": "summit_card",
+      "renderMode": "photo_composite",
+      "imageSrc": "blob:http://127.0.0.1:3100/34ab29c2-b4f3-4ebe-9d49-68966083875f",
+      "photoPreviewCount": 1
+    },
+    "requests": [
+      {
+        "renderMode": "photo_composite",
+        "template": "summit_card"
+      },
+      {
+        "renderMode": "photo_composite",
+        "template": "summit_card"
+      }
+    ]
+  },
+  "D_profile_historical": {
+    "label": "D",
+    "before": {
+      "previewKind": "photo_composite",
+      "template": "summit_card",
+      "renderMode": "photo_composite",
+      "imageSrc": "blob:http://127.0.0.1:3100/d01661c0-bf4c-4dcb-9bea-fc6204139786",
+      "photoPreviewCount": 1
+    },
+    "after": {
+      "previewKind": "photo_composite",
+      "template": "summit_card",
+      "renderMode": "photo_composite",
+      "imageSrc": "blob:http://127.0.0.1:3100/d01661c0-bf4c-4dcb-9bea-fc6204139786",
+      "photoPreviewCount": 1
+    },
+    "requests": [
+      {
+        "renderMode": "photo_composite",
+        "template": "summit_card"
+      }
+    ]
+  }
+}

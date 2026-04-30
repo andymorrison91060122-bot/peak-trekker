@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useTransition } from 'react'
 
 const DIFF_LABEL: Record<string, string> = {
@@ -85,11 +86,11 @@ export default function AdminMountainsClient({
         <div style={{ border: '1px solid var(--border-color)' }}>
           {/* 表头 */}
           <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 80px 80px',
+            display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 80px 80px 96px',
             padding: '8px 12px', background: '#0a0a0a',
             borderBottom: '1px solid var(--border-color)',
           }}>
-            {['山峰', '省份', '海拔', '难度', '执照要求', '登顶数'].map(h => (
+            {['山峰', '省份', '海拔', '难度', '执照要求', '登顶数', '操作'].map(h => (
               <div key={h} style={{ fontFamily: 'Share Tech Mono', fontSize: 9, color: 'var(--text-muted)', letterSpacing: 1 }}>
                 {h}
               </div>
@@ -100,7 +101,7 @@ export default function AdminMountainsClient({
             <div
               key={m.id}
               style={{
-                display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 80px 80px',
+                display: 'grid', gridTemplateColumns: '1fr 80px 80px 80px 80px 80px 96px',
                 padding: '12px', alignItems: 'center',
                 borderBottom: i < mountains.length - 1 ? '1px solid var(--border-color)' : 'none',
                 background: i % 2 === 0 ? 'var(--bg-card)' : 'rgba(0,0,0,0.2)',
@@ -146,6 +147,22 @@ export default function AdminMountainsClient({
 
               <div style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--text-muted)' }}>
                 {m.checkin_count ?? 0}
+              </div>
+
+              <div>
+                <Link
+                  href={`/admin/mountains/${m.id}`}
+                  className="secondary-btn"
+                  data-testid={`admin-mountain-edit-link-${m.id}`}
+                  style={{
+                    minHeight: 36,
+                    padding: '0 12px',
+                    fontSize: 12,
+                    textDecoration: 'none',
+                  }}
+                >
+                  编辑
+                </Link>
               </div>
             </div>
           ))}

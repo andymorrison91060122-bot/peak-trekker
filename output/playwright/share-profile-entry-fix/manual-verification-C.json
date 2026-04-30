@@ -1,0 +1,17 @@
+{
+  "previewKind": "photo_composite",
+  "template": "summit_card",
+  "renderMode": "photo_composite",
+  "imageSrc": "blob:http://127.0.0.1:3100/706995ee-0bef-4d6b-b319-3e75af8ab2e1",
+  "photoPreviewCount": 1,
+  "requests": [
+    {
+      "renderMode": "photo_composite",
+      "template": "summit_card"
+    },
+    {
+      "renderMode": "photo_composite",
+      "template": "summit_card"
+    }
+  ]
+}

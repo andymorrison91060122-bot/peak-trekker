@@ -1,17 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { normalizeAuthReturnPath } from '@/lib/auth-redirect'
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createSupabaseBrowserClient()
+  const returnTo = normalizeAuthReturnPath(searchParams.get('from'), '/explore')
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -21,8 +23,8 @@ export default function LoginPage() {
     if (error) {
       setError(error.message === 'Invalid login credentials' ? '邮箱或密码错误' : error.message)
     } else {
-      router.push('/explore')
-      router.refresh()
+      window.location.assign(returnTo)
+      return
     }
     setLoading(false)
   }
@@ -48,7 +50,7 @@ export default function LoginPage() {
       <div style={{ width: '100%', maxWidth: 360 }}>
         <div className="mountain-card" style={{ padding: 24 }}>
           <div className="font-pixel" style={{ fontSize: 9, color: 'var(--green-bright)', marginBottom: 20, letterSpacing: 1 }}>
-            // LOGIN
+            {'// LOGIN'}
           </div>
 
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -126,7 +128,10 @@ export default function LoginPage() {
 
           <div style={{ textAlign: 'center', fontSize: 11, fontFamily: 'Share Tech Mono', color: 'var(--text-muted)' }}>
             还没有账号？{' '}
-            <Link href="/auth/register" style={{ color: 'var(--green-bright)', textDecoration: 'none' }}>
+            <Link
+              href={returnTo === '/explore' ? '/auth/register' : `/auth/register?from=${encodeURIComponent(returnTo)}`}
+              style={{ color: 'var(--green-bright)', textDecoration: 'none' }}
+            >
               注册 →
             </Link>
           </div>
@@ -143,5 +148,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   )
 }

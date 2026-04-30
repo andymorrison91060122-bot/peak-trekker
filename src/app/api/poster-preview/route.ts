@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 
 // 直接用固定数据生成预览，不需要 Supabase 数据
 import { GET as posterGET } from '../poster/route'
@@ -10,6 +10,15 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url)
   url.pathname = '/api/poster'
   url.searchParams.set('checkinId', 'demo')
+  const renderMode = url.searchParams.get('renderMode')
+  if (!url.searchParams.get('previewBackground')) {
+    if (renderMode === 'overlay_only') {
+      url.searchParams.set('previewBackground', 'checker')
+    }
+    if (renderMode === 'photo_composite') {
+      url.searchParams.set('previewBackground', 'scenic')
+    }
+  }
   const fakeReq = new NextRequest(url.toString())
   return posterGET(fakeReq)
 }

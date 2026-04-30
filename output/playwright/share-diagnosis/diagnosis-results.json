@@ -1,0 +1,491 @@
+{
+  "D": {
+    "state": {
+      "label": "D-no-upload",
+      "surfacePreviewKind": "poster",
+      "surfaceRenderMode": "classic_card",
+      "imagePreviewKind": null,
+      "src": "blob:http://127.0.0.1:3100/e1e4792f-7829-4ace-b8a8-096adb3c4756",
+      "title": "推荐结果卡",
+      "subtitle": "当前没有可用现场照片，已自动切到结果卡。",
+      "loadingVisible": false,
+      "uploadVisible": true,
+      "removeVisible": false,
+      "photoPreviewVisible": false,
+      "photoUtilityVisible": true
+    },
+    "shots": {
+      "dialogPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/D-no-upload-dialog.png",
+      "previewPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/D-no-upload-preview.png",
+      "utilityPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/D-no-upload-utility.png"
+    },
+    "requests": [
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/trek/actions",
+        "status": 200,
+        "body": "{\"ok\":true,\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"verificationDistanceM\":0,\"rankingWeight\":10,\"mountain\":{\"id\":\"e280d367-647a-4bf0-a9fd-9b7f864be92b\",\"name\":\"泰山\"}}",
+        "ts": 1776491114956
+      },
+      {
+        "kind": "request",
+        "url": "http://127.0.0.1:3100/api/trek/actions",
+        "method": "POST",
+        "body": "{\"action\":\"generate_share_card\",\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"classic_card\",\"anchorPosition\":\"top\"}",
+        "ts": 1776491119067
+      },
+      {
+        "kind": "request",
+        "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=classic_card&anchorPosition=top",
+        "method": "GET",
+        "body": null,
+        "ts": 1776491120617
+      },
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/trek/actions",
+        "status": 200,
+        "body": "{\"ok\":true,\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"classic_card\",\"effectiveRenderMode\":\"classic_card\",\"posterRenderMode\":\"classic_card\",\"anchorPosition\":\"top\",\"source\":\"realtime_gps\",\"posterUrl\":\"/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=classic_card&anchorPosition=top\",\"photoUrl\":null,\"persisted\":true}",
+        "ts": 1776491120617
+      },
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=classic_card&anchorPosition=top",
+        "status": 200,
+        "body": null,
+        "ts": 1776491122564
+      }
+    ]
+  },
+  "A": {
+    "before": {
+      "label": "A-first-upload-red-before",
+      "surfacePreviewKind": "poster",
+      "surfaceRenderMode": "classic_card",
+      "imagePreviewKind": null,
+      "src": "blob:http://127.0.0.1:3100/e1e4792f-7829-4ace-b8a8-096adb3c4756",
+      "title": "推荐结果卡",
+      "subtitle": "当前没有可用现场照片，已自动切到结果卡。",
+      "loadingVisible": false,
+      "uploadVisible": true,
+      "removeVisible": false,
+      "photoPreviewVisible": false,
+      "photoUtilityVisible": true
+    },
+    "beforeSrc": "blob:http://127.0.0.1:3100/e1e4792f-7829-4ace-b8a8-096adb3c4756",
+    "immediate": {
+      "label": "A-first-upload-red-immediate",
+      "surfacePreviewKind": "photo_composite",
+      "surfaceRenderMode": "photo_composite",
+      "imagePreviewKind": null,
+      "src": "blob:http://127.0.0.1:3100/52854fde-a36a-4927-822c-89f883fa5ad1",
+      "title": "推荐分享图",
+      "subtitle": "已优先使用现场照片合成分享图，打开后就能直接分享。",
+      "loadingVisible": false,
+      "uploadVisible": true,
+      "removeVisible": true,
+      "photoPreviewVisible": true,
+      "photoUtilityVisible": true
+    },
+    "t500": {
+      "label": "A-first-upload-red-500ms",
+      "surfacePreviewKind": "photo_composite",
+      "surfaceRenderMode": "photo_composite",
+      "imagePreviewKind": null,
+      "src": "blob:http://127.0.0.1:3100/52854fde-a36a-4927-822c-89f883fa5ad1",
+      "title": "推荐分享图",
+      "subtitle": "已优先使用现场照片合成分享图，打开后就能直接分享。",
+      "loadingVisible": false,
+      "uploadVisible": true,
+      "removeVisible": true,
+      "photoPreviewVisible": true,
+      "photoUtilityVisible": true
+    },
+    "settled": {
+      "label": "A-first-upload-red-settled",
+      "surfacePreviewKind": "photo_composite",
+      "surfaceRenderMode": "photo_composite",
+      "imagePreviewKind": null,
+      "src": "blob:http://127.0.0.1:3100/52854fde-a36a-4927-822c-89f883fa5ad1",
+      "title": "推荐分享图",
+      "subtitle": "已优先使用现场照片合成分享图，打开后就能直接分享。",
+      "loadingVisible": false,
+      "uploadVisible": true,
+      "removeVisible": true,
+      "photoPreviewVisible": true,
+      "photoUtilityVisible": true
+    },
+    "colors": {
+      "redPixels": 141614,
+      "greenPixels": 94,
+      "bluePixels": 0,
+      "width": 567,
+      "height": 843
+    },
+    "shots": {
+      "dialogPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/A-first-upload-red-dialog.png",
+      "previewPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/A-first-upload-red-preview.png",
+      "utilityPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/A-first-upload-red-utility.png"
+    },
+    "requests": [
+      {
+        "kind": "request",
+        "url": "http://127.0.0.1:3100/api/trek/actions",
+        "method": "POST",
+        "body": "{\"action\":\"generate_share_card\",\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"photo_composite\",\"anchorPosition\":\"top\"}",
+        "ts": 1776491123267
+      },
+      {
+        "kind": "request",
+        "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top",
+        "method": "GET",
+        "body": null,
+        "ts": 1776491125093
+      },
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/trek/actions",
+        "status": 200,
+        "body": "{\"ok\":true,\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"photo_composite\",\"effectiveRenderMode\":\"photo_composite\",\"posterRenderMode\":\"overlay_only\",\"anchorPosition\":\"top\",\"source\":\"realtime_gps\",\"posterUrl\":\"/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top\",\"photoUrl\":null,\"persisted\":true}",
+        "ts": 1776491125093
+      },
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top",
+        "status": 200,
+        "body": null,
+        "ts": 1776491126454
+      }
+    ]
+  },
+  "B": {
+    "before": {
+      "label": "B-reopen-upload-blue-before",
+      "surfacePreviewKind": "photo_composite",
+      "surfaceRenderMode": "photo_composite",
+      "imagePreviewKind": null,
+      "src": "blob:http://127.0.0.1:3100/0f1aa15a-4417-4b51-8eb6-2e5c689121a1",
+      "title": "推荐分享图",
+      "subtitle": "已优先使用现场照片合成分享图，打开后就能直接分享。",
+      "loadingVisible": false,
+      "uploadVisible": true,
+      "removeVisible": true,
+      "photoPreviewVisible": true,
+      "photoUtilityVisible": true
+    },
+    "beforeSrc": "blob:http://127.0.0.1:3100/0f1aa15a-4417-4b51-8eb6-2e5c689121a1",
+    "immediate": {
+      "label": "B-reopen-upload-blue-immediate",
+      "surfacePreviewKind": "photo_composite",
+      "surfaceRenderMode": "photo_composite",
+      "imagePreviewKind": null,
+      "src": "blob:http://127.0.0.1:3100/6cf12ad3-4bb4-4146-bf1e-4aa27286e849",
+      "title": "推荐分享图",
+      "subtitle": "已优先使用现场照片合成分享图，打开后就能直接分享。",
+      "loadingVisible": false,
+      "uploadVisible": true,
+      "removeVisible": true,
+      "photoPreviewVisible": true,
+      "photoUtilityVisible": true
+    },
+    "t500": {
+      "label": "B-reopen-upload-blue-500ms",
+      "surfacePreviewKind": "photo_composite",
+      "surfaceRenderMode": "photo_composite",
+      "imagePreviewKind": null,
+      "src": "blob:http://127.0.0.1:3100/6cf12ad3-4bb4-4146-bf1e-4aa27286e849",
+      "title": "推荐分享图",
+      "subtitle": "已优先使用现场照片合成分享图，打开后就能直接分享。",
+      "loadingVisible": false,
+      "uploadVisible": true,
+      "removeVisible": true,
+      "photoPreviewVisible": true,
+      "photoUtilityVisible": true
+    },
+    "settled": {
+      "label": "B-reopen-upload-blue-settled",
+      "surfacePreviewKind": "photo_composite",
+      "surfaceRenderMode": "photo_composite",
+      "imagePreviewKind": null,
+      "src": "blob:http://127.0.0.1:3100/6cf12ad3-4bb4-4146-bf1e-4aa27286e849",
+      "title": "推荐分享图",
+      "subtitle": "已优先使用现场照片合成分享图，打开后就能直接分享。",
+      "loadingVisible": false,
+      "uploadVisible": true,
+      "removeVisible": true,
+      "photoPreviewVisible": true,
+      "photoUtilityVisible": true
+    },
+    "colors": {
+      "redPixels": 0,
+      "greenPixels": 94,
+      "bluePixels": 188043,
+      "width": 567,
+      "height": 843
+    },
+    "shots": {
+      "dialogPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/B-reopen-upload-blue-dialog.png",
+      "previewPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/B-reopen-upload-blue-preview.png",
+      "utilityPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/B-reopen-upload-blue-utility.png"
+    },
+    "requests": [
+      {
+        "kind": "request",
+        "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top",
+        "method": "GET",
+        "body": null,
+        "ts": 1776491132653
+      },
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top",
+        "status": 200,
+        "body": null,
+        "ts": 1776491132654
+      },
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/trek/actions",
+        "status": 200,
+        "body": "{\"ok\":true,\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"photo_composite\",\"effectiveRenderMode\":\"photo_composite\",\"posterRenderMode\":\"overlay_only\",\"anchorPosition\":\"top\",\"source\":\"realtime_gps\",\"posterUrl\":\"/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top\",\"photoUrl\":null,\"persisted\":true}",
+        "ts": 1776491132660
+      },
+      {
+        "kind": "request",
+        "url": "http://127.0.0.1:3100/api/trek/actions",
+        "method": "POST",
+        "body": "{\"action\":\"generate_share_card\",\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"photo_composite\",\"anchorPosition\":\"top\"}",
+        "ts": 1776491133034
+      },
+      {
+        "kind": "request",
+        "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top",
+        "method": "GET",
+        "body": null,
+        "ts": 1776491134303
+      },
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top",
+        "status": 200,
+        "body": null,
+        "ts": 1776491134304
+      },
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/trek/actions",
+        "status": 200,
+        "body": "{\"ok\":true,\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"photo_composite\",\"effectiveRenderMode\":\"photo_composite\",\"posterRenderMode\":\"overlay_only\",\"anchorPosition\":\"top\",\"source\":\"realtime_gps\",\"posterUrl\":\"/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top\",\"photoUrl\":null,\"persisted\":true}",
+        "ts": 1776491134312
+      }
+    ]
+  },
+  "C": {
+    "afterRemoveImmediate": {
+      "label": "C-after-remove-immediate",
+      "surfacePreviewKind": "poster",
+      "surfaceRenderMode": "classic_card",
+      "imagePreviewKind": null,
+      "src": "blob:http://127.0.0.1:3100/c0b50426-3c40-4801-8383-459bb0bae9d6",
+      "title": "推荐结果卡",
+      "subtitle": "当前没有可用现场照片，已自动切到结果卡。",
+      "loadingVisible": false,
+      "uploadVisible": true,
+      "removeVisible": false,
+      "photoPreviewVisible": false,
+      "photoUtilityVisible": true
+    },
+    "afterRemove500": {
+      "label": "C-after-remove-500ms",
+      "surfacePreviewKind": "poster",
+      "surfaceRenderMode": "classic_card",
+      "imagePreviewKind": null,
+      "src": "blob:http://127.0.0.1:3100/c0b50426-3c40-4801-8383-459bb0bae9d6",
+      "title": "推荐结果卡",
+      "subtitle": "当前没有可用现场照片，已自动切到结果卡。",
+      "loadingVisible": false,
+      "uploadVisible": true,
+      "removeVisible": false,
+      "photoPreviewVisible": false,
+      "photoUtilityVisible": true
+    },
+    "afterRemoveSettled": {
+      "label": "C-after-remove-settled",
+      "surfacePreviewKind": "poster",
+      "surfaceRenderMode": "classic_card",
+      "imagePreviewKind": null,
+      "src": "blob:http://127.0.0.1:3100/c0b50426-3c40-4801-8383-459bb0bae9d6",
+      "title": "推荐结果卡",
+      "subtitle": "当前没有可用现场照片，已自动切到结果卡。",
+      "loadingVisible": false,
+      "uploadVisible": true,
+      "removeVisible": false,
+      "photoPreviewVisible": false,
+      "photoUtilityVisible": true
+    },
+    "afterRemoveShots": {
+      "dialogPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/C-after-remove-dialog.png",
+      "previewPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/C-after-remove-preview.png",
+      "utilityPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/C-after-remove-utility.png"
+    },
+    "afterRemoveRequests": [
+      {
+        "kind": "request",
+        "url": "http://127.0.0.1:3100/api/trek/actions",
+        "method": "POST",
+        "body": "{\"action\":\"generate_share_card\",\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"classic_card\",\"anchorPosition\":\"top\"}",
+        "ts": 1776491138262
+      },
+      {
+        "kind": "request",
+        "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=classic_card&anchorPosition=top",
+        "method": "GET",
+        "body": null,
+        "ts": 1776491139836
+      },
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=classic_card&anchorPosition=top",
+        "status": 200,
+        "body": null,
+        "ts": 1776491139836
+      },
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/trek/actions",
+        "status": 200,
+        "body": "{\"ok\":true,\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"classic_card\",\"effectiveRenderMode\":\"classic_card\",\"posterRenderMode\":\"classic_card\",\"anchorPosition\":\"top\",\"source\":\"realtime_gps\",\"posterUrl\":\"/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=classic_card&anchorPosition=top\",\"photoUrl\":null,\"persisted\":true}",
+        "ts": 1776491139836
+      },
+      {
+        "kind": "request",
+        "url": "http://127.0.0.1:3100/api/trek/actions",
+        "method": "POST",
+        "body": "{\"action\":\"generate_share_card\",\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"photo_composite\",\"anchorPosition\":\"top\"}",
+        "ts": 1776491143451
+      },
+      {
+        "kind": "request",
+        "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top",
+        "method": "GET",
+        "body": null,
+        "ts": 1776491145224
+      },
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top",
+        "status": 200,
+        "body": null,
+        "ts": 1776491145225
+      },
+      {
+        "kind": "response",
+        "url": "http://127.0.0.1:3100/api/trek/actions",
+        "status": 200,
+        "body": "{\"ok\":true,\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"photo_composite\",\"effectiveRenderMode\":\"photo_composite\",\"posterRenderMode\":\"overlay_only\",\"anchorPosition\":\"top\",\"source\":\"realtime_gps\",\"posterUrl\":\"/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top\",\"photoUrl\":null,\"persisted\":true}",
+        "ts": 1776491145228
+      }
+    ],
+    "reupload": {
+      "before": {
+        "label": "C-reupload-green-before",
+        "surfacePreviewKind": "poster",
+        "surfaceRenderMode": "classic_card",
+        "imagePreviewKind": null,
+        "src": "blob:http://127.0.0.1:3100/c0b50426-3c40-4801-8383-459bb0bae9d6",
+        "title": "推荐结果卡",
+        "subtitle": "当前没有可用现场照片，已自动切到结果卡。",
+        "loadingVisible": false,
+        "uploadVisible": true,
+        "removeVisible": false,
+        "photoPreviewVisible": false,
+        "photoUtilityVisible": true
+      },
+      "beforeSrc": "blob:http://127.0.0.1:3100/c0b50426-3c40-4801-8383-459bb0bae9d6",
+      "immediate": {
+        "label": "C-reupload-green-immediate",
+        "surfacePreviewKind": "photo_composite",
+        "surfaceRenderMode": "photo_composite",
+        "imagePreviewKind": null,
+        "src": "blob:http://127.0.0.1:3100/b26f3ec2-7834-4633-a607-ab22432adc13",
+        "title": "推荐分享图",
+        "subtitle": "已优先使用现场照片合成分享图，打开后就能直接分享。",
+        "loadingVisible": false,
+        "uploadVisible": true,
+        "removeVisible": true,
+        "photoPreviewVisible": true,
+        "photoUtilityVisible": true
+      },
+      "t500": {
+        "label": "C-reupload-green-500ms",
+        "surfacePreviewKind": "photo_composite",
+        "surfaceRenderMode": "photo_composite",
+        "imagePreviewKind": null,
+        "src": "blob:http://127.0.0.1:3100/b26f3ec2-7834-4633-a607-ab22432adc13",
+        "title": "推荐分享图",
+        "subtitle": "已优先使用现场照片合成分享图，打开后就能直接分享。",
+        "loadingVisible": false,
+        "uploadVisible": true,
+        "removeVisible": true,
+        "photoPreviewVisible": true,
+        "photoUtilityVisible": true
+      },
+      "settled": {
+        "label": "C-reupload-green-settled",
+        "surfacePreviewKind": "photo_composite",
+        "surfaceRenderMode": "photo_composite",
+        "imagePreviewKind": null,
+        "src": "blob:http://127.0.0.1:3100/b26f3ec2-7834-4633-a607-ab22432adc13",
+        "title": "推荐分享图",
+        "subtitle": "已优先使用现场照片合成分享图，打开后就能直接分享。",
+        "loadingVisible": false,
+        "uploadVisible": true,
+        "removeVisible": true,
+        "photoPreviewVisible": true,
+        "photoUtilityVisible": true
+      },
+      "colors": {
+        "redPixels": 0,
+        "greenPixels": 154096,
+        "bluePixels": 0,
+        "width": 567,
+        "height": 843
+      },
+      "shots": {
+        "dialogPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/C-reupload-green-dialog.png",
+        "previewPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/C-reupload-green-preview.png",
+        "utilityPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-diagnosis/C-reupload-green-utility.png"
+      },
+      "requests": [
+        {
+          "kind": "request",
+          "url": "http://127.0.0.1:3100/api/trek/actions",
+          "method": "POST",
+          "body": "{\"action\":\"generate_share_card\",\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"photo_composite\",\"anchorPosition\":\"top\"}",
+          "ts": 1776491143451
+        },
+        {
+          "kind": "request",
+          "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top",
+          "method": "GET",
+          "body": null,
+          "ts": 1776491145224
+        },
+        {
+          "kind": "response",
+          "url": "http://127.0.0.1:3100/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top",
+          "status": 200,
+          "body": null,
+          "ts": 1776491145225
+        },
+        {
+          "kind": "response",
+          "url": "http://127.0.0.1:3100/api/trek/actions",
+          "status": 200,
+          "body": "{\"ok\":true,\"checkinId\":\"712de191-bfe2-4cf7-9d58-bb94c03b0ff0\",\"template\":\"summit_card\",\"renderMode\":\"photo_composite\",\"effectiveRenderMode\":\"photo_composite\",\"posterRenderMode\":\"overlay_only\",\"anchorPosition\":\"top\",\"source\":\"realtime_gps\",\"posterUrl\":\"/api/poster?checkinId=712de191-bfe2-4cf7-9d58-bb94c03b0ff0&template=summit_card&renderMode=overlay_only&anchorPosition=top\",\"photoUrl\":null,\"persisted\":true}",
+          "ts": 1776491145228
+        }
+      ]
+    }
+  }
+}

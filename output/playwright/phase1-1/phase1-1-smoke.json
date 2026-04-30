@@ -1,0 +1,52 @@
+[
+  {
+    "name": "mobile-375",
+    "viewport": {
+      "width": 375,
+      "height": 812
+    },
+    "firstHref": "/explore/e280d367-647a-4bf0-a9fd-9b7f864be92b",
+    "anyMultiImage": false,
+    "exploreMetrics": {
+      "noHorizontalScroll": true,
+      "cardCount": 20
+    },
+    "detailMetrics": {
+      "noHorizontalScroll": true,
+      "toolbarWrap": false,
+      "actionWrap": false,
+      "slideCount": 1,
+      "hasIndicator": false,
+      "carouselScrollable": true
+    },
+    "floatingMetrics": {
+      "floatingVisible": true,
+      "floatingWithinViewport": true
+    }
+  },
+  {
+    "name": "desktop-1280",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "firstHref": "/explore/e280d367-647a-4bf0-a9fd-9b7f864be92b",
+    "anyMultiImage": false,
+    "exploreMetrics": {
+      "noHorizontalScroll": true,
+      "cardCount": 20
+    },
+    "detailMetrics": {
+      "noHorizontalScroll": true,
+      "toolbarWrap": false,
+      "actionWrap": false,
+      "slideCount": 1,
+      "hasIndicator": false,
+      "carouselScrollable": true
+    },
+    "floatingMetrics": {
+      "floatingVisible": true,
+      "floatingWithinViewport": true
+    }
+  }
+]

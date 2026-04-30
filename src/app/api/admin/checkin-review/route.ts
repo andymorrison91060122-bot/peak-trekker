@@ -11,11 +11,18 @@ export async function POST(request: NextRequest) {
   const supabase = await createSupabaseServerClient()
 
   const newStatus = action === 'approve' ? 'approved' : 'rejected'
-
-  const { error } = await supabase
+  let { error } = await supabase
     .from('checkins')
     .update({ status: newStatus, ...(note ? { review_note: note } : {}) })
     .eq('id', id)
+
+  if (error && note && /review_note/i.test(error.message)) {
+    const fallbackUpdate = await supabase
+      .from('checkins')
+      .update({ status: newStatus, admin_note: note })
+      .eq('id', id)
+    error = fallbackUpdate.error
+  }
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })

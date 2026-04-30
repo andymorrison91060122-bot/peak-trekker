@@ -1,213 +1,284 @@
-import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { notFound } from 'next/navigation'
-import { MountainImagePlaceholder, AltitudeBar, DifficultyBadge } from '@/components/ui/MountainUI'
-import CheckinButton from '@/components/ui/CheckinButton'
-import Link from 'next/link'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { listFeaturedPostsByMountain } from '@/lib/community-server'
+import { getMountainDetailHeroImages, getMountainRoutePreviewImage } from '@/lib/mountain-media'
+import { listWaypointsByMountain } from '@/lib/waypoints-queries'
+import {
+  getDifficultyLevelLabel,
+  getDifficultySuitabilityCopy,
+  getLicenseRequirementLabel,
+  getLockPromptCopy,
+} from '@/lib/license-ui'
+import {
+  MapPlaceholder,
+  MountainImagePlaceholder,
+  SectionHeader,
+} from '@/components/ui/MountainUI'
+import MountainDetailHeroCarousel from '@/components/ui/MountainDetailHeroCarousel'
+import MountainDetailRecordCTA from '@/components/ui/MountainDetailRecordCTA'
+import MountainDetailToolbarActions from '@/components/ui/MountainDetailToolbarActions'
+import { ActionGlyph, IconActionLink } from '@/components/ui/IconActionButton'
+import MountainFeaturedPostCard from '@/components/community/MountainFeaturedPostCard'
+import SanitizedMountainDescription from '@/components/mountain/SanitizedMountainDescription'
+import WaypointsSection from '@/components/mountain/WaypointsSection'
 
-const LICENSE_LABEL: Record<string, string> = {
-  none: '无需执照',
-  basic: '初级登山证',
-  intermediate: '中级登山证',
-  advanced: '高级登山证',
+const LICENSE_RANK: Record<string, number> = {
+  none: 0,
+  basic: 1,
+  intermediate: 2,
+  advanced: 3,
+}
+
+function getRouteFacts(mountain: {
+  altitude: number
+  length_km?: number | null
+  elevation_gain_m?: number | null
+  estimated_duration?: string | null
+}) {
+  return {
+    length: mountain.length_km ?? Number(Math.max(4.2, Math.min(26, mountain.altitude / 260)).toFixed(1)),
+    gain: mountain.elevation_gain_m ?? Math.max(320, Math.round(mountain.altitude * 0.68)),
+    duration: mountain.estimated_duration ?? `${Math.max(2, Math.min(12, Math.round(mountain.altitude / 650)))}h`,
+  }
+}
+
+function getRouteTypeLabel(level: string) {
+  switch (level) {
+    case 'beginner':
+      return '轻装入门线'
+    case 'intermediate':
+      return '经典进阶线'
+    case 'advanced':
+      return '长线挑战线'
+    case 'expert':
+      return '高海拔挑战线'
+    default:
+      return '经典徒步线'
+  }
+}
+
+function getWeatherGuidance(mountain: { altitude: number; difficulty: string }) {
+  const altitudeHint =
+    mountain.altitude >= 4000
+      ? '高海拔温差更直接，风感也会更强。'
+      : mountain.altitude >= 2000
+        ? '山里温差更大，午后变化也更快。'
+        : '山区体感通常低于城市，山脊风更明显。'
+
+  const difficultyHint =
+    mountain.difficulty === 'advanced' || mountain.difficulty === 'expert'
+      ? '长线尽量更早出发，把回撤判断留在上午。'
+      : '经典路线也尽量早点出发，天气会更稳一些。'
+
+  return [
+    { label: '体感提醒', value: altitudeHint },
+    { label: '出发前复核', value: '出发前 12 小时和上山前各核一次。' },
+    { label: '节奏建议', value: difficultyHint },
+  ]
+}
+
+function DetailStat({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}) {
+  return (
+    <div className="metric-tile" style={{ padding: '12px 10px' }}>
+      <div className="font-pixel" style={{ fontSize: 16 }}>{value}</div>
+      <div className="metric-label" style={{ marginTop: 4 }}>{label}</div>
+    </div>
+  )
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="metric-tile detail-info-row">
+      <div className="detail-info-row__label">{label}</div>
+      <div className="detail-info-row__value">
+        {value}
+      </div>
+    </div>
+  )
 }
 
 export default async function MountainDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  const { data: mountain } = await supabase
-    .from('mountains')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const [mountainRes, profileRes, featuredPosts, waypoints] = await Promise.all([
+    supabase.from('mountains').select('*').eq('id', id).single(),
+    user
+      ? supabase.from('profiles').select('license_level').eq('id', user.id).single()
+      : Promise.resolve({ data: null }),
+    listFeaturedPostsByMountain({
+      supabase,
+      mountainId: id,
+      limit: 5,
+    }),
+    listWaypointsByMountain(id).catch(() => []),
+  ])
 
+  const mountain = mountainRes.data
   if (!mountain) notFound()
 
-  const { data: recentCheckins } = await supabase
-    .from('checkins')
-    .select('id, created_at, note, profiles(username, avatar_url)')
-    .eq('mountain_id', id)
-    .eq('status', 'approved')
-    .order('created_at', { ascending: false })
-    .limit(5)
-
-  const isLocked = mountain.min_license !== 'none'
+  const routeFacts = getRouteFacts(mountain)
+  const heroImages = getMountainDetailHeroImages(mountain, 3)
+  const routePreviewImage = getMountainRoutePreviewImage(mountain)
+  const featuredWithPhotos = featuredPosts.filter((post) =>
+    post.assets.some((asset) => asset.type === 'image' && Boolean(asset.url))
+  )
+  const userLicense = profileRes.data?.license_level ?? 'none'
+  const isLocked = LICENSE_RANK[userLicense] < LICENSE_RANK[mountain.min_license]
+  const requiresLogin = !user
+  const difficultyLabel = getDifficultyLevelLabel(mountain.difficulty)
+  const licenseRequirementLabel = getLicenseRequirementLabel(mountain.min_license)
+  const suitabilityLabel = getDifficultySuitabilityCopy(mountain.difficulty)
+  const weatherGuidance = getWeatherGuidance(mountain)
+  const descriptionHtml =
+    mountain.description?.trim()
+      ? mountain.description
+      : '先看看这座山更偏轻装徒步、长线挑战，还是需要为海拔和补给节奏多做些准备。'
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: 80 }}>
-
-      {/* 顶部：山峰图片大图 */}
-      <div style={{ position: 'relative' }}>
-        <MountainImagePlaceholder
-          name={mountain.name}
-          altitude={mountain.altitude}
-          size="lg"
-          coverImage={mountain.cover_image}
-        />
-        {/* 返回按钮 */}
-        <Link href="/explore" style={{
-          position: 'absolute', top: 12, left: 12,
-          background: 'rgba(0,0,0,0.7)',
-          border: '1px solid var(--green-primary)',
-          color: 'var(--green-bright)',
-          fontFamily: 'Press Start 2P', fontSize: 8,
-          padding: '6px 10px',
-          textDecoration: 'none',
-        }}>
-          ← 返回
-        </Link>
-        {/* 图片底部渐变遮罩 */}
-        <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: 80,
-          background: 'linear-gradient(transparent, var(--bg-primary))',
-        }} />
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--bg-primary)',
+        // Reserve extra scroll room so the final section can clear the fixed record bar.
+        padding: '20px 20px calc(300px + env(safe-area-inset-bottom))',
+      }}
+    >
+      <div className="page-toolbar">
+        <IconActionLink href="/explore" label="返回探索" icon={<ActionGlyph name="back" />} />
+        <MountainDetailToolbarActions />
       </div>
 
-      <div style={{ padding: '0 16px' }}>
-
-        {/* 山峰标题区 */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-            <div>
-              <h1 className="font-pixel" style={{ fontSize: 14, color: 'var(--text-primary)', margin: 0, lineHeight: 1.8 }}>
-                {mountain.name}
-              </h1>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', marginTop: 2 }}>
-                {mountain.province} · {mountain.altitude.toLocaleString()}m
-              </div>
-            </div>
-            <DifficultyBadge level={mountain.difficulty} />
-          </div>
-
-          {/* 海拔可视化 */}
-          <div style={{ marginBottom: 6 }}>
-            <AltitudeBar altitude={mountain.altitude} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono' }}>
-            <span>0m 海平面</span>
-            <span style={{ color: 'var(--green-bright)' }}>▲ {mountain.altitude.toLocaleString()}m</span>
-            <span>8848m 珠峰</span>
+      <section id="mountain-overview" className="surface-card" style={{ overflow: 'hidden', padding: 10, marginBottom: 18 }}>
+        <div style={{ position: 'relative' }}>
+          <MountainDetailHeroCarousel
+            name={mountain.name}
+            altitude={mountain.altitude}
+            images={heroImages}
+          />
+          <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <span className="muted-chip active">{difficultyLabel}</span>
+            <span className={`muted-chip ${mountain.min_license === 'none' ? 'active' : ''}`}>{licenseRequirementLabel}</span>
           </div>
         </div>
 
-        {/* 数据面板（4格仪表盘） */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-          {[
-            { label: '登顶人数', value: `${mountain.checkin_count ?? 0}人`, icon: '▲' },
-            { label: '所需执照', value: LICENSE_LABEL[mountain.min_license] ?? mountain.min_license, icon: '🪪' },
-            { label: '难度评级', value: { beginner: '★☆☆☆', intermediate: '★★☆☆', advanced: '★★★☆', expert: '★★★★' }[mountain.difficulty as string] ?? '—', icon: '⚡' },
-            { label: '海拔高度', value: `${mountain.altitude.toLocaleString()}m`, icon: '📍' },
-          ].map(item => (
-            <div key={item.label} style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderLeft: '2px solid var(--green-primary)',
-              padding: '10px 12px',
-            }}>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', marginBottom: 4 }}>
-                {item.icon} {item.label}
+        <div style={{ padding: '16px 10px 10px', display: 'grid', gap: 16 }}>
+          <div style={{ display: 'grid', gap: 6 }}>
+            <div className="font-pixel" style={{ fontSize: 28, overflowWrap: 'anywhere' }}>{mountain.name}</div>
+            <div className="section-subtitle">{mountain.province}</div>
+            <div className="section-subtitle">{suitabilityLabel}</div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+            <DetailStat label="海拔" value={`${mountain.altitude.toLocaleString()}m`} />
+            <DetailStat label="距离" value={`${routeFacts.length}km`} />
+            <DetailStat label="爬升" value={`${routeFacts.gain}m`} />
+            <DetailStat label="时长" value={routeFacts.duration} />
+          </div>
+
+          <div className="detail-info-list">
+            <InfoRow label="难度等级" value={difficultyLabel} />
+            <InfoRow label="准入要求" value={licenseRequirementLabel} />
+            <InfoRow label="适合人群" value={suitabilityLabel} />
+          </div>
+
+          {isLocked && (
+            <div className="danger-card" style={{ padding: 14 }}>
+              <div className="section-subtitle" style={{ color: '#f0b5b8' }}>
+                {getLockPromptCopy(mountain.min_license)}
               </div>
-              <div className="font-pixel" style={{ fontSize: 9, color: 'var(--green-bright)', lineHeight: 1.6 }}>
-                {item.value}
-              </div>
+            </div>
+          )}
+
+          <MountainDetailRecordCTA
+            isLocked={isLocked}
+            requiresLogin={requiresLogin}
+            minLicense={mountain.min_license}
+            mountainName={mountain.name}
+            altitude={mountain.altitude}
+            mountainId={mountain.id}
+          />
+        </div>
+      </section>
+
+      <section id="mountain-intro" className="surface-card" style={{ padding: 16, marginBottom: 18 }}>
+        <SectionHeader title="山峰简介" />
+        <div style={{ marginBottom: 12 }}>
+          <SanitizedMountainDescription html={descriptionHtml} />
+        </div>
+      </section>
+
+      <section id="route-reference" className="surface-card" style={{ padding: 16, marginBottom: 18 }}>
+        <SectionHeader title="静态路线参考" description="只帮助你理解路线轮廓，不替代专业地图与现场判断。" />
+        {routePreviewImage ? (
+          <div className="surface-card" style={{ padding: 10, marginBottom: 12 }}>
+            <MountainImagePlaceholder
+              name={`${mountain.name} 路线参考`}
+              altitude={mountain.altitude}
+              size="lg"
+              coverImage={routePreviewImage}
+            />
+          </div>
+        ) : (
+          <MapPlaceholder
+            title="静态路线参考"
+            subtitle={`预计 ${routeFacts.duration} · 累计爬升 ${routeFacts.gain}m · 全长 ${routeFacts.length}km`}
+            height={280}
+          />
+        )}
+
+        <div
+          data-testid="mountain-route-facts"
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginTop: 12 }}
+        >
+          <DetailStat label="路线类型" value={getRouteTypeLabel(mountain.difficulty)} />
+          <DetailStat label="距离" value={`${routeFacts.length}km`} />
+          <DetailStat label="时长" value={routeFacts.duration} />
+          <DetailStat label="累计爬升" value={`${routeFacts.gain}m`} />
+        </div>
+
+        <div className="support-copy support-copy--compact support-copy--muted" style={{ marginTop: 12 }}>
+          本路线仅供参考，实际请结合专业地图、天气、向导和现场情况判断。
+        </div>
+      </section>
+
+      <section id="weather-guidance" className="surface-card" style={{ padding: 16, marginBottom: 18 }}>
+        <SectionHeader title="行前天气提醒" />
+        <div className="weather-reminder-list" data-testid="weather-reminder-list">
+          {weatherGuidance.map((item) => (
+            <div key={item.label} className="weather-reminder-item" data-testid="weather-reminder-item">
+              <div className="weather-reminder-item__label">{item.label}</div>
+              <div className="weather-reminder-item__value">{item.value}</div>
             </div>
           ))}
         </div>
+      </section>
 
-        {/* 山峰简介 */}
-        {mountain.description && (
-          <div style={{ marginBottom: 20 }}>
-            <div className="mountain-divider">
-              <span className="font-pixel" style={{ fontSize: 7, color: 'var(--green-primary)', whiteSpace: 'nowrap' }}>// 山峰介绍</span>
-            </div>
-            <div style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              padding: '12px',
-              fontSize: 12, color: 'var(--text-muted)',
-              fontFamily: 'Share Tech Mono', lineHeight: 1.8,
-            }}>
-              {mountain.description}
-            </div>
-          </div>
-        )}
+      {waypoints.length > 0 ? <WaypointsSection waypoints={waypoints} /> : null}
 
-        {/* 坐标信息 */}
-        <div style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderTop: '2px solid var(--green-primary)',
-          padding: '10px 12px',
-          marginBottom: 20,
-          fontFamily: 'Share Tech Mono', fontSize: 10,
-          color: 'var(--text-muted)',
-          display: 'flex', justifyContent: 'space-between',
-        }}>
-          <span>N {mountain.latitude?.toFixed(4)}°</span>
-          <span style={{ color: 'var(--green-primary)' }}>◈</span>
-          <span>E {mountain.longitude?.toFixed(4)}°</span>
-        </div>
-
-        {/* 近期登顶记录 */}
-        {(recentCheckins ?? []).length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <div className="mountain-divider">
-              <span className="font-pixel" style={{ fontSize: 7, color: 'var(--green-primary)', whiteSpace: 'nowrap' }}>▲ 近期登顶</span>
-            </div>
-            {recentCheckins!.map((c: any) => (
-              <div key={c.id} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '8px 0',
-                borderBottom: '1px solid var(--border-color)',
-                fontSize: 11, fontFamily: 'Share Tech Mono',
-              }}>
-                <div style={{
-                  width: 28, height: 28, background: 'var(--green-primary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 14, flexShrink: 0,
-                }}>⛰</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: 'var(--text-primary)', fontSize: 11 }}>
-                    {(c.profiles as any)?.username ?? '匿名登山者'}
-                  </div>
-                  {c.note && <div style={{ color: 'var(--text-muted)', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.note}</div>}
-                </div>
-                <div style={{ color: 'var(--text-muted)', fontSize: 9, flexShrink: 0 }}>
-                  {new Date(c.created_at).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}
-                </div>
-              </div>
+      {featuredWithPhotos.length > 0 && (
+        <section
+          className="surface-card mountain-featured-posts"
+          data-testid="mountain-featured-posts-section"
+          style={{ padding: 16, marginBottom: 18 }}
+        >
+          <div className="mountain-featured-posts__title">山友经验</div>
+          <div className="mountain-featured-posts__list">
+            {featuredWithPhotos.map((post) => (
+              <MountainFeaturedPostCard key={post.id} post={post} />
             ))}
           </div>
-        )}
-
-        {/* 执照锁定提示 */}
-        {isLocked && (
-          <div style={{
-            background: 'rgba(139,0,0,0.08)',
-            border: '1px solid rgba(139,0,0,0.25)',
-            borderLeft: '3px solid #8B0000',
-            padding: '12px 14px',
-            marginBottom: 20,
-            fontFamily: 'Share Tech Mono', fontSize: 11,
-          }}>
-            <div className="font-pixel" style={{ fontSize: 7, color: '#E63946', marginBottom: 6 }}>
-              ⚠ 需要 {LICENSE_LABEL[mountain.min_license]}
-            </div>
-            <div style={{ color: 'var(--text-muted)', lineHeight: 1.7 }}>
-              点击下方按钮查看详细解锁步骤。
-            </div>
-          </div>
-        )}
-
-        {/* 底部打卡按钮（客户端交互） */}
-        <CheckinButton
-          isLocked={isLocked}
-          minLicense={mountain.min_license}
-          mountainName={mountain.name}
-          altitude={mountain.altitude}
-        />
-
-      </div>
+        </section>
+      )}
     </div>
   )
 }

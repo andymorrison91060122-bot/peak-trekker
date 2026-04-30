@@ -1,0 +1,8 @@
+{
+  "uploadStatus": 200,
+  "uploadJson": {
+    "mountainId": "e280d367-647a-4bf0-a9fd-9b7f864be92b",
+    "objectPath": "mountains/e280d367-647a-4bf0-a9fd-9b7f864be92b/cover/1776761273173-55879f8e-7270-4780-890c-863c571b89ad.png",
+    "coverImage": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/mountains/e280d367-647a-4bf0-a9fd-9b7f864be92b/cover/1776761273173-55879f8e-7270-4780-890c-863c571b89ad.png"
+  }
+}

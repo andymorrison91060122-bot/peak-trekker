@@ -1,55 +1,90 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { PixelMountainBg, MountainCard, MountainFeatureCard } from '@/components/ui/MountainUI'
+import type { ProvinceBannerData } from '@/components/explore/ProvinceBannerStrip'
+import { listProvinceMonthlyRankings } from '@/lib/province-ranking-queries'
 import ExploreClient from './ExploreClient'
-import OnboardingModal from '@/components/ui/OnboardingModal'
+
+function getShanghaiYearMonth(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: 'numeric',
+  }).formatToParts(date)
+
+  return {
+    year: Number(parts.find((part) => part.type === 'year')?.value),
+    month: Number(parts.find((part) => part.type === 'month')?.value),
+  }
+}
+
+function getPreviousShanghaiYearMonth({
+  year,
+  month,
+}: {
+  year: number
+  month: number
+}) {
+  if (month === 1) {
+    return {
+      year: year - 1,
+      month: 12,
+    }
+  }
+
+  return {
+    year,
+    month: month - 1,
+  }
+}
 
 export default async function ExplorePage() {
   const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const currentMonth = getShanghaiYearMonth()
+  const previousMonth = getPreviousShanghaiYearMonth(currentMonth)
 
-  // 拉取所有山峰
-  const { data: mountains } = await supabase
-    .from('mountains')
-    .select('*')
-    .eq('is_active', true)
-    .order('checkin_count', { ascending: false })
+  const [mountainsRes, profileRes, currentRankings, previousRankings] = await Promise.all([
+    supabase
+      .from('mountains')
+      .select('*')
+      .eq('is_active', true)
+      .order('checkin_count', { ascending: false }),
+    user
+      ? supabase.from('profiles').select('province').eq('id', user.id).single()
+      : Promise.resolve({ data: null }),
+    user
+      ? listProvinceMonthlyRankings(currentMonth.year, currentMonth.month)
+      : Promise.resolve(undefined),
+    user
+      ? listProvinceMonthlyRankings(previousMonth.year, previousMonth.month)
+      : Promise.resolve(undefined),
+  ])
 
-  // 精选：海拔最高的2座
-  const featured = (mountains ?? [])
-    .filter(m => m.altitude >= 5000)
-    .slice(0, 2)
+  const mountains = mountainsRes.data ?? []
+  const hometownProvince = profileRes.data?.province ?? null
+  let provinceBanner: ProvinceBannerData | null | undefined = user ? null : undefined
 
-  // 列表：其余
-  const list = (mountains ?? [])
-    .filter(m => m.altitude < 5000)
+  if (user && hometownProvince) {
+    const currentProvinceRow = currentRankings?.find((row) => row.province === hometownProvince) ?? null
+    const previousProvinceRow = previousRankings?.find((row) => row.province === hometownProvince) ?? null
+
+    provinceBanner = {
+      provinceName: hometownProvince,
+      provinceRank: currentProvinceRow?.rank ?? 0,
+      provinceScore: currentProvinceRow?.total_score ?? 0,
+      rankChange:
+        currentProvinceRow && previousProvinceRow
+          ? previousProvinceRow.rank - currentProvinceRow.rank
+          : null,
+    }
+  }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      <OnboardingModal />
-
-      {/* 顶部山脉全景 */}
-      <div style={{ position: 'relative', background: 'linear-gradient(180deg, #050f05 0%, #0a1a0a 60%, var(--bg-primary) 100%)' }}>
-        <PixelMountainBg />
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 16px' }}>
-          <div className="font-pixel" style={{ fontSize: 8, color: 'var(--green-neon)', textShadow: '0 0 8px var(--green-neon)', letterSpacing: 2 }}>
-            PEAK TREKKER
-          </div>
-          <div className="font-pixel" style={{ fontSize: 14, color: 'var(--text-primary)', marginTop: 4 }}>
-            探索山峰
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, fontFamily: 'Share Tech Mono' }}>
-            共收录 {mountains?.length ?? 0} 座山峰
-          </div>
-        </div>
-        <div style={{ position: 'absolute', top: 12, right: 16, fontSize: 9, color: 'var(--text-muted)', textAlign: 'right', fontFamily: 'Share Tech Mono' }}>
-          <div>☀ 晴</div>
-          <div style={{ color: 'var(--green-bright)' }}>风速 3级</div>
-        </div>
-      </div>
-
-      <div style={{ padding: '0 16px 16px' }}>
-        {/* 交互部分（搜索/筛选）交给客户端组件 */}
-        <ExploreClient featured={featured} list={list} />
-      </div>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: 104 }}>
+      <ExploreClient
+        list={mountains}
+        hometownProvince={hometownProvince}
+        provinceBanner={provinceBanner}
+      />
     </div>
   )
 }

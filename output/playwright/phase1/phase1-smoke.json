@@ -1,0 +1,58 @@
+[
+  {
+    "name": "mobile-375",
+    "viewport": {
+      "width": 375,
+      "height": 812
+    },
+    "exploreMetrics": {
+      "noHorizontalScroll": true,
+      "hasFeatured": false,
+      "hasBacklog": false,
+      "toolbarWrap": false
+    },
+    "detailMetricsTop": {
+      "noHorizontalScroll": true,
+      "toolbarWrap": false,
+      "actionWrap": false,
+      "removedGallery": true,
+      "removedPoi": true,
+      "removedRecent": true,
+      "hasWeather": true,
+      "hasRiskTip": true
+    },
+    "detailMetricsBottom": {
+      "floatingVisible": true,
+      "floatingWithinViewport": true
+    },
+    "firstHref": "/explore/e280d367-647a-4bf0-a9fd-9b7f864be92b"
+  },
+  {
+    "name": "desktop-1280",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "exploreMetrics": {
+      "noHorizontalScroll": true,
+      "hasFeatured": false,
+      "hasBacklog": false,
+      "toolbarWrap": false
+    },
+    "detailMetricsTop": {
+      "noHorizontalScroll": true,
+      "toolbarWrap": false,
+      "actionWrap": false,
+      "removedGallery": true,
+      "removedPoi": true,
+      "removedRecent": true,
+      "hasWeather": true,
+      "hasRiskTip": true
+    },
+    "detailMetricsBottom": {
+      "floatingVisible": true,
+      "floatingWithinViewport": true
+    },
+    "firstHref": "/explore/e280d367-647a-4bf0-a9fd-9b7f864be92b"
+  }
+]

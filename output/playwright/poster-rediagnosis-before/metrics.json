@@ -1,0 +1,166 @@
+[
+  {
+    "scenario": "summit-short-before",
+    "metrics": {
+      "quoteRegionBox": {
+        "y": 1282,
+        "height": 458,
+        "bottom": 1740
+      },
+      "quoteRegionTopAttr": 1282,
+      "dataBottomAttr": 1270,
+      "quoteContentTopAttr": 1608,
+      "quoteContentBottomAttr": 1680,
+      "footerAttr": 1696,
+      "labelBox": null,
+      "quoteFirstLineBox": {
+        "x": 754,
+        "y": 111,
+        "width": 144.03125,
+        "height": 17,
+        "bottom": 128
+      },
+      "authorBox": {
+        "x": 123.6044921875,
+        "y": 1639,
+        "width": 130.0048828125,
+        "height": 21,
+        "bottom": 1660
+      },
+      "footerBox": {
+        "x": 124,
+        "y": 1680,
+        "width": 122.421875,
+        "height": 20,
+        "bottom": 1700
+      },
+      "metricRectBottom": 1270
+    }
+  },
+  {
+    "scenario": "summit-long-before",
+    "metrics": {
+      "quoteRegionBox": {
+        "y": 1282,
+        "height": 458,
+        "bottom": 1740
+      },
+      "quoteRegionTopAttr": 1282,
+      "dataBottomAttr": 1270,
+      "quoteContentTopAttr": 1544,
+      "quoteContentBottomAttr": 1680,
+      "footerAttr": 1696,
+      "labelBox": null,
+      "quoteFirstLineBox": {
+        "x": 754,
+        "y": 111,
+        "width": 144.03125,
+        "height": 17,
+        "bottom": 128
+      },
+      "authorBox": {
+        "x": 123.6044921875,
+        "y": 1639,
+        "width": 94.0048828125,
+        "height": 21,
+        "bottom": 1660
+      },
+      "footerBox": {
+        "x": 124,
+        "y": 1680,
+        "width": 122.421875,
+        "height": 20,
+        "bottom": 1700
+      },
+      "metricRectBottom": 1270
+    }
+  },
+  {
+    "scenario": "trek-short-before",
+    "metrics": {
+      "quoteRegionBox": {
+        "y": 1400,
+        "height": 376,
+        "bottom": 1776
+      },
+      "quoteRegionTopAttr": 1400,
+      "dataBottomAttr": 1320,
+      "quoteContentTopAttr": 1592,
+      "quoteContentBottomAttr": 1716,
+      "footerAttr": 1732,
+      "labelBox": {
+        "x": 124,
+        "y": 1427,
+        "width": 118.828125,
+        "height": 21,
+        "bottom": 1448
+      },
+      "quoteFirstLineBox": {
+        "x": 84,
+        "y": 174,
+        "width": 312,
+        "height": 90,
+        "bottom": 264
+      },
+      "authorBox": {
+        "x": 123.6044921875,
+        "y": 1675,
+        "width": 173.2236328125,
+        "height": 21,
+        "bottom": 1696
+      },
+      "footerBox": {
+        "x": 124,
+        "y": 1716,
+        "width": 122.421875,
+        "height": 20,
+        "bottom": 1736
+      },
+      "routeBlockBottom": 1320
+    }
+  },
+  {
+    "scenario": "trek-long-before",
+    "metrics": {
+      "quoteRegionBox": {
+        "y": 1400,
+        "height": 376,
+        "bottom": 1776
+      },
+      "quoteRegionTopAttr": 1400,
+      "dataBottomAttr": 1320,
+      "quoteContentTopAttr": 1644,
+      "quoteContentBottomAttr": 1716,
+      "footerAttr": 1732,
+      "labelBox": {
+        "x": 124,
+        "y": 1427,
+        "width": 118.828125,
+        "height": 21,
+        "bottom": 1448
+      },
+      "quoteFirstLineBox": {
+        "x": 84,
+        "y": 174,
+        "width": 312,
+        "height": 90,
+        "bottom": 264
+      },
+      "authorBox": {
+        "x": 123.6044921875,
+        "y": 1675,
+        "width": 148.0048828125,
+        "height": 21,
+        "bottom": 1696
+      },
+      "footerBox": {
+        "x": 124,
+        "y": 1716,
+        "width": 122.421875,
+        "height": 20,
+        "bottom": 1736
+      },
+      "routeBlockBottom": 1320
+    }
+  }
+]

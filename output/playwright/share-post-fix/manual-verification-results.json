@@ -1,0 +1,110 @@
+{
+  "D_firstNoUpload": {
+    "state": {
+      "label": "D-first-no-upload",
+      "previewKind": "poster",
+      "renderMode": "classic_card",
+      "template": "summit_card",
+      "previewSrc": "blob:http://127.0.0.1:3100/9213ebc2-b235-43e9-869f-5d630e6640e2",
+      "removeVisible": false,
+      "photoPreviewVisible": false,
+      "photoPreviewCount": 0,
+      "utilityText": "现场照片补一张现场照片后，推荐预览会自动切成照片合成。上传照片拍照"
+    },
+    "shots": {
+      "dialogPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/D-first-no-upload-dialog.png",
+      "utilityPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/D-first-no-upload-utility.png",
+      "previewPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/D-first-no-upload-preview.png"
+    }
+  },
+  "template_summit_after_upload": {
+    "state": {
+      "label": "template-summit-after-upload",
+      "previewKind": "photo_composite",
+      "renderMode": "photo_composite",
+      "template": "summit_card",
+      "previewSrc": "blob:http://127.0.0.1:3100/59257ccc-5260-4b0e-9dc4-79089bfb1099",
+      "removeVisible": true,
+      "photoPreviewVisible": true,
+      "photoPreviewCount": 1,
+      "utilityText": "现场照片当前预览会优先使用这张照片。上传照片拍照移除照片"
+    },
+    "shots": {
+      "dialogPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/template-summit-after-upload-dialog.png",
+      "utilityPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/template-summit-after-upload-utility.png",
+      "previewPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/template-summit-after-upload-preview.png"
+    }
+  },
+  "D_afterRemove": {
+    "state": {
+      "label": "D-after-remove",
+      "previewKind": "poster",
+      "renderMode": "classic_card",
+      "template": "summit_card",
+      "previewSrc": "blob:http://127.0.0.1:3100/79e7e643-af91-4eaa-a4a7-cafbc63adde0",
+      "removeVisible": false,
+      "photoPreviewVisible": false,
+      "photoPreviewCount": 0,
+      "utilityText": "现场照片补一张现场照片后，推荐预览会自动切成照片合成。上传照片拍照"
+    },
+    "shots": {
+      "dialogPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/D-after-remove-dialog.png",
+      "utilityPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/D-after-remove-utility.png",
+      "previewPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/D-after-remove-preview.png"
+    }
+  },
+  "B_reopen_clean": {
+    "state": {
+      "label": "B-reopen-clean",
+      "previewKind": "poster",
+      "renderMode": "classic_card",
+      "template": "summit_card",
+      "previewSrc": "blob:http://127.0.0.1:3100/f09272d3-1b85-48ff-aa0c-907eb4e4bf2e",
+      "removeVisible": false,
+      "photoPreviewVisible": false,
+      "photoPreviewCount": 0,
+      "utilityText": "现场照片补一张现场照片后，推荐预览会自动切成照片合成。上传照片拍照"
+    },
+    "shots": {
+      "dialogPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/B-reopen-clean-dialog.png",
+      "utilityPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/B-reopen-clean-utility.png",
+      "previewPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/B-reopen-clean-preview.png"
+    }
+  },
+  "template_historical_before_upload": {
+    "state": {
+      "label": "template-historical-before-upload",
+      "previewKind": "photo_composite",
+      "renderMode": "photo_composite",
+      "template": "activity_summary",
+      "previewSrc": "blob:http://127.0.0.1:3100/2f3181a8-b257-416e-afbb-cc8d5a95d7ab",
+      "removeVisible": true,
+      "photoPreviewVisible": true,
+      "photoPreviewCount": 1,
+      "utilityText": "现场照片当前预览会优先使用这张照片。上传照片拍照移除照片"
+    },
+    "shots": {
+      "dialogPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/template-historical-before-upload-dialog.png",
+      "utilityPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/template-historical-before-upload-utility.png",
+      "previewPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/template-historical-before-upload-preview.png"
+    }
+  },
+  "template_historical_after_upload": {
+    "state": {
+      "label": "template-historical-after-upload",
+      "previewKind": "photo_composite",
+      "renderMode": "photo_composite",
+      "template": "activity_summary",
+      "previewSrc": "blob:http://127.0.0.1:3100/81177026-4808-4bcf-a5f4-8db1004406eb",
+      "removeVisible": true,
+      "photoPreviewVisible": true,
+      "photoPreviewCount": 1,
+      "utilityText": "现场照片当前预览会优先使用这张照片。上传照片拍照移除照片"
+    },
+    "shots": {
+      "dialogPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/template-historical-after-upload-dialog.png",
+      "utilityPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/template-historical-after-upload-utility.png",
+      "previewPath": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/share-post-fix/template-historical-after-upload-preview.png"
+    }
+  }
+}

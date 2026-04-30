@@ -1,0 +1,99 @@
+{
+  "A_initial": {
+    "previewKind": "poster",
+    "renderMode": "classic_card",
+    "template": "summit_card",
+    "photoPreviewNodeExists": false,
+    "photoPreviewSrc": null,
+    "previewImageSrc": null,
+    "removeVisible": false,
+    "previewLoadingText": "正在生成推荐预览..."
+  },
+  "A_after_upload": {
+    "previewKind": "photo_composite",
+    "renderMode": "photo_composite",
+    "template": "summit_card",
+    "photoPreviewNodeExists": true,
+    "photoPreviewSrc": "blob:http://127.0.0.1:3100/7defa819-8a5f-4c3f-bbb0-6314cd2e66e7",
+    "previewImageSrc": null,
+    "removeVisible": true,
+    "previewLoadingText": "正在生成推荐预览...",
+    "redPixels": 0
+  },
+  "A_network": [
+    {
+      "kind": "request",
+      "url": "http://127.0.0.1:3100/api/trek/actions",
+      "method": "POST",
+      "postData": "{\"action\":\"generate_share_card\",\"checkinId\":\"9a9198ca-4603-4274-bbb9-404ff12382bd\",\"template\":\"summit_card\",\"renderMode\":\"classic_card\",\"anchorPosition\":\"top\"}"
+    },
+    {
+      "kind": "response",
+      "url": "http://127.0.0.1:3100/api/trek/actions",
+      "status": 200
+    },
+    {
+      "kind": "request",
+      "url": "http://127.0.0.1:3100/api/poster?checkinId=9a9198ca-4603-4274-bbb9-404ff12382bd&template=summit_card&renderMode=classic_card&anchorPosition=top",
+      "method": "GET",
+      "postData": null
+    }
+  ],
+  "B_initial": {
+    "previewKind": "photo_composite",
+    "renderMode": "photo_composite",
+    "template": "summit_card",
+    "photoPreviewNodeExists": true,
+    "photoPreviewSrc": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wm0WZ0AAAAASUVORK5CYII=",
+    "previewImageSrc": null,
+    "removeVisible": true,
+    "previewLoadingText": "正在生成推荐预览...",
+    "seededPhotoUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wm0WZ0AAAAASUVORK5CYII="
+  },
+  "B_after_upload": {
+    "previewKind": "photo_composite",
+    "renderMode": "photo_composite",
+    "template": "summit_card",
+    "photoPreviewNodeExists": true,
+    "photoPreviewSrc": "blob:http://127.0.0.1:3100/dafde25b-21fb-430a-ba0d-cbf44ee915d4",
+    "previewImageSrc": null,
+    "removeVisible": true,
+    "previewLoadingText": "正在生成推荐预览...",
+    "bluePixels": 0
+  },
+  "B_network": [
+    {
+      "kind": "response",
+      "url": "http://127.0.0.1:3100/api/poster?checkinId=9a9198ca-4603-4274-bbb9-404ff12382bd&template=summit_card&renderMode=classic_card&anchorPosition=top",
+      "status": 200
+    },
+    {
+      "kind": "request",
+      "url": "http://127.0.0.1:3100/api/trek/actions",
+      "method": "POST",
+      "postData": "{\"action\":\"generate_share_card\",\"checkinId\":\"9dd423f2-80c2-4180-a11c-fc219fdc4ef5\",\"template\":\"summit_card\",\"renderMode\":\"photo_composite\",\"anchorPosition\":\"top\"}"
+    },
+    {
+      "kind": "response",
+      "url": "http://127.0.0.1:3100/api/trek/actions",
+      "status": 200
+    },
+    {
+      "kind": "request",
+      "url": "http://127.0.0.1:3100/api/poster?checkinId=9dd423f2-80c2-4180-a11c-fc219fdc4ef5&template=summit_card&renderMode=overlay_only&anchorPosition=top",
+      "method": "GET",
+      "postData": null
+    },
+    {
+      "kind": "response",
+      "url": "http://127.0.0.1:3100/api/poster?checkinId=9dd423f2-80c2-4180-a11c-fc219fdc4ef5&template=summit_card&renderMode=overlay_only&anchorPosition=top",
+      "status": 200
+    },
+    {
+      "kind": "request",
+      "url": "http://127.0.0.1:3100/api/trek/actions",
+      "method": "POST",
+      "postData": "{\"action\":\"generate_share_card\",\"checkinId\":\"9dd423f2-80c2-4180-a11c-fc219fdc4ef5\",\"template\":\"summit_card\",\"renderMode\":\"photo_composite\",\"anchorPosition\":\"top\"}"
+    }
+  ]
+}

@@ -1,27 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { useRouter } from 'next/navigation'
+import {
+  ONBOARDING_VERSION,
+  getProvinceDraft,
+  resetActivationDone,
+  setIntroSeen,
+  setProvinceDraft,
+} from '@/lib/onboarding'
+import { normalizeAuthReturnPath } from '@/lib/auth-redirect'
+import { PROVINCES, getProvinceCode } from '@/lib/provinces'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-const PROVINCES = [
-  '北京','天津','河北','山西','内蒙古','辽宁','吉林','黑龙江',
-  '上海','江苏','浙江','安徽','福建','江西','山东','河南',
-  '湖北','湖南','广东','广西','海南','重庆','四川','贵州',
-  '云南','西藏','陕西','甘肃','青海','宁夏','新疆',
-]
-
-const PROVINCE_CODE_MAP: Record<string, string> = {
-  '北京':'BJ','天津':'TJ','河北':'HE','山西':'SX','内蒙古':'NM',
-  '辽宁':'LN','吉林':'JL','黑龙江':'HL','上海':'SH','江苏':'JS',
-  '浙江':'ZJ','安徽':'AH','福建':'FJ','江西':'JX','山东':'SD',
-  '河南':'HA','湖北':'HB','湖南':'HN','广东':'GD','广西':'GX',
-  '海南':'HI','重庆':'CQ','四川':'SC','贵州':'GZ','云南':'YN',
-  '西藏':'XZ','陕西':'SN','甘肃':'GS','青海':'QH','宁夏':'NX','新疆':'XJ',
-}
-
-export default function RegisterPage() {
+function RegisterPageContent() {
   const [step, setStep] = useState<1 | 2>(1)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -29,8 +22,16 @@ export default function RegisterPage() {
   const [province, setProvince] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createSupabaseBrowserClient()
+  const returnTo = normalizeAuthReturnPath(searchParams.get('from'), '/explore')
+
+  useEffect(() => {
+    const draftProvince = getProvinceDraft()
+    if (!draftProvince) return
+    const frame = window.requestAnimationFrame(() => setProvince(draftProvince))
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
@@ -46,22 +47,58 @@ export default function RegisterPage() {
       return
     }
 
-    // data.user 可能因邮箱确认流程为 null，用 upsert 确保兼容两种情况
-    const userId = data.user?.id
-    if (userId) {
-      await supabase.from('profiles').upsert({
-        id: userId,
-        username,
-        province,
-        province_code: PROVINCE_CODE_MAP[province] ?? '',
-        license_level: 'none',
-      }, { onConflict: 'id' })
+    let activeSession = data.session
+    let activeUserId = data.user?.id ?? null
+
+    if (!activeSession) {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      if (!signInError && signInData.session) {
+        activeSession = signInData.session
+        activeUserId = signInData.user?.id ?? activeUserId
+      }
     }
 
-    // 无论 profile 更新是否成功，注册本身已完成，直接跳转
-    router.push('/explore')
-    router.refresh()
-    setLoading(false)
+    setProvinceDraft(province)
+    setIntroSeen()
+    resetActivationDone()
+
+    const syncProfile = async () => {
+      if (!activeUserId) return
+
+      const payload = {
+        id: activeUserId,
+        username,
+        province,
+        province_code: getProvinceCode(province),
+        license_level: 'none',
+      }
+
+      const { error: onboardingSyncError } = await supabase.from('profiles').upsert(
+        {
+          ...payload,
+          onboarding_version: ONBOARDING_VERSION,
+        },
+        { onConflict: 'id' }
+      )
+
+      if (onboardingSyncError) {
+        await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
+      }
+    }
+
+    // 会话已建立时优先整页回跳，避免客户端路由在 cookie 同步阶段卡住。
+    if (activeSession) {
+      void syncProfile()
+      window.location.assign(returnTo)
+      return
+    }
+
+    await syncProfile()
+    const loginHref =
+      returnTo === '/explore'
+        ? '/auth/login?registered=1'
+        : `/auth/login?from=${encodeURIComponent(returnTo)}&registered=1`
+    window.location.assign(loginHref)
   }
 
   return (
@@ -100,7 +137,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="font-pixel" style={{ fontSize: 9, color: 'var(--green-bright)', marginBottom: 20 }}>
-            // REGISTER
+            {'// REGISTER'}
           </div>
 
           <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -155,10 +192,23 @@ export default function RegisterPage() {
 
           <div style={{ textAlign: 'center', marginTop: 20, fontSize: 11, fontFamily: 'Share Tech Mono', color: 'var(--text-muted)' }}>
             已有账号？{' '}
-            <Link href="/auth/login" style={{ color: 'var(--green-bright)', textDecoration: 'none' }}>登录 →</Link>
+            <Link
+              href={returnTo === '/explore' ? '/auth/login' : `/auth/login?from=${encodeURIComponent(returnTo)}`}
+              style={{ color: 'var(--green-bright)', textDecoration: 'none' }}
+            >
+              登录 →
+            </Link>
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterPageContent />
+    </Suspense>
   )
 }

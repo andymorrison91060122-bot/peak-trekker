@@ -1,0 +1,57 @@
+{
+  "url": "http://localhost:8765/ui_kits/mobile/index.html",
+  "checkedAt": "2026-04-29T09:00:43.854Z",
+  "diagnostics": {
+    "title": "Peak Trekker — Mobile UI Kit",
+    "phoneCount": 79,
+    "slotCount": 79,
+    "colorSuccess": "#6ee7a1",
+    "colorBg": "",
+    "hasFAQ": true,
+    "hasHelpSheet": true,
+    "hasCommunity": true,
+    "hasCurated": true,
+    "firstLabels": [
+      "01 · Flow (tap through)",
+      "02 · Mountain Detail v2",
+      "03 · Home · Intent Split v4",
+      "04 · Explore v3",
+      "05 · Explore · not found v2",
+      "07 · Profile · 档案馆",
+      "08 · Trek · Live v2",
+      "09 · Trek · Pre-start"
+    ],
+    "lastLabels": [
+      "76 · Community Card · 5 variants",
+      "77 · Community Feed · Kebab open",
+      "78 · Community Detail · Viewer (other)",
+      "79 · Community Detail · Viewer (author)",
+      "80 · Community Detail · Multi-image gallery",
+      "81 · Community Detail · Text-only",
+      "82 · Mtn Detail · Curated module (3 posts)",
+      "83 · Mtn Detail · Curated (1) + (none)"
+    ],
+    "bodyScrollHeight": 23502
+  },
+  "consoleErrorCount": 0,
+  "pageErrorCount": 0,
+  "httpProblemCount": 0,
+  "warningCount": 1,
+  "errors": [],
+  "httpProblems": [],
+  "warnings": [
+    {
+      "type": "warning",
+      "text": "You are using the in-browser Babel transformer. Be sure to precompile your scripts for production - https://babeljs.io/docs/setup/",
+      "location": {
+        "url": "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js",
+        "lineNumber": 2,
+        "columnNumber": 3132940
+      }
+    }
+  ],
+  "screenshots": {
+    "page": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/design-package-root-page.png",
+    "console": "/Users/liuhongyuan/Desktop/peak-trekker/output/playwright/design-package-root-console.png"
+  }
+}

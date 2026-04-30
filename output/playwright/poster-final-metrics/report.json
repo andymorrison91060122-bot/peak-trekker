@@ -1,0 +1,134 @@
+{
+  "required": [
+    {
+      "name": "trek-q4",
+      "url": "http://127.0.0.1:3100/api/poster?checkinId=demo&template=trek_snapshot&renderMode=classic_card&format=svg&quoteIndex=4",
+      "metrics": {
+        "kind": "trek",
+        "svgDataBottom": 1320,
+        "svgRegionTop": 1513,
+        "svgRegionBottom": 1776,
+        "labelBox": {
+          "y": 1541,
+          "height": 21,
+          "bottom": 1562
+        },
+        "firstLineBox": {
+          "y": 1572,
+          "height": 46,
+          "bottom": 1618
+        },
+        "panelBox": {
+          "y": 1513,
+          "height": 263,
+          "bottom": 1776
+        },
+        "footerBox": {
+          "y": 1712,
+          "height": 20,
+          "bottom": 1732
+        },
+        "innerGap": 10,
+        "sectionGap": 193
+      }
+    },
+    {
+      "name": "trek-q7",
+      "url": "http://127.0.0.1:3100/api/poster?checkinId=demo&template=trek_snapshot&renderMode=classic_card&format=svg&quoteIndex=7",
+      "metrics": {
+        "kind": "trek",
+        "svgDataBottom": 1320,
+        "svgRegionTop": 1565,
+        "svgRegionBottom": 1776,
+        "labelBox": {
+          "y": 1593,
+          "height": 21,
+          "bottom": 1614
+        },
+        "firstLineBox": {
+          "y": 1624,
+          "height": 46,
+          "bottom": 1670
+        },
+        "panelBox": {
+          "y": 1565,
+          "height": 211,
+          "bottom": 1776
+        },
+        "footerBox": {
+          "y": 1712,
+          "height": 20,
+          "bottom": 1732
+        },
+        "innerGap": 10,
+        "sectionGap": 245
+      }
+    },
+    {
+      "name": "summit-q0",
+      "url": "http://127.0.0.1:3100/api/poster?checkinId=demo&template=summit_card&renderMode=classic_card&format=svg&verified=1&quoteIndex=0",
+      "metrics": {
+        "kind": "summit",
+        "svgDataBottom": 1270,
+        "svgRegionTop": 1294,
+        "svgRegionBottom": 1474,
+        "labelBox": null,
+        "firstLineBox": {
+          "y": 1322,
+          "height": 46,
+          "bottom": 1368
+        },
+        "panelBox": {
+          "y": 1294,
+          "height": 180,
+          "bottom": 1474
+        },
+        "footerBox": {
+          "y": 1410,
+          "height": 20,
+          "bottom": 1430
+        },
+        "innerGap": null,
+        "sectionGap": 24
+      }
+    },
+    {
+      "name": "summit-q3",
+      "url": "http://127.0.0.1:3100/api/poster?checkinId=demo&template=summit_card&renderMode=classic_card&format=svg&verified=1&quoteIndex=3",
+      "metrics": {
+        "kind": "summit",
+        "svgDataBottom": 1270,
+        "svgRegionTop": 1294,
+        "svgRegionBottom": 1538,
+        "labelBox": null,
+        "firstLineBox": {
+          "y": 1322,
+          "height": 32,
+          "bottom": 1354
+        },
+        "panelBox": {
+          "y": 1294,
+          "height": 244,
+          "bottom": 1538
+        },
+        "footerBox": {
+          "y": 1474,
+          "height": 20,
+          "bottom": 1494
+        },
+        "innerGap": null,
+        "sectionGap": 24
+      }
+    }
+  ],
+  "summary": {
+    "total": 60,
+    "trekInnerGapPass": 20,
+    "summitSectionGapPass": 40,
+    "minTrekInnerGap": 10,
+    "maxTrekInnerGap": 10,
+    "minSummitSectionGap": 24,
+    "maxSummitSectionGap": 24,
+    "footerClearanceMin": 42
+  }
+}

@@ -1,0 +1,17 @@
+
+Running 5 tests using 1 worker
+
+[1A[2K(node:83461) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:83461) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/5] tests/e2e/mountain-featured-posts.spec.ts:58:7 › mountain detail featured posts › mountain detail shows 山友经验 when featured content exists
+[1A[2K[2/5] tests/e2e/mountain-featured-posts.spec.ts:87:7 › mountain detail featured posts › mountain detail hides 山友经验 when there is no featured content
+[1A[2K[3/5] tests/e2e/mountain-featured-posts.spec.ts:99:7 › mountain detail featured posts › featured card navigates to community detail
+[1A[2K[4/5] tests/e2e/mountain-featured-posts.spec.ts:128:7 › mountain detail featured posts › admin feature action makes the post appear in mountain detail
+[1A[2K[5/5] tests/e2e/mountain-featured-posts.spec.ts:155:7 › mountain detail featured posts › admin unfeature action removes the post from mountain detail
+[1A[2K  5 passed (4.0m)

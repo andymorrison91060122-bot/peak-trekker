@@ -1,34 +1,54 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import LockModal from '@/components/ui/LockModal'
+import { normalizeAuthReturnPath } from '@/lib/auth-redirect'
 
 export default function CheckinButton({
   isLocked,
+  requiresLogin,
   minLicense,
   mountainName,
   altitude,
+  mountainId,
+  label,
 }: {
   isLocked: boolean
+  requiresLogin: boolean
   minLicense: string
   mountainName: string
   altitude: number
+  mountainId?: string
+  label?: string
 }) {
   const [showModal, setShowModal] = useState(false)
+  const router = useRouter()
+  const returnTo = normalizeAuthReturnPath(mountainId ? `/trek?mountainId=${mountainId}` : '/trek', '/trek')
+
+  if (requiresLogin) {
+    return (
+      <button
+        onClick={() => router.push(`/auth/login?from=${encodeURIComponent(returnTo)}`)}
+        className="primary-btn"
+        style={{ width: '100%', justifyContent: 'center' }}
+      >
+        {label || '登录后开始记录'}
+      </button>
+    )
+  }
 
   if (!isLocked) {
     return (
       <button
+        onClick={() => router.push(mountainId ? `/trek?mountainId=${mountainId}` : '/trek')}
+        className="primary-btn"
         style={{
-          width: '100%', padding: '14px',
-          fontFamily: 'Press Start 2P', fontSize: 10,
-          background: 'var(--green-primary)',
-          color: 'var(--text-primary)',
-          border: '2px solid var(--green-primary)',
-          cursor: 'pointer', letterSpacing: 1,
+          width: '100%',
+          justifyContent: 'center',
         }}
       >
-        ⛰ 开始登顶打卡
+        {label || '开始记录'}
       </button>
     )
   }
@@ -37,16 +57,16 @@ export default function CheckinButton({
     <>
       <button
         onClick={() => setShowModal(true)}
+        className="secondary-btn"
         style={{
-          width: '100%', padding: '14px',
-          fontFamily: 'Press Start 2P', fontSize: 10,
-          background: 'rgba(139,0,0,0.12)',
-          color: '#E63946',
-          border: '2px solid rgba(139,0,0,0.4)',
-          cursor: 'pointer', letterSpacing: 1,
+          width: '100%',
+          justifyContent: 'center',
+          borderColor: 'rgba(239,68,68,0.24)',
+          background: 'rgba(239,68,68,0.1)',
+          color: '#fca5a5',
         }}
       >
-        🔒 查看解锁条件
+        查看执照要求
       </button>
 
       {showModal && (

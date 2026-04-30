@@ -1,0 +1,31 @@
+{
+  "mountainId": "e280d367-647a-4bf0-a9fd-9b7f864be92b",
+  "mountainName": "泰山",
+  "runtimeGateSample": {
+    "id": "e1432e09-1a76-4138-9c9a-7ff236a9db5e",
+    "gallery_images": []
+  },
+  "galleryImagesSampleAfterDelete": [
+    "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/mountains/e280d367-647a-4bf0-a9fd-9b7f864be92b/gallery/1776766003182-ef2fff7c-974b-4dcc-865e-f126338a4fe1.png"
+  ],
+  "galleryImagesAfterFirstUpload": [
+    "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/mountains/e280d367-647a-4bf0-a9fd-9b7f864be92b/gallery/1776765993199-d7806910-6f58-40de-840d-f98cf166aad8.png"
+  ],
+  "galleryImagesAfterSecondUpload": [
+    "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/mountains/e280d367-647a-4bf0-a9fd-9b7f864be92b/gallery/1776765993199-d7806910-6f58-40de-840d-f98cf166aad8.png",
+    "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/mountains/e280d367-647a-4bf0-a9fd-9b7f864be92b/gallery/1776766003182-ef2fff7c-974b-4dcc-865e-f126338a4fe1.png"
+  ],
+  "galleryImagesAfterReorder": [
+    "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/mountains/e280d367-647a-4bf0-a9fd-9b7f864be92b/gallery/1776766003182-ef2fff7c-974b-4dcc-865e-f126338a4fe1.png",
+    "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/mountains/e280d367-647a-4bf0-a9fd-9b7f864be92b/gallery/1776765993199-d7806910-6f58-40de-840d-f98cf166aad8.png"
+  ],
+  "screenshots": {
+    "adminEmpty": "01-admin-empty-state.png",
+    "adminAfterUpload1": "02-admin-after-upload-1.png",
+    "adminAfterUpload2": "03-admin-after-upload-2.png",
+    "adminAfterReorder": "04-admin-after-reorder.png",
+    "adminAfterDelete": "05-admin-after-delete.png",
+    "exploreCard": "06-explore-card-cover-priority.png",
+    "detailHero": "07-detail-hero-multimage.png"
+  }
+}

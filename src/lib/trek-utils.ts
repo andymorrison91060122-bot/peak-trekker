@@ -1,14 +1,10 @@
 import type { Mountain } from '@/types'
 
-const QA_TREK_RULES_ENABLED = process.env.NEXT_PUBLIC_ENABLE_QA_TEST_HELPERS === 'true'
-
-export const TREK_RULES = {
-  minTrackPoints: QA_TREK_RULES_ENABLED ? 2 : 8,
-  minSessionSeconds: QA_TREK_RULES_ENABLED ? 1 : 90,
-  defaultApproachRadiusM: 500,
-  defaultSummitRadiusM: 200,
-  maxDriftSpeedMps: 9.5,
-} as const
+/**
+ * @deprecated Import TREK_RULES from trek-rules-client or trek-rules-server.
+ * This facade keeps legacy client imports working while server code uses fixed rules.
+ */
+export { TREK_RULES } from './trek-rules-client'
 
 export type TrackPoint = {
   lat: number

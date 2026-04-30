@@ -194,29 +194,16 @@ export async function createGpsCheckinViaApi(
   const now = Date.now()
   const response = await page.evaluate(
     async ({ currentMountain, currentNote, currentStartedAt, currentNow }) => {
-      const trackPoints = [
-        {
-          lat: currentMountain.latitude - 0.0002,
-          lng: currentMountain.longitude - 0.0002,
-          ts: currentStartedAt,
-          altitude: currentMountain.altitude - 30,
-          accuracy: 6,
-        },
-        {
-          lat: currentMountain.latitude - 0.00005,
-          lng: currentMountain.longitude - 0.00005,
-          ts: currentStartedAt + 2000,
-          altitude: currentMountain.altitude - 8,
+      const trackPoints = Array.from({ length: 8 }, (_, index) => {
+        const factor = (7 - index) / 7
+        return {
+          lat: currentMountain.latitude - 0.001 * factor,
+          lng: currentMountain.longitude - 0.001 * factor,
+          ts: Math.min(currentStartedAt + index * 15_000, currentNow),
+          altitude: Math.max(0, currentMountain.altitude - Math.round(56 * factor)),
           accuracy: 5,
-        },
-        {
-          lat: currentMountain.latitude,
-          lng: currentMountain.longitude,
-          ts: currentNow,
-          altitude: currentMountain.altitude,
-          accuracy: 4,
-        },
-      ]
+        }
+      })
 
       const res = await fetch('/api/trek/actions', {
         method: 'POST',
@@ -240,7 +227,7 @@ export async function createGpsCheckinViaApi(
     {
       currentMountain: mountain,
       currentNote: note,
-      currentStartedAt: now - 6_000,
+      currentStartedAt: now - 120_000,
       currentNow: now,
     }
   )

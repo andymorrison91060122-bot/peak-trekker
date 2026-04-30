@@ -166,6 +166,7 @@ async function completeGpsSummitViaUi(
     difficulty: string | null
   }
 ) {
+  const serverMinimumRecordingMs = 95_000
   await page.context().grantPermissions(['geolocation'], { origin: root })
   await page.addInitScript(({ latitude, longitude, altitude }) => {
     type GeoPoint = {
@@ -175,11 +176,16 @@ async function completeGpsSummitViaUi(
       altitude: number
     }
 
-    const points: GeoPoint[] = [
-      { latitude: latitude - 0.00012, longitude: longitude - 0.00012, accuracy: 6, altitude: altitude - 60 },
-      { latitude, longitude, accuracy: 4, altitude },
-      { latitude: latitude + 0.00001, longitude: longitude + 0.00001, accuracy: 4, altitude: altitude + 2 },
-    ]
+    const points: GeoPoint[] = Array.from({ length: 8 }, (_, index) => {
+      const factor = (7 - index) / 7
+      return {
+        latitude: latitude - 0.00012 * factor,
+        longitude: longitude - 0.00012 * factor,
+        accuracy: index < 2 ? 6 : 4,
+        altitude: altitude - Math.round(60 * factor),
+      }
+    })
+    const pointDelays = [60, 14_000, 28_000, 42_000, 56_000, 70_000, 84_000, 98_000]
 
     const timers = new Map<number, number[]>()
     let watchId = 0
@@ -206,11 +212,9 @@ async function completeGpsSummitViaUi(
         },
         watchPosition(success: PositionCallback) {
           const id = ++watchId
-          const handles = [
-            window.setTimeout(() => success(buildPosition(points[0])), 60),
-            window.setTimeout(() => success(buildPosition(points[1])), 1400),
-            window.setTimeout(() => success(buildPosition(points[2])), 2800),
-          ]
+          const handles = points.map((point, index) =>
+            window.setTimeout(() => success(buildPosition(point)), pointDelays[index] ?? 98_000)
+          )
           timers.set(id, handles)
           return id
         },
@@ -237,9 +241,14 @@ async function completeGpsSummitViaUi(
   await confirmTargetButton.click()
   await expect(page.getByRole('button', { name: 'Start 开启记录' })).toBeVisible()
   await page.getByRole('button', { name: 'Start 开启记录' }).click()
+  const recordStartedAt = Date.now()
   await expect(page.getByRole('button', { name: '停止记录' })).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText('已接近峰顶')).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByRole('button', { name: '确认登顶' })).toBeEnabled({ timeout: 15_000 })
+  const remainingServerWaitMs = serverMinimumRecordingMs - (Date.now() - recordStartedAt)
+  if (remainingServerWaitMs > 0) {
+    await page.waitForTimeout(remainingServerWaitMs)
+  }
+  await expect(page.getByRole('button', { name: '确认登顶' })).toBeEnabled({ timeout: 130_000 })
 
   const verifyResponse = page.waitForResponse((response) => {
     if (!response.url().includes('/api/trek/actions') || response.request().method() !== 'POST') return false

@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
+import { TREK_RULES } from '@/lib/trek-rules-server'
 import {
-  TREK_RULES,
+  ALLOW_LOCAL_TREK_SESSION,
+  LOCAL_FALLBACK_SESSION_PREFIX,
+  isLocalFallbackSessionId,
+  isLocalTrekSessionId,
+} from '@/lib/trek-server-utils'
+import {
   haversineMeters,
   rankingWeightByDifficulty,
   resolveCheckinSource,
@@ -35,11 +41,6 @@ type TrekVerifySessionRecord = {
 const SHARE_TEMPLATES: ShareCardTemplate[] = ['trek_snapshot', 'summit_card', 'activity_summary']
 const SHARE_RENDER_MODES: ShareRenderMode[] = ['photo_composite', 'overlay_only', 'classic_card']
 const ENABLE_QA_TEST_HELPERS = process.env.ENABLE_QA_TEST_HELPERS === 'true'
-const LOCAL_TREK_SESSION_PREFIX = 'local-trek-session:'
-
-function isLocalTrekSessionId(value: string) {
-  return value.startsWith(LOCAL_TREK_SESSION_PREFIX)
-}
 
 function toSafeNote(value: unknown) {
   if (typeof value !== 'string') return ''
@@ -250,7 +251,7 @@ export async function POST(request: NextRequest) {
       if (isSchemaCompatibilityErrorMessage(error?.message)) {
         return NextResponse.json({
           ok: true,
-          sessionId: `${LOCAL_TREK_SESSION_PREFIX}${crypto.randomUUID()}`,
+          sessionId: `${LOCAL_FALLBACK_SESSION_PREFIX}${crypto.randomUUID()}`,
           startedAt: new Date().toISOString(),
           fallback: 'client',
         })
@@ -278,7 +279,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'invalid point payload' }, { status: 400 })
     }
 
-    if (isLocalTrekSessionId(sessionId)) {
+    const isFallbackSession = isLocalFallbackSessionId(sessionId)
+    const isTestLocalSession = isLocalTrekSessionId(sessionId)
+
+    if (isFallbackSession || isTestLocalSession) {
+      if (isTestLocalSession && !ALLOW_LOCAL_TREK_SESSION) {
+        return NextResponse.json({ error: 'local_trek_session_disabled' }, { status: 403 })
+      }
       return NextResponse.json({ ok: true, fallback: 'client' })
     }
 
@@ -383,7 +390,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
     }
 
-    if (isLocalTrekSessionId(sessionId)) {
+    const isFallbackSession = isLocalFallbackSessionId(sessionId)
+    const isTestLocalSession = isLocalTrekSessionId(sessionId)
+
+    if (isFallbackSession || isTestLocalSession) {
+      if (isTestLocalSession && !ALLOW_LOCAL_TREK_SESSION) {
+        return NextResponse.json({ error: 'local_trek_session_disabled' }, { status: 403 })
+      }
       return NextResponse.json({ ok: true, fallback: 'client', status: finalStatus })
     }
 
@@ -433,7 +446,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
     }
 
-    const isLocalSession = isLocalTrekSessionId(sessionId)
+    const isFallbackSession = isLocalFallbackSessionId(sessionId)
+    const isTestLocalSession = isLocalTrekSessionId(sessionId)
+    if (isTestLocalSession && !ALLOW_LOCAL_TREK_SESSION) {
+      return NextResponse.json({ error: 'local_trek_session_disabled' }, { status: 403 })
+    }
+    const isLocalSession = isFallbackSession || isTestLocalSession
     const sessionResult = isLocalSession
       ? {
           data: null,

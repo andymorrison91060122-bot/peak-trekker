@@ -6,7 +6,8 @@ import { useSearchParams } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { markActivationTask } from '@/lib/onboarding'
 import { getCheckinScore } from '@/lib/province-ranking'
-import { TREK_RULES, haversineMeters } from '@/lib/trek-utils'
+import { TREK_RULES } from '@/lib/trek-rules-client'
+import { haversineMeters } from '@/lib/trek-utils'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import IconButton from '@/components/ui/IconButton'
 import PrimaryButton from '@/components/ui/PrimaryButton'
@@ -31,11 +32,17 @@ const APPROACH_RADIUS = TREK_RULES.defaultApproachRadiusM
 const SUMMIT_RADIUS = TREK_RULES.defaultSummitRadiusM
 const MAX_DRIFT_SPEED_MPS = TREK_RULES.maxDriftSpeedMps
 const LOCAL_TREK_SESSION_PREFIX = 'local-trek-session:'
+const LOCAL_FALLBACK_SESSION_PREFIX = 'local-fallback-session:'
 const INVALID_RECORD_SECONDS = 60
+
+function isClientLocalSessionId(value: string) {
+  return value.startsWith(LOCAL_TREK_SESSION_PREFIX) || value.startsWith(LOCAL_FALLBACK_SESSION_PREFIX)
+}
 
 function normalizeTrekActionError(error: unknown) {
   const message = error instanceof Error ? error.message : ''
   if (!message) return '确认登顶失败，请稍后重试。'
+  if (message.includes('local_trek_session_disabled')) return '本次记录会话已失效，请重新开始记录。'
   if (message.includes('insufficient_track_points')) return '轨迹点还不够，请继续记录一小段再确认登顶。'
   if (message.includes('session_too_short')) return '记录时间还太短，请继续记录后再确认登顶。'
   if (message.includes('outside_summit_radius')) return '你还没有进入峰顶核验范围，请继续靠近峰顶后再试。'
@@ -400,7 +407,7 @@ export default function TrekPageClient({
         sessionId,
         note: checkinNote,
         mountainId: nearbyMountain?.id ?? targetMountain?.id ?? null,
-        ...(sessionId.startsWith(LOCAL_TREK_SESSION_PREFIX)
+        ...(isClientLocalSessionId(sessionId)
           ? {
               trackPoints: trackRef.current,
               startedAt: startTimeRef.current,

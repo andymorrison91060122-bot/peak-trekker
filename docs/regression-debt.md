@@ -46,6 +46,8 @@
   `src/app/(main)/trek/page.tsx` 通过 action 调用 `verify_summit_checkin`；具体判定逻辑集中在 `src/app/api/trek/actions/route.ts` 的 `verify_summit_checkin` 分支。
 - Debt statement:
   当前核验逻辑分支较多，且受轨迹点数量、时长、山峰归属、session 来源影响，后续若继续扩展 QA helper / 本地 session 能力，需要单独做稳定性回归。
+- Progress:
+  已部分修复（N2-B 阶段 1，2026-04-30）：local session 已限定在 `ALLOW_LOCAL_TREK_SESSION=true` 的环境，`TREK_RULES` 已拆 client/server。剩余 P0-3（事务一致性）和 P1-1/P1-2 留 N2-C。
 - Recommended follow-up:
   为本地 session、重复提交、边界半径、短时长、缺失 mountainId 等场景建立更系统的 API 和 E2E 覆盖。
 
@@ -120,6 +122,27 @@
 # P1 · 后续重构
 
 以下条目不阻塞上线，但应在后续批次中收敛。
+
+## E2E baseline failures after N2-B Stage 1 attribution
+
+- Date: 2026-05-01
+- Status: 新增
+- Background:
+  N2-B 阶段 1 将 Trek server 核验阈值固定后，已对 `province-rankings` 与 `community immediate publish` 的 trek fixture 做归因和修复。全量 e2e 仍有 9 个失败，均落在 admin 文案、profile 测试数据、community media / publish / delete 回归链路，不属于本批 Trek local-session / `TREK_RULES` 拆分引入的红灯。
+- Evidence:
+  `ALLOW_LOCAL_TREK_SESSION=true npx playwright test --reporter=list --max-failures=20` 输出 `105 passed / 9 failed`。
+- Failing tests:
+  - `tests/e2e/admin-waypoints.spec.ts:138` — admin mountain detail read-only basic info copy expects old placeholder text.
+  - `tests/e2e/button-token-migration.spec.ts:226` — profile identity header expects `探险者...` username but current fixture renders `qa-community...`.
+  - `tests/e2e/community-acceptance.spec.ts:999` — community feed/profile share cards cannot find seeded single-image card.
+  - `tests/e2e/community-acceptance.spec.ts:1078` — community detail multi-image controls expected `5`, received `0`.
+  - `tests/e2e/community-acceptance.spec.ts:1166` — delayed publish path cannot find `稍后再说`.
+  - `tests/e2e/community-acceptance.spec.ts:1195` — profile embedded preview card not found for multi-image post.
+  - `tests/e2e/community-acceptance.spec.ts:1308` — profile records poster re-share button not found.
+  - `tests/e2e/community-delete-regression.spec.ts:8` — published community content not visible before delete flow.
+  - `tests/e2e/community-regression.spec.ts:33` — community regression cannot find profile `分享到山友圈` link.
+- Recommended follow-up:
+  单独发起 e2e baseline cleanup 批次，优先分离 admin copy drift、profile fixture username drift、community publish/card seed drift，避免继续阻塞 Trek 稳定性批次。
 
 ## Community Detail Multi-Image Controls
 

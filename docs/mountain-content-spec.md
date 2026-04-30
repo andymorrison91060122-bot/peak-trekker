@@ -264,7 +264,7 @@ AI 风格化图只能作为：
 
 * `latitude`
 * `longitude`
-* `elevation`
+* `altitude`
 
 这些字段属于运行时基础数据，不应依赖用户浏览时再调用 GeoAPI 获取。
 
@@ -580,3 +580,8 @@ Mountain Detail 可包含以下模块：
 5. 它是否达到“正式上线山峰”的最低标准？
 
 如果上述问题无法明确回答，则默认该山峰暂不进入正式上线列表。
+
+### v0.1.1 — 2026-04-29
+
+- 字段命名统一：`elevation` → `altitude`（与运行时 schema 对齐）。
+- 不变更："elevation gain"（爬升量）等物理量描述保留原表达。

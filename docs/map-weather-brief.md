@@ -437,7 +437,7 @@ QWeather 免费额度必须优先保障：
 
 * `mountains.latitude`
 * `mountains.longitude`
-* `mountains.elevation`
+* `mountains.altitude`
 * 后续可增加 `weather_zone_id`
 
 ---
@@ -474,7 +474,7 @@ P0 前端只显示这些字段即可：
 * `province`
 * `latitude`
 * `longitude`
-* `elevation`
+* `altitude`
 * `difficulty`
 * `license_requirement`
 
@@ -556,7 +556,7 @@ P0 前端只显示这些字段即可：
 落地天气 adapter + cache 表结构。
 
 ### 第三步
-补齐 mountains 的 `lat/lon/elevation`，尽量避免运行时 GeoAPI。
+补齐 mountains 的 `latitude/longitude/altitude`，尽量避免运行时 GeoAPI。
 
 ### 第四步
 先接 QWeather 主源，完成 Detail 页轻量天气展示。
@@ -627,7 +627,7 @@ P0 前端只显示这些字段即可：
 
 ### `mountain-content-spec.md`
 补充：
-* `latitude / longitude / elevation` 成为正式基础字段
+* `latitude / longitude / altitude` 成为正式基础字段
 * 后续可增加 `weather_zone_id`
 * 山峰补录时不依赖用户浏览链路 GeoAPI
 
@@ -645,3 +645,8 @@ P0 前端只显示这些字段即可：
 > **地图可控、天气分层、热门优先、长尾可降级、边界清楚。**
 
 Peak Trekker 当前阶段不应该为了“所有山都实时天气”而牺牲主线的稳定性、可控性和上线速度。
+
+### v0.3.1 — 2026-04-29
+
+- 字段命名统一：`elevation` → `altitude`（与运行时 schema 对齐）。
+- 不变更："elevation gain"（爬升量）等物理量描述保留原表达。

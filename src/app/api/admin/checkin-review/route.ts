@@ -1,14 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { canAccessAdminTools } from '@/lib/admin-access'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export async function POST(request: NextRequest) {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (!canAccessAdminTools({
+    email: user.email,
+    isAdmin: Boolean((profile as { is_admin?: boolean } | null)?.is_admin),
+  })) {
+    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+  }
+
   const { id, action, note } = await request.json()
 
   if (!id || !['approve', 'reject'].includes(action)) {
     return NextResponse.json({ error: 'invalid params' }, { status: 400 })
   }
-
-  const supabase = await createSupabaseServerClient()
 
   const newStatus = action === 'approve' ? 'approved' : 'rejected'
   let { error } = await supabase

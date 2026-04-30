@@ -3,6 +3,24 @@ import { expect, type Page } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+type TestMountain = {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  altitude: number
+}
+
+type TrekTestTrackPoint = {
+  lat: number
+  lng: number
+  ts: number
+  altitude: number
+  accuracy: number
+}
+
 export function createTestEmail(prefix = 'qa-community') {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}@example.com`
 }
@@ -102,7 +120,7 @@ export async function dismissActivationChecklistIfPresent(page: Page) {
   }
 }
 
-function getSupabaseBrowserAnonClient() {
+function readEnvValue(key: string) {
   const envText = (() => {
     try {
       return readFileSync('.env.local', 'utf8')
@@ -110,10 +128,13 @@ function getSupabaseBrowserAnonClient() {
       return ''
     }
   })()
-  const envUrl = envText.match(/^NEXT_PUBLIC_SUPABASE_URL=(.+)$/m)?.[1]?.trim()
-  const envAnonKey = envText.match(/^NEXT_PUBLIC_SUPABASE_ANON_KEY=(.+)$/m)?.[1]?.trim()
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? envUrl
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? envAnonKey
+
+  return envText.match(new RegExp(`^${key}=(.+)$`, 'm'))?.[1]?.trim() ?? null
+}
+
+function getSupabaseBrowserAnonClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? readEnvValue('NEXT_PUBLIC_SUPABASE_URL')
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? readEnvValue('NEXT_PUBLIC_SUPABASE_ANON_KEY')
 
   if (!url || !anonKey) {
     throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY for E2E helpers.')
@@ -125,6 +146,122 @@ function getSupabaseBrowserAnonClient() {
       autoRefreshToken: false,
     },
   })
+}
+
+function getSupabaseAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? readEnvValue('NEXT_PUBLIC_SUPABASE_URL')
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? readEnvValue('SUPABASE_SERVICE_ROLE_KEY')
+
+  if (!url || !serviceRoleKey) {
+    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for E2E helpers.')
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
+}
+
+function offsetCoordinate(latitude: number, longitude: number, distanceMeters: number) {
+  const bearingRadians = Math.PI / 4
+  const northMeters = Math.cos(bearingRadians) * distanceMeters
+  const eastMeters = Math.sin(bearingRadians) * distanceMeters
+  const lat = latitude - northMeters / 111_320
+  const lng = longitude - eastMeters / (111_320 * Math.cos((latitude * Math.PI) / 180))
+
+  return { lat, lng }
+}
+
+export function buildTrekTestTrackPoints(
+  mountain: Pick<TestMountain, 'latitude' | 'longitude' | 'altitude'>,
+  {
+    count = 8,
+    startedAt = Date.now() - 120_000,
+    offsetMeters,
+  }: {
+    count?: number
+    startedAt?: number
+    offsetMeters?: number
+  } = {}
+): TrekTestTrackPoint[] {
+  const pointCount = Math.max(1, count)
+  const stepMs = pointCount === 1 ? 0 : Math.floor(120_000 / (pointCount - 1))
+
+  return Array.from({ length: pointCount }, (_, index) => {
+    const factor = pointCount === 1 ? 0 : (pointCount - 1 - index) / (pointCount - 1)
+    const distanceMeters = typeof offsetMeters === 'number'
+      ? offsetMeters + factor * 80
+      : factor * 120
+    const position = offsetCoordinate(mountain.latitude, mountain.longitude, distanceMeters)
+
+    return {
+      lat: position.lat,
+      lng: position.lng,
+      ts: Math.min(startedAt + index * stepMs, Date.now()),
+      altitude: Math.max(0, Math.round(mountain.altitude - 60 * factor)),
+      accuracy: 5,
+    }
+  })
+}
+
+export async function backdateTrekSessionForTest(sessionId: string, millisecondsAgo = 120_000) {
+  if (!UUID_PATTERN.test(sessionId)) {
+    return
+  }
+
+  const supabase = getSupabaseAdminClient()
+  const startedAt = new Date(Date.now() - millisecondsAgo).toISOString()
+  const { data, error } = await supabase
+    .from('trek_sessions')
+    .update({ started_at: startedAt })
+    .eq('id', sessionId)
+    .select('id')
+    .maybeSingle()
+
+  if (error || !data) {
+    throw new Error(`Failed to backdate trek session for E2E test: ${error?.message ?? 'session not found'}`)
+  }
+}
+
+export async function seedTestMountain(overrides: Partial<TestMountain> = {}) {
+  const supabase = getSupabaseAdminClient()
+  const unique = Date.now()
+  const { data, error } = await supabase
+    .from('mountains')
+    .insert({
+      name: overrides.name ?? `E2E Server Session 山 ${unique}`,
+      altitude: overrides.altitude ?? 1888,
+      province: '四川',
+      province_code: 'SC',
+      difficulty: 'beginner',
+      min_license: 'none',
+      latitude: overrides.latitude ?? 30.6502,
+      longitude: overrides.longitude ?? 104.0748,
+      description: 'E2E server session test mountain',
+      is_active: true,
+    })
+    .select('id, name, latitude, longitude, altitude')
+    .single()
+
+  if (error || !data) {
+    throw new Error(`Failed to seed E2E test mountain: ${error?.message ?? 'no data'}`)
+  }
+
+  return data as TestMountain
+}
+
+export async function deleteTestMountainById(mountainId: string) {
+  const supabase = getSupabaseAdminClient()
+  const { error } = await supabase
+    .from('mountains')
+    .delete()
+    .eq('id', mountainId)
+
+  if (error) {
+    throw new Error(`Failed to clean up E2E test mountain: ${error.message}`)
+  }
 }
 
 export async function promoteUserToAdmin({
@@ -191,52 +328,58 @@ export async function createGpsCheckinViaApi(
   await page.goto(`/trek?mountainId=${mountain.id}`)
   await dismissActivationChecklistIfPresent(page)
 
-  const now = Date.now()
-  const response = await page.evaluate(
-    async ({ currentMountain, currentNote, currentStartedAt, currentNow }) => {
-      const trackPoints = Array.from({ length: 8 }, (_, index) => {
-        const factor = (7 - index) / 7
-        return {
-          lat: currentMountain.latitude - 0.001 * factor,
-          lng: currentMountain.longitude - 0.001 * factor,
-          ts: Math.min(currentStartedAt + index * 15_000, currentNow),
-          altitude: Math.max(0, currentMountain.altitude - Math.round(56 * factor)),
-          accuracy: 5,
-        }
-      })
-
-      const res = await fetch('/api/trek/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'verify_summit_checkin',
-          sessionId: `local-trek-session:${crypto.randomUUID()}`,
-          mountainId: currentMountain.id,
-          note: currentNote,
-          startedAt: currentStartedAt,
-          trackPoints,
-        }),
-      })
-
-      return {
-        ok: res.ok,
-        status: res.status,
-        body: await res.json().catch(() => ({})),
-      }
+  const startedAt = Date.now() - 120_000
+  const trackPoints = buildTrekTestTrackPoints(mountain, { startedAt })
+  const startResponse = await page.request.post('/api/trek/actions', {
+    data: {
+      action: 'start_trek_session',
+      mountainId: mountain.id,
     },
-    {
-      currentMountain: mountain,
-      currentNote: note,
-      currentStartedAt: now - 120_000,
-      currentNow: now,
-    }
-  )
+  })
+  const startBody = await startResponse.json().catch(() => ({}))
+  const sessionId = typeof startBody?.sessionId === 'string' ? startBody.sessionId : ''
 
-  if (!response.ok || !response.body?.checkinId) {
-    throw new Error(`Failed to seed approved GPS check-in: ${JSON.stringify(response.body)}`)
+  if (!startResponse.ok() || !sessionId) {
+    throw new Error(`Failed to start GPS check-in session: ${JSON.stringify(startBody)}`)
   }
 
-  return String(response.body.checkinId)
+  if (sessionId.startsWith('local-trek-session:')) {
+    throw new Error(`Unexpected local trek session in server-session helper: ${sessionId}`)
+  }
+
+  for (const point of trackPoints) {
+    const appendResponse = await page.request.post('/api/trek/actions', {
+      data: {
+        action: 'append_trek_point',
+        sessionId,
+        point,
+      },
+    })
+    const appendBody = await appendResponse.json().catch(() => ({}))
+    if (!appendResponse.ok() || appendBody?.ok !== true) {
+      throw new Error(`Failed to append GPS check-in point: ${JSON.stringify(appendBody)}`)
+    }
+  }
+
+  await backdateTrekSessionForTest(sessionId, 120_000)
+
+  const verifyResponse = await page.request.post('/api/trek/actions', {
+    data: {
+      action: 'verify_summit_checkin',
+      sessionId,
+      mountainId: mountain.id,
+      note,
+      startedAt,
+      trackPoints,
+    },
+  })
+  const verifyBody = await verifyResponse.json().catch(() => ({}))
+
+  if (!verifyResponse.ok() || !verifyBody?.checkinId) {
+    throw new Error(`Failed to seed approved GPS check-in: ${JSON.stringify(verifyBody)}`)
+  }
+
+  return String(verifyBody.checkinId)
 }
 
 export async function getFirstMountain(page: Page, baseURL: string) {

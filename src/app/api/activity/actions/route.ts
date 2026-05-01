@@ -1,11 +1,16 @@
-import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { COMMUNITY_MAX_IMAGE_COUNT } from '@/lib/community'
 import { describeStorageError, normalizeStorageUploadError } from '@/lib/storage-errors'
+import {
+  buildCheckinPhotoObjectPath,
+  CHECKIN_PHOTOS_BUCKET,
+  CHECKIN_PHOTOS_MAX_BYTES,
+  STORAGE_CACHE_CONTROL,
+  storageUploadStatus,
+  validateStorageImageFile,
+} from '@/lib/storage-utils'
 import type { CheckinAsset } from '@/types'
-
-const MAX_ACTIVITY_IMAGE_SIZE_BYTES = 10 * 1024 * 1024
 
 type CheckinRow = {
   id: string
@@ -25,16 +30,17 @@ type CheckinAssetRow = {
   sort_order: number | null
 }
 
-function sanitizeExtension(file: File) {
-  const fromName = file.name.split('.').pop()?.toLowerCase() ?? ''
-  if (/^[a-z0-9]{1,5}$/.test(fromName)) return fromName
-  const subtype = file.type.split('/').pop()?.toLowerCase() ?? 'jpg'
-  return /^[a-z0-9]{1,5}$/.test(subtype) ? subtype : 'jpg'
-}
-
 function normalizeNote(value: unknown) {
   if (typeof value !== 'string') return ''
   return value.trim().slice(0, 2000)
+}
+
+async function bestEffortRemoveCheckinPhotoObjects(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  paths: string[]
+) {
+  if (!paths.length) return
+  await supabase.storage.from(CHECKIN_PHOTOS_BUCKET).remove(paths).catch(() => undefined)
 }
 
 async function loadCheckinById(
@@ -130,11 +136,13 @@ export async function POST(request: Request) {
     }
 
     for (const file of files) {
-      if (!file.type.startsWith('image/')) {
-        return NextResponse.json({ error: '只能上传图片格式的现场照片。' }, { status: 400 })
-      }
-      if (file.size > MAX_ACTIVITY_IMAGE_SIZE_BYTES) {
-        return NextResponse.json({ error: '单张现场照片不能超过 10MB。' }, { status: 400 })
+      const validation = validateStorageImageFile(file, {
+        maxBytes: CHECKIN_PHOTOS_MAX_BYTES,
+        invalidTypeMessage: '只能上传 JPG、PNG 或 WebP 格式的现场照片。',
+        tooLargeMessage: '单张现场照片不能超过 8MB。',
+      })
+      if (!validation.ok) {
+        return NextResponse.json({ error: validation.error }, { status: validation.status })
       }
     }
 
@@ -158,19 +166,32 @@ export async function POST(request: Request) {
         sort_order: number
       }> = []
 
+      const uploadedObjectPaths: string[] = []
+
       for (const [index, file] of files.entries()) {
-        const ext = sanitizeExtension(file)
-        const path = `activity-assets/${user.id}/${checkinId}/${Date.now()}-${randomUUID()}.${ext}`
-        const { error: uploadError } = await supabase.storage.from('checkin-photos').upload(path, file)
+        const path = buildCheckinPhotoObjectPath({
+          userId: user.id,
+          file,
+          fallbackBase: 'activity-photo',
+          scopeId: checkinId,
+          index,
+        })
+        const { error: uploadError } = await supabase.storage.from(CHECKIN_PHOTOS_BUCKET).upload(path, file, {
+          contentType: file.type,
+          upsert: false,
+          cacheControl: STORAGE_CACHE_CONTROL,
+        })
         if (uploadError) {
           const message = normalizeStorageUploadError(
             describeStorageError(uploadError),
             '现场照片上传失败，请稍后重试。'
           )
-          return NextResponse.json({ error: message }, { status: 500 })
+          await bestEffortRemoveCheckinPhotoObjects(supabase, uploadedObjectPaths)
+          return NextResponse.json({ error: message }, { status: storageUploadStatus(message) })
         }
 
-        const { data: publicUrlData } = supabase.storage.from('checkin-photos').getPublicUrl(path)
+        uploadedObjectPaths.push(path)
+        const { data: publicUrlData } = supabase.storage.from(CHECKIN_PHOTOS_BUCKET).getPublicUrl(path)
         uploadedRows.push({
           checkin_id: checkinId,
           type: 'image',
@@ -186,6 +207,7 @@ export async function POST(request: Request) {
         .select('id, checkin_id, type, url, thumbnail_url, created_at, sort_order')
 
       if (insertError) {
+        await bestEffortRemoveCheckinPhotoObjects(supabase, uploadedObjectPaths)
         return NextResponse.json({ error: insertError.message || '现场照片保存失败，请稍后重试。' }, { status: 500 })
       }
 

@@ -22,6 +22,10 @@
 # production
 /build
 
+# runtime upload artifacts should live in Supabase Storage
+/public/checkin-photos/
+/public/avatars/
+
 # misc
 .DS_Store
 *.pem

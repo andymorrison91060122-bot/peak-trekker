@@ -635,6 +635,8 @@ export function validateCommunityAssets({
   }
 
   const allowedPrefixes = [
+    `/storage/v1/object/public/checkin-photos/checkins/${userId}/${checkinId}-`,
+    `/checkin-photos/checkins/${userId}/${checkinId}-`,
     `/checkin-photos/community-assets/${userId}/${checkinId}/`,
     `/storage/v1/object/public/checkin-photos/community-assets/${userId}/${checkinId}/`,
   ]

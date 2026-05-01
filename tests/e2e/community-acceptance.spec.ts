@@ -1367,5 +1367,5 @@ test('profile avatar upload updates the identity card immediately after a succes
   await expect(page.getByRole('button', { name: /更换头像|上传头像/ })).toHaveCount(0)
   const avatarImage = page.locator('img[data-testid="profile-avatar-image"]')
   await expect(avatarImage).toBeVisible()
-  await expect(avatarImage).toHaveAttribute('src', /avatars|checkin-photos/)
+  await expect(avatarImage).toHaveAttribute('src', /\/storage\/v1\/object\/public\/avatars\//)
 })

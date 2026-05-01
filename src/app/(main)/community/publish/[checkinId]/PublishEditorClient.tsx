@@ -14,6 +14,13 @@ import {
   serializeCommunityPostPayload,
 } from '@/lib/community'
 import { describeStorageError, isMissingStorageError, normalizeStorageUploadError } from '@/lib/storage-errors'
+import {
+  buildCheckinPhotoObjectPath,
+  CHECKIN_PHOTOS_BUCKET,
+  CHECKIN_PHOTOS_MAX_BYTES,
+  STORAGE_CACHE_CONTROL,
+  validateStorageImageFile,
+} from '@/lib/storage-utils'
 import type { CheckinAsset, CommunityPostMetrics, CommunityPostPayload } from '@/types'
 import CommunityMediaGallery from '@/components/community/CommunityMediaGallery'
 import { useAppToast } from '@/components/ui/AppToastProvider'
@@ -166,10 +173,14 @@ export default function PublishEditorClient({
     setCoverAssetId((current) => (current === assetId ? null : current))
   }
 
-  function buildStoragePath(file: File) {
-    const ext = file.name.split('.').pop() || (file.type.includes('video') ? 'mp4' : 'jpg')
-    const safeBase = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9-_]/g, '-').slice(0, 32) || 'asset'
-    return `community-assets/${userId}/${checkinId}/${Date.now()}-${safeBase}.${ext}`
+  function buildStoragePath(file: File, index?: number) {
+    return buildCheckinPhotoObjectPath({
+      userId,
+      file,
+      fallbackBase: file.type.includes('video') ? 'community-video' : 'community-image',
+      scopeId: checkinId,
+      index,
+    })
   }
 
   function handleImageUpload(files: FileList | null) {
@@ -189,12 +200,25 @@ export default function PublishEditorClient({
 
         const uploadedAssets: CheckinAsset[] = []
         for (const file of filesToUpload) {
-          const path = buildStoragePath(file)
-          const { error: uploadError } = await supabase.storage.from('checkin-photos').upload(path, file)
+          const validation = validateStorageImageFile(file, {
+            maxBytes: CHECKIN_PHOTOS_MAX_BYTES,
+            invalidTypeMessage: '只能上传 JPG、PNG 或 WebP 格式的图片。',
+            tooLargeMessage: '单张图片不能超过 8MB。',
+          })
+          if (!validation.ok) {
+            throw new Error(validation.error)
+          }
+
+          const path = buildStoragePath(file, uploadedAssets.length)
+          const { error: uploadError } = await supabase.storage.from(CHECKIN_PHOTOS_BUCKET).upload(path, file, {
+            contentType: file.type,
+            upsert: false,
+            cacheControl: STORAGE_CACHE_CONTROL,
+          })
           if (uploadError) {
             throw new Error(normalizeStorageUploadError(describeStorageError(uploadError), '图片上传失败，请稍后重试。'))
           }
-          const { data } = supabase.storage.from('checkin-photos').getPublicUrl(path)
+          const { data } = supabase.storage.from(CHECKIN_PHOTOS_BUCKET).getPublicUrl(path)
           uploadedAssets.push({
             id: `upload-${Date.now()}-${uploadedAssets.length}`,
             checkin_id: checkinId,
@@ -232,11 +256,15 @@ export default function PublishEditorClient({
       try {
         const keepPosterAssets = assets.filter((asset) => asset.type === 'poster')
         const path = buildStoragePath(file)
-        const { error: uploadError } = await supabase.storage.from('checkin-photos').upload(path, file)
+        const { error: uploadError } = await supabase.storage.from(CHECKIN_PHOTOS_BUCKET).upload(path, file, {
+          contentType: file.type,
+          upsert: false,
+          cacheControl: STORAGE_CACHE_CONTROL,
+        })
         if (uploadError) {
           throw new Error(normalizeStorageUploadError(describeStorageError(uploadError), '视频上传失败，请稍后重试。'))
         }
-        const { data } = supabase.storage.from('checkin-photos').getPublicUrl(path)
+        const { data } = supabase.storage.from(CHECKIN_PHOTOS_BUCKET).getPublicUrl(path)
         const nextAssets = prioritizeCommunityAssets([
           ...keepPosterAssets,
           {

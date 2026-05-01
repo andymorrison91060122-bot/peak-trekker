@@ -110,7 +110,7 @@ test('photo check-in completes the upload and submit flow after a target mountai
   }
   expect(submitPayload.mountainId).toBe(selectedMountain.value)
   expect(typeof submitPayload.photoUrl).toBe('string')
-  expect(String(submitPayload.photoUrl)).toContain('/checkin-photos/checkins/')
+  expect(String(submitPayload.photoUrl)).toContain('/storage/v1/object/public/checkin-photos/checkins/')
 
   const submitBody = await submitResponse.json()
   expect(submitBody.status).toBe('pending')

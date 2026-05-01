@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { describeStorageError, isMissingStorageError, normalizeStorageUploadError } from '@/lib/storage-errors'
+import { isMissingStorageError } from '@/lib/storage-errors'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import IconButton from '@/components/ui/IconButton'
 import { getLicenseIcon, getLicenseLevelLabel } from '@/lib/license-ui'
@@ -12,23 +11,7 @@ const AVATAR_TOAST_STORAGE_KEY = 'peak-trekker:avatar-uploaded'
 const AVATAR_STATUS_STORAGE_KEY = 'peak-trekker:avatar-status'
 const AVATAR_INLINE_SUCCESS_MESSAGE = '头像更新成功，个人主页和山友圈会同步刷新。'
 
-function shouldFallbackToLegacyAvatarBucket(message: string) {
-  return /bucket not found|row-level security|not allowed|permission|policy/i.test(message)
-}
-
-function shouldFallbackToLocalAvatarUpload(message: string) {
-  return /bucket not found|当前环境未配置图片存储|row-level security|not allowed|permission|policy/i.test(message)
-}
-
-function getSafeFilePath(userId: string, file: File) {
-  const ext = file.name.split('.').pop() || 'jpg'
-  const safeName =
-    file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9-_]/g, '-').slice(0, 24) || 'avatar'
-  return `${userId}/${Date.now()}-${safeName}.${ext}`
-}
-
 export default function ProfileAvatarUploader({
-  userId,
   username,
   province,
   joinedAt,
@@ -43,7 +26,6 @@ export default function ProfileAvatarUploader({
   licenseLevel: string
 }) {
   const router = useRouter()
-  const supabase = createSupabaseBrowserClient()
   const { showToast } = useAppToast()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl)
@@ -67,7 +49,7 @@ export default function ProfileAvatarUploader({
     }
   }, [showToast])
 
-  async function uploadAvatarViaLocalRoute(file: File) {
+  async function uploadAvatarViaRoute(file: File) {
     const formData = new FormData()
     formData.set('file', file)
     const response = await fetch('/api/profile/avatar-upload', {
@@ -82,44 +64,7 @@ export default function ProfileAvatarUploader({
   }
 
   async function uploadAvatar(file: File) {
-    const basePath = getSafeFilePath(userId, file)
-    let bucket = 'avatars'
-    let uploadPath = basePath
-
-    let uploadResult = await supabase.storage.from(bucket).upload(uploadPath, file, {
-      upsert: true,
-      cacheControl: '3600',
-    })
-
-    if (uploadResult.error && shouldFallbackToLegacyAvatarBucket(uploadResult.error.message)) {
-      bucket = 'checkin-photos'
-      uploadPath = `avatars/${basePath}`
-      uploadResult = await supabase.storage.from(bucket).upload(uploadPath, file, {
-        upsert: true,
-        cacheControl: '3600',
-      })
-    }
-
-    let nextAvatarUrl: string
-
-    if (uploadResult.error) {
-      const normalizedMessage = normalizeStorageUploadError(describeStorageError(uploadResult.error), '头像上传失败，请稍后重试。')
-      if (!shouldFallbackToLocalAvatarUpload(normalizedMessage)) {
-        throw new Error(normalizedMessage)
-      }
-      nextAvatarUrl = await uploadAvatarViaLocalRoute(file)
-    } else {
-      const { data } = supabase.storage.from(bucket).getPublicUrl(uploadPath)
-      nextAvatarUrl = data.publicUrl
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: nextAvatarUrl })
-        .eq('id', userId)
-
-      if (updateError) {
-        throw new Error(updateError.message || '头像保存失败，请稍后重试。')
-      }
-    }
+    const nextAvatarUrl = await uploadAvatarViaRoute(file)
 
     setAvatarUrl(`${nextAvatarUrl}${nextAvatarUrl.includes('?') ? '&' : '?'}t=${Date.now()}`)
     setStatusTone('success')

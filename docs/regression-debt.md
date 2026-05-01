@@ -63,6 +63,8 @@
   `src/app/api/trek/photo-upload/route.ts` 使用本地文件系统写入 `/public/checkin-photos/...`；仓库内仍同时存在面向 `checkin-photos` bucket 的上传/公开 URL 逻辑。
 - Debt statement:
   当前“本地 public 兜底”和“真实 Supabase bucket 链路”并存，生产环境的 bucket 权限、公开地址、回源策略没有在当前批次内完成端到端验证。
+- Progress:
+  已修复（N3，2026-05-01）：`checkin-photos` 与 `avatars` 的新上传链路改为 Supabase Storage public bucket；路径统一为 `checkins/{user_id}/...` 与 `{user_id}/...`，并移除本地文件系统写入 fallback。`mountain-media` 为 admin-only bucket，未纳入本批次。
 - Recommended follow-up:
   在正式存储环境中补做一次真实上传、公开访问、社区发布复用、头像/活动图片共存策略的完整环境验收。
 

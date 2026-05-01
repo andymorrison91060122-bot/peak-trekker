@@ -580,6 +580,10 @@ export async function POST(request: NextRequest) {
 
     let mountain = targetMountain
     if (!mountain) {
+      if (!ALLOW_LOCAL_TREK_SESSION) {
+        return NextResponse.json({ error: 'mountain_id_required' }, { status: 400 })
+      }
+
       const { data: allMountains } = await listActiveMountainsForVerification(supabase)
 
       if (!allMountains?.length) {
@@ -587,11 +591,20 @@ export async function POST(request: NextRequest) {
       }
 
       const last = points.at(-1)!
-      mountain = [...allMountains].sort(
-        (a, b) =>
-          haversineMeters(last.lat, last.lng, a.latitude, a.longitude) -
-          haversineMeters(last.lat, last.lng, b.latitude, b.longitude)
-      )[0] as Mountain & { summit_radius_m?: number | null }
+      const nearest = [...allMountains]
+        .map((candidate) => ({
+          mountain: candidate,
+          distanceM: haversineMeters(last.lat, last.lng, candidate.latitude, candidate.longitude),
+        }))
+        .sort((a, b) => a.distanceM - b.distanceM)[0]
+
+      mountain = nearest.mountain as Mountain & { summit_radius_m?: number | null }
+      console.warn('nearest mountain fallback triggered', {
+        lat: last.lat,
+        lng: last.lng,
+        nearestId: mountain.id,
+        distanceM: Math.round(nearest.distanceM),
+      })
     }
 
     const lastPoint = points.at(-1)!

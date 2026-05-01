@@ -232,7 +232,7 @@ test.describe('trek server session', () => {
     }
   })
 
-  test('missing mountainId currently falls back to the nearest active mountain', async ({ page, baseURL }) => {
+  test('missing mountainId uses nearest fallback in dev and QA env', async ({ page, baseURL }) => {
     test.setTimeout(120_000)
     const root = baseURL ?? 'http://127.0.0.1:3100'
     await prepareAuthenticatedUser(page, root)

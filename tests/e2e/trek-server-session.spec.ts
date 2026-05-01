@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import {
   backdateTrekSessionForTest,
   buildTrekTestTrackPoints,
+  countApprovedCheckinsForSession,
   createGpsCheckinViaApi,
   deleteTestMountainById,
   dismissActivationChecklistIfPresent,
@@ -154,6 +155,36 @@ test.describe('trek server session', () => {
       expect(second.status, JSON.stringify(second.body)).toBe(200)
       expect(second.body.duplicated).toBe(true)
       expect(second.body.checkinId).toBe(first.body.checkinId)
+      await expect.poll(() => countApprovedCheckinsForSession(sessionId)).toBe(1)
+    } finally {
+      await finishSession(page, sessionId)
+    }
+  })
+
+  test('concurrent submit creates only one approved checkin for the same server session', async ({ page, baseURL }) => {
+    test.setTimeout(120_000)
+    const root = baseURL ?? 'http://127.0.0.1:3100'
+    await prepareAuthenticatedUser(page, root)
+    const sessionId = await startSession(page, mountain.id)
+    const points = buildTrekTestTrackPoints(mountain)
+
+    try {
+      await appendPoints(page, sessionId, points)
+      await backdateTrekSessionForTest(sessionId, 120_000)
+
+      const [first, second] = await Promise.all([
+        verifySummit(page, { sessionId, mountainId: mountain.id, points }),
+        verifySummit(page, { sessionId, mountainId: mountain.id, points }),
+      ])
+
+      expect(first.status, JSON.stringify(first.body)).toBe(200)
+      expect(second.status, JSON.stringify(second.body)).toBe(200)
+
+      const checkinIds = [first.body.checkinId, second.body.checkinId].map(String)
+      expect(checkinIds[0]).toMatch(UUID_PATTERN)
+      expect(checkinIds[1]).toBe(checkinIds[0])
+      expect([first.body.duplicated, second.body.duplicated].filter(Boolean)).toHaveLength(1)
+      await expect.poll(() => countApprovedCheckinsForSession(sessionId)).toBe(1)
     } finally {
       await finishSession(page, sessionId)
     }

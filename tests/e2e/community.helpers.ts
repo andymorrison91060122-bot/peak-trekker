@@ -225,6 +225,21 @@ export async function backdateTrekSessionForTest(sessionId: string, milliseconds
   }
 }
 
+export async function countApprovedCheckinsForSession(sessionId: string) {
+  const supabase = getSupabaseAdminClient()
+  const { count, error } = await supabase
+    .from('checkins')
+    .select('id', { count: 'exact', head: true })
+    .eq('session_id', sessionId)
+    .eq('status', 'approved')
+
+  if (error) {
+    throw new Error(`Failed to count approved checkins for E2E test: ${error.message}`)
+  }
+
+  return count ?? 0
+}
+
 export async function seedTestMountain(overrides: Partial<TestMountain> = {}) {
   const supabase = getSupabaseAdminClient()
   const unique = Date.now()

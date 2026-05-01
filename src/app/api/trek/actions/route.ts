@@ -38,6 +38,18 @@ type TrekVerifySessionRecord = {
   max_altitude_m: number | null
 }
 
+type TrekVerifyRecordRpcRow = {
+  checkin_id?: string | null
+  duplicated?: boolean | null
+}
+
+type StatsRpcError = {
+  message?: string | null
+  code?: string | null
+  details?: string | null
+  hint?: string | null
+}
+
 const SHARE_TEMPLATES: ShareCardTemplate[] = ['trek_snapshot', 'summit_card', 'activity_summary']
 const SHARE_RENDER_MODES: ShareRenderMode[] = ['photo_composite', 'overlay_only', 'classic_card']
 const ENABLE_QA_TEST_HELPERS = process.env.ENABLE_QA_TEST_HELPERS === 'true'
@@ -158,6 +170,55 @@ async function insertCheckinWithFallback(
   }
 
   return lastResult as never
+}
+
+async function updateVerificationStats({
+  supabase,
+  mountain,
+  userId,
+}: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+  mountain: Mountain & { summit_radius_m?: number | null }
+  userId: string
+}) {
+  const statsCalls = [
+    {
+      name: 'increment_checkin_count',
+      result: supabase.rpc('increment_checkin_count', { mid: mountain.id }),
+    },
+    {
+      name: 'increment_user_stats',
+      result: supabase.rpc('increment_user_stats', { uid: userId, alt: mountain.altitude }),
+    },
+    ...(mountain.province
+      ? [
+          {
+            name: 'increment_province_score',
+            result: supabase.rpc('increment_province_score', { pname: mountain.province }),
+          },
+        ]
+      : []),
+  ] as const
+
+  const settled = await Promise.allSettled(
+    statsCalls.map(async (call) => {
+      const { error } = await call.result
+      return { name: call.name, error: error as StatsRpcError | null }
+    })
+  )
+
+  const failures = settled.flatMap((result, index) => {
+    if (result.status === 'rejected') {
+      return [{ name: statsCalls[index]?.name ?? 'unknown_stats_rpc', error: result.reason }]
+    }
+    return result.value.error ? [result.value] : []
+  })
+
+  if (failures.length > 0) {
+    console.error('Trek verification stats update failed', failures)
+  }
+
+  return failures.length > 0
 }
 
 export async function POST(request: NextRequest) {
@@ -566,57 +627,78 @@ export async function POST(request: NextRequest) {
 
     const rankingWeight = rankingWeightByDifficulty(mountain.difficulty)
     const now = new Date().toISOString()
-    const { data: createdCheckin, error: createError } = await insertCheckinWithFallback(
-      supabase,
-      {
-        user_id: user.id,
-        mountain_id: mountain.id,
-        type: 'gps',
-        source: 'realtime_gps',
-        status: 'approved',
-        latitude: lastPoint.lat,
-        longitude: lastPoint.lng,
-        note,
-        ...(serverSession ? { session_id: serverSession.id } : {}),
-        verified_at: now,
-        verification_distance_m: Math.round(verifyDistance),
-        ranking_weight: rankingWeight,
-      },
-      'id'
-    )
-
-    if (createError || !createdCheckin) {
-      return NextResponse.json({ error: createError?.message ?? 'create checkin failed' }, { status: 500 })
-    }
-
-    const verifiedCheckin = createdCheckin as unknown as { id: string }
+    let verifiedCheckin: { id: string; duplicated: boolean }
 
     if (serverSession) {
-      await supabase
-        .from('trek_sessions')
-        .update({
-          mountain_id: mountain.id,
-          status: 'summit_verified',
-          verify_state: 'verified',
-          ended_at: now,
+      const { data: recordedCheckin, error: recordError } = await supabase
+        .rpc('verify_and_record_checkin', {
+          p_session_id: serverSession.id,
+          p_user_id: user.id,
+          p_mountain_id: mountain.id,
+          p_latitude: lastPoint.lat,
+          p_longitude: lastPoint.lng,
+          p_note: note,
+          p_verified_at: now,
+          p_verification_distance_m: Math.round(verifyDistance),
+          p_ranking_weight: rankingWeight,
         })
-        .eq('id', serverSession.id)
-        .eq('user_id', user.id)
+        .single()
+
+      const rpcRow = recordedCheckin as TrekVerifyRecordRpcRow | null
+
+      if (recordError || !rpcRow?.checkin_id) {
+        return NextResponse.json({ error: recordError?.message ?? 'record checkin failed' }, { status: 500 })
+      }
+
+      verifiedCheckin = {
+        id: rpcRow.checkin_id,
+        duplicated: Boolean(rpcRow.duplicated),
+      }
+    } else {
+      const { data: createdCheckin, error: createError } = await insertCheckinWithFallback(
+        supabase,
+        {
+          user_id: user.id,
+          mountain_id: mountain.id,
+          type: 'gps',
+          source: 'realtime_gps',
+          status: 'approved',
+          latitude: lastPoint.lat,
+          longitude: lastPoint.lng,
+          note,
+          verified_at: now,
+          verification_distance_m: Math.round(verifyDistance),
+          ranking_weight: rankingWeight,
+        },
+        'id'
+      )
+
+      if (createError || !createdCheckin) {
+        return NextResponse.json({ error: createError?.message ?? 'create checkin failed' }, { status: 500 })
+      }
+
+      verifiedCheckin = {
+        id: (createdCheckin as unknown as { id: string }).id,
+        duplicated: false,
+      }
     }
 
-    try {
-      await Promise.all([
-        supabase.rpc('increment_checkin_count', { mid: mountain.id }),
-        supabase.rpc('increment_user_stats', { uid: user.id, alt: mountain.altitude }),
-        mountain.province ? supabase.rpc('increment_province_score', { pname: mountain.province }) : Promise.resolve(),
-      ])
-    } catch {}
+    const statsWarning =
+      verifiedCheckin.duplicated
+        ? false
+        : await updateVerificationStats({
+            supabase,
+            mountain,
+            userId: user.id,
+          })
 
     return NextResponse.json({
       ok: true,
+      ...(verifiedCheckin.duplicated ? { duplicated: true } : {}),
       checkinId: verifiedCheckin.id,
       verificationDistanceM: Math.round(verifyDistance),
       rankingWeight,
+      ...(statsWarning ? { statsWarning: 'stats_update_failed' } : {}),
       mountain: {
         id: mountain.id,
         name: mountain.name,

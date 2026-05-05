@@ -131,23 +131,27 @@ export function normalizeCommunityTags(value: unknown) {
   return [...next]
 }
 
-export function buildCommunityDefaultTitle(mountainName: string, sourceType: 'realtime_gps' | 'historical_photo') {
+export function buildCommunityDefaultTitle(mountainName: string, sourceType: 'realtime_gps' | 'historical_photo' | 'track_import') {
+  if (sourceType === 'track_import') return `导入了 ${mountainName} 的轨迹记录`
   return sourceType === 'historical_photo'
     ? `补签了 ${mountainName} 的登山记录`
     : `登顶了 ${mountainName}`
 }
 
-export function buildCommunityBehaviorText(mountainName: string, sourceType: 'realtime_gps' | 'historical_photo') {
+export function buildCommunityBehaviorText(mountainName: string, sourceType: 'realtime_gps' | 'historical_photo' | 'track_import') {
+  if (sourceType === 'track_import') return `导入了 ${mountainName} 的轨迹记录`
   return sourceType === 'historical_photo'
     ? `补签了 ${mountainName} 的历史记录`
     : `登顶了 ${mountainName}`
 }
 
-export function buildCommunitySourceLabel(sourceType: 'realtime_gps' | 'historical_photo') {
+export function buildCommunitySourceLabel(sourceType: 'realtime_gps' | 'historical_photo' | 'track_import') {
+  if (sourceType === 'track_import') return '上传数据'
   return sourceType === 'historical_photo' ? '照片补签记录' : 'GPS 实时记录'
 }
 
-export function buildCommunityActionTitle(sourceType: 'realtime_gps' | 'historical_photo') {
+export function buildCommunityActionTitle(sourceType: 'realtime_gps' | 'historical_photo' | 'track_import') {
+  if (sourceType === 'track_import') return '轨迹导入'
   return sourceType === 'historical_photo' ? '照片补签' : 'GPS 记录'
 }
 
@@ -156,11 +160,11 @@ export function buildCommunityRenderFallbackTitle({
   sourceType,
 }: {
   mountainName?: string | null
-  sourceType?: 'realtime_gps' | 'historical_photo' | null
+  sourceType?: 'realtime_gps' | 'historical_photo' | 'track_import' | null
 }) {
   const normalizedMountainName = typeof mountainName === 'string' ? mountainName.trim() : ''
   const actionTitle =
-    sourceType === 'historical_photo' || sourceType === 'realtime_gps'
+    sourceType === 'historical_photo' || sourceType === 'realtime_gps' || sourceType === 'track_import'
       ? buildCommunityActionTitle(sourceType)
       : ''
 
@@ -177,7 +181,7 @@ export function buildDefaultCommunityPosterUrl({
   anchorPosition = 'top',
 }: {
   checkinId: string
-  sourceType: 'realtime_gps' | 'historical_photo'
+  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
   anchorPosition?: 'top' | 'bottom'
 }) {
   const template = sourceType === 'historical_photo' ? 'activity_summary' : 'summit_card'
@@ -316,7 +320,7 @@ export function shouldRenderCommunityPost({
   sourceType,
   assets,
 }: {
-  sourceType: 'realtime_gps' | 'historical_photo'
+  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
   assets: CheckinAsset[]
 }) {
   return sourceType !== 'historical_photo' || hasCommunityImageAsset(assets)
@@ -327,7 +331,7 @@ export function buildCommunityMetricItems({
   metrics,
   mountain,
 }: {
-  sourceType: 'realtime_gps' | 'historical_photo'
+  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
   metrics: CommunityPostMetrics
   mountain?: {
     name?: string | null
@@ -354,7 +358,7 @@ export function resolveCommunityCardVariant({
   sourceType,
   assets,
 }: {
-  sourceType: 'realtime_gps' | 'historical_photo'
+  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
   assets: CheckinAsset[]
 }) {
   const hasRenderableMedia = assets.some((asset) => asset.type === 'image' || asset.type === 'video')
@@ -362,7 +366,7 @@ export function resolveCommunityCardVariant({
     return 'media' as const
   }
 
-  return sourceType === 'realtime_gps' ? ('route_map' as const) : ('no_image' as const)
+  return sourceType === 'realtime_gps' || sourceType === 'track_import' ? ('route_map' as const) : ('no_image' as const)
 }
 
 export function serializeCommunityPostPayload(payload: CommunityPostPayload) {
@@ -462,7 +466,7 @@ export function parseCommunityPostPayload({
   fallbackPhotoUrl?: string | null
   fallbackPosterUrl?: string | null
   checkinId: string
-  sourceType: 'realtime_gps' | 'historical_photo'
+  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
   mountainName: string
 }): CommunityPostPayload {
   const fallbackAssets = deriveLegacyCheckinAssets({
@@ -604,7 +608,7 @@ export function validateCommunityAssets({
   assets: CheckinAsset[]
   userId: string
   checkinId: string
-  sourceType: 'realtime_gps' | 'historical_photo'
+  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
   checkinPhotoUrl?: string | null
   checkinPosterUrl?: string | null
 }) {
@@ -693,7 +697,7 @@ export function buildCommunityPostViewModel({
   } | null
   checkin: {
     note?: string | null
-    source: 'realtime_gps' | 'historical_photo'
+    source: 'realtime_gps' | 'historical_photo' | 'track_import'
     status?: string | null
     session_id?: string | null
     created_at?: string | null
@@ -744,7 +748,7 @@ export function buildCommunityPostViewModel({
     sourceType: checkin.source,
     sourceLabel: buildCommunitySourceLabel(checkin.source),
     behaviorText: buildCommunityBehaviorText(safeMountainName, checkin.source),
-    recordStatusLabel: checkin.source === 'historical_photo' ? '历史补签' : '已核验登顶',
+    recordStatusLabel: checkin.source === 'historical_photo' ? '历史补签' : checkin.source === 'track_import' ? '上传数据' : '已核验登顶',
     author: {
       id: author?.id ?? postUserId,
       username: author?.username ?? '匿名登山者',

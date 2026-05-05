@@ -42,7 +42,7 @@ export type ActivityDetail = {
   summitAt: string | null
   verifiedAt: string | null
   note: string
-  sourceType: 'realtime_gps' | 'historical_photo'
+  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
   sourceLabel: string
   recordSourceLabel: string
   summitStatusLabel: string
@@ -135,6 +135,8 @@ export async function getActivityDetail({
     source: record.sourceType,
     type: record.sourceType === 'historical_photo' ? 'photo' : 'gps',
   })
+  const isHistoricalPhoto = sourceType === 'historical_photo'
+  const isTrackImport = sourceType === 'track_import'
 
   const [{ data: linkedPost }, sessionResult, assetResult] = await Promise.all([
     record.postId
@@ -180,9 +182,9 @@ export async function getActivityDetail({
     note: record.note?.trim() ?? '',
     sourceType,
     sourceLabel: buildCommunitySourceLabel(sourceType),
-    recordSourceLabel: sourceType === 'historical_photo' ? '补签记录' : 'GPS 记录',
-    summitStatusLabel: sourceType === 'historical_photo' ? '历史补签通过' : '已核验登顶',
-    verificationStatusLabel: sourceType === 'historical_photo' ? '补签审核通过' : 'GPS 核验通过',
+    recordSourceLabel: isHistoricalPhoto ? '补签记录' : isTrackImport ? '上传数据' : 'GPS 记录',
+    summitStatusLabel: isHistoricalPhoto ? '历史补签通过' : isTrackImport ? '轨迹导入通过' : '已核验登顶',
+    verificationStatusLabel: isHistoricalPhoto ? '补签审核通过' : isTrackImport ? '上传数据' : 'GPS 核验通过',
     mountain: {
       ...record.mountain,
       coverImage: record.mountain.coverImage ?? null,

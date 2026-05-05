@@ -55,9 +55,9 @@ export type User = {
 export type Checkin = {
   id: string
   user_id: string
-  mountain_id: string
+  mountain_id: string | null
   type: 'gps' | 'photo'
-  source?: 'realtime_gps' | 'historical_photo' | null
+  source?: 'realtime_gps' | 'historical_photo' | 'track_import' | null
   status: 'pending' | 'approved' | 'rejected'
   photo_url: string | null
   latitude: number | null
@@ -97,7 +97,7 @@ export type Post = {
   title?: string
   body?: string
   visibility?: 'public' | 'private'
-  source_type?: 'realtime_gps' | 'historical_photo'
+  source_type?: 'realtime_gps' | 'historical_photo' | 'track_import'
   status?: 'published' | 'hidden' | 'removed'
   published_at?: string | null
   cover_asset_id?: string | null
@@ -146,7 +146,7 @@ export type CommunityPostPayload = {
   body: string
   visibility: PostVisibility
   status: PostStatus
-  sourceType: 'realtime_gps' | 'historical_photo'
+  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
   tags: string[]
   coverAssetId: string | null
   coverUrl: string | null
@@ -175,7 +175,7 @@ export type CommunityPostViewModel = {
   isOwner: boolean
   publishedAt: string
   publishedRelative: string
-  sourceType: 'realtime_gps' | 'historical_photo'
+  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
   sourceLabel: string
   behaviorText: string
   recordStatusLabel: string
@@ -208,7 +208,7 @@ export type CommunityPostViewModel = {
 
 export type PublishableRecord = {
   checkinId: string
-  sourceType: 'realtime_gps' | 'historical_photo'
+  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
   status: 'approved'
   createdAt: string
   verifiedAt?: string | null

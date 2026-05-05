@@ -14,7 +14,7 @@ export type TrackPoint = {
   ts: number
 }
 
-export type CheckinSource = 'realtime_gps' | 'historical_photo'
+export type CheckinSource = 'realtime_gps' | 'historical_photo' | 'track_import'
 
 export function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371000
@@ -40,7 +40,7 @@ export function resolveCheckinSource({
   source?: CheckinSource | string | null
   type?: string | null
 }): CheckinSource {
-  if (source === 'realtime_gps' || source === 'historical_photo') return source
+  if (source === 'realtime_gps' || source === 'historical_photo' || source === 'track_import') return source
   return type === 'gps' ? 'realtime_gps' : 'historical_photo'
 }
 

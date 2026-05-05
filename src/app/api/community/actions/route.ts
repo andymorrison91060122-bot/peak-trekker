@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
       id: string
       user_id: string
       type: 'gps' | 'photo'
-      source?: 'realtime_gps' | 'historical_photo' | null
+      source?: 'realtime_gps' | 'historical_photo' | 'track_import' | null
       status: 'pending' | 'approved' | 'rejected'
       photo_url: string | null
       poster_url?: string | null

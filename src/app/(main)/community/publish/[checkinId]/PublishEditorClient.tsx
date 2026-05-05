@@ -89,7 +89,7 @@ export default function PublishEditorClient({
   userId,
 }: {
   checkinId: string
-  sourceType: 'realtime_gps' | 'historical_photo'
+  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
   defaultTitle: string
   initialPayload: CommunityPostPayload
   record: {

@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     poster_url: string | null
     checkins: Array<{
       type: string
-      source?: 'realtime_gps' | 'historical_photo' | null
+      source?: 'realtime_gps' | 'historical_photo' | 'track_import' | null
       photo_url?: string | null
       mountains: Array<{ name: string }> | null
     }> | null

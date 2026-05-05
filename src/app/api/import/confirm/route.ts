@@ -34,6 +34,8 @@ type NormalizedImportedTrackData = Pick<ImportedTrackData, 'format' | 'fileName'
     >
   >
 
+type ImportConfirmSource = 'track_import' | 'screenshot_recognition'
+
 function toSafeNote(value: unknown) {
   if (typeof value !== 'string') return ''
   return value.trim().slice(0, 240)
@@ -131,6 +133,10 @@ function normalizeImportedTrackData(value: unknown): NormalizedImportedTrackData
   }
 }
 
+function normalizeImportConfirmSource(value: unknown): ImportConfirmSource {
+  return value === 'screenshot_recognition' ? 'screenshot_recognition' : 'track_import'
+}
+
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient()
   const {
@@ -152,6 +158,7 @@ export async function POST(request: Request) {
   const mountainId = typeof (body as { mountainId?: unknown } | null)?.mountainId === 'string'
     ? ((body as { mountainId: string }).mountainId.trim() || null)
     : null
+  const source = normalizeImportConfirmSource((body as { source?: unknown } | null)?.source)
   const note = toSafeNote((body as { note?: unknown } | null)?.note)
   const anchorPoint = findHighestTrackPoint(parsedData.trackPoints)
 
@@ -193,7 +200,7 @@ export async function POST(request: Request) {
       user_id: user.id,
       mountain_id: mountain?.id ?? null,
       type: 'gps',
-      source: 'track_import',
+      source,
       status: 'approved',
       latitude: anchorPoint.latitude,
       longitude: anchorPoint.longitude,

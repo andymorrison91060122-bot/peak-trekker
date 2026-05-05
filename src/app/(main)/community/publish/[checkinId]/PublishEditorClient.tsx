@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import {
   buildCommunityMetricItems,
+  buildCommunitySourceLabel,
   chooseCommunityCoverAsset,
   COMMUNITY_MAX_IMAGE_COUNT,
   formatCommunityDate,
@@ -21,7 +22,7 @@ import {
   STORAGE_CACHE_CONTROL,
   validateStorageImageFile,
 } from '@/lib/storage-utils'
-import type { CheckinAsset, CommunityPostMetrics, CommunityPostPayload } from '@/types'
+import type { CheckinAsset, CheckinSource, CommunityPostMetrics, CommunityPostPayload } from '@/types'
 import CommunityMediaGallery from '@/components/community/CommunityMediaGallery'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import { ActionGlyph, IconActionLink } from '@/components/ui/IconActionButton'
@@ -89,7 +90,7 @@ export default function PublishEditorClient({
   userId,
 }: {
   checkinId: string
-  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
+  sourceType: CheckinSource
   defaultTitle: string
   initialPayload: CommunityPostPayload
   record: {
@@ -421,7 +422,7 @@ export default function PublishEditorClient({
           <div>
             <div className="font-pixel" style={{ fontSize: 24, marginBottom: 6 }}>{record.mountain.name}</div>
             <div className="section-subtitle">
-              {record.mountain.province} · {sourceType === 'historical_photo' ? '照片补签记录' : 'GPS 实时记录'} · {formatCommunityDate(record.createdAt)}
+              {record.mountain.province} · {buildCommunitySourceLabel(sourceType)} · {formatCommunityDate(record.createdAt)}
             </div>
           </div>
           <DifficultyBadge level={record.mountain.difficulty} />

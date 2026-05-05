@@ -11,6 +11,7 @@ import {
 } from '@/lib/community'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import { resolveCheckinSource } from '@/lib/trek-utils'
+import type { CheckinSource } from '@/types'
 
 type ActionName = 'hide' | 'restore' | 'delete' | 'resolve_report' | 'feature' | 'unfeature'
 
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
     poster_url: string | null
     checkins: Array<{
       type: string
-      source?: 'realtime_gps' | 'historical_photo' | 'track_import' | null
+      source?: CheckinSource | null
       photo_url?: string | null
       mountains: Array<{ name: string }> | null
     }> | null

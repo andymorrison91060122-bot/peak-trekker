@@ -118,7 +118,7 @@ function firstRelation<T>(value: T | T[] | null | undefined) {
 
 function safeCheckinSource(value: { source?: string | null; type?: string | null }) {
   return resolveCheckinSource({
-    source: value.source === 'realtime_gps' || value.source === 'historical_photo' ? value.source : null,
+    source: value.source,
     type: value.type === 'photo' ? 'photo' : 'gps',
   })
 }

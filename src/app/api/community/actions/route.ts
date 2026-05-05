@@ -23,7 +23,7 @@ import {
 } from '@/lib/community'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import { resolveCheckinSource } from '@/lib/trek-utils'
-import type { CheckinAsset, PostVisibility } from '@/types'
+import type { CheckinAsset, CheckinSource, PostVisibility } from '@/types'
 
 type ActionName =
   | 'create_or_update_post'
@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
       id: string
       user_id: string
       type: 'gps' | 'photo'
-      source?: 'realtime_gps' | 'historical_photo' | 'track_import' | null
+      source?: CheckinSource | null
       status: 'pending' | 'approved' | 'rejected'
       photo_url: string | null
       poster_url?: string | null

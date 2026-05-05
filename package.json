@@ -21,7 +21,8 @@
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "tencentcloud-sdk-nodejs-ocr": "^4.1.224"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

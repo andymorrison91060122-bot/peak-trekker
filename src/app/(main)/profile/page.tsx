@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { listPublishableRecords, listUserCommunityPosts } from '@/lib/community-server'
 import { getUserMonthlyContribution } from '@/lib/province-ranking-queries'
 import { countPendingReviewRecords, listReviewQueueRecords } from '@/lib/review-queue'
-import { resolveCheckinSource } from '@/lib/trek-utils'
+import { resolveCheckinSource, type CheckinSource } from '@/lib/trek-utils'
 import ProfileCommunitySections from '@/components/community/ProfileCommunitySections'
 import ProfileAvatarUploader from '@/components/profile/ProfileAvatarUploader'
 import ProvinceContributionSection from '@/components/profile/ProvinceContributionSection'
@@ -98,7 +98,7 @@ export default async function ProfilePage() {
   const checkinsData = (fallbackCheckinsRes?.data ?? primaryCheckinsRes.data) as Array<{
     id: string
     type: 'gps' | 'photo'
-    source?: 'realtime_gps' | 'historical_photo' | null
+    source?: CheckinSource | null
     status: 'pending' | 'approved' | 'rejected'
     created_at: string
     mountains: Array<{ id: string; name: string; altitude: number; province: string; difficulty: string }> | null

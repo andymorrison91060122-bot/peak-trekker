@@ -10,7 +10,7 @@ import type {
   PostVisibility,
 } from '@/types'
 import { getMountainPosterBackgroundImage } from '@/lib/mountain-media'
-import { safeTrackPoints } from '@/lib/trek-utils'
+import { safeTrackPoints, type CheckinSource } from '@/lib/trek-utils'
 
 export const COMMUNITY_MAX_TAGS = 3
 export const COMMUNITY_MAX_TITLE_LENGTH = 30
@@ -131,27 +131,30 @@ export function normalizeCommunityTags(value: unknown) {
   return [...next]
 }
 
-export function buildCommunityDefaultTitle(mountainName: string, sourceType: 'realtime_gps' | 'historical_photo' | 'track_import') {
+export function buildCommunityDefaultTitle(mountainName: string, sourceType: CheckinSource) {
   if (sourceType === 'track_import') return `导入了 ${mountainName} 的轨迹记录`
+  if (sourceType === 'screenshot_recognition') return `识别了 ${mountainName} 的截图记录`
   return sourceType === 'historical_photo'
     ? `补签了 ${mountainName} 的登山记录`
     : `登顶了 ${mountainName}`
 }
 
-export function buildCommunityBehaviorText(mountainName: string, sourceType: 'realtime_gps' | 'historical_photo' | 'track_import') {
+export function buildCommunityBehaviorText(mountainName: string, sourceType: CheckinSource) {
   if (sourceType === 'track_import') return `导入了 ${mountainName} 的轨迹记录`
+  if (sourceType === 'screenshot_recognition') return `识别了 ${mountainName} 的截图记录`
   return sourceType === 'historical_photo'
     ? `补签了 ${mountainName} 的历史记录`
     : `登顶了 ${mountainName}`
 }
 
-export function buildCommunitySourceLabel(sourceType: 'realtime_gps' | 'historical_photo' | 'track_import') {
-  if (sourceType === 'track_import') return '上传数据'
+export function buildCommunitySourceLabel(sourceType: CheckinSource) {
+  if (sourceType === 'track_import' || sourceType === 'screenshot_recognition') return '上传数据'
   return sourceType === 'historical_photo' ? '照片补签记录' : 'GPS 实时记录'
 }
 
-export function buildCommunityActionTitle(sourceType: 'realtime_gps' | 'historical_photo' | 'track_import') {
+export function buildCommunityActionTitle(sourceType: CheckinSource) {
   if (sourceType === 'track_import') return '轨迹导入'
+  if (sourceType === 'screenshot_recognition') return '截图识别'
   return sourceType === 'historical_photo' ? '照片补签' : 'GPS 记录'
 }
 
@@ -160,11 +163,14 @@ export function buildCommunityRenderFallbackTitle({
   sourceType,
 }: {
   mountainName?: string | null
-  sourceType?: 'realtime_gps' | 'historical_photo' | 'track_import' | null
+  sourceType?: CheckinSource | null
 }) {
   const normalizedMountainName = typeof mountainName === 'string' ? mountainName.trim() : ''
   const actionTitle =
-    sourceType === 'historical_photo' || sourceType === 'realtime_gps' || sourceType === 'track_import'
+    sourceType === 'historical_photo' ||
+    sourceType === 'realtime_gps' ||
+    sourceType === 'track_import' ||
+    sourceType === 'screenshot_recognition'
       ? buildCommunityActionTitle(sourceType)
       : ''
 
@@ -181,7 +187,7 @@ export function buildDefaultCommunityPosterUrl({
   anchorPosition = 'top',
 }: {
   checkinId: string
-  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
+  sourceType: CheckinSource
   anchorPosition?: 'top' | 'bottom'
 }) {
   const template = sourceType === 'historical_photo' ? 'activity_summary' : 'summit_card'
@@ -320,7 +326,7 @@ export function shouldRenderCommunityPost({
   sourceType,
   assets,
 }: {
-  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
+  sourceType: CheckinSource
   assets: CheckinAsset[]
 }) {
   return sourceType !== 'historical_photo' || hasCommunityImageAsset(assets)
@@ -331,7 +337,7 @@ export function buildCommunityMetricItems({
   metrics,
   mountain,
 }: {
-  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
+  sourceType: CheckinSource
   metrics: CommunityPostMetrics
   mountain?: {
     name?: string | null
@@ -358,7 +364,7 @@ export function resolveCommunityCardVariant({
   sourceType,
   assets,
 }: {
-  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
+  sourceType: CheckinSource
   assets: CheckinAsset[]
 }) {
   const hasRenderableMedia = assets.some((asset) => asset.type === 'image' || asset.type === 'video')
@@ -366,7 +372,9 @@ export function resolveCommunityCardVariant({
     return 'media' as const
   }
 
-  return sourceType === 'realtime_gps' || sourceType === 'track_import' ? ('route_map' as const) : ('no_image' as const)
+  return sourceType === 'realtime_gps' || sourceType === 'track_import' || sourceType === 'screenshot_recognition'
+    ? ('route_map' as const)
+    : ('no_image' as const)
 }
 
 export function serializeCommunityPostPayload(payload: CommunityPostPayload) {
@@ -466,7 +474,7 @@ export function parseCommunityPostPayload({
   fallbackPhotoUrl?: string | null
   fallbackPosterUrl?: string | null
   checkinId: string
-  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
+  sourceType: CheckinSource
   mountainName: string
 }): CommunityPostPayload {
   const fallbackAssets = deriveLegacyCheckinAssets({
@@ -608,7 +616,7 @@ export function validateCommunityAssets({
   assets: CheckinAsset[]
   userId: string
   checkinId: string
-  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
+  sourceType: CheckinSource
   checkinPhotoUrl?: string | null
   checkinPosterUrl?: string | null
 }) {
@@ -697,7 +705,7 @@ export function buildCommunityPostViewModel({
   } | null
   checkin: {
     note?: string | null
-    source: 'realtime_gps' | 'historical_photo' | 'track_import'
+    source: CheckinSource
     status?: string | null
     session_id?: string | null
     created_at?: string | null
@@ -748,7 +756,12 @@ export function buildCommunityPostViewModel({
     sourceType: checkin.source,
     sourceLabel: buildCommunitySourceLabel(checkin.source),
     behaviorText: buildCommunityBehaviorText(safeMountainName, checkin.source),
-    recordStatusLabel: checkin.source === 'historical_photo' ? '历史补签' : checkin.source === 'track_import' ? '上传数据' : '已核验登顶',
+    recordStatusLabel:
+      checkin.source === 'historical_photo'
+        ? '历史补签'
+        : checkin.source === 'track_import' || checkin.source === 'screenshot_recognition'
+          ? '上传数据'
+          : '已核验登顶',
     author: {
       id: author?.id ?? postUserId,
       username: author?.username ?? '匿名登山者',

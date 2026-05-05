@@ -5,7 +5,7 @@ import {
   buildCommunitySourceLabel,
 } from '@/lib/community'
 import { listPublishableRecords } from '@/lib/community-server'
-import { resolveCheckinSource } from '@/lib/trek-utils'
+import { resolveCheckinSource, type CheckinSource } from '@/lib/trek-utils'
 import type { CheckinAsset } from '@/types'
 
 type AnySupabase = SupabaseClient
@@ -42,7 +42,7 @@ export type ActivityDetail = {
   summitAt: string | null
   verifiedAt: string | null
   note: string
-  sourceType: 'realtime_gps' | 'historical_photo' | 'track_import'
+  sourceType: CheckinSource
   sourceLabel: string
   recordSourceLabel: string
   summitStatusLabel: string
@@ -137,6 +137,8 @@ export async function getActivityDetail({
   })
   const isHistoricalPhoto = sourceType === 'historical_photo'
   const isTrackImport = sourceType === 'track_import'
+  const isScreenshotRecognition = sourceType === 'screenshot_recognition'
+  const isUploadedData = isTrackImport || isScreenshotRecognition
 
   const [{ data: linkedPost }, sessionResult, assetResult] = await Promise.all([
     record.postId
@@ -182,9 +184,9 @@ export async function getActivityDetail({
     note: record.note?.trim() ?? '',
     sourceType,
     sourceLabel: buildCommunitySourceLabel(sourceType),
-    recordSourceLabel: isHistoricalPhoto ? '补签记录' : isTrackImport ? '上传数据' : 'GPS 记录',
-    summitStatusLabel: isHistoricalPhoto ? '历史补签通过' : isTrackImport ? '轨迹导入通过' : '已核验登顶',
-    verificationStatusLabel: isHistoricalPhoto ? '补签审核通过' : isTrackImport ? '上传数据' : 'GPS 核验通过',
+    recordSourceLabel: isHistoricalPhoto ? '补签记录' : isUploadedData ? '上传数据' : 'GPS 记录',
+    summitStatusLabel: isHistoricalPhoto ? '历史补签通过' : isTrackImport ? '轨迹导入通过' : isScreenshotRecognition ? '截图识别通过' : '已核验登顶',
+    verificationStatusLabel: isHistoricalPhoto ? '补签审核通过' : isUploadedData ? '上传数据' : 'GPS 核验通过',
     mountain: {
       ...record.mountain,
       coverImage: record.mountain.coverImage ?? null,

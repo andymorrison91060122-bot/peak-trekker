@@ -9,7 +9,7 @@ import {
 import { buildCommunityMetrics } from '@/lib/community'
 import { getMountainPosterBackgroundImage } from '@/lib/mountain-media'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
-import { resolveCheckinSource } from '@/lib/trek-utils'
+import { resolveCheckinSource, type CheckinSource } from '@/lib/trek-utils'
 import PublishEditorClient from './PublishEditorClient'
 
 function firstRelation<T>(value: T | T[] | null | undefined) {
@@ -112,7 +112,7 @@ export default async function CommunityPublishPage({
     id: string
     user_id: string
     type: 'gps' | 'photo'
-    source?: 'realtime_gps' | 'historical_photo' | null
+    source?: CheckinSource | null
     status: 'approved'
     note: string | null
     photo_url: string | null

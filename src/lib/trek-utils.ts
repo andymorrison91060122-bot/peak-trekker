@@ -1,4 +1,4 @@
-import type { Mountain } from '@/types'
+import type { CheckinSource, Mountain } from '@/types'
 
 /**
  * @deprecated Import TREK_RULES from trek-rules-client or trek-rules-server.
@@ -14,7 +14,7 @@ export type TrackPoint = {
   ts: number
 }
 
-export type CheckinSource = 'realtime_gps' | 'historical_photo' | 'track_import'
+export type { CheckinSource } from '@/types'
 
 export function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371000
@@ -40,7 +40,14 @@ export function resolveCheckinSource({
   source?: CheckinSource | string | null
   type?: string | null
 }): CheckinSource {
-  if (source === 'realtime_gps' || source === 'historical_photo' || source === 'track_import') return source
+  if (
+    source === 'realtime_gps' ||
+    source === 'historical_photo' ||
+    source === 'track_import' ||
+    source === 'screenshot_recognition'
+  ) {
+    return source
+  }
   return type === 'gps' ? 'realtime_gps' : 'historical_photo'
 }
 

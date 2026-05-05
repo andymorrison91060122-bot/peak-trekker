@@ -47,3 +47,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env.n1b-tmp
+
+# Supabase local init artifacts
+supabase/.branches/
+supabase/.temp/
+supabase/config.toml
+
+# Codex/agent skill cache
+.agents/

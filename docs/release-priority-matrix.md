@@ -146,16 +146,16 @@
 在 MVP 阶段预埋完整的付费基础设施，通过 feature flag 控制，不影响免费体验。
 
 ### 必须完成
-* `profiles` 表增加 `subscription_tier`（默认 `free`）和 `free_shares_remaining`（默认 3）字段
-* 分享生成链路预埋 `checkShareQuota()` gate 函数（flag 关闭时返回 true）
-* 海报预览水印组件开发（flag 关闭时不渲染）
+* `profiles` 表增加 `subscription_tier`（默认 `free`）和 `premium_template_unlocked_until`（默认 `NULL`）字段
+* 分享生成链路预埋 `checkTemplateAccess()` gate 函数（flag 关闭时基础 / 高级模板均免费）
+* 基础模板永久免费，高级模板在商业化启动后按订阅或试用解锁判断
 * feature flag 机制搭建（环境变量控制）
 
 ### 完成标准
 * schema 已部署，字段存在
-* 代码中 gate 函数和水印组件已就位
+* 代码中模板权限 gate 函数已就位
 * feature flag 关闭时用户体验与当前完全一致
-* feature flag 打开时付费逻辑可正常工作
+* feature flag 打开时高级模板权限判断可正常工作
 
 ---
 
@@ -197,7 +197,7 @@ FAQ 至少覆盖以下问题（v0.2 扩展）：
 * 如果没有这座山怎么办
 * 地图和天气能力是什么、不是什么
 * 分享图如何生成 / 下载
-* **分享额度和付费规则**
+* **分享模板权限和付费规则**
 * 隐私与可见性怎么理解
 * **不同来源标签代表什么**
 
@@ -260,7 +260,7 @@ FAQ 至少覆盖以下问题（v0.2 扩展）：
 ### 包含
 * feature flag 打开
 * 水印预览启用
-* 额度消耗逻辑启用
+* 高级模板权限判断启用
 * 付费引导 UI 上线
 * 单张购买流程
 * 月度订阅流程

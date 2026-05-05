@@ -510,11 +510,11 @@
 ## 8.7 付费 Gate（v0.3 新增）
 
 * [ ] 用户可免费生成并预览分享素材
-* [ ] feature flag 关闭时无水印、无额度限制
-* [ ] feature flag 打开时预览显示水印
-* [ ] feature flag 打开时导出消耗额度
-* [ ] 额度用完时触发付费引导
-* [ ] 发布到山友圈不消耗额度
+* [ ] 基础模板始终可无水印导出
+* [ ] feature flag 关闭时高级模板也可无水印导出
+* [ ] feature flag 打开时高级模板导出先经过模板权限检查
+* [ ] 高级模板未解锁时触发付费引导或水印预览
+* [ ] 发布到山友圈不触发模板付费 Gate
 
 ---
 
@@ -770,7 +770,7 @@
 ## 15.1 Schema 预留
 
 * [ ] `profiles` 表存在 `subscription_tier` 字段（默认 `free`）
-* [ ] `profiles` 表存在 `free_shares_remaining` 字段（默认 3）
+* [ ] `profiles` 表存在 `premium_template_unlocked_until` 字段（默认 `NULL`）
 * [ ] 字段已在生产环境部署
 
 ## 15.2 Feature Flag
@@ -778,25 +778,24 @@
 * [ ] feature flag 机制存在
 * [ ] feature flag 默认关闭
 * [ ] flag 关闭时用户体验与无付费逻辑完全一致
-* [ ] flag 关闭时不显示水印、额度提示或付费引导
+* [ ] flag 关闭时基础模板和高级模板都可无水印导出
 
 ## 15.3 Gate 函数
 
-* [ ] `checkShareQuota()` 函数存在
-* [ ] flag 关闭时函数返回 true
-* [ ] flag 打开时函数正确检查额度
+* [ ] `checkTemplateAccess()` 函数存在
+* [ ] flag 关闭时高级模板返回允许使用
+* [ ] flag 打开时函数正确检查 `subscription_tier`
+* [ ] flag 打开时函数正确检查 `premium_template_unlocked_until`
 
-## 15.4 水印组件
+## 15.4 水印 / 付费 UI（后续商业化激活阶段）
 
-* [ ] 水印组件已开发
-* [ ] flag 关闭时水印不渲染
-* [ ] flag 打开时水印在预览中正确显示
-* [ ] 水印不遮挡关键数据区域
-* [ ] 水印透明度适中
+* [ ] 本阶段不要求水印组件落地
+* [ ] 后续启用 paywall 时，未解锁高级模板的预览水印不遮挡关键数据区域
+* [ ] 后续启用 paywall 时，水印透明度适中
 
 ## 15.5 付费引导（flag 打开时验收）
 
-* [ ] 额度用完时有付费引导弹窗
+* [ ] 高级模板未解锁时有付费引导弹窗
 * [ ] 引导文案为用户视角
 * [ ] 关闭引导后仍可继续预览（带水印）
 * [ ] 375px 下弹窗完整可见、按钮不换行

@@ -8,13 +8,19 @@ import {
   isLocalFallbackSessionId,
   isLocalTrekSessionId,
 } from '@/lib/trek-server-utils'
+import { haversineMeters, rankingWeightByDifficulty, resolveCheckinSource, safeTrackPoints } from '@/lib/trek-utils'
 import {
-  haversineMeters,
-  rankingWeightByDifficulty,
-  resolveCheckinSource,
-  safeTrackPoints,
-} from '@/lib/trek-utils'
-import type { Mountain, ShareAnchorPosition, ShareCardTemplate, ShareRenderMode } from '@/types'
+  TREK_VERIFY_SESSION_SELECT,
+  fetchMountainForVerification,
+  insertCheckinWithFallback,
+  listActiveMountainsForVerification,
+  recordServerVerifyFailure,
+  resolveNearestMountainForVerification,
+  updateVerificationStats,
+  type TrekVerifyRecordRpcRow,
+  type TrekVerifySessionRecord,
+} from '@/lib/trek-verify-helpers'
+import type { ShareAnchorPosition, ShareCardTemplate, ShareRenderMode } from '@/types'
 
 type ActionName =
   | 'list_active_mountains'
@@ -25,31 +31,6 @@ type ActionName =
   | 'submit_historical_checkin'
   | 'generate_share_card'
 
-type TrekVerifySessionRecord = {
-  id: string
-  user_id: string
-  mountain_id: string | null
-  status: string
-  started_at: string
-  track_points: unknown
-  distance_m: number | null
-  ascent_m: number | null
-  descent_m: number | null
-  max_altitude_m: number | null
-}
-
-type TrekVerifyRecordRpcRow = {
-  checkin_id?: string | null
-  duplicated?: boolean | null
-}
-
-type StatsRpcError = {
-  message?: string | null
-  code?: string | null
-  details?: string | null
-  hint?: string | null
-}
-
 const SHARE_TEMPLATES: ShareCardTemplate[] = ['trek_snapshot', 'summit_card', 'activity_summary']
 const SHARE_RENDER_MODES: ShareRenderMode[] = ['photo_composite', 'overlay_only', 'classic_card']
 const ENABLE_QA_TEST_HELPERS = process.env.ENABLE_QA_TEST_HELPERS === 'true'
@@ -57,168 +38,6 @@ const ENABLE_QA_TEST_HELPERS = process.env.ENABLE_QA_TEST_HELPERS === 'true'
 function toSafeNote(value: unknown) {
   if (typeof value !== 'string') return ''
   return value.trim().slice(0, 240)
-}
-
-function normalizeMountainRecord(value: unknown) {
-  if (Array.isArray(value)) return (value[0] ?? null) as (Mountain & { summit_radius_m?: number | null }) | null
-  return (value as (Mountain & { summit_radius_m?: number | null }) | null) ?? null
-}
-
-const MOUNTAIN_VERIFY_SELECT_FULL = 'id, name, altitude, latitude, longitude, difficulty, summit_radius_m, province'
-const MOUNTAIN_VERIFY_SELECT_FALLBACK = 'id, name, altitude, latitude, longitude, difficulty, province'
-
-async function fetchMountainForVerification(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  mountainId: string
-) {
-  let result = (await supabase
-    .from('mountains')
-    .select(MOUNTAIN_VERIFY_SELECT_FULL)
-    .eq('id', mountainId)
-    .single()) as {
-    data: (Mountain & { summit_radius_m?: number | null }) | null
-    error: { message?: string | null } | null
-  }
-
-  if (result.error && isSchemaCompatibilityErrorMessage(result.error.message)) {
-    result = (await supabase
-      .from('mountains')
-      .select(MOUNTAIN_VERIFY_SELECT_FALLBACK)
-      .eq('id', mountainId)
-      .single()) as {
-      data: (Mountain & { summit_radius_m?: number | null }) | null
-      error: { message?: string | null } | null
-    }
-  }
-
-  return {
-    data: normalizeMountainRecord(result.data),
-    error: result.error,
-  }
-}
-
-async function listActiveMountainsForVerification(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
-) {
-  let result = (await supabase
-    .from('mountains')
-    .select(MOUNTAIN_VERIFY_SELECT_FULL)
-    .eq('is_active', true)) as {
-    data: Array<Mountain & { summit_radius_m?: number | null }> | null
-    error: { message?: string | null } | null
-  }
-
-  if (result.error && isSchemaCompatibilityErrorMessage(result.error.message)) {
-    result = (await supabase
-      .from('mountains')
-      .select(MOUNTAIN_VERIFY_SELECT_FALLBACK)
-      .eq('is_active', true)) as {
-      data: Array<Mountain & { summit_radius_m?: number | null }> | null
-      error: { message?: string | null } | null
-    }
-  }
-
-  return {
-    data: (result.data ?? []) as Array<Mountain & { summit_radius_m?: number | null }>,
-    error: result.error,
-  }
-}
-
-const OPTIONAL_CHECKIN_COLUMNS = [
-  'source',
-  'session_id',
-  'verified_at',
-  'verification_distance_m',
-  'ranking_weight',
-  'review_note',
-  'admin_note',
-] as const
-
-async function insertCheckinWithFallback(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  payload: Record<string, unknown>,
-  selectClause: string
-) {
-  let currentPayload = { ...payload }
-  let lastResult: {
-    data: Record<string, unknown> | null
-    error: { message?: string | null } | null
-  } | null = null
-
-  for (let attempt = 0; attempt <= OPTIONAL_CHECKIN_COLUMNS.length; attempt += 1) {
-    const result = await supabase.from('checkins').insert(currentPayload).select(selectClause).single()
-    lastResult = result as {
-      data: Record<string, unknown> | null
-      error: { message?: string | null } | null
-    }
-
-    if (!result.error || !result.error.message) {
-      return result
-    }
-
-    const missingColumn = OPTIONAL_CHECKIN_COLUMNS.find((column) =>
-      result.error?.message.includes(`'${column}' column`)
-    )
-
-    if (!missingColumn || !(missingColumn in currentPayload)) {
-      return result
-    }
-
-    const nextPayload = { ...currentPayload }
-    delete nextPayload[missingColumn]
-    currentPayload = nextPayload
-  }
-
-  return lastResult as never
-}
-
-async function updateVerificationStats({
-  supabase,
-  mountain,
-  userId,
-}: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
-  mountain: Mountain & { summit_radius_m?: number | null }
-  userId: string
-}) {
-  const statsCalls = [
-    {
-      name: 'increment_checkin_count',
-      result: supabase.rpc('increment_checkin_count', { mid: mountain.id }),
-    },
-    {
-      name: 'increment_user_stats',
-      result: supabase.rpc('increment_user_stats', { uid: userId, alt: mountain.altitude }),
-    },
-    ...(mountain.province
-      ? [
-          {
-            name: 'increment_province_score',
-            result: supabase.rpc('increment_province_score', { pname: mountain.province }),
-          },
-        ]
-      : []),
-  ] as const
-
-  const settled = await Promise.allSettled(
-    statsCalls.map(async (call) => {
-      const { error } = await call.result
-      return { name: call.name, error: error as StatsRpcError | null }
-    })
-  )
-
-  const failures = settled.flatMap((result, index) => {
-    if (result.status === 'rejected') {
-      return [{ name: statsCalls[index]?.name ?? 'unknown_stats_rpc', error: result.reason }]
-    }
-    return result.value.error ? [result.value] : []
-  })
-
-  if (failures.length > 0) {
-    console.error('Trek verification stats update failed', failures)
-  }
-
-  return failures.length > 0
 }
 
 export async function POST(request: NextRequest) {
@@ -310,6 +129,12 @@ export async function POST(request: NextRequest) {
 
     if (error || !session) {
       if (isSchemaCompatibilityErrorMessage(error?.message)) {
+        // Temporary fallback for stale schema environments. Production schema should be aligned;
+        // keep a warning so a hidden migration drift cannot stay silent.
+        console.warn('start_trek_session schema compatibility fallback triggered', {
+          userId: user.id,
+          error: error?.message,
+        })
         return NextResponse.json({
           ok: true,
           sessionId: `${LOCAL_FALLBACK_SESSION_PREFIX}${crypto.randomUUID()}`,
@@ -520,7 +345,7 @@ export async function POST(request: NextRequest) {
         }
       : await supabase
           .from('trek_sessions')
-          .select('id, user_id, mountain_id, status, started_at, track_points, distance_m, ascent_m, descent_m, max_altitude_m')
+          .select(TREK_VERIFY_SESSION_SELECT)
           .eq('id', sessionId)
           .single()
 
@@ -550,6 +375,12 @@ export async function POST(request: NextRequest) {
 
     const points = isLocalSession ? safeTrackPoints(body?.trackPoints) : safeTrackPoints(serverSession?.track_points)
     if (points.length < TREK_RULES.minTrackPoints) {
+      await recordServerVerifyFailure({
+        supabase,
+        session: serverSession,
+        reason: 'insufficient_track_points',
+        detail: `need at least ${TREK_RULES.minTrackPoints} points`,
+      })
       return NextResponse.json(
         { error: 'insufficient_track_points', detail: `need at least ${TREK_RULES.minTrackPoints} points` },
         { status: 422 }
@@ -562,6 +393,12 @@ export async function POST(request: NextRequest) {
     }
     const durationSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
     if (durationSeconds < TREK_RULES.minSessionSeconds) {
+      await recordServerVerifyFailure({
+        supabase,
+        session: serverSession,
+        reason: 'session_too_short',
+        detail: `need at least ${TREK_RULES.minSessionSeconds}s`,
+      })
       return NextResponse.json(
         { error: 'session_too_short', detail: `need at least ${TREK_RULES.minSessionSeconds}s` },
         { status: 422 }
@@ -581,24 +418,42 @@ export async function POST(request: NextRequest) {
     let mountain = targetMountain
     if (!mountain) {
       if (!ALLOW_LOCAL_TREK_SESSION) {
+        await recordServerVerifyFailure({
+          supabase,
+          session: serverSession,
+          reason: 'mountain_id_required',
+        })
         return NextResponse.json({ error: 'mountain_id_required' }, { status: 400 })
       }
 
       const { data: allMountains } = await listActiveMountainsForVerification(supabase)
 
       if (!allMountains?.length) {
+        await recordServerVerifyFailure({
+          supabase,
+          session: serverSession,
+          reason: 'no_active_mountains',
+        })
         return NextResponse.json({ error: 'no_active_mountains' }, { status: 500 })
       }
 
       const last = points.at(-1)!
-      const nearest = [...allMountains]
-        .map((candidate) => ({
-          mountain: candidate,
-          distanceM: haversineMeters(last.lat, last.lng, candidate.latitude, candidate.longitude),
-        }))
-        .sort((a, b) => a.distanceM - b.distanceM)[0]
+      const nearest = resolveNearestMountainForVerification({
+        mountains: allMountains,
+        lat: last.lat,
+        lng: last.lng,
+      })
 
-      mountain = nearest.mountain as Mountain & { summit_radius_m?: number | null }
+      if (!nearest) {
+        await recordServerVerifyFailure({
+          supabase,
+          session: serverSession,
+          reason: 'no_active_mountains',
+        })
+        return NextResponse.json({ error: 'no_active_mountains' }, { status: 500 })
+      }
+
+      mountain = nearest.mountain
       console.warn('nearest mountain fallback triggered', {
         lat: last.lat,
         lng: last.lng,
@@ -612,6 +467,12 @@ export async function POST(request: NextRequest) {
     const summitRadius = mountain.summit_radius_m ?? TREK_RULES.defaultSummitRadiusM
 
     if (verifyDistance > summitRadius) {
+      await recordServerVerifyFailure({
+        supabase,
+        session: serverSession,
+        reason: 'outside_summit_radius',
+        detail: `current distance ${Math.round(verifyDistance)}m > ${summitRadius}m`,
+      })
       return NextResponse.json(
         {
           error: 'outside_summit_radius',

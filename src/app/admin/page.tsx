@@ -7,6 +7,20 @@ const TYPE_LABEL: Record<string, string> = {
   gps: 'GPS', photo: '照片',
 }
 
+type AdminDashboardCheckin = {
+  id: string
+  type: string
+  created_at: string
+  mountains: { name: string | null; altitude: number | null; difficulty: string | null } | null
+  profiles: { username: string | null; province: string | null } | null
+}
+
+type AdminDashboardProvinceStat = {
+  province_name: string
+  score: number | null
+  active_users: number | null
+}
+
 function PixelStatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
     <div style={{
@@ -88,8 +102,8 @@ export default async function AdminDashboard() {
   const pendingCount = pendingRes.count ?? 0
   const todayCount = todayRes.count ?? 0
   const monthCount = monthRes.count ?? 0
-  const recentPending = recentPendingRes.data ?? []
-  const topProvinces = provinceRes.data ?? []
+  const recentPending = (recentPendingRes.data ?? []) as unknown as AdminDashboardCheckin[]
+  const topProvinces = (provinceRes.data ?? []) as AdminDashboardProvinceStat[]
 
   const stats = [
     { label: '总用户数', value: totalUsers, sub: 'TOTAL USERS' },
@@ -104,7 +118,7 @@ export default async function AdminDashboard() {
     <div>
       <div style={{ marginBottom: 24 }}>
         <h1 className="font-pixel" style={{ fontSize: 11, color: 'var(--green-neon)', marginBottom: 6, textShadow: '0 0 8px var(--green-neon)' }}>
-          // DASHBOARD
+          {'// DASHBOARD'}
         </h1>
         <div style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--text-muted)' }}>
           数据总览 · {now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -162,7 +176,7 @@ export default async function AdminDashboard() {
                   </div>
                 ))}
               </div>
-              {recentPending.map((c: any, i: number) => (
+              {recentPending.map((c, i) => (
                 <div
                   key={c.id}
                   style={{
@@ -177,18 +191,18 @@ export default async function AdminDashboard() {
                 >
                   <div>
                     <div style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--text-primary)' }}>
-                      {(c.profiles as any)?.username ?? '—'}
+                      {c.profiles?.username ?? '—'}
                     </div>
                     <div style={{ fontFamily: 'Share Tech Mono', fontSize: 9, color: 'var(--text-muted)' }}>
-                      {(c.profiles as any)?.province ?? ''}
+                      {c.profiles?.province ?? ''}
                     </div>
                   </div>
                   <div>
                     <div style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--text-primary)' }}>
-                      {(c.mountains as any)?.name ?? '—'}
+                      {c.mountains?.name ?? '—'}
                     </div>
                     <div style={{ fontFamily: 'Share Tech Mono', fontSize: 9, color: 'var(--text-muted)' }}>
-                      ▲ {((c.mountains as any)?.altitude ?? 0).toLocaleString()}m · {DIFF_LABEL[(c.mountains as any)?.difficulty] ?? ''}
+                      ▲ {(c.mountains?.altitude ?? 0).toLocaleString()}m · {DIFF_LABEL[c.mountains?.difficulty ?? ''] ?? ''}
                     </div>
                   </div>
                   <div style={{ fontFamily: 'Share Tech Mono', fontSize: 9, color: 'var(--text-muted)' }}>

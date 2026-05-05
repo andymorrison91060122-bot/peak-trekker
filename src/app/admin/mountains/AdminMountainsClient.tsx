@@ -13,13 +13,26 @@ const LICENSE_LABEL: Record<string, string> = {
   none: '无需', basic: '初级证', intermediate: '中级证', advanced: '高级证',
 }
 
+export type AdminMountainListItem = {
+  id: string
+  name: string
+  altitude: number
+  province: string
+  difficulty: string
+  min_license: string
+  checkin_count: number | null
+  latitude: number | null
+  longitude: number | null
+  description?: string | null
+}
+
 export default function AdminMountainsClient({
   mountains,
   currentPage,
   totalPages,
   searchQ,
 }: {
-  mountains: any[]
+  mountains: AdminMountainListItem[]
   currentPage: number
   totalPages: number
   searchQ: string
@@ -32,13 +45,13 @@ export default function AdminMountainsClient({
     const url = new URL(window.location.href)
     url.searchParams.set('q', q)
     url.searchParams.set('page', '1')
-    startTransition(() => { window.location.href = url.toString() })
+    startTransition(() => { window.location.assign(url.toString()) })
   }
 
   function goPage(p: number) {
     const url = new URL(window.location.href)
     url.searchParams.set('page', String(p))
-    window.location.href = url.toString()
+    window.location.assign(url.toString())
   }
 
   return (

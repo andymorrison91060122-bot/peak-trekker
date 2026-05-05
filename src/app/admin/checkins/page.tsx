@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import AdminCheckinsClient from './AdminCheckinsClient'
+import type { AdminCheckinListItem } from './AdminCheckinsClient'
 
 export default async function AdminCheckinsPage({
   searchParams,
@@ -31,7 +32,7 @@ export default async function AdminCheckinsPage({
     <div>
       <div style={{ marginBottom: 24 }}>
         <h1 className="font-pixel" style={{ fontSize: 11, color: 'var(--green-neon)', marginBottom: 6, textShadow: '0 0 8px var(--green-neon)' }}>
-          // CHECKIN REVIEW
+          {'// CHECKIN REVIEW'}
         </h1>
         <div style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--text-muted)' }}>
           照片打卡审核 · 共 {count ?? 0} 条记录
@@ -39,7 +40,7 @@ export default async function AdminCheckinsPage({
       </div>
 
       <AdminCheckinsClient
-        checkins={(checkins ?? []) as any[]}
+        checkins={(checkins ?? []) as unknown as AdminCheckinListItem[]}
         currentStatus={status}
         currentPage={Number(page)}
         totalPages={totalPages}

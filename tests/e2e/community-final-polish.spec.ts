@@ -198,7 +198,7 @@ test('community feed uses token title hierarchy and inline threshold metadata', 
   expect(pageTitleSize).toBeGreaterThanOrEqual(22)
   expect(postTitleSize).toBeLessThanOrEqual(18)
   expect(thresholdSize).toBe(11)
-  expect(Math.abs((sourceBox?.top ?? 0) - (authorBox?.top ?? 0))).toBeLessThanOrEqual(10)
+  expect(Math.abs((sourceBox?.y ?? 0) - (authorBox?.y ?? 0))).toBeLessThanOrEqual(10)
 })
 
 test('community feed and profile share cards clamp long summaries to three lines and link to detail', async ({ page, baseURL }) => {

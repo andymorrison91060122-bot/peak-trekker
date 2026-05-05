@@ -39,7 +39,10 @@ test('selected mountain status is transmitted to the photo check-in module', asy
   const mountainSelect = page.locator('select').last()
   await expect.poll(async () => mountainSelect.locator('option').count()).toBeGreaterThan(1)
   const options = await mountainSelect.locator('option').evaluateAll((nodes) =>
-    nodes.map((node) => ({ value: node.value, label: node.textContent?.trim() || '' }))
+    nodes.map((node) => {
+      const option = node as HTMLOptionElement
+      return { value: option.value, label: option.textContent?.trim() || '' }
+    })
   )
   const selectedMountain = options.find((item) => item.value)
   if (!selectedMountain) throw new Error('Expected at least one active mountain option')
@@ -67,7 +70,10 @@ test('photo check-in completes the upload and submit flow after a target mountai
   const mountainSelect = page.locator('select').last()
   await expect.poll(async () => mountainSelect.locator('option').count()).toBeGreaterThan(1)
   const options = await mountainSelect.locator('option').evaluateAll((nodes) =>
-    nodes.map((node) => ({ value: node.value, label: node.textContent?.trim() || '' }))
+    nodes.map((node) => {
+      const option = node as HTMLOptionElement
+      return { value: option.value, label: option.textContent?.trim() || '' }
+    })
   )
   const selectedMountain = options.find((item) => item.value)
   if (!selectedMountain) throw new Error('Expected at least one active mountain option')

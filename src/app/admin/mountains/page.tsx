@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import AdminMountainsClient from './AdminMountainsClient'
+import type { AdminMountainListItem } from './AdminMountainsClient'
 
 export default async function AdminMountainsPage({
   searchParams,
@@ -27,7 +28,7 @@ export default async function AdminMountainsPage({
     <div>
       <div style={{ marginBottom: 24 }}>
         <h1 className="font-pixel" style={{ fontSize: 11, color: 'var(--green-neon)', marginBottom: 6, textShadow: '0 0 8px var(--green-neon)' }}>
-          // MOUNTAIN DATA
+          {'// MOUNTAIN DATA'}
         </h1>
         <div style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--text-muted)' }}>
           山峰数据管理 · 共 {count ?? 0} 座
@@ -35,7 +36,7 @@ export default async function AdminMountainsPage({
       </div>
 
       <AdminMountainsClient
-        mountains={mountains ?? []}
+        mountains={(mountains ?? []) as AdminMountainListItem[]}
         currentPage={Number(page)}
         totalPages={totalPages}
         searchQ={q}

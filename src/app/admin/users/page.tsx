@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import AdminUsersClient from './AdminUsersClient'
+import type { AdminUserListItem } from './AdminUsersClient'
 
 export default async function AdminUsersPage({
   searchParams,
@@ -26,7 +27,7 @@ export default async function AdminUsersPage({
     <div>
       <div style={{ marginBottom: 24 }}>
         <h1 className="font-pixel" style={{ fontSize: 11, color: 'var(--green-neon)', marginBottom: 6, textShadow: '0 0 8px var(--green-neon)' }}>
-          // USER MANAGEMENT
+          {'// USER MANAGEMENT'}
         </h1>
         <div style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--text-muted)' }}>
           用户管理 · 共 {count ?? 0} 名用户
@@ -34,7 +35,7 @@ export default async function AdminUsersPage({
       </div>
 
       <AdminUsersClient
-        users={users ?? []}
+        users={(users ?? []) as AdminUserListItem[]}
         currentPage={Number(page)}
         totalPages={totalPages}
         searchQ={q}

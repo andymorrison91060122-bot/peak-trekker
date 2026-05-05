@@ -4,7 +4,7 @@ import { IN_PROGRESS_QUOTES, SUMMIT_QUOTES } from '../../src/lib/sharing-quotes'
 const POSTER_HEIGHT = 1920
 const ALL_QUOTES = [...IN_PROGRESS_QUOTES, ...SUMMIT_QUOTES]
 
-function longestQuoteIndexes(pool: Array<{ text: string; author: string }>, count: number) {
+function longestQuoteIndexes(pool: ReadonlyArray<{ text: string; author: string }>, count: number) {
   return [...pool]
     .map((quote, index) => ({ index, length: Array.from(quote.text).length }))
     .sort((left, right) => right.length - left.length)

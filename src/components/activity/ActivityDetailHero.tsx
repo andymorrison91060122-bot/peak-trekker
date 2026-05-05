@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import IconButton from '@/components/ui/IconButton'
 
 export type ActivityHeroSource = 'photo' | 'mountain' | 'default' | 'solid'
@@ -20,11 +20,9 @@ export default function ActivityDetailHero({
   onBackClick: () => void
   onShareClick: () => void
 }) {
-  const [defaultImageFailed, setDefaultImageFailed] = useState(false)
-
-  useEffect(() => {
-    setDefaultImageFailed(false)
-  }, [heroSource, imageUrl])
+  const imageFailureKey = `${heroSource}:${imageUrl ?? ''}`
+  const [failedImageKey, setFailedImageKey] = useState<string | null>(null)
+  const defaultImageFailed = failedImageKey === imageFailureKey
 
   const displaySource = heroSource === 'default' && defaultImageFailed ? 'solid' : heroSource
   const showImage = Boolean(imageUrl) && displaySource !== 'solid'
@@ -41,7 +39,7 @@ export default function ActivityDetailHero({
           alt={`${mountainName} 活动封面`}
           onError={() => {
             if (heroSource === 'default') {
-              setDefaultImageFailed(true)
+              setFailedImageKey(imageFailureKey)
             }
           }}
         />

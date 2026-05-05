@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { canAccessAdminTools } from '@/lib/admin-access'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
+type CheckinReviewStatsRow = {
+  user_id: string
+  mountain_id: string | null
+  mountains: { altitude: number | null; province: string | null } | { altitude: number | null; province: string | null }[] | null
+  profiles: { province: string | null } | { province: string | null }[] | null
+}
+
+function firstRelation<T>(relation: T | T[] | null): T | null {
+  return Array.isArray(relation) ? relation[0] ?? null : relation
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createSupabaseServerClient()
   const {
@@ -59,17 +70,18 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (checkin) {
-      const m = checkin.mountains as any
-      const p = checkin.profiles as any
+      const row = checkin as unknown as CheckinReviewStatsRow
+      const m = firstRelation(row.mountains)
+      const p = firstRelation(row.profiles)
 
       await Promise.all([
         // 用户登顶数 +1，最高海拔更新
         supabase.rpc('increment_user_stats', {
-          uid: checkin.user_id,
+          uid: row.user_id,
           alt: m?.altitude ?? 0,
         }),
         // 山峰打卡数 +1
-        supabase.rpc('increment_checkin_count', { mid: checkin.mountain_id }),
+        supabase.rpc('increment_checkin_count', { mid: row.mountain_id }),
         // 省份积分 +1
         p?.province && supabase.rpc('increment_province_score', { pname: p.province }),
       ])

@@ -16,7 +16,7 @@ const DIFF_COLOR: Record<string, string> = {
   beginner: '#52B788', intermediate: '#F4A261', advanced: '#E76F51', expert: '#E63946',
 }
 
-type Checkin = {
+export type AdminCheckinListItem = {
   id: string
   type: string
   status: string
@@ -35,7 +35,7 @@ export default function AdminCheckinsClient({
   currentPage,
   totalPages,
 }: {
-  checkins: Checkin[]
+  checkins: AdminCheckinListItem[]
   currentStatus: string
   currentPage: number
   totalPages: number
@@ -192,7 +192,7 @@ export default function AdminCheckinsClient({
                     marginBottom: 12,
                     lineHeight: 1.7,
                   }}>
-                    "{c.note}"
+                    “{c.note}”
                   </div>
                 )}
 

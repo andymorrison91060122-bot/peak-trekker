@@ -102,11 +102,11 @@ export default function WaypointsSection({
 }: {
   waypoints: Waypoint[]
 }) {
-  if (waypoints.length === 0) return null
-
   const [expandedByType, setExpandedByType] = useState<Record<WaypointType, boolean>>(() =>
     buildExpandedState(waypoints)
   )
+
+  if (waypoints.length === 0) return null
 
   const grouped = WAYPOINT_TYPE_KEYS
     .map((type) => ({

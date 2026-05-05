@@ -9,13 +9,24 @@ const LICENSE_COLOR: Record<string, string> = {
   none: '#6B7280', basic: '#52B788', intermediate: '#F4A261', advanced: '#E63946',
 }
 
+export type AdminUserListItem = {
+  id: string
+  username: string | null
+  email?: string | null
+  province: string | null
+  license_level: string | null
+  mountain_count: number | null
+  total_altitude: number | null
+  created_at: string
+}
+
 export default function AdminUsersClient({
   users,
   currentPage,
   totalPages,
   searchQ,
 }: {
-  users: any[]
+  users: AdminUserListItem[]
   currentPage: number
   totalPages: number
   searchQ: string
@@ -28,13 +39,13 @@ export default function AdminUsersClient({
     const url = new URL(window.location.href)
     url.searchParams.set('q', q)
     url.searchParams.set('page', '1')
-    startTransition(() => { window.location.href = url.toString() })
+    startTransition(() => { window.location.assign(url.toString()) })
   }
 
   function goPage(p: number) {
     const url = new URL(window.location.href)
     url.searchParams.set('page', String(p))
-    window.location.href = url.toString()
+    window.location.assign(url.toString())
   }
 
   return (

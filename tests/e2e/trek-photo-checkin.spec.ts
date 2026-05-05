@@ -134,7 +134,7 @@ test('trek page shows the review queue entry when pending or rejected records ex
     rejectReason
   )
 
-  await page.goto(`${root}/trek`)
+  await page.goto(`${root}/trek`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
   await page.getByTestId('photo-checkin-toggle').click()
 
@@ -154,7 +154,7 @@ test('trek page hides the review queue entry when there are no pending or reject
   const root = baseURL ?? 'http://127.0.0.1:3100'
 
   await registerFreshUser(page, root, { returnTo: '/trek' })
-  await page.goto(`${root}/trek`)
+  await page.goto(`${root}/trek`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
   await page.getByTestId('photo-checkin-toggle').click()
 

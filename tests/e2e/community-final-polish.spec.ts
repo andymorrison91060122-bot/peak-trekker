@@ -74,7 +74,7 @@ test('share sheet keeps a single-column sticky layout on 375px without horizonta
   const mountain = await fetchMountainByIdViaApi(page, mountainId)
   const checkinId = await createGpsCheckinViaApi(page, mountain, `share-layout-${Date.now()}`)
 
-  await page.goto(`${root}/activity/${checkinId}`)
+  await page.goto(`${root}/activity/${checkinId}`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
   await page.getByRole('button', { name: '生成分享素材' }).click()
 
@@ -145,7 +145,7 @@ test('share sheet copies the current page link when navigator.share is unavailab
   const mountain = await fetchMountainByIdViaApi(page, mountainId)
   const checkinId = await createGpsCheckinViaApi(page, mountain, `share-fallback-${Date.now()}`)
 
-  await page.goto(`${root}/activity/${checkinId}`)
+  await page.goto(`${root}/activity/${checkinId}`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
   await page.getByRole('button', { name: '生成分享素材' }).click()
 
@@ -174,7 +174,7 @@ test('community feed uses token title hierarchy and inline threshold metadata', 
     tags: ['收口验证'],
   })
 
-  await page.goto(`${root}/community`)
+  await page.goto(`${root}/community`, { waitUntil: 'domcontentloaded' })
   const pageTitle = page.locator('.community-page__title')
   const card = page.getByTestId('community-feed-card').filter({ hasText: '这条动态用于验证 feed 标题层级、标签位置和山峰门槛标签。' }).first()
   const postTitle = card.locator('.community-card__title')
@@ -221,7 +221,7 @@ test('community feed and profile share cards clamp long summaries to three lines
     tags: ['长摘要'],
   })
 
-  await page.goto(`${root}/community`)
+  await page.goto(`${root}/community`, { waitUntil: 'domcontentloaded' })
 
   const feedCard = page.getByTestId('community-feed-card').filter({ hasText: excerpt }).first()
   const feedSummary = feedCard.locator('.community-copy-block__body')
@@ -253,7 +253,7 @@ test('community feed and profile share cards clamp long summaries to three lines
   await expect(detailSummary).toContainText('如果是第一次来，建议天亮前出发')
   await expect(page.getByRole('link', { name: '查看完整内容 →' })).toHaveCount(0)
 
-  await page.goto(`${root}/profile`)
+  await page.goto(`${root}/profile`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
   const profileShareCard = page.getByTestId('profile-share-card').filter({ hasText: excerpt }).first()
   await expect(profileShareCard).toBeVisible()
@@ -275,7 +275,7 @@ test('community detail merges post content into one shell and keeps source metad
     imageCount: 2,
   })
 
-  await page.goto(post.detailUrl)
+  await page.goto(post.detailUrl, { waitUntil: 'domcontentloaded' })
   const rootShell = page.getByTestId('community-detail')
   const postShell = page.getByTestId('community-detail-post-shell')
   const sourceCard = page.getByTestId('community-record-source-card')

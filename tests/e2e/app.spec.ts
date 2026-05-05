@@ -49,7 +49,7 @@ const DIFFICULTY_FILTER_LABEL: Record<string, string> = {
 }
 
 async function getFirstMountain(page: Page) {
-  await page.goto('/explore')
+  await page.goto('/explore', { waitUntil: 'domcontentloaded' })
   await expect(page.getByText('找下一座山')).toBeVisible()
 
   const firstMountainLink = page.locator('a[href^="/explore/"]').first()
@@ -69,7 +69,7 @@ async function getFirstMountain(page: Page) {
 }
 
 async function completeProvinceOnboarding(page: Page, province = '四川') {
-  await page.goto('/explore')
+  await page.goto('/explore', { waitUntil: 'domcontentloaded' })
   const skipButton = page.getByRole('button', { name: '跳过' })
   if (await skipButton.isVisible().catch(() => false)) {
     await skipButton.click()
@@ -84,7 +84,7 @@ async function registerFreshUser(page: Page, province = '四川') {
   const email = createTestEmail()
   const password = 'PeakTrekker123!'
 
-  await page.goto('/auth/register')
+  await page.goto('/auth/register', { waitUntil: 'domcontentloaded' })
   await page.getByPlaceholder('your@email.com').fill(email)
   await page.getByPlaceholder('至少6位').fill(password)
   await page.getByRole('button', { name: '下一步 →' }).click()
@@ -93,7 +93,7 @@ async function registerFreshUser(page: Page, province = '四川') {
   await page.locator('select').selectOption(province)
   await page.getByRole('button', { name: '▶ 创建登山档案' }).click()
 
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('domcontentloaded')
   if (/\/auth\/login/.test(page.url())) {
     await page.getByPlaceholder('your@email.com').fill(email)
     await page.getByPlaceholder('至少6位').fill(password)
@@ -161,7 +161,7 @@ test('first-time visitors can skip the intro, anchor a province, and continue wi
 })
 
 test('onboarding completion feedback is emitted through the global toast layer', async ({ page }) => {
-  await page.goto('/explore')
+  await page.goto('/explore', { waitUntil: 'domcontentloaded' })
   await page.evaluate(() => {
     window.localStorage.setItem('peak_trekker_intro_seen', '2026-v1')
     window.localStorage.setItem('peak_trekker_province_draft', '四川')

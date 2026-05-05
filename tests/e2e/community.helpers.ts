@@ -82,7 +82,7 @@ export async function registerFreshUser(
     province?: string
   } = {}
 ) {
-  await page.goto(`${baseURL}/auth/register?from=${encodeURIComponent(returnTo)}`)
+  await page.goto(`${baseURL}/auth/register?from=${encodeURIComponent(returnTo)}`, { waitUntil: 'domcontentloaded' })
   await page.getByPlaceholder('your@email.com').fill(email)
   await page.getByPlaceholder('至少6位').fill(password)
   await page.getByRole('button', { name: '下一步 →' }).click()
@@ -91,7 +91,7 @@ export async function registerFreshUser(
   await page.locator('select').selectOption(province)
   await page.getByRole('button', { name: '▶ 创建登山档案' }).click()
 
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('domcontentloaded')
   if (/\/auth\/register/.test(page.url())) {
     await page.waitForURL((url) => !/\/auth\/register/.test(url.pathname), { timeout: 60_000 }).catch(() => {})
   }
@@ -100,7 +100,7 @@ export async function registerFreshUser(
       returnTo === '/explore'
         ? `${baseURL}/auth/login`
         : `${baseURL}/auth/login?from=${encodeURIComponent(returnTo)}`
-    await page.goto(loginHref)
+    await page.goto(loginHref, { waitUntil: 'domcontentloaded' })
   }
   if (/\/auth\/login/.test(page.url())) {
     await page.getByPlaceholder('your@email.com').fill(email)
@@ -340,7 +340,7 @@ export async function createGpsCheckinViaApi(
   },
   note: string
 ) {
-  await page.goto(`/trek?mountainId=${mountain.id}`)
+  await page.goto(`/trek?mountainId=${mountain.id}`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
 
   const startedAt = Date.now() - 120_000
@@ -398,7 +398,7 @@ export async function createGpsCheckinViaApi(
 }
 
 export async function getFirstMountain(page: Page, baseURL: string) {
-  await page.goto(`${baseURL}/explore`)
+  await page.goto(`${baseURL}/explore`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
   const firstMountainLink = page.locator('a[href^="/explore/"]').first()
   await expect(firstMountainLink).toBeVisible()
@@ -417,7 +417,7 @@ export async function getFirstMountain(page: Page, baseURL: string) {
 }
 
 export async function fetchMountainByIdViaApi(page: Page, mountainId: string) {
-  await page.goto(`/trek?mountainId=${mountainId}`)
+  await page.goto(`/trek?mountainId=${mountainId}`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
 
   const mountain = await page.evaluate(async (targetMountainId) => {
@@ -449,7 +449,7 @@ export async function fetchMountainByIdViaApi(page: Page, mountainId: string) {
 }
 
 export async function listActiveMountainsViaApi(page: Page) {
-  await page.goto('/explore')
+  await page.goto('/explore', { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
   const mountainLinks = page.locator('a[href^="/explore/"]')
   const count = await mountainLinks.count()
@@ -484,7 +484,7 @@ export async function listActiveMountainsViaApi(page: Page) {
 }
 
 export async function createHistoricalCheckinViaApi(page: Page, mountainId: string, note: string) {
-  await page.goto(`/trek?mountainId=${mountainId}`)
+  await page.goto(`/trek?mountainId=${mountainId}`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
 
   const response = await page.evaluate(
@@ -572,7 +572,7 @@ export async function createPublishedCommunityPostViaApi(
 }
 
 export async function createPendingHistoricalCheckinViaApi(page: Page, mountainId: string, note: string) {
-  await page.goto(`/trek?mountainId=${mountainId}`)
+  await page.goto(`/trek?mountainId=${mountainId}`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
 
   const response = await page.evaluate(

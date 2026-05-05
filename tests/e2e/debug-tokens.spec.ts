@@ -106,7 +106,7 @@ test('debug tokens route is available in development for logged-in users', async
 
   await registerFreshUser(page, root, { returnTo: '/profile' })
 
-  await page.goto(`${root}/debug/tokens`)
+  await page.goto(`${root}/debug/tokens`, { waitUntil: 'domcontentloaded' })
 
   await expect(page.getByTestId('tokens-debug-page')).toBeVisible()
   await expect(page.getByText('Design Token Lab')).toBeVisible()

@@ -56,7 +56,7 @@ async function openUserContext(
 }
 
 async function listActiveMountainsDetailed(page: Page) {
-  await page.goto('/explore')
+  await page.goto('/explore', { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
 
   return page.evaluate(async () => {
@@ -132,7 +132,7 @@ async function clearUserProvince({
 }
 
 async function signInUser(page: Page, baseURL: string, email: string, password: string, returnTo = '/profile') {
-  await page.goto(`${baseURL}/auth/login?from=${encodeURIComponent(returnTo)}`)
+  await page.goto(`${baseURL}/auth/login?from=${encodeURIComponent(returnTo)}`, { waitUntil: 'domcontentloaded' })
   await clearOnboardingProvinceDraft(page)
   await page.getByPlaceholder('your@email.com').fill(email)
   await page.getByPlaceholder('••••••••').fill(password)
@@ -232,7 +232,7 @@ async function completeGpsSummitViaUi(
     altitude: mountain.altitude,
   })
 
-  await page.goto(`${root}/trek?mountainId=${mountain.id}`)
+  await page.goto(`${root}/trek?mountainId=${mountain.id}`, { waitUntil: 'domcontentloaded' })
   await dismissProvinceSelectionIfPresent(page)
   await dismissActivationChecklistIfPresent(page)
 
@@ -265,7 +265,7 @@ test.describe('province rankings', () => {
   test('province rankings page basic load shows title and footer notes', async ({ page, baseURL }) => {
     const root = baseURL ?? 'http://127.0.0.1:3100'
 
-    await page.goto(`${root}/rankings/province`)
+    await page.goto(`${root}/rankings/province`, { waitUntil: 'domcontentloaded' })
 
     await expect(page.getByText('省域热力榜', { exact: true })).toBeVisible()
     await expect(page.getByText('榜单每月 1 号 00:00 重置', { exact: true })).toBeVisible()
@@ -292,7 +292,7 @@ test.describe('province rankings', () => {
       await createGpsCheckinViaApi(primaryUser.page, expertMountain, `province-rank-beijing-${Date.now()}`)
       await createGpsCheckinViaApi(secondaryUser.page, beginnerMountain, `province-rank-sichuan-${Date.now()}`)
 
-      await primaryUser.page.goto(`${root}/rankings/province`)
+      await primaryUser.page.goto(`${root}/rankings/province`, { waitUntil: 'domcontentloaded' })
       await dismissActivationChecklistIfPresent(primaryUser.page)
 
       const summary = primaryUser.page.getByTestId('province-ranking-summary')
@@ -327,7 +327,7 @@ test.describe('province rankings', () => {
   test('province rankings page shows empty state when target month has no data', async ({ page, baseURL }) => {
     const root = baseURL ?? 'http://127.0.0.1:3100'
 
-    await page.goto(`${root}/rankings/province?year=2099&month=1`)
+    await page.goto(`${root}/rankings/province?year=2099&month=1`, { waitUntil: 'domcontentloaded' })
 
     await expect(page.getByText('本月暂无登山记录', { exact: true })).toBeVisible()
     await expect(page.getByTestId('province-ranking-row')).toHaveCount(0)
@@ -346,7 +346,7 @@ test.describe('province rankings', () => {
       const scoredMountain = pickMountainByDifficulty(mountains, ['advanced', 'intermediate', 'beginner'])
       await createGpsCheckinViaApi(user.page, scoredMountain, `province-profile-${Date.now()}`)
 
-      await user.page.goto(`${root}/profile`)
+      await user.page.goto(`${root}/profile`, { waitUntil: 'domcontentloaded' })
       await dismissActivationChecklistIfPresent(user.page)
 
       const section = user.page.getByTestId('province-contribution-section')
@@ -382,7 +382,7 @@ test.describe('province rankings', () => {
       })
 
       await signInUser(user.page, root, user.email, user.password, '/profile')
-      await user.page.goto(`${root}/profile`)
+      await user.page.goto(`${root}/profile`, { waitUntil: 'domcontentloaded' })
       const skipProvince = user.page.getByRole('button', { name: '稍后再选' })
       if (await skipProvince.count()) {
         await skipProvince.click().catch(() => {})
@@ -412,7 +412,7 @@ test.describe('province rankings', () => {
       const scoredMountain = pickMountainByDifficulty(mountains, ['advanced', 'intermediate', 'beginner'])
       await createGpsCheckinViaApi(user.page, scoredMountain, `explore-banner-${Date.now()}`)
 
-      await user.page.goto(`${root}/explore`)
+      await user.page.goto(`${root}/explore`, { waitUntil: 'domcontentloaded' })
       await dismissActivationChecklistIfPresent(user.page)
 
       const banner = user.page.getByTestId('province-banner-strip')
@@ -439,7 +439,7 @@ test.describe('province rankings', () => {
     })
 
     try {
-      await user.page.goto(`${root}/explore`)
+      await user.page.goto(`${root}/explore`, { waitUntil: 'domcontentloaded' })
       await dismissActivationChecklistIfPresent(user.page)
 
       const banner = user.page.getByTestId('province-banner-strip')
@@ -471,7 +471,7 @@ test.describe('province rankings', () => {
       })
 
       await signInUser(user.page, root, user.email, user.password, '/explore')
-      await user.page.goto(`${root}/explore`)
+      await user.page.goto(`${root}/explore`, { waitUntil: 'domcontentloaded' })
       await dismissProvinceSelectionIfPresent(user.page)
       await dismissActivationChecklistIfPresent(user.page)
 
@@ -491,7 +491,7 @@ test.describe('province rankings', () => {
   test('explore banner does not render for guests', async ({ page, baseURL }) => {
     const root = baseURL ?? 'http://127.0.0.1:3100'
 
-    await page.goto(`${root}/explore`)
+    await page.goto(`${root}/explore`, { waitUntil: 'domcontentloaded' })
 
     await expect(page.getByTestId('province-banner-strip')).toHaveCount(0)
   })

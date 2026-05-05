@@ -74,7 +74,7 @@ test('activity hero follows the photo → mountain → solid fallback chain', as
   const { checkinId, mountainId } = await seedHistoricalActivity(page, root, `hero-photo-${Date.now()}`)
   const mountain = await fetchMountainByIdViaApi(page, mountainId)
 
-  await page.goto(`${root}/activity/${checkinId}`)
+  await page.goto(`${root}/activity/${checkinId}`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
   const hero = page.getByTestId('activity-hero')
   await expect(hero).toBeVisible()
@@ -84,14 +84,14 @@ test('activity hero follows the photo → mountain → solid fallback chain', as
   expect(photoCoverage.imageObjectFit).toBe('cover')
   expect(Math.abs((photoCoverage.parentWidth ?? 0) - photoCoverage.heroWidth)).toBeLessThan(1.5)
 
-  await page.goto(`${root}/activity/${checkinId}?qaHero=mountain`)
+  await page.goto(`${root}/activity/${checkinId}?qaHero=mountain`, { waitUntil: 'domcontentloaded' })
   await expect(hero).toHaveAttribute('data-hero-source', 'mountain')
   await expect(hero.getByTestId('activity-hero-image')).toHaveAttribute('src', /activity-hero-mountain/)
   const mountainCoverage = await readHeroCoverage(page)
   expect(mountainCoverage.imageObjectFit).toBe('cover')
   expect(Math.abs((mountainCoverage.parentWidth ?? 0) - mountainCoverage.heroWidth)).toBeLessThan(1.5)
 
-  await page.goto(`${root}/activity/${checkinId}?qaHero=solid`)
+  await page.goto(`${root}/activity/${checkinId}?qaHero=solid`, { waitUntil: 'domcontentloaded' })
   await expect(hero).toHaveAttribute('data-hero-source', 'default')
   await expect(hero.getByTestId('activity-hero-image')).toHaveAttribute('src', /\/images\/default-activity-cover\.png$/)
   await expect(hero).toContainText(mountain.name)
@@ -108,7 +108,7 @@ test('activity hero removes static-reference copy and keeps only accessible icon
   await page.setViewportSize({ width: 375, height: 812 })
   const { checkinId } = await seedHistoricalActivity(page, root, `hero-copy-${Date.now()}`)
 
-  await page.goto(`${root}/activity/${checkinId}`)
+  await page.goto(`${root}/activity/${checkinId}`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
   const hero = page.getByTestId('activity-hero')
 
@@ -126,7 +126,7 @@ test('activity hero share icon opens the existing share sheet', async ({ page, b
   await page.setViewportSize({ width: 375, height: 812 })
   const { checkinId } = await seedHistoricalActivity(page, root, `hero-share-${Date.now()}`)
 
-  await page.goto(`${root}/activity/${checkinId}`)
+  await page.goto(`${root}/activity/${checkinId}`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
   const hero = page.getByTestId('activity-hero')
 
@@ -140,7 +140,7 @@ test('activity route section keeps only concise Chinese copy in the empty state'
 
   await page.setViewportSize({ width: 375, height: 812 })
   const { checkinId } = await seedHistoricalActivity(page, root, `hero-no-track-${Date.now()}`)
-  await page.goto(`${root}/activity/${checkinId}`)
+  await page.goto(`${root}/activity/${checkinId}`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
   const routeSection = page.getByTestId('activity-route-section')
   await expect(routeSection).toBeVisible()
@@ -158,7 +158,7 @@ test('activity hero stays near a 16:9 cover ratio on 375px', async ({ page, base
   await page.setViewportSize({ width: 375, height: 812 })
   const { checkinId } = await seedHistoricalActivity(page, root, `hero-ratio-${Date.now()}`)
 
-  await page.goto(`${root}/activity/${checkinId}`)
+  await page.goto(`${root}/activity/${checkinId}`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
   const hero = page.getByTestId('activity-hero')
   const box = await hero.boundingBox()

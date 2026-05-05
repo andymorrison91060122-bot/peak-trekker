@@ -14,13 +14,13 @@ type MountainFormSnapshot = {
 async function createAdminSession(page: Page, baseURL: string) {
   const email = 'qa-admin-1774068792@example.com'
   const password = 'PeakTrekker123!'
-  await page.goto(`${baseURL}/auth/login?from=${encodeURIComponent('/admin/mountains')}`)
+  await page.goto(`${baseURL}/auth/login?from=${encodeURIComponent('/admin/mountains')}`, { waitUntil: 'domcontentloaded' })
   await page.getByPlaceholder('your@email.com').fill(email)
   await page.getByPlaceholder('••••••••').fill(password)
   await page.getByRole('button', { name: '▶ 开始登山' }).click()
   await page.waitForURL((url) => !/\/auth\/login/.test(url.pathname), { timeout: 60_000 }).catch(() => {})
   if (!/\/admin\/mountains/.test(page.url())) {
-    await page.goto(`${baseURL}/admin/mountains`)
+    await page.goto(`${baseURL}/admin/mountains`, { waitUntil: 'domcontentloaded' })
   }
   await expect(page).toHaveURL(`${baseURL}/admin/mountains`)
 }
@@ -101,7 +101,7 @@ test.describe('admin mountain basic info edit', () => {
       await page.getByTestId('admin-mountain-save-button').click()
       await expectSaveSuccess(page)
 
-      await page.reload()
+      await page.reload({ waitUntil: 'domcontentloaded' })
       await expect(page.getByTestId('admin-mountain-name-input')).toHaveValue(nextName)
     } finally {
       await restoreMountain(page, original).catch(() => {})
@@ -136,17 +136,17 @@ test.describe('admin mountain basic info edit', () => {
       await page.getByTestId('admin-mountain-save-button').click()
       await expectSaveSuccess(page)
 
-      await page.reload()
+      await page.reload({ waitUntil: 'domcontentloaded' })
       await expect(page.getByTestId('rich-text-editor-content')).toContainText(heading)
       await expect(page.getByTestId('rich-text-editor-content')).toContainText(bulletOne)
 
-      await page.goto(`${root}/explore/${mountainId}`)
+      await page.goto(`${root}/explore/${mountainId}`, { waitUntil: 'domcontentloaded' })
       await dismissActivationChecklistIfPresent(page)
       await expect(page.getByRole('heading', { name: heading, level: 2 })).toBeVisible()
       await expect(page.getByText(bulletOne, { exact: true })).toBeVisible()
       await expect(page.getByText(bulletTwo, { exact: true })).toBeVisible()
     } finally {
-      await page.goto(`${root}/admin/mountains/${mountainId}`)
+      await page.goto(`${root}/admin/mountains/${mountainId}`, { waitUntil: 'domcontentloaded' })
       await restoreMountain(page, original).catch(() => {})
     }
   })
@@ -163,7 +163,7 @@ test.describe('admin mountain basic info edit', () => {
       await page.getByTestId('admin-mountain-save-button').click()
       await expectSaveSuccess(page)
 
-      await page.reload()
+      await page.reload({ waitUntil: 'domcontentloaded' })
       await expect(page.getByTestId('admin-mountain-difficulty-select')).toHaveValue(nextDifficulty)
     } finally {
       await restoreMountain(page, original).catch(() => {})
@@ -182,7 +182,7 @@ test.describe('admin mountain basic info edit', () => {
       await page.getByTestId('admin-mountain-save-button').click()
       await expectSaveSuccess(page)
 
-      await page.reload()
+      await page.reload({ waitUntil: 'domcontentloaded' })
       await expect(page.getByTestId('admin-mountain-altitude-input')).toHaveValue(String(nextAltitude))
     } finally {
       await restoreMountain(page, original).catch(() => {})

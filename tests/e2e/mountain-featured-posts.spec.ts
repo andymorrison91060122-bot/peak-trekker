@@ -11,13 +11,13 @@ async function openAdminContext(browser: Browser, baseURL: string) {
   const adminPassword = 'PeakTrekker123!'
   const context = await browser.newContext()
   const page = await context.newPage()
-  await page.goto(`${baseURL}/auth/login?from=${encodeURIComponent('/admin/community')}`)
+  await page.goto(`${baseURL}/auth/login?from=${encodeURIComponent('/admin/community')}`, { waitUntil: 'domcontentloaded' })
   await page.getByPlaceholder('your@email.com').fill(adminEmail)
   await page.getByPlaceholder('••••••••').fill(adminPassword)
   await page.getByRole('button', { name: '▶ 开始登山' }).click()
   await page.waitForURL((url) => !/\/auth\/login/.test(url.pathname), { timeout: 60_000 }).catch(() => {})
   if (!/\/admin\/community/.test(page.url())) {
-    await page.goto(`${baseURL}/admin/community`)
+    await page.goto(`${baseURL}/admin/community`, { waitUntil: 'domcontentloaded' })
   }
   return { context, page }
 }
@@ -44,7 +44,7 @@ async function findMountainWithoutFeaturedSection(page: Page, root: string) {
   const mountains = await listActiveMountainsViaApi(page)
 
   for (const mountain of mountains) {
-    await page.goto(`${root}/explore/${mountain.id}`)
+    await page.goto(`${root}/explore/${mountain.id}`, { waitUntil: 'domcontentloaded' })
     await dismissActivationChecklistIfPresent(page)
     if (await page.getByTestId('mountain-featured-posts-section').count() === 0) {
       return mountain
@@ -72,13 +72,13 @@ test.describe('mountain detail featured posts', () => {
 
     const admin = await openAdminContext(browser, root)
     try {
-      await admin.page.goto(`${root}/admin/community`)
+      await admin.page.goto(`${root}/admin/community`, { waitUntil: 'domcontentloaded' })
       await featurePostFromAdminUi(admin.page, title)
     } finally {
       await admin.context.close()
     }
 
-    await page.goto(`${root}/explore/${targetMountain.id}`)
+    await page.goto(`${root}/explore/${targetMountain.id}`, { waitUntil: 'domcontentloaded' })
     await dismissActivationChecklistIfPresent(page)
     await expect(page.getByText('山友经验', { exact: true })).toBeVisible()
     await expect(featuredCardByPostId(page, post.postId)).toHaveCount(1)
@@ -90,7 +90,7 @@ test.describe('mountain detail featured posts', () => {
     await registerFreshUser(page, root, { returnTo: '/explore' })
     const targetMountain = await findMountainWithoutFeaturedSection(page, root)
 
-    await page.goto(`${root}/explore/${targetMountain.id}`)
+    await page.goto(`${root}/explore/${targetMountain.id}`, { waitUntil: 'domcontentloaded' })
     await dismissActivationChecklistIfPresent(page)
     await expect(page.getByText('山友经验', { exact: true })).toHaveCount(0)
     await expect(page.getByTestId('mountain-featured-post-card')).toHaveCount(0)
@@ -113,13 +113,13 @@ test.describe('mountain detail featured posts', () => {
 
     const admin = await openAdminContext(browser, root)
     try {
-      await admin.page.goto(`${root}/admin/community`)
+      await admin.page.goto(`${root}/admin/community`, { waitUntil: 'domcontentloaded' })
       await featurePostFromAdminUi(admin.page, title)
     } finally {
       await admin.context.close()
     }
 
-    await page.goto(`${root}/explore/${targetMountain.id}`)
+    await page.goto(`${root}/explore/${targetMountain.id}`, { waitUntil: 'domcontentloaded' })
     await dismissActivationChecklistIfPresent(page)
     await featuredCardByPostId(page, post.postId).click()
     await expect(page).toHaveURL(`${root}${post.detailUrl}`)
@@ -141,13 +141,13 @@ test.describe('mountain detail featured posts', () => {
 
     const admin = await openAdminContext(browser, root)
     try {
-      await admin.page.goto(`${root}/admin/community`)
+      await admin.page.goto(`${root}/admin/community`, { waitUntil: 'domcontentloaded' })
       await featurePostFromAdminUi(admin.page, title)
     } finally {
       await admin.context.close()
     }
 
-    await page.goto(`${root}/explore/${targetMountain.id}`)
+    await page.goto(`${root}/explore/${targetMountain.id}`, { waitUntil: 'domcontentloaded' })
     await dismissActivationChecklistIfPresent(page)
     await expect(featuredCardByPostId(page, post.postId)).toHaveCount(1)
   })
@@ -168,14 +168,14 @@ test.describe('mountain detail featured posts', () => {
 
     const admin = await openAdminContext(browser, root)
     try {
-      await admin.page.goto(`${root}/admin/community`)
+      await admin.page.goto(`${root}/admin/community`, { waitUntil: 'domcontentloaded' })
       await featurePostFromAdminUi(admin.page, title)
       await unfeaturePostFromAdminUi(admin.page, title)
     } finally {
       await admin.context.close()
     }
 
-    await page.goto(`${root}/explore/${targetMountain.id}`)
+    await page.goto(`${root}/explore/${targetMountain.id}`, { waitUntil: 'domcontentloaded' })
     await dismissActivationChecklistIfPresent(page)
     await expect(featuredCardByPostId(page, post.postId)).toHaveCount(0)
   })

@@ -66,6 +66,16 @@ export type Checkin = {
   session_id?: string | null
   verified_at?: string | null
   verification_distance_m?: number | null
+  distance_meters?: number | null
+  duration_seconds?: number | null
+  elevation_gain_meters?: number | null
+  elevation_loss_meters?: number | null
+  max_elevation_meters?: number | null
+  min_elevation_meters?: number | null
+  start_time?: string | null
+  end_time?: string | null
+  track_name?: string | null
+  track_points?: Array<{ lat: number; lng: number; ele?: number; time?: string }> | null
   poster_template?: ShareCardTemplate | null
   poster_url?: string | null
   ranking_weight?: number | null

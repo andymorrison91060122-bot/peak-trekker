@@ -11,9 +11,54 @@ type ImportMountainRow = {
   difficulty: string | null
 }
 
+type PersistedTrackPoint = {
+  lat: number
+  lng: number
+  ele?: number
+  time?: string
+}
+
+type NormalizedImportedTrackData = Pick<ImportedTrackData, 'format' | 'fileName' | 'trackPoints'> &
+  Partial<
+    Pick<
+      ImportedTrackData,
+      | 'name'
+      | 'startTime'
+      | 'endTime'
+      | 'durationSeconds'
+      | 'distanceMeters'
+      | 'elevationGainMeters'
+      | 'elevationLossMeters'
+      | 'maxElevation'
+      | 'minElevation'
+    >
+  >
+
 function toSafeNote(value: unknown) {
   if (typeof value !== 'string') return ''
   return value.trim().slice(0, 240)
+}
+
+function toSafeTrackName(value: unknown) {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed ? trimmed.slice(0, 180) : undefined
+}
+
+function toFiniteNumber(value: unknown) {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? numberValue : undefined
+}
+
+function toFiniteInteger(value: unknown) {
+  const numberValue = toFiniteNumber(value)
+  return typeof numberValue === 'number' ? Math.round(numberValue) : undefined
+}
+
+function toIsoTimestamp(value: unknown) {
+  if (typeof value !== 'string') return undefined
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : undefined
 }
 
 function normalizeTrackPoint(value: unknown): TrackPoint | null {
@@ -22,7 +67,7 @@ function normalizeTrackPoint(value: unknown): TrackPoint | null {
   const latitude = Number(record.latitude)
   const longitude = Number(record.longitude)
   const elevation = Number(record.elevation)
-  const timestamp = typeof record.timestamp === 'string' ? record.timestamp : undefined
+  const timestamp = toIsoTimestamp(record.timestamp)
 
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
 
@@ -34,7 +79,16 @@ function normalizeTrackPoint(value: unknown): TrackPoint | null {
   }
 }
 
-function normalizeImportedTrackData(value: unknown): Pick<ImportedTrackData, 'format' | 'fileName' | 'trackPoints'> | null {
+function toPersistedTrackPoints(trackPoints: TrackPoint[]): PersistedTrackPoint[] {
+  return trackPoints.map((point) => ({
+    lat: point.latitude,
+    lng: point.longitude,
+    ...(typeof point.elevation === 'number' ? { ele: point.elevation } : {}),
+    ...(point.timestamp ? { time: point.timestamp } : {}),
+  }))
+}
+
+function normalizeImportedTrackData(value: unknown): NormalizedImportedTrackData | null {
   if (!value || typeof value !== 'object') return null
   const record = value as Record<string, unknown>
   const format = record.format
@@ -51,9 +105,28 @@ function normalizeImportedTrackData(value: unknown): Pick<ImportedTrackData, 'fo
 
   if (trackPoints.length === 0) return null
 
+  const name = toSafeTrackName(record.name)
+  const startTime = toIsoTimestamp(record.startTime)
+  const endTime = toIsoTimestamp(record.endTime)
+  const durationSeconds = toFiniteInteger(record.durationSeconds)
+  const distanceMeters = toFiniteNumber(record.distanceMeters)
+  const elevationGainMeters = toFiniteNumber(record.elevationGainMeters)
+  const elevationLossMeters = toFiniteNumber(record.elevationLossMeters)
+  const maxElevation = toFiniteNumber(record.maxElevation)
+  const minElevation = toFiniteNumber(record.minElevation)
+
   return {
     format,
     fileName,
+    ...(name ? { name } : {}),
+    ...(startTime ? { startTime } : {}),
+    ...(endTime ? { endTime } : {}),
+    ...(typeof durationSeconds === 'number' ? { durationSeconds } : {}),
+    ...(typeof distanceMeters === 'number' ? { distanceMeters } : {}),
+    ...(typeof elevationGainMeters === 'number' ? { elevationGainMeters } : {}),
+    ...(typeof elevationLossMeters === 'number' ? { elevationLossMeters } : {}),
+    ...(typeof maxElevation === 'number' ? { maxElevation } : {}),
+    ...(typeof minElevation === 'number' ? { minElevation } : {}),
     trackPoints,
   }
 }
@@ -128,6 +201,16 @@ export async function POST(request: Request) {
       verified_at: new Date().toISOString(),
       verification_distance_m: verificationDistanceM,
       ranking_weight: mountain ? rankingWeightByDifficulty(mountain.difficulty) : 0,
+      distance_meters: parsedData.distanceMeters ?? null,
+      duration_seconds: parsedData.durationSeconds ?? null,
+      elevation_gain_meters: parsedData.elevationGainMeters ?? null,
+      elevation_loss_meters: parsedData.elevationLossMeters ?? null,
+      max_elevation_meters: parsedData.maxElevation ?? null,
+      min_elevation_meters: parsedData.minElevation ?? null,
+      start_time: parsedData.startTime ?? null,
+      end_time: parsedData.endTime ?? null,
+      track_name: parsedData.name ?? null,
+      track_points: toPersistedTrackPoints(parsedData.trackPoints),
     })
     .select('id')
     .single()

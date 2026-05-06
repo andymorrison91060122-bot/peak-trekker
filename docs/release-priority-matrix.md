@@ -81,9 +81,13 @@
 ### 必须完成
 
 #### Explore 入口分流
-* Explore 页面三条路径入口 UI 设计与实现
-* 三条入口同等视觉权重
-* 入口文案用户视角
+* Explore 页面采用上二下一入口布局
+* 上方两张并排入口卡片同等视觉权重：左「导入记录」、右「识别截图」
+* 「导入记录」文案为“导入轨迹文件，分享你的登顶记录”
+* 「识别截图」文案为“上传其他 APP 轨迹截图，分享你的登顶记录”
+* 过渡文字为 `找山出发 · 挑一座适合你的山进行登顶打卡`
+* 下方为筛选 chips + 山峰卡片列表，承接选山记录路径
+* 入口文案采用“标题 + 行为描述 + 行为结果”
 
 #### 轨迹导入
 * GPX/FIT 文件上传与解析
@@ -97,7 +101,7 @@
 * 截图上传 UI
 * OCR 文字信息提取（距离、时长、海拔、日期、地点）
 * 轨迹颜色分割：系统自动识别轨迹线颜色 → 颜色阈值分割 → 骨架化 → 坐标序列 → 贝塞尔曲线平滑
-* 轨迹以 Peak Trekker 风格重新渲染
+* 轨迹以品牌绿 `#7ef0b4` 重新渲染
 * 山峰匹配（基于地点信息）
 * 用户确认/修改所有识别结果
 * 合理性校验（只设上限）
@@ -108,7 +112,8 @@
 * `GPS VERIFIED` / `UPLOADED` 两种标签
 * `GPS VERIFIED`：品牌 logo + 分隔线 + ✓ + 英文，深绿底 + 薄荷绿边框
 * `UPLOADED`：文档 icon + 英文，深灰底 + 灰色边框
-* 在分享海报、山友圈卡片、活动详情页中展示
+* 大 / 中 / 小三种尺寸，约 28px / 24px / 20px
+* 在分享海报底部、山友圈卡片数据区右侧、活动详情页海拔旁、我的记录列表卡片右下展示
 
 ### 完成标准
 * 三条路径均可从 Explore 入口进入
@@ -150,8 +155,13 @@
 ### 必须完成
 * `profiles` 表增加 `subscription_tier`（默认 `free`）和 `premium_template_unlocked_until`（默认 `NULL`）字段
 * 分享生成链路预埋 `checkTemplateAccess()` gate 函数（flag 关闭时 3 个基础模板 / 9 个高级模板均免费）
-* 基础模板 3 个永久免费，高级模板 9 个在商业化启动后按订阅或试用解锁判断
-* 分享模板使用 satori（HTML-to-image）实现，弃用旧 SVG 手动坐标系统
+* 基础模板 3 个永久免费：`basic-classic` / `basic-minimal` / `basic-data`
+* 高级模板 9 个限免 → 付费：`premium-photo-composite` / `premium-photo-overlay` / `premium-split-view` / `premium-bold-number` / `premium-data-scatter` / `premium-mono-film` / `premium-altitude-profile` / `premium-summit-certificate` / `premium-vertical-story`
+* MVP 阶段（v0.8）所有模板免费，高级模板显示「限免」标签
+* 正式版（v1.0）feature flag 打开后，高级模板按月度会员或单次解锁判断权限
+* 高级模板锁定态为锁 icon + 40% 遮罩 + 斜置「Peak Trekker 预览版」付费水印
+* Peak Trekker logo + 文字永久存在于所有模板底部，是品牌标识，不是付费水印
+* 分享模板使用 satori（HTML-to-image）实现，每个模板为独立 HTML/CSS 组件，弃用旧 SVG 手动坐标系统
 * 分享生成链路提供内联字段选择器，海拔 / 总距离必选，时长 / 爬升 / 日期 / 地点 / 配速 / 山峰名默认开启可关闭
 * 所有模板支持照片合成 / 默认背景 / 透明水印导出三种背景模式，透明水印导出是主要功能按钮
 * feature flag 机制搭建（环境变量控制）

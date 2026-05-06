@@ -1,5 +1,8 @@
 'use client'
 
+// @deprecated - use IconButton instead. Will be removed during page rewrites.
+// Kept for backward compatibility with existing pages.
+
 import Link from 'next/link'
 import type { CSSProperties, MouseEventHandler, ReactNode } from 'react'
 

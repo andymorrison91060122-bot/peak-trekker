@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation'
 import ProvinceBannerStrip, { type ProvinceBannerData } from '@/components/explore/ProvinceBannerStrip'
 import { ONBOARDING_EVENT, getProvinceDraft } from '@/lib/onboarding'
 import ExploreMountainCard from '@/components/ui/ExploreMountainCard'
-import { SectionHeader } from '@/components/ui/MountainUI'
+import Card from '@/components/ui/Card'
+import Chip from '@/components/ui/Chip'
+import SectionHeader from '@/components/ui/SectionHeader'
+import { CameraIcon, FilterIcon, SearchIcon, ShareIcon } from '@/components/ui/Icons'
 import { getDifficultyLevelLabel } from '@/lib/license-ui'
 import type { Mountain } from '@/types'
 
@@ -124,12 +127,29 @@ export default function ExploreClient({
   const activeFilterCount = [difficulty, altitudeBand, lengthBand].filter((value) => value !== 'all').length
   const goImport = () => router.push('/import')
   const goScreenshot = () => router.push('/screenshot')
+  const mountainListDescription =
+    tag === '附近' && position
+      ? '已按你当前位置由近到远排序'
+      : tag === '本省热门' && effectiveProvince
+        ? `已优先展示 ${effectiveProvince} 的热门路线`
+        : `当前找到 ${filtered.length} 座可选山峰`
 
   return (
     <>
-      <style>{'.explore-filter-scroll::-webkit-scrollbar{display:none}'}</style>
-      <div style={{ padding: 'var(--space-4)' }}>
-        <header style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}>
+      <style>
+        {'.explore-filter-scroll::-webkit-scrollbar{display:none}.explore-search-input::placeholder{color:var(--color-on-surface-variant);opacity:1}body:has(.explore-page-shell) button[aria-label="开始登山"]{display:none!important}'}
+      </style>
+      <div
+        className="explore-page-shell"
+        style={{
+          padding: 'var(--space-4)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-6)',
+          minWidth: 0,
+        }}
+      >
+        <header style={{ textAlign: 'center' }}>
           <h1
             style={{
               margin: 0,
@@ -143,37 +163,85 @@ export default function ExploreClient({
           </h1>
         </header>
 
-        <section aria-label="探索搜索" style={{ marginBottom: 'var(--space-4)' }}>
-          <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-            <div style={{ flex: 1, position: 'relative' }}>
+        <section
+          aria-label="探索搜索"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-3)',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+              minWidth: 0,
+            }}
+          >
+            <label
+              aria-label="搜索山名、地区、海拔"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                height: 'var(--control-size)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                padding: '0 var(--space-3)',
+                background: 'var(--color-surface-variant)',
+                border: '1px solid var(--color-outline)',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--color-on-surface-variant)',
+              }}
+            >
+              <SearchIcon size={18} />
               <input
+                className="explore-search-input"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="搜山名、地区、海拔"
                 style={{
                   width: '100%',
-                  padding: '15px 16px 15px 44px',
-                  background: 'var(--bg-muted)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 14,
-                  color: 'var(--text-primary)',
+                  minWidth: 0,
+                  border: 'none',
                   outline: 'none',
+                  background: 'transparent',
+                  color: 'var(--color-on-surface)',
+                  caretColor: 'var(--color-success)',
+                  fontSize: 'var(--font-body-m-size)',
+                  lineHeight: 'var(--font-body-m-line)',
+                  fontWeight: 'var(--font-body-m-weight)',
                 }}
               />
-              <span style={{ position: 'absolute', left: 16, top: 15, color: 'var(--text-muted)' }}>⌕</span>
-            </div>
+            </label>
             <button
               type="button"
               onClick={() => setShowAdvanced((value) => !value)}
-              className="secondary-btn"
-              style={{ minHeight: 48, padding: '0 16px' }}
+              aria-label={showAdvanced ? '收起高级筛选' : '展开高级筛选'}
+              aria-pressed={showAdvanced}
+              style={{
+                appearance: 'none',
+                width: 'var(--control-size)',
+                height: 'var(--control-size)',
+                flex: '0 0 var(--control-size)',
+                display: 'grid',
+                placeItems: 'center',
+                border: '1px solid var(--color-outline)',
+                borderRadius: 'var(--radius-md)',
+                background: showAdvanced
+                  ? 'color-mix(in srgb, var(--color-primary) 14%, transparent)'
+                  : 'var(--color-surface-variant)',
+                color: showAdvanced ? 'var(--color-success)' : 'var(--color-on-surface-variant)',
+                cursor: 'pointer',
+              }}
             >
-              筛选
+              <FilterIcon size={18} />
             </button>
           </div>
 
           {provinceBanner !== undefined ? (
-            <div style={{ marginTop: 'var(--space-3)' }}>
+            <div>
               <ProvinceBannerStrip banner={provinceBanner} />
             </div>
           ) : null}
@@ -184,38 +252,64 @@ export default function ExploreClient({
           style={{
             display: 'grid',
             gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-            gap: 'var(--space-2)',
+            gap: 'var(--space-3)',
+            minWidth: 0,
           }}
         >
           <PathwayCard
-            icon={<ImportPathwayIcon />}
+            icon={<ShareIcon size={24} />}
             title="导入记录"
             description="导入轨迹文件，分享你的登顶记录"
             onClick={goImport}
           />
           <PathwayCard
-            icon={<ScreenshotPathwayIcon />}
+            icon={<CameraIcon size={24} />}
             title="识别截图"
             description="上传其他 APP 轨迹截图，分享你的登顶记录"
             onClick={goScreenshot}
           />
         </section>
 
-        <section aria-labelledby="mountain-list-heading" style={{ marginTop: 'var(--space-6)' }}>
+        <section
+          aria-labelledby="mountain-list-heading"
+          style={{
+            marginTop: 'var(--space-2)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-4)',
+            minWidth: 0,
+          }}
+        >
           <p
             id="mountain-list-heading"
             style={{
-              margin: '0 0 var(--space-3)',
-              color: 'var(--color-on-surface)',
-              fontSize: 'var(--font-body-m-size)',
-              lineHeight: 'var(--font-body-m-line)',
-              fontWeight: 500,
+              margin: 0,
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'baseline',
+              columnGap: 'var(--space-1)',
+              rowGap: '2px',
             }}
           >
-            找山出发{' '}
-            <span style={{ color: 'var(--color-on-surface-variant)', margin: '0 var(--space-1)' }}>·</span>{' '}
-            <span style={{ color: 'var(--color-on-surface-variant)', fontWeight: 400 }}>
-              挑一座适合你的山进行登顶打卡
+            <span
+              style={{
+                color: 'var(--color-on-surface)',
+                fontSize: 'var(--font-title-m-size)',
+                lineHeight: 'var(--font-title-m-line)',
+                fontWeight: 600,
+              }}
+            >
+              找山出发
+            </span>
+            <span
+              style={{
+                color: 'var(--color-on-surface-variant)',
+                fontSize: 'var(--font-body-m-size)',
+                lineHeight: 'var(--font-body-m-line)',
+                fontWeight: 'var(--font-body-m-weight)',
+              }}
+            >
+              · 挑一座适合你的山进行登顶打卡
             </span>
           </p>
 
@@ -224,36 +318,35 @@ export default function ExploreClient({
             style={{
               display: 'flex',
               flexWrap: 'nowrap',
-              gap: 8,
+              gap: 'var(--space-2)',
               overflowX: 'auto',
-              padding: '0 var(--space-2) 2px',
+              padding: '0 var(--space-2) var(--space-1)',
               marginInline: 'calc(var(--space-2) * -1)',
-              marginBottom: 'var(--space-4)',
               whiteSpace: 'nowrap',
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
               WebkitOverflowScrolling: 'touch',
             }}
           >
             {QUICK_TAGS.map((item) => (
-              <button
+              <Chip
                 key={item}
-                type="button"
                 onClick={() => setTag(item)}
-                className={`muted-chip ${tag === item ? 'active' : ''}`}
-                style={{ border: 'none', cursor: 'pointer', flex: '0 0 auto' }}
+                active={tag === item}
+                className="explore-filter-chip"
               >
                 {item}
-              </button>
+              </Chip>
             ))}
           </div>
 
           {showAdvanced && (
             <div
               style={{
-                marginBottom: 'var(--space-4)',
                 paddingTop: 'var(--space-4)',
-                borderTop: '1px solid var(--border-color)',
+                borderTop: '1px solid var(--color-outline)',
                 display: 'grid',
                 gap: 'var(--space-3)',
               }}
@@ -295,25 +388,71 @@ export default function ExploreClient({
             </div>
           )}
 
-          <SectionHeader
-            title="山峰列表"
-            description={
-              tag === '附近' && position
-                ? '已按你当前位置由近到远排序'
-                : tag === '本省热门' && effectiveProvince
-                  ? `已优先展示 ${effectiveProvince} 的热门路线`
-                  : `当前找到 ${filtered.length} 座可选山峰`
-            }
-            action={activeFilterCount > 0 ? <div className="muted-chip active">已筛选 {activeFilterCount}</div> : undefined}
-          />
+          <div
+            style={{
+              display: 'grid',
+              gap: 'var(--space-1)',
+              minWidth: 0,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 'var(--space-2)',
+                minWidth: 0,
+              }}
+            >
+              <SectionHeader title="山峰列表" />
+              {activeFilterCount > 0 ? <Chip active>已筛选 {activeFilterCount}</Chip> : null}
+            </div>
+            <p
+              style={{
+                margin: 0,
+                color: 'var(--color-on-surface-variant)',
+                fontSize: 'var(--font-label-m-size)',
+                lineHeight: 'var(--font-label-m-line)',
+                fontWeight: 'var(--font-label-m-weight)',
+              }}
+            >
+              {mountainListDescription}
+            </p>
+          </div>
 
           {filtered.length === 0 ? (
-            <div className="surface-card" style={{ padding: 28, textAlign: 'center' }}>
-              <div className="font-pixel" style={{ fontSize: 18, marginBottom: 6 }}>没有找到匹配的山峰</div>
-              <div className="section-subtitle">试试切换标签或清空高级筛选条件。</div>
-            </div>
+            <Card>
+              <div style={{ display: 'grid', gap: 'var(--space-2)', textAlign: 'center' }}>
+                <div
+                  style={{
+                    color: 'var(--color-on-surface)',
+                    fontSize: 'var(--font-title-m-size)',
+                    lineHeight: 'var(--font-title-m-line)',
+                    fontWeight: 600,
+                  }}
+                >
+                  没有找到匹配的山峰
+                </div>
+                <div
+                  style={{
+                    color: 'var(--color-on-surface-variant)',
+                    fontSize: 'var(--font-body-m-size)',
+                    lineHeight: 'var(--font-body-m-line)',
+                    fontWeight: 'var(--font-body-m-weight)',
+                  }}
+                >
+                  试试切换标签或清空高级筛选条件。
+                </div>
+              </div>
+            </Card>
           ) : (
-            <div className="explore-card-list">
+            <div
+              style={{
+                display: 'grid',
+                gap: 'var(--space-3)',
+                minWidth: 0,
+              }}
+            >
               {filtered.map(({ mountain }) => (
                 <ExploreMountainCard key={mountain.id} mountain={mountain} />
               ))}
@@ -337,99 +476,67 @@ function PathwayCard({
   onClick: () => void
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        appearance: 'none',
-        width: '100%',
-        minWidth: 0,
-        minHeight: 116,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        gap: 'var(--space-2)',
-        padding: 'var(--space-3)',
-        background: 'var(--color-surface-variant)',
-        color: 'var(--color-on-surface)',
-        border: '1px solid var(--color-outline)',
-        borderRadius: 'var(--radius-lg)',
-        textAlign: 'left',
-        cursor: 'pointer',
-      }}
-    >
-      <span
-        aria-hidden
+    <Card>
+      <button
+        type="button"
+        onClick={onClick}
         style={{
-          width: 24,
-          height: 24,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--color-success)',
-          flexShrink: 0,
+          appearance: 'none',
+          width: '100%',
+          minWidth: 0,
+          minHeight: 100,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: 'var(--space-3)',
+          padding: 0,
+          background: 'transparent',
+          color: 'var(--color-on-surface)',
+          border: 'none',
+          textAlign: 'left',
+          cursor: 'pointer',
+          font: 'inherit',
         }}
       >
-        {icon}
-      </span>
-      <span style={{ display: 'grid', gap: 'var(--space-1)', minWidth: 0 }}>
         <span
+          aria-hidden
           style={{
-            color: 'var(--color-on-surface)',
-            fontSize: 'var(--font-title-m-size)',
-            lineHeight: 'var(--font-title-m-line)',
-            fontWeight: 700,
+            width: 32,
+            height: 32,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--color-success)',
+            flexShrink: 0,
           }}
         >
-          {title}
+          {icon}
         </span>
-        <span
-          style={{
-            color: 'var(--color-on-surface-variant)',
-            fontSize: 'var(--font-label-s-size)',
-            lineHeight: 'var(--font-label-s-line)',
-            fontWeight: 500,
-            overflowWrap: 'anywhere',
-          }}
-        >
-          {description}
+        <span style={{ display: 'grid', gap: 'var(--space-1)', minWidth: 0 }}>
+          <span
+            style={{
+              color: 'var(--color-on-surface)',
+              fontSize: 'var(--font-title-m-size)',
+              lineHeight: 'var(--font-title-m-line)',
+              fontWeight: 700,
+            }}
+          >
+            {title}
+          </span>
+          <span
+            style={{
+              color: 'var(--color-on-surface-variant)',
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+              fontWeight: 500,
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {description}
+          </span>
         </span>
-      </span>
-    </button>
-  )
-}
-
-function ImportPathwayIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 16V4M12 4l-4 4M12 4l4 4"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-
-function ScreenshotPathwayIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M4 7V5a1 1 0 0 1 1-1h2M20 7V5a1 1 0 0 0-1-1h-2M4 17v2a1 1 0 0 0 1 1h2M20 17v2a1 1 0 0 1-1 1h-2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <rect x="8" y="9" width="8" height="6" rx="1" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
+      </button>
+    </Card>
   )
 }
 
@@ -446,18 +553,34 @@ function FilterGroup({
 }) {
   return (
     <div>
-      <div className="section-subtitle" style={{ marginBottom: 8 }}>{label}</div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div
+        style={{
+          marginBottom: 'var(--space-2)',
+          color: 'var(--color-on-surface-variant)',
+          fontSize: 'var(--font-label-s-size)',
+          lineHeight: 'var(--font-label-s-line)',
+          fontWeight: 'var(--font-label-s-weight)',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          gap: 'var(--space-2)',
+          flexWrap: 'wrap',
+          fontSize: 'var(--font-label-s-size)',
+          lineHeight: 'var(--font-label-s-line)',
+        }}
+      >
         {options.map((option) => (
-          <button
+          <Chip
             key={option.value}
-            type="button"
             onClick={() => onChange(option.value)}
-            className={`muted-chip ${value === option.value ? 'active' : ''}`}
-            style={{ border: 'none', cursor: 'pointer' }}
+            active={value === option.value}
           >
             {option.label}
-          </button>
+          </Chip>
         ))}
       </div>
     </div>

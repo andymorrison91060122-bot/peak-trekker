@@ -35,7 +35,7 @@ export default function TopBar({
         paddingInline: 'var(--space-3)',
         background: transparent ? 'transparent' : 'color-mix(in srgb, var(--color-surface) 84%, transparent)',
         backdropFilter: transparent ? 'none' : 'blur(18px)',
-        borderBottom: transparent ? 'none' : '1px solid color-mix(in srgb, var(--color-on-surface) 6%, transparent)',
+        borderBottom: 'none',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', minWidth: 0 }}>
@@ -45,9 +45,9 @@ export default function TopBar({
         style={{
           minWidth: 0,
           color: 'var(--color-on-surface)',
-          fontSize: 'var(--font-title-m-size)',
-          lineHeight: 'var(--font-title-m-line)',
-          fontWeight: 'var(--font-title-m-weight)',
+          fontSize: 'var(--font-title-l-size)',
+          lineHeight: 'var(--font-title-l-line)',
+          fontWeight: 'var(--font-title-l-weight)',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',

@@ -6,7 +6,7 @@ export default function ImportPage() {
       style={{
         minHeight: '100vh',
         background: 'var(--color-surface)',
-        paddingBottom: 104,
+        paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
       <ImportClient />

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Home / Explore — Intent Split Refinements</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  html, body { margin: 0; background: #0A0C0E; color: #F5F7F8; font-family: 'Manrope','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif; -webkit-font-smoothing: antialiased; }
+  .phone { width: 375px; height: 812px; border-radius: 40px; overflow: hidden; background: #121416; box-shadow: 0 24px 60px rgba(0,0,0,.55), 0 0 0 8px #1a1d21, 0 0 0 9px #2a2e33; position: relative; }
+  .phone .inner { position: absolute; inset: 0; overflow: auto; }
+  .phone .inner::-webkit-scrollbar { display: none; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../../design-canvas.jsx"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="Primitives.jsx"></script>
+<script type="text/babel" src="HomeScreenV3.jsx"></script>
+<script type="text/babel" src="HomeScreenV4.jsx"></script>
+<script type="text/babel" src="ExploreScreenV2.jsx"></script>
+<script type="text/babel" src="ExploreScreenV3.jsx"></script>
+
+<script type="text/babel">
+const Phone = ({ children }) => (
+  <div className="phone"><div className="inner">{children}</div></div>
+);
+
+const App = () => (
+  <DesignCanvas title="Peak Trekker · Home & Explore — Intent Split Refinements" subtitle="Two starting points: choose a mountain, or bring back a result. Side-by-side: existing v2/v3 vs. refined v3/v4.">
+    <DCSection id="home" title="Home / Intent Split">
+      <DCArtboard id="home-v3" label="v3 · existing" width={415} height={852}>
+        <Phone><HomeScreenV3 /></Phone>
+      </DCArtboard>
+      <DCArtboard id="home-v4" label="v4 · refined" width={415} height={852}>
+        <Phone><HomeScreenV4 /></Phone>
+      </DCArtboard>
+    </DCSection>
+
+    <DCSection id="explore-default" title="Explore · default (mountain browsing + import path)">
+      <DCArtboard id="explore-v2" label="v2 · existing" width={415} height={852}>
+        <Phone><ExploreScreenV2 /></Phone>
+      </DCArtboard>
+      <DCArtboard id="explore-v3" label="v3 · refined" width={415} height={852}>
+        <Phone><ExploreScreenV3 /></Phone>
+      </DCArtboard>
+    </DCSection>
+
+    <DCSection id="explore-notfound" title="Explore · not-found support state">
+      <DCArtboard id="enf-v1" label="v1 · existing" width={415} height={852}>
+        <Phone><ExploreNotFound /></Phone>
+      </DCArtboard>
+      <DCArtboard id="enf-v2" label="v2 · refined" width={415} height={852}>
+        <Phone><ExploreNotFoundV2 /></Phone>
+      </DCArtboard>
+    </DCSection>
+  </DesignCanvas>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

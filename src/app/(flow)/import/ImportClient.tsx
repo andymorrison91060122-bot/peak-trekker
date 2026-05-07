@@ -6,7 +6,16 @@ import { useRouter } from 'next/navigation'
 import type { ImportedTrackData } from '@/lib/import/types'
 import Card from '@/components/ui/Card'
 import PrimaryButton from '@/components/ui/PrimaryButton'
-import { BackIcon, CheckIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
+import {
+  ArchiveIcon,
+  BackIcon,
+  CameraIcon,
+  CheckIcon,
+  MountainIcon,
+  SearchIcon,
+  ShareIcon,
+  WarnIcon,
+} from '@/components/ui/Icons'
 
 const IMPORT_MAX_BYTES = 20 * 1024 * 1024
 const SUPPORTED_FORMATS = ['gpx', 'kml', 'fit'] as const
@@ -19,6 +28,10 @@ type ImportStep =
   | 'upload_parsing'
   | 'upload_error'
   | 'preview'
+  | 'match'
+  | 'no_match'
+  | 'confirming'
+  | 'success'
 
 type SupportedFormat = (typeof SUPPORTED_FORMATS)[number]
 type ParseErrorKind = 'unsupported' | 'too_large' | 'auth' | 'file' | 'network'
@@ -27,6 +40,16 @@ type ParseResponse = {
   ok?: boolean
   parsedData?: ImportedTrackData
   error?: string
+}
+
+type ConfirmResponse = {
+  ok?: boolean
+  checkinId?: string
+  error?: string
+}
+
+type ConfirmResult = {
+  checkinId: string
 }
 
 function getFileExtension(fileName: string) {
@@ -40,6 +63,42 @@ function isSupportedFormat(value: string): value is SupportedFormat {
 function formatFileSize(size: number) {
   if (size >= 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`
   return `${Math.max(1, Math.round(size / 1024))} KB`
+}
+
+function formatDistance(meters?: number) {
+  if (typeof meters !== 'number' || !Number.isFinite(meters)) return '--'
+  return `${(meters / 1000).toFixed(1)} km`
+}
+
+function formatDuration(seconds?: number) {
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) return '--'
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  if (h > 0) return `${h}h ${m}m`
+  return `${Math.max(1, m)}m`
+}
+
+function formatElevation(meters?: number) {
+  if (typeof meters !== 'number' || !Number.isFinite(meters)) return '--'
+  return `${Math.round(meters).toLocaleString('en-US')} m`
+}
+
+function formatDateTime(isoString?: string) {
+  if (!isoString) return '--'
+  const date = new Date(isoString)
+  if (Number.isNaN(date.getTime())) return '--'
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  const hh = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  return `${mm}/${dd} ${hh}:${min}`
+}
+
+function formatActivityDate(isoString?: string) {
+  if (!isoString) return '日期待补充'
+  const date = new Date(isoString)
+  if (Number.isNaN(date.getTime())) return '日期待补充'
+  return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`
 }
 
 function buildLoginHref() {
@@ -91,6 +150,7 @@ function formatStep(step: number) {
 function getVisualStep(step: ImportStep) {
   if (step === 'entry') return 1
   if (step === 'preview') return 3
+  if (step === 'match' || step === 'no_match') return 4
   return 2
 }
 
@@ -145,6 +205,31 @@ function HealthIcon() {
         strokeWidth="1.8"
         strokeLinejoin="round"
       />
+    </svg>
+  )
+}
+
+function ChevronIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function PenIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path d="M4 19l4-1 11-11-3-3L5 15z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function EyeIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   )
 }
@@ -1096,57 +1181,945 @@ function ImportUploadError({
   )
 }
 
-function PreviewPlaceholder({
-  result,
-  onBack,
+function formatElevationCompact(meters?: number) {
+  if (typeof meters !== 'number' || !Number.isFinite(meters)) return '--'
+  return `${Math.round(meters).toLocaleString('en-US')}m`
+}
+
+function sampleElevations(result: ImportedTrackData) {
+  const elevations = result.trackPoints
+    .map((point) => point.elevation)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+
+  if (elevations.length < 2) {
+    return [3180, 3430, 3610, 3890, 4210, 4630, 5030, 5396, 5120, 4760, 4380, 3970, 3650]
+  }
+
+  if (elevations.length <= 48) return elevations
+  const lastIndex = elevations.length - 1
+  return Array.from({ length: 48 }, (_, index) => elevations[Math.round((index / 47) * lastIndex)])
+}
+
+function RoutePreviewSVG({ result }: { result: ImportedTrackData }) {
+  const elevations = sampleElevations(result)
+  const minElevation = Math.min(...elevations)
+  const maxElevation = Math.max(...elevations)
+  const range = Math.max(1, maxElevation - minElevation)
+  const topPadding = 18
+  const bottomY = 122
+  const graphHeight = bottomY - topPadding
+  const points = elevations.map((elevation, index) => {
+    const x = elevations.length === 1 ? 0 : (index / (elevations.length - 1)) * 320
+    const y = bottomY - ((elevation - minElevation) / range) * graphHeight
+    return { x, y, elevation }
+  })
+  const lineD = points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ')
+  const fillD = `${lineD} L320 140 L0 140Z`
+  const highest = points.reduce((best, point) => (point.elevation > best.elevation ? point : best), points[0])
+  const startElevation = result.trackPoints.find((point) => typeof point.elevation === 'number')?.elevation ?? result.minElevation
+  const endElevation = [...result.trackPoints].reverse().find((point) => typeof point.elevation === 'number')?.elevation ?? result.maxElevation
+
+  return (
+    <>
+      <svg viewBox="0 0 320 140" style={{ width: '100%', height: 140, display: 'block' }} aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="import-elevation-fill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="color-mix(in srgb, var(--color-primary) 18%, transparent)" />
+            <stop offset="100%" stopColor="transparent" />
+          </linearGradient>
+        </defs>
+        <g stroke="color-mix(in srgb, var(--color-on-surface) 4%, transparent)" strokeWidth="1">
+          <line x1="0" y1="35" x2="320" y2="35" />
+          <line x1="0" y1="70" x2="320" y2="70" />
+          <line x1="0" y1="105" x2="320" y2="105" />
+        </g>
+        <path d={fillD} fill="url(#import-elevation-fill)" />
+        <path d={lineD} stroke="var(--color-primary)" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={highest.x} cy={highest.y} r="7" fill="none" stroke="color-mix(in srgb, var(--color-primary) 40%, transparent)" strokeWidth="1" />
+        <circle cx={highest.x} cy={highest.y} r="3.5" fill="var(--color-primary)" />
+        <text
+          x={Math.min(300, Math.max(20, highest.x))}
+          y={Math.max(12, highest.y - 10)}
+          textAnchor="middle"
+          fontFamily="var(--font-mono)"
+          fontSize="9"
+          fill="var(--color-success)"
+        >
+          {formatElevationCompact(result.maxElevation ?? highest.elevation)}
+        </text>
+      </svg>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          padding: '0 var(--space-4) var(--space-3)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 10,
+          lineHeight: 'var(--font-label-s-line)',
+          color: 'var(--color-on-surface-variant)',
+        }}
+      >
+        <span>{formatElevationCompact(startElevation)}</span>
+        <span>距离 {formatDistance(result.distanceMeters)}</span>
+        <span>{formatElevationCompact(endElevation)}</span>
+      </div>
+    </>
+  )
+}
+
+function PreviewStatTile({
+  label,
+  value,
+  accent = false,
 }: {
-  result: ImportedTrackData | null
-  onBack: () => void
+  label: string
+  value: string
+  accent?: boolean
 }) {
   return (
-    <ImportScreen step="preview" title="解析完成" onBack={onBack}>
-      <div style={{ padding: 'var(--space-6) var(--space-2)', textAlign: 'center' }}>
-        <p
+    <div
+      style={{
+        padding: 'var(--space-3)',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--color-outline)',
+        background: 'color-mix(in srgb, var(--color-on-surface) 3%, transparent)',
+        minWidth: 0,
+      }}
+    >
+      <div
+        style={{
+          color: 'var(--color-on-surface-variant)',
+          fontSize: 10,
+          lineHeight: 'var(--font-label-s-line)',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          marginTop: 4,
+          color: accent ? 'var(--color-success)' : 'var(--color-on-surface)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 13,
+          lineHeight: 'var(--font-label-m-line)',
+          fontWeight: 700,
+          fontVariantNumeric: 'tabular-nums',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function SuccessChip() {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        minHeight: 24,
+        padding: '4px 9px',
+        borderRadius: 'var(--radius-pill)',
+        color: 'var(--color-success)',
+        background: 'color-mix(in srgb, var(--color-primary) 12%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--color-primary) 26%, transparent)',
+        fontSize: 'var(--font-label-s-size)',
+        lineHeight: 'var(--font-label-s-line)',
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span aria-hidden="true">●</span>
+      解析成功
+    </span>
+  )
+}
+
+function ConfirmErrorNotice({
+  error,
+  authRequired,
+  onLogin,
+}: {
+  error: string | null
+  authRequired: boolean
+  onLogin: () => void
+}) {
+  if (!error) return null
+
+  return (
+    <div
+      style={{
+        marginTop: 'var(--space-3)',
+        padding: '10px var(--space-3)',
+        borderRadius: 'var(--radius-md)',
+        color: authRequired ? 'var(--color-warning)' : 'var(--color-error)',
+        background: authRequired
+          ? 'color-mix(in srgb, var(--color-warning) 8%, transparent)'
+          : 'color-mix(in srgb, var(--color-error) 7%, transparent)',
+        border: authRequired
+          ? '1px solid color-mix(in srgb, var(--color-warning) 26%, transparent)'
+          : '1px solid color-mix(in srgb, var(--color-error) 26%, transparent)',
+        fontSize: 'var(--font-label-s-size)',
+        lineHeight: 1.6,
+      }}
+    >
+      <div>{error}</div>
+      {authRequired ? (
+        <button
+          type="button"
+          onClick={onLogin}
           style={{
-            margin: 0,
-            color: 'var(--color-success)',
-            fontSize: 'var(--font-title-l-size)',
-            lineHeight: 'var(--font-title-l-line)',
+            marginTop: 'var(--space-2)',
+            height: 32,
+            padding: '0 var(--space-3)',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid currentColor',
+            background: 'transparent',
+            color: 'inherit',
+            font: 'inherit',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          去登录
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function ImportPreview({
+  result,
+  onBack,
+  onContinue,
+}: {
+  result: ImportedTrackData
+  onBack: () => void
+  onContinue: () => void
+}) {
+  return (
+    <ImportScreen
+      step="preview"
+      title="解析完成"
+      onBack={onBack}
+      footer={(
+        <>
+          <PrimaryButton onClick={onContinue} style={{ width: '100%' }}>
+            继续
+          </PrimaryButton>
+          <button
+            type="button"
+            onClick={() => {
+              console.log('Full track preview will be connected in a later batch.')
+            }}
+            style={{
+              marginTop: 10,
+              width: '100%',
+              height: 44,
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--color-on-surface-variant)',
+              font: 'inherit',
+              fontSize: 'var(--font-label-m-size)',
+              cursor: 'pointer',
+            }}
+          >
+            查看完整轨迹
+          </button>
+        </>
+      )}
+    >
+      <div
+        style={{
+          background: 'var(--color-surface-variant)',
+          border: '1px solid var(--color-outline)',
+          borderRadius: 'var(--radius-lg)',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            padding: '14px var(--space-4) 6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 'var(--space-3)',
+          }}
+        >
+          <div
+            style={{
+              color: 'var(--color-on-surface-variant)',
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+            }}
+          >
+            轨迹概览
+          </div>
+          <SuccessChip />
+        </div>
+        <RoutePreviewSVG result={result} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}>
+        <PreviewStatTile label="距离" value={formatDistance(result.distanceMeters)} />
+        <PreviewStatTile label="时长" value={formatDuration(result.durationSeconds)} />
+        <PreviewStatTile label="累计爬升" value={formatElevation(result.elevationGainMeters)} accent />
+        <PreviewStatTile label="最高点" value={formatElevation(result.maxElevation)} accent />
+      </div>
+
+      <div
+        style={{
+          marginTop: 14,
+          background: 'var(--color-surface-variant)',
+          border: '1px solid var(--color-outline)',
+          borderRadius: 'var(--radius-md)',
+          padding: 'var(--space-3) 14px',
+        }}
+      >
+        <div
+          style={{
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+          }}
+        >
+          起止时间
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 16px 1fr', gap: 10, alignItems: 'center', marginTop: 'var(--space-2)' }}>
+          <div>
+            <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 10, lineHeight: 'var(--font-label-s-line)' }}>出发</div>
+            <div style={{ marginTop: 2, color: 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontSize: 13, lineHeight: 'var(--font-label-m-line)', fontWeight: 700 }}>
+              {formatDateTime(result.startTime)}
+            </div>
+          </div>
+          <div style={{ color: 'var(--color-on-surface-variant)', display: 'grid', placeItems: 'center' }}>
+            <ChevronIcon size={14} />
+          </div>
+          <div>
+            <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 10, lineHeight: 'var(--font-label-s-line)' }}>结束</div>
+            <div style={{ marginTop: 2, color: 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontSize: 13, lineHeight: 'var(--font-label-m-line)', fontWeight: 700 }}>
+              {formatDateTime(result.endTime)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </ImportScreen>
+  )
+}
+
+function ImportMatch({
+  result,
+  selectedMountainId,
+  confirmError,
+  confirmAuthRequired,
+  onSelect,
+  onBack,
+  onManual,
+  onConfirm,
+  onLogin,
+}: {
+  result: ImportedTrackData
+  selectedMountainId: string | null
+  confirmError: string | null
+  confirmAuthRequired: boolean
+  onSelect: (id: string) => void
+  onBack: () => void
+  onManual: () => void
+  onConfirm: () => void
+  onLogin: () => void
+}) {
+  const mountain = result.suggestedMountain
+  const selected = !!mountain?.id && selectedMountainId === mountain.id
+
+  return (
+    <ImportScreen
+      step="match"
+      title={(
+        <>
+          看起来是
+          <br />
+          这座山
+        </>
+      )}
+      onBack={onBack}
+      footer={(
+        <>
+          {confirmError ? (
+            <div
+              style={{
+                marginBottom: 'var(--space-2)',
+                color: confirmAuthRequired ? 'var(--color-warning)' : 'var(--color-error)',
+                fontSize: 'var(--font-label-s-size)',
+                lineHeight: 1.5,
+                textAlign: 'center',
+              }}
+            >
+              {confirmError}
+            </div>
+          ) : null}
+          <PrimaryButton onClick={confirmAuthRequired ? onLogin : onConfirm} style={{ width: '100%' }} disabled={!mountain?.id}>
+            {confirmAuthRequired ? '去登录' : '确认是这一座'}
+          </PrimaryButton>
+        </>
+      )}
+    >
+      <p
+        style={{
+          margin: 0,
+          paddingInline: 'var(--space-1)',
+          color: 'var(--color-on-surface-variant)',
+          fontSize: 'var(--font-label-m-size)',
+          lineHeight: 1.7,
+        }}
+      >
+        根据轨迹的位置与最高点，系统找到了候选。请确认是哪一座。
+      </p>
+
+      {mountain ? (
+        <button
+          type="button"
+          onClick={() => onSelect(mountain.id)}
+          style={{
+            marginTop: 14,
+            width: '100%',
+            textAlign: 'left',
+            padding: 14,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            background: selected
+              ? 'color-mix(in srgb, var(--color-primary) 8%, transparent)'
+              : 'var(--color-surface-variant)',
+            border: selected
+              ? '1px solid color-mix(in srgb, var(--color-primary) 40%, transparent)'
+              : '1px solid var(--color-outline)',
+            borderRadius: 14,
+            display: 'grid',
+            gridTemplateColumns: '44px minmax(0, 1fr) auto',
+            gap: 'var(--space-3)',
+            alignItems: 'center',
+            color: 'inherit',
+          }}
+        >
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 10,
+              display: 'grid',
+              placeItems: 'center',
+              color: 'var(--color-success)',
+              background: 'var(--color-surface-elevated)',
+              border: '1px solid var(--color-outline)',
+            }}
+          >
+            <MountainIcon size={22} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', minWidth: 0 }}>
+              <div
+                style={{
+                  color: 'var(--color-on-surface)',
+                  fontSize: 'var(--font-body-m-size)',
+                  lineHeight: 'var(--font-body-m-line)',
+                  fontWeight: 700,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {mountain.name}
+              </div>
+              <span
+                style={{
+                  color: 'var(--color-success)',
+                  background: 'color-mix(in srgb, var(--color-primary) 12%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--color-primary) 26%, transparent)',
+                  borderRadius: 'var(--radius-xs)',
+                  padding: '2px 6px',
+                  fontSize: 9,
+                  lineHeight: 'var(--font-label-s-line)',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                最匹配
+              </span>
+            </div>
+            <div
+              style={{
+                marginTop: 3,
+                color: 'var(--color-on-surface-variant)',
+                fontSize: 'var(--font-label-s-size)',
+                lineHeight: 'var(--font-label-s-line)',
+              }}
+            >
+              距轨迹最高点约 {formatDistance(mountain.distanceMeters)}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', color: 'var(--color-success)' }}>
+            <div style={{ fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)', fontWeight: 700 }}>
+              自动匹配
+            </div>
+          </div>
+        </button>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={onManual}
+        style={{
+          marginTop: 14,
+          width: '100%',
+          height: 48,
+          background: 'color-mix(in srgb, var(--color-on-surface) 2%, transparent)',
+          border: '1px dashed var(--color-outline)',
+          borderRadius: 'var(--radius-md)',
+          color: 'var(--color-on-surface-variant)',
+          font: 'inherit',
+          fontSize: 'var(--font-label-m-size)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 'var(--space-2)',
+        }}
+      >
+        <SearchIcon size={14} />
+        都不是，自己找
+      </button>
+    </ImportScreen>
+  )
+}
+
+function RidgeIllustration() {
+  return (
+    <svg width="180" height="64" viewBox="0 0 180 64" style={{ display: 'block', margin: '0 auto' }} aria-hidden="true" focusable="false">
+      <path
+        d="M0 56 L36 30 L60 42 L92 14 L120 36 L148 24 L180 44"
+        stroke="var(--color-outline)"
+        strokeWidth="1.5"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="92" cy="14" r="7" fill="none" stroke="color-mix(in srgb, var(--color-on-surface) 10%, transparent)" strokeWidth="1" />
+      <circle cx="92" cy="14" r="3" fill="var(--color-on-surface-variant)" />
+    </svg>
+  )
+}
+
+function NoMatchOption({
+  icon,
+  title,
+  sub,
+  green = false,
+  onClick,
+}: {
+  icon: ReactNode
+  title: string
+  sub: string
+  green?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: '100%',
+        textAlign: 'left',
+        padding: 14,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        background: green
+          ? 'linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 8%, transparent), color-mix(in srgb, var(--color-primary) 2%, transparent))'
+          : 'var(--color-surface-variant)',
+        border: green
+          ? '1px solid color-mix(in srgb, var(--color-primary) 26%, transparent)'
+          : '1px solid var(--color-outline)',
+        borderRadius: 14,
+        display: 'grid',
+        gridTemplateColumns: '38px minmax(0, 1fr) auto',
+        gap: 'var(--space-3)',
+        alignItems: 'center',
+        color: 'inherit',
+      }}
+    >
+      <div
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 10,
+          background: green
+            ? 'color-mix(in srgb, var(--color-primary) 14%, transparent)'
+            : 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
+          border: green
+            ? '1px solid color-mix(in srgb, var(--color-primary) 28%, transparent)'
+            : '1px solid var(--color-outline)',
+          color: green ? 'var(--color-success)' : 'var(--color-on-surface)',
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        {icon}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            color: 'var(--color-on-surface)',
+            fontSize: 'var(--font-body-m-size)',
+            lineHeight: 'var(--font-body-m-line)',
             fontWeight: 700,
           }}
         >
-          ✓ 解析成功
-        </p>
-        <p
+          {title}
+        </div>
+        <div
           style={{
-            margin: 'var(--space-2) 0 0',
+            marginTop: 3,
             color: 'var(--color-on-surface-variant)',
-            fontSize: 'var(--font-label-m-size)',
-            lineHeight: 'var(--font-label-m-line)',
-          }}
-        >
-          Preview / Match / Success 屏幕将在 Part 2 中实现
-        </p>
-        <pre
-          style={{
-            margin: 'var(--space-4) 0 0',
-            maxHeight: 440,
-            overflow: 'auto',
-            textAlign: 'left',
-            color: 'var(--color-on-surface-variant)',
-            background: 'var(--color-surface-variant)',
-            border: '1px solid var(--color-outline)',
-            borderRadius: 'var(--radius-lg)',
-            padding: 'var(--space-3)',
-            fontFamily: 'var(--font-mono)',
             fontSize: 'var(--font-label-s-size)',
-            lineHeight: 1.6,
+            lineHeight: 'var(--font-label-s-line)',
           }}
         >
-          {JSON.stringify(result, null, 2)}
-        </pre>
+          {sub}
+        </div>
+      </div>
+      <div style={{ color: 'var(--color-on-surface-variant)', display: 'grid', placeItems: 'center' }}>
+        <ChevronIcon />
+      </div>
+    </button>
+  )
+}
+
+function ImportNoMatch({
+  confirmError,
+  confirmAuthRequired,
+  onBack,
+  onStash,
+  onSearch,
+  onLogin,
+}: {
+  confirmError: string | null
+  confirmAuthRequired: boolean
+  onBack: () => void
+  onStash: () => void
+  onSearch: () => void
+  onLogin: () => void
+}) {
+  return (
+    <ImportScreen step="no_match" title="还没找到对应的山" onBack={onBack}>
+      <div
+        style={{
+          paddingInline: 'var(--space-1)',
+          color: 'var(--color-on-surface-variant)',
+          fontSize: 'var(--font-label-m-size)',
+          lineHeight: 1.7,
+        }}
+      >
+        你的轨迹完整保存好了。
+        <br />
+        只是暂时没匹配到收录的山峰 — 这没关系，后续也可以再补充关联。
+      </div>
+
+      <div style={{ padding: '18px var(--space-3) var(--space-1)', textAlign: 'center' }}>
+        <RidgeIllustration />
+      </div>
+
+      <ConfirmErrorNotice error={confirmError} authRequired={confirmAuthRequired} onLogin={onLogin} />
+
+      <div style={{ display: 'grid', gap: 10, marginTop: 'var(--space-5)' }}>
+        <NoMatchOption
+          green
+          icon={<ArchiveIcon size={18} />}
+          title="作为未收录山行保存"
+          sub="进入档案 · 之后可以补充关联"
+          onClick={onStash}
+        />
+        <NoMatchOption
+          icon={<SearchIcon size={18} />}
+          title="手动搜索关联山峰"
+          sub="你比系统更清楚自己去了哪"
+          onClick={onSearch}
+        />
       </div>
     </ImportScreen>
+  )
+}
+
+function ConfirmingScreen() {
+  return (
+    <div
+      data-import-step="confirming"
+      style={{
+        minHeight: '100dvh',
+        maxWidth: 'var(--page-max-width)',
+        margin: '0 auto',
+        position: 'relative',
+        background: 'var(--color-surface)',
+        overflowX: 'hidden',
+        display: 'grid',
+        gridTemplateRows: 'auto 1fr',
+      }}
+    >
+      <header style={{ padding: 'var(--space-1) var(--space-4) 14px' }}>
+        <button
+          type="button"
+          aria-label="正在生成活动记录"
+          disabled
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 'var(--radius-pill)',
+            background: 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
+            border: '1px solid var(--color-outline)',
+            color: 'var(--color-on-surface-variant)',
+            opacity: 0.42,
+            display: 'grid',
+            placeItems: 'center',
+          }}
+        >
+          <BackIcon size={16} />
+        </button>
+      </header>
+      <main
+        style={{
+          display: 'grid',
+          placeItems: 'center',
+          padding: '0 var(--space-4) var(--space-12)',
+          textAlign: 'center',
+        }}
+      >
+        <div>
+          <div
+            className="import-spinner"
+            aria-hidden="true"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 'var(--radius-pill)',
+              border: '2px solid color-mix(in srgb, var(--color-on-surface) 8%, transparent)',
+              borderTopColor: 'var(--color-success)',
+              margin: '0 auto',
+            }}
+          />
+          <div
+            style={{
+              marginTop: 'var(--space-4)',
+              color: 'var(--color-on-surface-variant)',
+              fontSize: 'var(--font-body-m-size)',
+              lineHeight: 'var(--font-body-m-line)',
+            }}
+          >
+            正在生成活动记录…
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+function MiniResult({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 10, lineHeight: 'var(--font-label-s-line)' }}>{label}</div>
+      <div style={{ marginTop: 2, color: 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontSize: 13, lineHeight: 'var(--font-label-m-line)', fontWeight: 700 }}>
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function NextAction({
+  icon,
+  label,
+  sub,
+  primary = false,
+  onClick,
+}: {
+  icon: ReactNode
+  label: string
+  sub: string
+  primary?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        textAlign: 'left',
+        padding: 14,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        background: primary
+          ? 'color-mix(in srgb, var(--color-primary) 8%, transparent)'
+          : 'var(--color-surface-variant)',
+        border: primary
+          ? '1px solid color-mix(in srgb, var(--color-primary) 28%, transparent)'
+          : '1px solid var(--color-outline)',
+        borderRadius: 14,
+        color: 'inherit',
+        minWidth: 0,
+      }}
+    >
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          background: primary
+            ? 'color-mix(in srgb, var(--color-primary) 14%, transparent)'
+            : 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
+          border: primary
+            ? '1px solid color-mix(in srgb, var(--color-primary) 28%, transparent)'
+            : '1px solid var(--color-outline)',
+          color: primary ? 'var(--color-success)' : 'var(--color-on-surface)',
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        {icon}
+      </div>
+      <div style={{ marginTop: 10, color: 'var(--color-on-surface)', fontSize: 'var(--font-label-m-size)', lineHeight: 'var(--font-label-m-line)', fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ marginTop: 3, color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>
+        {sub}
+      </div>
+    </button>
+  )
+}
+
+function ImportSuccess({
+  result,
+  confirmResult,
+  onShare,
+  onView,
+  onAddPhoto,
+  onWriteNote,
+}: {
+  result: ImportedTrackData | null
+  confirmResult: ConfirmResult | null
+  onShare: () => void
+  onView: () => void
+  onAddPhoto: () => void
+  onWriteNote: () => void
+}) {
+  const mountainName = result?.suggestedMountain?.name ?? '未关联山峰'
+  const dateLabel = formatActivityDate(result?.startTime)
+
+  return (
+    <div
+      data-import-step="success"
+      style={{
+        minHeight: '100dvh',
+        maxWidth: 'var(--page-max-width)',
+        margin: '0 auto',
+        position: 'relative',
+        background: 'var(--color-surface)',
+        overflowX: 'hidden',
+        padding: 'var(--space-10) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom))',
+      }}
+    >
+      <div style={{ textAlign: 'center', paddingInline: 'var(--space-2)' }}>
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 'var(--radius-pill)',
+            background: 'color-mix(in srgb, var(--color-primary) 12%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--color-primary) 32%, transparent)',
+            color: 'var(--color-success)',
+            display: 'grid',
+            placeItems: 'center',
+            margin: '0 auto',
+          }}
+        >
+          <CheckIcon size={30} />
+        </div>
+        <div
+          style={{
+            marginTop: 18,
+            color: 'var(--color-on-surface)',
+            fontSize: 'var(--font-headline-m-size)',
+            lineHeight: 'var(--font-headline-m-line)',
+            fontWeight: 700,
+          }}
+        >
+          已带回档案
+        </div>
+        <div
+          style={{
+            marginTop: 'var(--space-2)',
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 1.65,
+          }}
+        >
+          {mountainName} · {dateLabel}
+          <br />
+          这次山行已成为你档案里的一条记录
+        </div>
+      </div>
+
+      <div
+        style={{
+          marginTop: 'var(--space-6)',
+          background: 'var(--color-surface-variant)',
+          border: '1px solid var(--color-outline)',
+          borderRadius: 14,
+          padding: 14,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--space-3)' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ color: 'var(--color-on-surface)', fontSize: 'var(--font-body-m-size)', lineHeight: 'var(--font-body-m-line)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {mountainName}
+            </div>
+            <div style={{ marginTop: 3, color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>
+              {confirmResult?.checkinId ? `活动 ${confirmResult.checkinId.slice(0, 8)}` : '活动已生成'}
+            </div>
+          </div>
+          <div style={{ color: 'var(--color-success)', fontFamily: 'var(--font-mono)', fontSize: 18, lineHeight: 'var(--font-title-l-line)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+            {formatElevationCompact(result?.maxElevation)}
+          </div>
+        </div>
+        <div
+          style={{
+            marginTop: 'var(--space-3)',
+            paddingTop: 'var(--space-3)',
+            borderTop: '1px solid var(--color-outline)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 'var(--space-2)',
+          }}
+        >
+          <MiniResult label="距离" value={formatDistance(result?.distanceMeters)} />
+          <MiniResult label="时长" value={formatDuration(result?.durationSeconds)} />
+          <MiniResult label="爬升" value={formatElevation(result?.elevationGainMeters)} />
+        </div>
+      </div>
+
+      <div style={{ marginTop: 'var(--space-5)', color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        接下来
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 'var(--space-2)' }}>
+        <NextAction icon={<CameraIcon size={16} />} label="补照片" sub="登顶 / 路上" onClick={onAddPhoto} />
+        <NextAction icon={<PenIcon size={16} />} label="写一句话" sub="留下这次的感受" onClick={onWriteNote} />
+        <NextAction primary icon={<ShareIcon size={16} />} label="生成分享" sub="海拔卡 / 朋友圈" onClick={onShare} />
+        <NextAction icon={<EyeIcon size={16} />} label="查看活动" sub="进入完整记录" onClick={onView} />
+      </div>
+    </div>
   )
 }
 
@@ -1160,6 +2133,10 @@ export default function ImportClient() {
   const [parseErrorKind, setParseErrorKind] = useState<ParseErrorKind | null>(null)
   const [parseProgress, setParseProgress] = useState(0)
   const [authRequired, setAuthRequired] = useState(false)
+  const [selectedMountainId, setSelectedMountainId] = useState<string | null>(null)
+  const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null)
+  const [confirmError, setConfirmError] = useState<string | null>(null)
+  const [confirmAuthRequired, setConfirmAuthRequired] = useState(false)
 
   useEffect(() => {
     if (step !== 'upload_parsing') return
@@ -1189,6 +2166,10 @@ export default function ImportClient() {
     setParseErrorKind(null)
     setParseProgress(0)
     setAuthRequired(false)
+    setSelectedMountainId(null)
+    setConfirmResult(null)
+    setConfirmError(null)
+    setConfirmAuthRequired(false)
     clearInputValue()
   }
 
@@ -1199,6 +2180,10 @@ export default function ImportClient() {
     setParseErrorKind(null)
     setParseProgress(0)
     setAuthRequired(false)
+    setSelectedMountainId(null)
+    setConfirmResult(null)
+    setConfirmError(null)
+    setConfirmAuthRequired(false)
 
     const validationError = validateFile(nextFile)
     if (validationError) {
@@ -1276,11 +2261,53 @@ export default function ImportClient() {
 
       setParseProgress(100)
       setParseResult(payload.parsedData)
+      setSelectedMountainId(payload.parsedData.suggestedMountain?.id ?? null)
       setStep('preview')
     } catch {
       setParseError('网络暂时不可用，请稍后重试。')
       setParseErrorKind('network')
       setStep('upload_error')
+    }
+  }
+
+  async function handleConfirm(mountainId?: string) {
+    if (!parseResult) return
+
+    const returnStep: ImportStep = mountainId ? 'match' : 'no_match'
+    setConfirmError(null)
+    setConfirmAuthRequired(false)
+    setStep('confirming')
+
+    try {
+      const response = await fetch('/api/import/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parsedData: parseResult,
+          mountainId: mountainId || null,
+          source: 'track_import',
+        }),
+      })
+      const payload = (await response.json().catch(() => null)) as ConfirmResponse | null
+
+      if (response.status === 401) {
+        setConfirmAuthRequired(true)
+        setConfirmError('登录后即可生成活动记录。')
+        setStep(returnStep)
+        return
+      }
+
+      if (!response.ok || !payload?.ok || !payload.checkinId) {
+        setConfirmError(payload?.error ?? '活动记录暂时没有生成成功，请再试一次。')
+        setStep(returnStep)
+        return
+      }
+
+      setConfirmResult({ checkinId: payload.checkinId })
+      setStep('success')
+    } catch {
+      setConfirmError('网络暂时不可用，请稍后重试。')
+      setStep(returnStep)
     }
   }
 
@@ -1310,6 +2337,16 @@ export default function ImportClient() {
 
     if (step === 'preview') {
       setStep(file ? 'upload_selected' : 'upload_empty')
+      setConfirmError(null)
+      setConfirmAuthRequired(false)
+      return
+    }
+
+    if (step === 'match' || step === 'no_match') {
+      setConfirmError(null)
+      setConfirmAuthRequired(false)
+      setStep('preview')
+      return
     }
   }
 
@@ -1370,7 +2407,98 @@ export default function ImportClient() {
     }
 
     if (step === 'preview') {
-      return <PreviewPlaceholder result={parseResult} onBack={handleBack} />
+      if (!parseResult) {
+        return <ImportUploadEmpty onBack={handleBack} onPick={openFilePicker} onDrop={handleDrop} />
+      }
+
+      return (
+        <ImportPreview
+          result={parseResult}
+          onBack={handleBack}
+          onContinue={() => {
+            setConfirmError(null)
+            setConfirmAuthRequired(false)
+            if (parseResult.suggestedMountain?.id) {
+              setSelectedMountainId(parseResult.suggestedMountain.id)
+              setStep('match')
+              return
+            }
+            setStep('no_match')
+          }}
+        />
+      )
+    }
+
+    if (step === 'match' && parseResult) {
+      const suggestedMountainId = parseResult.suggestedMountain?.id ?? null
+      return (
+        <ImportMatch
+          result={parseResult}
+          selectedMountainId={selectedMountainId}
+          confirmError={confirmError}
+          confirmAuthRequired={confirmAuthRequired}
+          onSelect={setSelectedMountainId}
+          onBack={handleBack}
+          onManual={() => {
+            setConfirmError(null)
+            setConfirmAuthRequired(false)
+            setSelectedMountainId(null)
+            setStep('no_match')
+          }}
+          onConfirm={() => {
+            const mountainId = selectedMountainId ?? suggestedMountainId
+            if (mountainId) {
+              void handleConfirm(mountainId)
+            }
+          }}
+          onLogin={() => router.push(buildLoginHref())}
+        />
+      )
+    }
+
+    if (step === 'no_match') {
+      return (
+        <ImportNoMatch
+          confirmError={confirmError}
+          confirmAuthRequired={confirmAuthRequired}
+          onBack={handleBack}
+          onStash={() => void handleConfirm()}
+          onSearch={() => {
+            console.log('Manual mountain search will be connected in a later batch.')
+            void handleConfirm()
+          }}
+          onLogin={() => router.push(buildLoginHref())}
+        />
+      )
+    }
+
+    if (step === 'confirming') {
+      return <ConfirmingScreen />
+    }
+
+    if (step === 'success') {
+      return (
+        <ImportSuccess
+          result={parseResult}
+          confirmResult={confirmResult}
+          onShare={() => {
+            console.log('Share editor will be connected in a later batch.')
+          }}
+          onView={() => {
+            if (confirmResult?.checkinId) {
+              router.push(`/activity/${confirmResult.checkinId}`)
+              return
+            }
+            router.push('/profile')
+          }}
+          onAddPhoto={() => {
+            console.log('Photo attachment will be connected in a later batch.')
+          }}
+          onWriteNote={() => {
+            console.log('Note editor will be connected in a later batch.')
+          }}
+        />
+      )
     }
 
     return <ImportUploadEmpty onBack={handleBack} onPick={openFilePicker} onDrop={handleDrop} />
@@ -1386,6 +2514,14 @@ export default function ImportClient() {
           }
           .import-common-issues {
             margin-top: 14px;
+          }
+          .import-spinner {
+            animation: import-spin 880ms linear infinite;
+          }
+          @keyframes import-spin {
+            to {
+              transform: rotate(360deg);
+            }
           }
         `}
       </style>

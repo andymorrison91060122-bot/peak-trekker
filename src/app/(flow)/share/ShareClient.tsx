@@ -2,7 +2,7 @@
 
 import type { CSSProperties, ReactNode } from 'react'
 import { useMemo, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import {
   BackIcon,
   CameraIcon,
@@ -10,10 +10,10 @@ import {
   MountainIcon,
   ShareIcon,
 } from '@/components/ui/Icons'
-import { SourceLabel } from '@/components/ui/SourceLabel'
+import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 
 type ShareTab = 'basic' | 'advanced'
-type TemplateId = 'basic-classic' | 'basic-minimal' | 'basic-data'
+type TemplateId = ShareRenderTemplate
 type ShareFieldKey =
   | 'altitude'
   | 'distance'
@@ -26,7 +26,7 @@ type ShareFieldKey =
 
 type ShareActivitySource = 'gps' | 'track_import' | 'screenshot_recognition'
 
-interface ShareActivityData {
+export interface ShareActivityData {
   mountainName?: string
   altitude?: number
   distance?: number
@@ -74,9 +74,9 @@ const FIELD_CONFIGS: FieldConfig[] = [
 ]
 
 const BASIC_TEMPLATES: BasicTemplate[] = [
-  { id: 'basic-classic', label: 'Classic', variant: 'classic' },
-  { id: 'basic-minimal', label: 'Minimal', variant: 'minimal' },
-  { id: 'basic-data', label: 'Data', variant: 'data' },
+  { id: 'base-classic', label: 'Classic', variant: 'classic' },
+  { id: 'base-minimal', label: 'Minimal', variant: 'minimal' },
+  { id: 'base-data', label: 'Data', variant: 'data' },
 ]
 
 const ADVANCED_TEMPLATES = [
@@ -132,13 +132,45 @@ function formatFieldValue(field: ShareFieldKey, data: ShareActivityData) {
   return data.mountainName ?? '--'
 }
 
-function sourceLabelType(source: ShareActivityData['source']) {
-  return source === 'gps' ? 'gps_verified' : 'uploaded'
+function renderSource(source: ShareActivityData['source']) {
+  return source === 'gps' ? 'gps' : 'uploaded'
 }
 
 function isVisible(field: ShareFieldKey, toggles: Record<ShareFieldKey, boolean>) {
   const config = FIELD_CONFIGS.find((item) => item.key === field)
   return Boolean(config?.locked || toggles[field])
+}
+
+function buildRenderData(data: ShareActivityData, toggles: Record<ShareFieldKey, boolean>) {
+  return {
+    mountainName: data.mountainName ?? '未知山峰',
+    location: data.location ?? '',
+    date: data.date ?? '',
+    altitude: typeof data.altitude === 'number' ? data.altitude : 0,
+    distance: typeof data.distance === 'number' ? data.distance : 0,
+    duration: formatDuration(data.duration),
+    elevationGain: typeof data.elevationGain === 'number' ? data.elevationGain : 0,
+    source: renderSource(data.source),
+    visibleFields: {
+      duration: isVisible('duration', toggles),
+      elevationGain: isVisible('elevationGain', toggles),
+      date: isVisible('date', toggles),
+      location: isVisible('location', toggles),
+      pace: isVisible('pace', toggles),
+      mountainName: isVisible('mountainName', toggles),
+    },
+  }
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = fileName
+  document.body.append(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
 }
 
 function noop() {}
@@ -399,6 +431,90 @@ function TrailPath() {
   )
 }
 
+function MountainTexturePreview() {
+  return (
+    <svg
+      width="100%"
+      height="100%"
+      viewBox="0 0 280 498"
+      preserveAspectRatio="xMidYMid slice"
+      style={{ position: 'absolute', inset: 0, opacity: 0.34 }}
+      aria-hidden="true"
+    >
+      <path d="M-20 210 L42 152 L80 178 L130 112 L184 190 L228 130 L300 214" stroke="var(--color-on-surface)" strokeWidth="0.8" fill="none" opacity=".42" />
+      <path d="M-30 246 L54 180 L98 210 L146 150 L196 226 L245 168 L310 260" stroke="var(--color-on-surface)" strokeWidth="0.65" fill="none" opacity=".28" />
+      <path d="M-20 284 L62 220 L112 248 L160 196 L212 276 L258 228 L312 312" stroke="var(--color-on-surface)" strokeWidth="0.55" fill="none" opacity=".18" />
+      <path d="M-28 336 L52 270 L106 306 L164 254 L222 342 L276 288 L318 366" stroke="var(--color-on-surface)" strokeWidth="0.45" fill="none" opacity=".12" />
+      {[0, 1, 2, 3, 4, 5, 6, 7].map((index) => (
+        <path
+          key={index}
+          d={`M${14 + index * 30} 330 C ${36 + index * 28} 262 ${56 + index * 25} 184 ${82 + index * 22} 118`}
+          stroke="var(--color-on-surface)"
+          strokeWidth="0.45"
+          fill="none"
+          opacity=".14"
+        />
+      ))}
+    </svg>
+  )
+}
+
+function PreviewSourcePill({ source }: { source: ShareActivityData['source'] }) {
+  const gps = source === 'gps'
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        height: gps ? 22 : 21,
+        padding: gps ? '0 7px' : '0 8px',
+        borderRadius: 'var(--radius-xs)',
+        border: gps ? '1px solid var(--color-success)' : '1px solid var(--color-outline)',
+        background: gps
+          ? 'color-mix(in srgb, var(--color-primary) 18%, transparent)'
+          : 'color-mix(in srgb, var(--color-surface-variant) 72%, transparent)',
+        color: gps ? 'var(--color-success)' : 'var(--color-on-surface-variant)',
+        whiteSpace: 'nowrap',
+        boxShadow: gps ? '0 0 14px color-mix(in srgb, var(--color-primary) 22%, transparent)' : 'none',
+      }}
+    >
+      {gps ? (
+        <>
+          <MountainIcon size={12} color="currentColor" />
+          <span
+            aria-hidden="true"
+            style={{
+              width: 1,
+              height: 12,
+              background: 'color-mix(in srgb, var(--color-success) 58%, transparent)',
+              marginLeft: 5,
+              marginRight: 5,
+              flex: '0 0 auto',
+            }}
+          />
+          <svg width="11" height="11" viewBox="0 0 24 24" style={{ display: 'block', flex: '0 0 auto' }} aria-hidden="true">
+            <path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          </svg>
+          <span style={{ marginLeft: 5, fontSize: 8.5, lineHeight: 1, fontWeight: 800, letterSpacing: '0.04em' }}>
+            GPS VERIFIED
+          </span>
+        </>
+      ) : (
+        <>
+          <svg width="12" height="12" viewBox="0 0 24 24" style={{ display: 'block', flex: '0 0 auto', marginRight: 5 }} aria-hidden="true">
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="2" fill="none" />
+            <path d="M14 3v5h5M8.5 14l2 2 4.5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          </svg>
+          <span style={{ fontSize: 8.5, lineHeight: 1, fontWeight: 800, letterSpacing: '0.06em' }}>
+            UPLOADED
+          </span>
+        </>
+      )}
+    </span>
+  )
+}
+
 function BrandFooter({ data }: { data: ShareActivityData }) {
   return (
     <div
@@ -424,7 +540,7 @@ function BrandFooter({ data }: { data: ShareActivityData }) {
       >
         Peak Trekker
       </span>
-      <SourceLabel type={sourceLabelType(data.source)} size="sm" />
+      <PreviewSourcePill source={data.source} />
     </div>
   )
 }
@@ -433,11 +549,15 @@ function HeroTemplate({
   data,
   toggles,
   showMap,
+  template,
 }: {
   data: ShareActivityData
   toggles: Record<ShareFieldKey, boolean>
   showMap: boolean
+  template: TemplateId
 }) {
+  const isMinimal = template === 'base-minimal'
+  const isData = template === 'base-data'
   const statItems = [
     isVisible('distance', toggles)
       ? { key: 'distance', label: 'DISTANCE', value: formatDistance(data.distance), unit: 'km' }
@@ -472,8 +592,31 @@ function HeroTemplate({
         boxShadow: '0 24px 56px color-mix(in srgb, var(--color-surface) 76%, transparent)',
       }}
     >
-      <TopoBackground showMap={showMap} />
-      <TrailPath />
+      {isData ? (
+        <>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background:
+                'radial-gradient(circle at 50% 28%, color-mix(in srgb, var(--color-success) 14%, transparent), transparent 30%), linear-gradient(180deg, var(--color-surface-variant), var(--color-surface))',
+            }}
+          />
+          <MountainTexturePreview />
+        </>
+      ) : isMinimal ? (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(circle at 58% 24%, color-mix(in srgb, var(--color-success) 10%, transparent), transparent 22%), var(--color-surface)',
+          }}
+        />
+      ) : (
+        <TopoBackground showMap={showMap} />
+      )}
+      {isData ? null : <TrailPath />}
       <div
         style={{
           position: 'absolute',
@@ -490,11 +633,25 @@ function HeroTemplate({
           position: 'absolute',
           left: 16,
           right: 16,
-          bottom: 104,
+          bottom: isData ? 118 : 104,
           color: 'var(--color-on-surface)',
+          textAlign: isData ? 'center' : 'left',
         }}
       >
-        {mountainLine ? (
+        {isData ? (
+          <div
+            style={{
+              color: 'var(--color-on-surface-variant)',
+              fontSize: 13,
+              lineHeight: 1,
+              fontWeight: 800,
+              letterSpacing: '0.08em',
+              marginBottom: 8,
+            }}
+          >
+            峰顶海拔
+          </div>
+        ) : mountainLine ? (
           <div
             style={{
               fontSize: 15,
@@ -514,7 +671,7 @@ function HeroTemplate({
           style={{
             color: 'var(--color-success)',
             fontFamily: 'var(--font-mono)',
-            fontSize: 54,
+            fontSize: isData ? 68 : 54,
             lineHeight: 0.95,
             fontWeight: 700,
             letterSpacing: '0',
@@ -523,8 +680,24 @@ function HeroTemplate({
           }}
         >
           {formatNumber(data.altitude)}
-          <span style={{ fontSize: 19, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
+          <span style={{ fontSize: isData ? 22 : 19, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
         </div>
+        {isData && mountainLine ? (
+          <div
+            style={{
+              marginTop: 16,
+              color: 'var(--color-on-surface)',
+              fontSize: 14,
+              lineHeight: 1.3,
+              fontWeight: 800,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {mountainLine}
+          </div>
+        ) : null}
       </div>
 
       <div
@@ -532,7 +705,7 @@ function HeroTemplate({
           position: 'absolute',
           left: 16,
           right: 16,
-          bottom: 52,
+          bottom: isData ? 76 : 52,
           display: 'grid',
           gridTemplateColumns: `repeat(${Math.max(1, statItems.length)}, minmax(0, 1fr))`,
           alignItems: 'stretch',
@@ -596,10 +769,12 @@ function TemplateThumb({
   template,
   selected,
   data,
+  onSelect,
 }: {
   template: BasicTemplate
   selected: boolean
   data: ShareActivityData
+  onSelect: (template: TemplateId) => void
 }) {
   const showTopo = template.variant !== 'minimal'
   const isData = template.variant === 'data'
@@ -607,7 +782,7 @@ function TemplateThumb({
     <button
       type="button"
       aria-pressed={selected}
-      onClick={noop}
+      onClick={() => onSelect(template.id)}
       style={{
         width: 82,
         height: 122,
@@ -813,10 +988,12 @@ function ThumbnailRow({
   activeTab,
   selectedTemplate,
   data,
+  onSelectTemplate,
 }: {
   activeTab: ShareTab
   selectedTemplate: TemplateId
   data: ShareActivityData
+  onSelectTemplate: (template: TemplateId) => void
 }) {
   return (
     <div
@@ -836,10 +1013,11 @@ function ThumbnailRow({
               template={template}
               selected={selectedTemplate === template.id}
               data={data}
+              onSelect={onSelectTemplate}
             />
           ))
-        : ADVANCED_TEMPLATES.map((label, index) => (
-            <AdvancedThumb key={label} label={label} selected={index === 0} />
+        : ADVANCED_TEMPLATES.map((label) => (
+            <AdvancedThumb key={label} label={label} selected={false} />
           ))}
     </div>
   )
@@ -1197,7 +1375,16 @@ function FieldSelector({
   )
 }
 
-function ActionBar() {
+function ActionBar({
+  exportingAction,
+  onSave,
+  onShare,
+}: {
+  exportingAction: 'save' | 'share' | null
+  onSave: () => void
+  onShare: () => void
+}) {
+  const exporting = Boolean(exportingAction)
   return (
     <div
       data-testid="share-action-bar"
@@ -1224,7 +1411,8 @@ function ActionBar() {
       >
         <button
           type="button"
-          onClick={noop}
+          onClick={onSave}
+          disabled={exporting}
           style={{
             height: 50,
             borderRadius: 'var(--radius-md)',
@@ -1238,16 +1426,18 @@ function ActionBar() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 6,
-            cursor: 'pointer',
+            cursor: exporting ? 'wait' : 'pointer',
+            opacity: exporting && exportingAction !== 'save' ? 0.58 : 1,
             minWidth: 0,
           }}
         >
           <DownloadIcon />
-          保存
+          {exportingAction === 'save' ? '生成中' : '保存'}
         </button>
         <button
           type="button"
-          onClick={noop}
+          onClick={onShare}
+          disabled={exporting}
           style={{
             height: 50,
             borderRadius: 'var(--radius-md)',
@@ -1261,11 +1451,12 @@ function ActionBar() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 7,
-            cursor: 'pointer',
+            cursor: exporting ? 'wait' : 'pointer',
+            opacity: exporting && exportingAction !== 'share' ? 0.58 : 1,
             minWidth: 0,
           }}
         >
-          分享
+          {exportingAction === 'share' ? '生成中' : '分享'}
           <ShareIcon size={16} />
         </button>
         <button
@@ -1291,16 +1482,22 @@ function ActionBar() {
   )
 }
 
-export default function ShareClient() {
+export default function ShareClient({
+  initialData,
+  checkinId,
+}: {
+  initialData?: ShareActivityData | null
+  checkinId?: string
+}) {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const checkinId = searchParams.get('checkinId')
   const [activeTab, setActiveTab] = useState<ShareTab>('basic')
-  const [selectedTemplate] = useState<TemplateId>('basic-classic')
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('base-classic')
   const [showMap, setShowMap] = useState(true)
   const [fieldToggles, setFieldToggles] = useState<Record<ShareFieldKey, boolean>>(initialFieldToggles)
+  const [exportingAction, setExportingAction] = useState<'save' | 'share' | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
 
-  const activityData = useMemo(() => MOCK_DATA, [])
+  const activityData = useMemo(() => initialData ?? MOCK_DATA, [initialData])
 
   function toggleField(field: ShareFieldKey) {
     const config = FIELD_CONFIGS.find((item) => item.key === field)
@@ -1309,6 +1506,58 @@ export default function ShareClient() {
       ...current,
       [field]: !current[field],
     }))
+  }
+
+  async function renderPosterBlob() {
+    const response = await fetch('/api/share/render', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        template: selectedTemplate,
+        data: buildRenderData(activityData, fieldToggles),
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('分享图生成失败，请稍后再试')
+    }
+
+    return response.blob()
+  }
+
+  async function handleSave() {
+    setExportingAction('save')
+    setExportError(null)
+    try {
+      const blob = await renderPosterBlob()
+      downloadBlob(blob, `peak-trekker-${selectedTemplate}.png`)
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : '分享图生成失败，请稍后再试')
+    } finally {
+      setExportingAction(null)
+    }
+  }
+
+  async function handleShare() {
+    setExportingAction('share')
+    setExportError(null)
+    try {
+      const blob = await renderPosterBlob()
+      const file = new File([blob], 'peak-trekker.png', { type: 'image/png' })
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: `${activityData.mountainName ?? 'Peak Trekker'} ${formatNumber(activityData.altitude)}m`,
+          files: [file],
+        })
+      } else {
+        downloadBlob(blob, `peak-trekker-${selectedTemplate}.png`)
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return
+      setExportError(error instanceof Error ? error.message : '分享图生成失败，请稍后再试')
+    } finally {
+      setExportingAction(null)
+    }
   }
 
   return (
@@ -1340,15 +1589,33 @@ export default function ShareClient() {
           padding: 'var(--space-2) var(--space-5) 0',
         }}
       >
-        <HeroTemplate data={activityData} toggles={fieldToggles} showMap={showMap} />
+        <HeroTemplate data={activityData} toggles={fieldToggles} showMap={showMap} template={selectedTemplate} />
       </section>
 
       <Tabs activeTab={activeTab} onChange={setActiveTab} />
       <div style={{ height: 1, background: 'var(--color-outline)', opacity: 0.7, marginTop: 2 }} />
-      <ThumbnailRow activeTab={activeTab} selectedTemplate={selectedTemplate} data={activityData} />
+      <ThumbnailRow
+        activeTab={activeTab}
+        selectedTemplate={selectedTemplate}
+        data={activityData}
+        onSelectTemplate={setSelectedTemplate}
+      />
       <ControlRow showMap={showMap} onToggleMap={() => setShowMap((current) => !current)} />
       <FieldSelector data={activityData} toggles={fieldToggles} onToggle={toggleField} />
-      <ActionBar />
+      {exportError ? (
+        <div
+          role="status"
+          style={{
+            margin: 'var(--space-3) var(--space-5) 0',
+            color: 'var(--color-error)',
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 'var(--font-label-m-line)',
+          }}
+        >
+          {exportError}
+        </div>
+      ) : null}
+      <ActionBar exportingAction={exportingAction} onSave={handleSave} onShare={handleShare} />
     </main>
   )
 }

@@ -55,3 +55,4 @@ supabase/config.toml
 
 # Codex/agent skill cache
 .agents/
+design-system.zip

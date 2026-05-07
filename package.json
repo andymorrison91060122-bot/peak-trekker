@@ -10,6 +10,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@resvg/resvg-wasm": "^2.6.2",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.0",
     "@tiptap/pm": "^3.22.4",
@@ -21,6 +22,7 @@
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "satori": "^0.26.0",
     "sharp": "^0.34.5",
     "tencentcloud-sdk-nodejs-ocr": "^4.1.224"
   },

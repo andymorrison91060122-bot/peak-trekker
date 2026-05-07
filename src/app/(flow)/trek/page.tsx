@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation'
-import TrekPageClient from './TrekPageClient'
+import TrekClient from './TrekClient'
 import { buildAuthReturnTarget } from '@/lib/auth-redirect'
 import { listReviewQueueRecords } from '@/lib/review-queue'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import AppToastProvider from '@/components/ui/AppToastProvider'
 
 export default async function TrekPage({
   searchParams,
@@ -29,10 +30,12 @@ export default async function TrekPage({
     .single()
 
   return (
-    <TrekPageClient
-      initialReviewQueueRecords={reviewQueueRecords}
-      initialReviewQueueCount={reviewQueueRecords.length}
-      userProvince={profile?.province ?? null}
-    />
+    <AppToastProvider>
+      <TrekClient
+        initialReviewQueueRecords={reviewQueueRecords}
+        initialReviewQueueCount={reviewQueueRecords.length}
+        userProvince={profile?.province ?? null}
+      />
+    </AppToastProvider>
   )
 }

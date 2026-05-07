@@ -1,0 +1,1514 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { markActivationTask } from '@/lib/onboarding'
+import { getCheckinScore } from '@/lib/province-ranking'
+import { TREK_RULES } from '@/lib/trek-rules-client'
+import { haversineMeters } from '@/lib/trek-utils'
+import { useAppToast } from '@/components/ui/AppToastProvider'
+import AltitudeBar from '@/components/ui/AltitudeBar'
+import IconButton from '@/components/ui/IconButton'
+import PrimaryButton from '@/components/ui/PrimaryButton'
+import SecondaryButton from '@/components/ui/SecondaryButton'
+import {
+  BackIcon,
+  CameraIcon,
+  CheckIcon,
+  MoreIcon,
+  MountainIcon,
+  WarnIcon,
+} from '@/components/ui/Icons'
+import type { Mountain, ReviewQueueRecord } from '@/types'
+
+type TrekStatus =
+  | 'idle'
+  | 'locating'
+  | 'tracking'
+  | 'approach_alert'
+  | 'summit_verified'
+  | 'card_preview'
+  | 'shared'
+type GpsState = { lat: number; lng: number; accuracy: number; altitude?: number | null } | null
+
+const APPROACH_RADIUS = TREK_RULES.defaultApproachRadiusM
+const SUMMIT_RADIUS = TREK_RULES.defaultSummitRadiusM
+const MAX_DRIFT_SPEED_MPS = TREK_RULES.maxDriftSpeedMps
+const LOCAL_TREK_SESSION_PREFIX = 'local-trek-session:'
+const LOCAL_FALLBACK_SESSION_PREFIX = 'local-fallback-session:'
+const INVALID_RECORD_SECONDS = 60
+
+function isClientLocalSessionId(value: string) {
+  return value.startsWith(LOCAL_TREK_SESSION_PREFIX) || value.startsWith(LOCAL_FALLBACK_SESSION_PREFIX)
+}
+
+function normalizeTrekActionError(error: unknown) {
+  const message = error instanceof Error ? error.message : ''
+  if (!message) return '确认登顶失败，请稍后重试。'
+  if (message.includes('local_trek_session_disabled')) return '本次记录会话已失效，请重新开始记录。'
+  if (message.includes('insufficient_track_points')) return '轨迹点还不够，请继续记录一小段再确认登顶。'
+  if (message.includes('session_too_short')) return '记录时间还太短，请继续记录后再确认登顶。'
+  if (message.includes('outside_summit_radius')) return '你还没有进入峰顶核验范围，请继续靠近峰顶后再试。'
+  if (message.includes('invalid_session_start_time')) return '记录会话异常，请重新开始记录后再试。'
+  if (message.includes('no_active_mountains')) return '当前没有可核验的山峰，请稍后再试。'
+  if (message.includes('session not found')) return '本次记录会话已失效，请重新开始记录。'
+  return message
+}
+
+export default function TrekClient({
+  initialReviewQueueRecords,
+  initialReviewQueueCount,
+  userProvince,
+}: {
+  initialReviewQueueRecords: ReviewQueueRecord[]
+  initialReviewQueueCount: number
+  userProvince: string | null
+}) {
+  const supabase = useMemo(() => createSupabaseBrowserClient(), [])
+  const router = useRouter()
+  const { showToast } = useAppToast()
+  const searchParams = useSearchParams()
+  const targetMountainId = searchParams.get('mountainId')
+  void initialReviewQueueRecords
+  void initialReviewQueueCount
+
+  const [status, setStatus] = useState<TrekStatus>('idle')
+  const [gps, setGps] = useState<GpsState>(null)
+  const [gpsError, setGpsError] = useState('')
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [distanceKm, setDistanceKm] = useState(0)
+  const [ascentM, setAscentM] = useState(0)
+  const [mountains, setMountains] = useState<Mountain[]>([])
+  const [selectedMountainId, setSelectedMountainId] = useState(targetMountainId ?? '')
+  const [confirmedMountainId, setConfirmedMountainId] = useState<string | null>(null)
+  const [nearbyMountain, setNearbyMountain] = useState<Mountain | null>(null)
+  const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null)
+  const [checkinNote, setCheckinNote] = useState('')
+  const [showPhotoPanel, setShowPhotoPanel] = useState(false)
+  const [isReviewQueueOpen, setIsReviewQueueOpen] = useState(false)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoLoading, setPhotoLoading] = useState(false)
+  const [checkinLoading, setCheckinLoading] = useState(false)
+  const [createdCheckinId, setCreatedCheckinId] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [isPaused, setIsPaused] = useState(false)
+  const photoInputRef = useRef<HTMLInputElement | null>(null)
+
+  const watchIdRef = useRef<number | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastSyncRef = useRef<number>(0)
+  const syncingPointRef = useRef(false)
+  const startTimeRef = useRef<number>(0)
+  const trackRef = useRef<{ lat: number; lng: number; ts: number; altitude?: number | null; accuracy: number }[]>([])
+
+  const clearTrackingRuntime = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+  }, [])
+
+  const resetLiveTrekState = useCallback(() => {
+    setStatus('idle')
+    setGps(null)
+    setElapsedSeconds(0)
+    setDistanceKm(0)
+    setAscentM(0)
+    setNearbyMountain(null)
+    setDistanceToTarget(null)
+    setSessionId(null)
+    setIsPaused(false)
+    setCheckinNote('')
+    setGpsError('')
+    trackRef.current = []
+    lastSyncRef.current = 0
+  }, [])
+
+  useEffect(() => {
+    if (isTrackingRuntimeActive(status)) return
+    setSelectedMountainId(targetMountainId ?? '')
+    setConfirmedMountainId(null)
+  }, [status, targetMountainId])
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null))
+
+    fetch('/api/trek/actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'list_active_mountains' }),
+    })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) {
+          throw new Error(String(data?.error ?? 'mountains fetch failed'))
+        }
+        setMountains((data?.mountains ?? []) as Mountain[])
+      })
+      .catch(() => setMountains([]))
+  }, [supabase])
+
+  useEffect(() => {
+    return () => {
+      clearTrackingRuntime()
+    }
+  }, [clearTrackingRuntime])
+
+  const effectiveSelectedMountainId = selectedMountainId || targetMountainId || ''
+
+  const selectedMountain = useMemo(
+    () => mountains.find((mountain) => mountain.id === effectiveSelectedMountainId) ?? null,
+    [effectiveSelectedMountainId, mountains]
+  )
+
+  const targetMountain = useMemo(
+    () => mountains.find((mountain) => mountain.id === confirmedMountainId) ?? null,
+    [confirmedMountainId, mountains]
+  )
+
+  const suggestedMountain = useMemo(
+    () => mountains.find((mountain) => mountain.id === targetMountainId) ?? null,
+    [mountains, targetMountainId]
+  )
+
+  const currentAltitude = gps?.altitude ? Math.round(gps.altitude) : targetMountain?.altitude ?? 0
+
+  const callTrekAction = useCallback(async (payload: Record<string, unknown>) => {
+    const res = await fetch('/api/trek/actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok || json?.error) {
+      throw new Error(json?.detail || json?.error || '服务端处理失败')
+    }
+    return json as Record<string, unknown>
+  }, [])
+
+  const checkNearby = useCallback((lat: number, lng: number) => {
+    const candidates = targetMountain ? [targetMountain] : []
+    let matched: Mountain | null = null
+    let closestDistance = Number.POSITIVE_INFINITY
+
+    for (const mountain of candidates) {
+      const distance = haversineMeters(lat, lng, mountain.latitude, mountain.longitude)
+      if (distance < closestDistance) {
+        closestDistance = distance
+        matched = mountain
+      }
+    }
+
+    setDistanceToTarget(Number.isFinite(closestDistance) ? closestDistance : null)
+
+    if (matched && closestDistance <= SUMMIT_RADIUS) {
+      setNearbyMountain(matched)
+      setStatus('approach_alert')
+      return
+    }
+
+    if (matched && closestDistance <= APPROACH_RADIUS) {
+      setNearbyMountain(matched)
+      setStatus('approach_alert')
+      return
+    }
+
+    setNearbyMountain(null)
+    setDistanceToTarget(null)
+    setStatus('tracking')
+  }, [targetMountain])
+
+  useEffect(() => {
+    if (!gps) return
+    if (status === 'summit_verified' || status === 'card_preview' || status === 'shared') return
+    checkNearby(gps.lat, gps.lng)
+  }, [checkNearby, gps, status, targetMountain])
+
+  const appendPointToServer = useCallback(
+    async (
+      sid: string,
+      point: { lat: number; lng: number; ts: number; altitude?: number | null; accuracy: number },
+      accuracy: number
+    ) => {
+      if (syncingPointRef.current) return
+      syncingPointRef.current = true
+      try {
+        await callTrekAction({
+          action: 'append_trek_point',
+          sessionId: sid,
+          point: {
+            lat: point.lat,
+            lng: point.lng,
+            ts: point.ts,
+            altitude: point.altitude,
+            accuracy,
+          },
+        })
+      } catch {}
+      syncingPointRef.current = false
+    },
+    [callTrekAction]
+  )
+
+  const finishSession = useCallback(
+    async (sid: string | null, finalStatus: 'finished' | 'aborted') => {
+      if (!sid) return
+      try {
+        await callTrekAction({
+          action: 'finish_trek_session',
+          sessionId: sid,
+          finalStatus,
+        })
+      } catch {}
+    },
+    [callTrekAction]
+  )
+
+  async function startTrek() {
+    markActivationTask('open_start')
+    if (!targetMountain) {
+      showToast({ key: 'action_blocked', message: '请先确认目标山峰，再开始今天的记录。' })
+      return
+    }
+    if (!navigator.geolocation) {
+      setGpsError('当前设备不支持定位。')
+      showToast({ key: 'device_location_unsupported' })
+      return
+    }
+
+    let nextSessionId: string | null = null
+    try {
+      const data = await callTrekAction({
+        action: 'start_trek_session',
+        mountainId: targetMountain.id,
+      })
+      if (typeof data.sessionId !== 'string') {
+        showToast({ key: 'trek_session_create_failure' })
+        return
+      }
+      nextSessionId = data.sessionId
+    } catch (error) {
+      showToast({
+        key: 'trek_session_create_failure',
+        message: error instanceof Error ? error.message : undefined,
+      })
+      return
+    }
+
+    setStatus('locating')
+    setIsPaused(false)
+    setGpsError('')
+    setElapsedSeconds(0)
+    setDistanceKm(0)
+    setAscentM(0)
+    setCreatedCheckinId(null)
+    setSessionId(nextSessionId)
+    trackRef.current = []
+    startTimeRef.current = Date.now()
+    lastSyncRef.current = 0
+    showToast({ key: 'trek_start_success' })
+
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000))
+    }, 1000)
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const { latitude, longitude, accuracy, altitude } = position.coords
+        const now = Date.now()
+        const nextPoint = { lat: latitude, lng: longitude, ts: now, altitude, accuracy }
+        const previousPoint = trackRef.current.at(-1)
+
+        if (previousPoint) {
+          const segmentMeters = haversineMeters(previousPoint.lat, previousPoint.lng, latitude, longitude)
+          const elapsed = Math.max(1, (now - previousPoint.ts) / 1000)
+          const speed = segmentMeters / elapsed
+          if (speed > MAX_DRIFT_SPEED_MPS && accuracy > 25) {
+            setGpsError('检测到定位漂移，已过滤异常点。请继续移动到开阔区域。')
+            return
+          }
+
+          setDistanceKm((value) => Number((value + segmentMeters / 1000).toFixed(2)))
+          const previousAltitude = previousPoint.altitude
+          if (typeof altitude === 'number' && typeof previousAltitude === 'number' && altitude > previousAltitude) {
+            setAscentM((value) => value + Math.round(altitude - previousAltitude))
+          }
+        }
+
+        trackRef.current.push(nextPoint)
+        setGps({ lat: latitude, lng: longitude, accuracy, altitude })
+        setStatus('tracking')
+        setGpsError('')
+        checkNearby(latitude, longitude)
+
+        if (nextSessionId && (lastSyncRef.current === 0 || now - lastSyncRef.current >= 4000)) {
+          lastSyncRef.current = now
+          void appendPointToServer(nextSessionId, nextPoint, accuracy)
+        }
+      },
+      (error) => {
+        const messages: Record<number, string> = {
+          1: '请先允许浏览器访问位置信息。',
+          2: '定位失败，请移动到更开阔的位置。',
+          3: '定位超时，请重试。',
+        }
+        const message = messages[error.code] ?? error.message
+        clearTrackingRuntime()
+        void finishSession(nextSessionId, 'aborted')
+        resetLiveTrekState()
+        setGpsError(message)
+        showToast({ key: 'location_error', message })
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
+    )
+  }
+
+  function stopTrek() {
+    const activeSessionId = sessionId
+    const recordTooShort = elapsedSeconds > 0 && elapsedSeconds < INVALID_RECORD_SECONDS && !createdCheckinId
+    clearTrackingRuntime()
+    resetLiveTrekState()
+    void finishSession(activeSessionId, recordTooShort ? 'aborted' : 'finished')
+    if (recordTooShort) {
+      showToast({ key: 'trek_record_too_short' })
+    }
+  }
+
+  async function handleGpsCheckin() {
+    if (!nearbyMountain || !gps || !userId) {
+      showToast({ key: 'action_blocked', message: '缺少必要定位信息，暂时无法确认登顶。' })
+      return
+    }
+    if (!sessionId) {
+      showToast({ key: 'action_blocked', message: '尚未建立记录会话，请重新开启记录后再确认登顶。' })
+      return
+    }
+    if (createdCheckinId) {
+      showToast({ key: 'action_blocked', message: '本次会话已完成登顶核验，无需重复提交。' })
+      return
+    }
+    if (trackRef.current.length === 0) {
+      showToast({ key: 'action_blocked', message: '请先开始记录并采集到定位轨迹后，再确认登顶。' })
+      return
+    }
+    setCheckinLoading(true)
+    try {
+      await appendPointToServer(
+        sessionId,
+        { lat: gps.lat, lng: gps.lng, ts: Date.now(), altitude: gps.altitude, accuracy: gps.accuracy },
+        gps.accuracy
+      )
+      const data = await callTrekAction({
+        action: 'verify_summit_checkin',
+        sessionId,
+        note: checkinNote,
+        mountainId: nearbyMountain?.id ?? targetMountain?.id ?? null,
+        ...(isClientLocalSessionId(sessionId)
+          ? {
+              trackPoints: trackRef.current,
+              startedAt: startTimeRef.current,
+            }
+          : {}),
+      })
+      const checkinId = typeof data.checkinId === 'string' ? data.checkinId : null
+      if (!checkinId) {
+        throw new Error('确认登顶失败，请稍后重试。')
+      }
+
+      setCreatedCheckinId(checkinId)
+      setStatus('summit_verified')
+      setSessionId(null)
+      clearTrackingRuntime()
+      showToast({ key: 'summit_verify_success' })
+    } catch (error) {
+      showToast({ key: 'summit_verify_failure', message: normalizeTrekActionError(error) })
+    }
+    setCheckinLoading(false)
+  }
+
+  async function handlePhotoCheckin() {
+    if (!targetMountain) {
+      showToast({ key: 'action_blocked', message: '请先选择目标山峰' })
+      return
+    }
+    if (!userId || !photoFile) {
+      showToast({ key: 'action_blocked', message: '请先选择照片后再提交。' })
+      return
+    }
+    setPhotoLoading(true)
+    try {
+      const formData = new FormData()
+      formData.set('file', photoFile)
+      const uploadResponse = await fetch('/api/trek/photo-upload', {
+        method: 'POST',
+        body: formData,
+      })
+      const uploadPayload = await uploadResponse.json().catch(() => ({}))
+      if (!uploadResponse.ok || typeof uploadPayload?.photoUrl !== 'string') {
+        throw new Error(String(uploadPayload?.error ?? '图片上传失败，请稍后重试。'))
+      }
+
+      await callTrekAction({
+        action: 'submit_historical_checkin',
+        mountainId: targetMountain.id,
+        photoUrl: uploadPayload.photoUrl,
+        note: checkinNote,
+      })
+      setPhotoFile(null)
+      setShowPhotoPanel(false)
+      if (photoInputRef.current) {
+        photoInputRef.current.value = ''
+      }
+      showToast({ key: 'photo_checkin_success' })
+    } catch (error) {
+      showToast({ key: 'image_upload_failure', message: error instanceof Error ? error.message : '照片打卡提交失败，请稍后重试。' })
+    } finally {
+      setPhotoLoading(false)
+    }
+  }
+
+  const hasMinimumVerificationEvidence =
+    trackRef.current.length >= TREK_RULES.minTrackPoints && elapsedSeconds >= TREK_RULES.minSessionSeconds
+  const canConfirmSummit =
+    distanceToTarget !== null && distanceToTarget <= SUMMIT_RADIUS && hasMinimumVerificationEvidence
+  const isTrackingActive = status === 'locating' || status === 'tracking' || status === 'approach_alert'
+  const isSummitFlow = status === 'summit_verified' || status === 'card_preview' || status === 'shared'
+  const needsTargetConfirmation = !targetMountain
+  const hasIncomingTarget = Boolean(targetMountainId)
+  const preflightTitle = hasIncomingTarget
+    ? '确认今天要记录的山峰'
+    : '先选一座山，再开始今天的记录'
+  const preflightActionLabel = hasIncomingTarget ? '确认这座山，开始记录准备' : '确认目标山峰'
+  const photoTargetLocked = Boolean(targetMountain)
+  const selectedPhotoTargetLabel = targetMountain ? `${targetMountain.name} · ${targetMountain.province}` : ''
+  const photoButtonsAriaDisabled = !photoTargetLocked ? 'true' : undefined
+  const summitContributionScore = nearbyMountain ? getCheckinScore(nearbyMountain.difficulty ?? '') : 0
+  const summitContributionNote =
+    createdCheckinId && userProvince && summitContributionScore > 0
+      ? `+${summitContributionScore} 分 贡献给 ${userProvince}`
+      : null
+
+  function confirmTargetMountain() {
+    if (!selectedMountain) return
+    setConfirmedMountainId(selectedMountain.id)
+    setStatus('idle')
+    setNearbyMountain(null)
+    setDistanceToTarget(null)
+    showToast({ key: 'mountain_target_confirmed', message: `已锁定目标山峰：${selectedMountain.name}。` })
+  }
+
+  function handlePhotoTargetBlocked() {
+    showToast({ key: 'action_blocked', message: '请先选择目标山峰' })
+  }
+
+  function handlePhotoFilePick() {
+    if (!photoTargetLocked) {
+      handlePhotoTargetBlocked()
+      return
+    }
+    photoInputRef.current?.click()
+  }
+
+  const viewState = isSummitFlow
+    ? 'summitConfirmed'
+    : isPaused && isTrackingActive
+      ? 'paused'
+      : status === 'approach_alert'
+        ? 'nearSummit'
+        : isTrackingActive
+          ? 'live'
+          : 'preStart'
+  const activeMountain = targetMountain ?? selectedMountain ?? suggestedMountain
+  const summitMountain = nearbyMountain ?? targetMountain ?? activeMountain
+  const targetAltitude = targetMountain?.altitude ?? activeMountain?.altitude ?? 0
+  const distanceToSummit = targetAltitude > 0 && currentAltitude > 0 ? Math.max(targetAltitude - currentAltitude, 0) : null
+  const mapProgress = targetAltitude > 0 && currentAltitude > 0 ? Math.min(Math.max(currentAltitude / targetAltitude, 0.08), 0.98) : 0.18
+  const trekMetrics = [
+    { label: '已用时', value: formatElapsedCompact(elapsedSeconds) },
+    { label: '距离 km', value: distanceKm.toFixed(2) },
+    { label: '爬升 m', value: String(ascentM) },
+  ]
+  const summitTimestamp = createdCheckinId ? formatSummitTimestamp(new Date()) : ''
+
+  function handleBack() {
+    if (window.history.length > 1) {
+      router.back()
+      return
+    }
+    router.push('/explore')
+  }
+
+  function pauseTrek() {
+    setIsPaused(true)
+  }
+
+  function resumeTrek() {
+    setIsPaused(false)
+  }
+
+  function restartAfterSummit() {
+    resetLiveTrekState()
+    setConfirmedMountainId(targetMountain?.id ?? nearbyMountain?.id ?? null)
+  }
+
+  void showPhotoPanel
+  void isReviewQueueOpen
+  void setIsReviewQueueOpen
+  void photoLoading
+  void selectedPhotoTargetLabel
+  void photoButtonsAriaDisabled
+  void handlePhotoFilePick
+  void handlePhotoCheckin
+
+  return (
+    <TrekShell>
+      <TrekTopBar state={viewState} onBack={handleBack} />
+      {gpsError ? (
+        <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-1)' }}>
+          <InlineBanner tone="warn" title="定位状态需要注意" sub={gpsError} />
+        </div>
+      ) : null}
+
+      {viewState === 'preStart' ? (
+        <div>
+          <div style={{ padding: 'var(--space-4) var(--space-5) var(--space-2)' }}>
+            <div
+              style={{
+                fontSize: 'var(--font-label-s-size)',
+                lineHeight: 'var(--font-label-s-line)',
+                fontWeight: 700,
+                color: 'var(--color-on-surface-variant)',
+                letterSpacing: '0.08em',
+              }}
+            >
+              即将开始
+            </div>
+            <div
+              style={{
+                marginTop: 'var(--space-1)',
+                fontSize: 24,
+                lineHeight: '30px',
+                fontWeight: 800,
+                color: 'var(--color-on-surface)',
+              }}
+            >
+              准备一次真实山行
+            </div>
+          </div>
+
+          {needsTargetConfirmation ? (
+            <MountainTargetPicker
+              title={preflightTitle}
+              description={
+                selectedMountain
+                  ? `你将以 ${selectedMountain.name} 作为本次记录目标。确认前不会创建记录会话。`
+                  : suggestedMountain
+                    ? '来自山峰详情页的目标已带入，确认后才会正式进入记录流程。'
+                    : '直接来到这里时需要先选择一座山，避免误开无效记录。'
+              }
+              value={effectiveSelectedMountainId}
+              mountains={mountains}
+              selectedMountain={selectedMountain}
+              actionLabel={preflightActionLabel}
+              onChange={setSelectedMountainId}
+              onConfirm={confirmTargetMountain}
+            />
+          ) : (
+            <MountainContext mountain={activeMountain} onClick={() => setConfirmedMountainId(null)} />
+          )}
+
+          <PreflightCard gps={gps} gpsError={gpsError} />
+          <TrekMiniMap progress={0.18} />
+
+          <BottomActionBar columns="single">
+            <PrimaryButton
+              style={{ width: '100%' }}
+              onClick={startTrek}
+              disabled={!targetMountain}
+              data-onboarding="trek-start"
+            >
+              开始记录
+            </PrimaryButton>
+            <div
+              style={{
+                textAlign: 'center',
+                fontSize: 'var(--font-label-s-size)',
+                lineHeight: 'var(--font-label-s-line)',
+                color: 'var(--color-on-surface-variant)',
+                marginTop: 'var(--space-2)',
+              }}
+            >
+              开始后自动记录轨迹与海拔
+            </div>
+          </BottomActionBar>
+        </div>
+      ) : viewState === 'summitConfirmed' ? (
+        <div>
+          <SummitConfirmedView
+            mountain={summitMountain}
+            altitude={summitMountain?.altitude ?? currentAltitude}
+            timestamp={summitTimestamp}
+            metrics={trekMetrics}
+            contributionNote={summitContributionNote}
+          />
+          <BottomActionBar>
+            <SecondaryButton style={{ width: '100%' }} onClick={restartAfterSummit}>
+              重新开始
+            </SecondaryButton>
+            <PrimaryButton
+              style={{ width: '100%' }}
+              onClick={() => {
+                if (createdCheckinId) {
+                  router.push(`/activity/${createdCheckinId}`)
+                  return
+                }
+                router.push('/profile')
+              }}
+            >
+              查看活动
+            </PrimaryButton>
+          </BottomActionBar>
+        </div>
+      ) : (
+        <div>
+          {viewState === 'nearSummit' ? (
+            <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-1)' }}>
+              <InlineBanner
+                tone="success"
+                title="接近峰顶"
+                sub={`距顶 ${distanceToSummit !== null ? Math.round(distanceToSummit) : '--'}m · 准备登顶留证`}
+              />
+            </div>
+          ) : null}
+          <MountainContext mountain={activeMountain} />
+          <ElevationHero
+            value={currentAltitude}
+            target={targetAltitude}
+            pulse={viewState === 'nearSummit'}
+            sub={viewState === 'paused' ? '记录已暂停 · 数据保留' : gps?.altitude ? undefined : '等待 GPS 海拔 · 暂用目标海拔'}
+          />
+          <TrekMetricRow metrics={trekMetrics} />
+          <TrekMiniMap progress={viewState === 'nearSummit' ? 0.95 : mapProgress} />
+
+          {viewState === 'paused' ? (
+            <BottomActionBar>
+              <SecondaryButton style={{ width: '100%' }} onClick={stopTrek}>
+                结束并保存
+              </SecondaryButton>
+              <PrimaryButton style={{ width: '100%' }} onClick={resumeTrek}>
+                继续记录
+              </PrimaryButton>
+            </BottomActionBar>
+          ) : viewState === 'nearSummit' ? (
+            <BottomActionBar>
+              <SecondaryButton style={{ width: '100%' }} onClick={pauseTrek}>
+                暂停
+              </SecondaryButton>
+              <PrimaryButton
+                style={{ width: '100%' }}
+                onClick={handleGpsCheckin}
+                disabled={checkinLoading || !canConfirmSummit}
+              >
+                <CameraIcon size={16} />
+                {checkinLoading ? '确认中...' : '登顶留证'}
+              </PrimaryButton>
+            </BottomActionBar>
+          ) : (
+            <BottomActionBar columns="single">
+              <PrimaryButton style={{ width: '100%' }} onClick={pauseTrek}>
+                暂停
+              </PrimaryButton>
+            </BottomActionBar>
+          )}
+        </div>
+      )}
+
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        onChange={(event) => setPhotoFile(event.target.files?.[0] ?? null)}
+        style={{ display: 'none' }}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+    </TrekShell>
+  )
+}
+
+function TrekShell({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        minHeight: '100dvh',
+        background: 'var(--color-surface)',
+        color: 'var(--color-on-surface)',
+        position: 'relative',
+        paddingBottom: 120,
+        overflowX: 'hidden',
+      }}
+    >
+      {children}
+      <style>{`
+        @keyframes pt-rec-pulse {
+          0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-error) 55%, transparent); }
+          100% { box-shadow: 0 0 0 8px transparent; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .pt-rec-dot { animation: none !important; }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+function TrekTopBar({
+  state,
+  onBack,
+}: {
+  state: 'preStart' | 'live' | 'paused' | 'nearSummit' | 'summitConfirmed'
+  onBack: () => void
+}) {
+  const isRecording = state === 'live' || state === 'nearSummit'
+  const label = isRecording ? '记录中' : state === 'paused' || state === 'summitConfirmed' ? '已暂停' : '待开始'
+
+  return (
+    <div
+      style={{
+        height: 56,
+        padding: 'var(--space-1) var(--space-3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 'var(--space-3)',
+      }}
+    >
+      <IconButton
+        icon={<BackIcon size={20} />}
+        ariaLabel="返回"
+        variant="filled"
+        shape="circular"
+        onClick={onBack}
+      />
+      <div
+        style={{
+          minHeight: 32,
+          padding: '0 var(--space-3)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          borderRadius: 'var(--radius-pill)',
+          background: 'var(--color-surface-variant)',
+          border: '1px solid var(--color-outline)',
+        }}
+      >
+        <RecDot active={isRecording} />
+        <span
+          style={{
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            fontWeight: 700,
+            letterSpacing: '0.06em',
+          }}
+        >
+          {label}
+        </span>
+      </div>
+      <IconButton
+        icon={<MoreIcon size={20} />}
+        ariaLabel="更多"
+        variant="filled"
+        shape="circular"
+        onClick={() => {}}
+      />
+    </div>
+  )
+}
+
+function RecDot({ active }: { active: boolean }) {
+  return (
+    <span
+      className="pt-rec-dot"
+      style={{
+        width: 8,
+        height: 8,
+        borderRadius: 'var(--radius-pill)',
+        background: active ? 'var(--color-error)' : 'var(--color-on-surface-variant)',
+        animation: active ? 'pt-rec-pulse 1.4s ease-out infinite' : 'none',
+        flex: '0 0 auto',
+      }}
+    />
+  )
+}
+
+function MountainContext({
+  mountain,
+  onClick,
+}: {
+  mountain: Mountain | null | undefined
+  onClick?: () => void
+}) {
+  return (
+    <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-3)' }}>
+      <button
+        type="button"
+        onClick={onClick}
+        style={{
+          width: '100%',
+          minHeight: 60,
+          padding: '10px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-3)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--color-outline)',
+          background: 'var(--color-surface-variant)',
+          color: 'var(--color-on-surface)',
+          font: 'inherit',
+          textAlign: 'left',
+          cursor: onClick ? 'pointer' : 'default',
+        }}
+      >
+        <span
+          style={{
+            width: 36,
+            height: 36,
+            display: 'grid',
+            placeItems: 'center',
+            borderRadius: 10,
+            background: 'color-mix(in srgb, var(--color-primary) 14%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--color-primary) 24%, transparent)',
+            color: 'var(--color-success)',
+            flex: '0 0 auto',
+          }}
+        >
+          <MountainIcon size={22} />
+        </span>
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span
+            style={{
+              display: 'block',
+              fontSize: 'var(--font-body-m-size)',
+              lineHeight: 'var(--font-body-m-line)',
+              fontWeight: 700,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {mountain ? mountain.name : '尚未选择目标山峰'}
+            {mountain ? (
+              <span style={{ color: 'var(--color-on-surface-variant)', fontSize: 12, fontWeight: 500 }}>
+                {' '}· {mountain.province}
+              </span>
+            ) : null}
+          </span>
+          <span
+            style={{
+              display: 'block',
+              marginTop: 2,
+              fontFamily: "'IBM Plex Mono', Menlo, monospace",
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+              color: 'var(--color-on-surface-variant)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {mountain
+              ? `目标 ${formatMeters(mountain.altitude)}m · ${difficultyLabel(mountain.difficulty)}`
+              : '先确认一座山，再开始记录'}
+          </span>
+        </span>
+        {onClick ? (
+          <span style={{ color: 'var(--color-on-surface-variant)', fontSize: 18, lineHeight: 1 }} aria-hidden="true">
+            ›
+          </span>
+        ) : null}
+      </button>
+    </div>
+  )
+}
+
+function MountainTargetPicker({
+  title,
+  description,
+  value,
+  mountains,
+  selectedMountain,
+  actionLabel,
+  onChange,
+  onConfirm,
+}: {
+  title: string
+  description: string
+  value: string
+  mountains: Mountain[]
+  selectedMountain: Mountain | null
+  actionLabel: string
+  onChange: (value: string) => void
+  onConfirm: () => void
+}) {
+  return (
+    <div
+      style={{
+        margin: 'var(--space-3) var(--space-4) 0',
+        padding: 'var(--space-4)',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--color-outline)',
+        background: 'var(--color-surface-variant)',
+      }}
+    >
+      <div style={{ fontSize: 'var(--font-title-m-size)', lineHeight: 'var(--font-title-m-line)', fontWeight: 600 }}>
+        {title}
+      </div>
+      <div
+        style={{
+          marginTop: 'var(--space-1)',
+          fontSize: 'var(--font-body-m-size)',
+          lineHeight: 'var(--font-body-m-line)',
+          color: 'var(--color-on-surface-variant)',
+        }}
+      >
+        {description}
+      </div>
+      <label style={{ display: 'grid', gap: 'var(--space-2)', marginTop: 'var(--space-4)' }}>
+        <span
+          style={{
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            color: 'var(--color-on-surface-variant)',
+          }}
+        >
+          目标山峰
+        </span>
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          style={{
+            width: '100%',
+            minHeight: 48,
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--color-surface-elevated)',
+            border: '1px solid var(--color-outline)',
+            color: 'var(--color-on-surface)',
+            padding: '0 var(--space-3)',
+            outline: 'none',
+          }}
+        >
+          <option value="">请选择一座山峰</option>
+          {mountains.map((mountain) => (
+            <option key={mountain.id} value={mountain.id}>
+              {mountain.name} · {mountain.province} · {formatMeters(mountain.altitude)}m
+            </option>
+          ))}
+        </select>
+      </label>
+      {selectedMountain ? (
+        <div
+          style={{
+            marginTop: 'var(--space-3)',
+            padding: 'var(--space-3)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--color-outline)',
+            background: 'color-mix(in srgb, var(--color-on-surface) 3%, transparent)',
+          }}
+        >
+          <div style={{ fontSize: 'var(--font-title-m-size)', fontWeight: 700 }}>{selectedMountain.name}</div>
+          <div
+            style={{
+              marginTop: 4,
+              color: 'var(--color-on-surface-variant)',
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+            }}
+          >
+            {selectedMountain.province} · {formatMeters(selectedMountain.altitude)}m · 记录会围绕这座山做峰顶核验。
+          </div>
+        </div>
+      ) : null}
+      <PrimaryButton style={{ width: '100%', marginTop: 'var(--space-4)' }} disabled={!selectedMountain} onClick={onConfirm}>
+        {actionLabel}
+      </PrimaryButton>
+    </div>
+  )
+}
+
+function PreflightCard({ gps, gpsError }: { gps: GpsState; gpsError: string }) {
+  return (
+    <div
+      style={{
+        margin: 'var(--space-4) var(--space-4) 0',
+        padding: 'var(--space-4)',
+        borderRadius: 14,
+        border: '1px solid var(--color-outline)',
+        background: 'var(--color-surface-variant)',
+      }}
+    >
+      <PreflightRow ok={!gpsError} label={gpsError ? '定位需要重新确认' : 'GPS 状态可用'} sub={gpsError || (gps?.accuracy ? `水平精度 ±${Math.round(gps.accuracy)}m` : '开始后请求高精度定位')} />
+      <PreflightRow ok label="路线参考已准备" sub="静态路线仅作参考 · 山区请以现场判断为准" />
+      <PreflightRow ok label="记录数据本地保留" sub="短时断网不影响本次采集" last />
+    </div>
+  )
+}
+
+function PreflightRow({
+  ok,
+  label,
+  sub,
+  last = false,
+}: {
+  ok: boolean
+  label: string
+  sub: string
+  last?: boolean
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: 'var(--space-3)',
+        alignItems: 'flex-start',
+        padding: '10px 0',
+        borderBottom: last ? 'none' : '1px solid var(--color-outline)',
+      }}
+    >
+      <span style={{ color: ok ? 'var(--color-success)' : 'var(--color-warning)', marginTop: 1 }}>
+        {ok ? <CheckIcon size={18} /> : <WarnIcon size={18} />}
+      </span>
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 'var(--font-body-m-size)', fontWeight: 600 }}>{label}</span>
+        <span
+          style={{
+            display: 'block',
+            marginTop: 3,
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            color: 'var(--color-on-surface-variant)',
+          }}
+        >
+          {sub}
+        </span>
+      </span>
+    </div>
+  )
+}
+
+function ElevationHero({
+  value,
+  target,
+  sub,
+  pulse = false,
+}: {
+  value: number
+  target: number
+  sub?: string
+  pulse?: boolean
+}) {
+  const safeValue = Math.max(Math.round(value || 0), 0)
+  const safeTarget = Math.max(Math.round(target || 0), 0)
+  const delta = safeTarget > 0 ? Math.max(safeTarget - safeValue, 0) : 0
+
+  return (
+    <div style={{ padding: 'var(--space-5) var(--space-5) var(--space-2)', textAlign: 'center' }}>
+      <div
+        style={{
+          fontFamily: "'IBM Plex Mono', Menlo, monospace",
+          fontSize: 'var(--font-label-s-size)',
+          lineHeight: 'var(--font-label-s-line)',
+          letterSpacing: '0.22em',
+          color: 'var(--color-on-surface-variant)',
+          fontWeight: 600,
+        }}
+      >
+        当前海拔
+      </div>
+      <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 6 }}>
+        <div
+          style={{
+            fontFamily: "'IBM Plex Mono', Menlo, monospace",
+            fontWeight: 800,
+            fontSize: 56,
+            lineHeight: 1,
+            color: 'var(--color-success)',
+            letterSpacing: '-0.02em',
+            fontVariantNumeric: 'tabular-nums',
+            textShadow: pulse ? '0 0 18px color-mix(in srgb, var(--color-success) 34%, transparent)' : 'none',
+          }}
+        >
+          {safeValue}
+        </div>
+        <div
+          style={{
+            fontFamily: "'IBM Plex Mono', Menlo, monospace",
+            fontSize: 16,
+            color: 'var(--color-on-surface-variant)',
+            fontWeight: 600,
+            paddingBottom: 4,
+          }}
+        >
+          m
+        </div>
+      </div>
+      {safeTarget > 0 ? (
+        <div style={{ marginTop: 'var(--space-3)', padding: '0 var(--space-5)' }}>
+          <AltitudeBar current={safeValue} max={safeTarget} />
+          <div
+            style={{
+              marginTop: 6,
+              fontFamily: "'IBM Plex Mono', Menlo, monospace",
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+              color: 'var(--color-on-surface-variant)',
+              letterSpacing: '0.05em',
+            }}
+          >
+            距峰顶 {delta}m · 目标 {safeTarget}m
+          </div>
+        </div>
+      ) : null}
+      {sub ? (
+        <div
+          style={{
+            marginTop: 'var(--space-2)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            color: 'var(--color-on-surface-variant)',
+          }}
+        >
+          {sub}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function TrekMetricRow({ metrics }: { metrics: Array<{ label: string; value: string }> }) {
+  return (
+    <div
+      style={{
+        padding: 'var(--space-4) var(--space-4) 0',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+        gap: 'var(--space-2)',
+      }}
+    >
+      {metrics.map((metric) => (
+        <TrekMetric key={metric.label} label={metric.label} value={metric.value} />
+      ))}
+    </div>
+  )
+}
+
+function TrekMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      style={{
+        minWidth: 0,
+        padding: '12px 10px',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--color-outline)',
+        background: 'var(--color-surface-variant)',
+        textAlign: 'center',
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "'IBM Plex Mono', Menlo, monospace",
+          fontSize: 18,
+          lineHeight: '22px',
+          fontWeight: 700,
+          fontVariantNumeric: 'tabular-nums',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {value}
+      </div>
+      <div
+        style={{
+          marginTop: 4,
+          fontSize: 10,
+          lineHeight: '14px',
+          color: 'var(--color-on-surface-variant)',
+          letterSpacing: '0.04em',
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  )
+}
+
+function TrekMiniMap({ progress }: { progress: number }) {
+  const p = Math.min(Math.max(progress, 0), 1)
+  const dotX = 34 + p * 256
+  const dotY = 126 - p * 78
+  const walkedPath = `M34 126 Q80 110 122 100 T${dotX} ${dotY}`
+
+  return (
+    <div
+      style={{
+        margin: 'var(--space-4) var(--space-4) 0',
+        height: 160,
+        borderRadius: 14,
+        border: '1px solid var(--color-outline)',
+        overflow: 'hidden',
+        position: 'relative',
+        background: 'var(--color-surface-variant)',
+      }}
+    >
+      <svg width="100%" height="100%" viewBox="0 0 343 160" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }}>
+        {[0, 1, 2, 3, 4, 5, 6].map((item) => (
+          <ellipse
+            key={item}
+            cx="180"
+            cy="82"
+            rx={38 + item * 28}
+            ry={18 + item * 12}
+            stroke="var(--color-outline)"
+            strokeOpacity="0.55"
+            strokeWidth="1"
+            fill="none"
+          />
+        ))}
+        <path d="M34 126 Q80 110 122 100 T204 78 T290 44" stroke="var(--color-outline)" strokeWidth="2" strokeDasharray="4 5" fill="none" />
+        <path d={walkedPath} stroke="var(--color-success)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        <circle cx={dotX} cy={dotY} r="7" fill="var(--color-success)" />
+        <circle cx={dotX} cy={dotY} r="12" fill="none" stroke="var(--color-success)" strokeOpacity="0.25" strokeWidth="2" />
+        <path d="M276 48 L286 30 L296 48 Z" fill="var(--color-on-surface)" opacity="0.72" />
+      </svg>
+      <span
+        style={{
+          position: 'absolute',
+          left: 10,
+          top: 10,
+          padding: '4px 8px',
+          borderRadius: 'var(--radius-pill)',
+          fontSize: 10,
+          fontWeight: 600,
+          background: 'color-mix(in srgb, var(--color-surface) 76%, transparent)',
+          color: 'var(--color-on-surface-variant)',
+          letterSpacing: '0.05em',
+        }}
+      >
+        地图仅作参考
+      </span>
+    </div>
+  )
+}
+
+function InlineBanner({
+  tone,
+  title,
+  sub,
+}: {
+  tone: 'warn' | 'success' | 'error'
+  title: string
+  sub?: string
+}) {
+  const color = tone === 'success' ? 'var(--color-success)' : tone === 'error' ? 'var(--color-error)' : 'var(--color-warning)'
+  return (
+    <div
+      style={{
+        padding: '10px 12px',
+        borderRadius: 'var(--radius-md)',
+        border: `1px solid color-mix(in srgb, ${color} 30%, transparent)`,
+        background: `color-mix(in srgb, ${color} 10%, transparent)`,
+        display: 'flex',
+        gap: 'var(--space-3)',
+        alignItems: 'flex-start',
+      }}
+    >
+      <span style={{ color, marginTop: 1 }}>{tone === 'success' ? <CheckIcon size={18} /> : <WarnIcon size={18} />}</span>
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 'var(--font-label-m-size)', fontWeight: 700, color }}>{title}</span>
+        {sub ? (
+          <span
+            style={{
+              display: 'block',
+              marginTop: 3,
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+              color: 'var(--color-on-surface-variant)',
+            }}
+          >
+            {sub}
+          </span>
+        ) : null}
+      </span>
+    </div>
+  )
+}
+
+function BottomActionBar({
+  children,
+  columns = 'double',
+}: {
+  children: ReactNode
+  columns?: 'single' | 'double'
+}) {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        padding: '12px var(--space-4) calc(26px + env(safe-area-inset-bottom))',
+        background: 'linear-gradient(180deg, transparent, var(--color-surface) 30%)',
+        zIndex: 20,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 'var(--page-max-width)',
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: columns === 'single' ? '1fr' : 'minmax(0, 0.72fr) minmax(0, 1fr)',
+          gap: 'var(--space-3)',
+          alignItems: 'center',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function SummitConfirmedView({
+  mountain,
+  altitude,
+  timestamp,
+  metrics,
+  contributionNote,
+}: {
+  mountain: Mountain | null | undefined
+  altitude: number
+  timestamp: string
+  metrics: Array<{ label: string; value: string }>
+  contributionNote: string | null
+}) {
+  return (
+    <div>
+      <div style={{ padding: 'var(--space-8) var(--space-5) 0', textAlign: 'center' }}>
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            padding: '6px 12px',
+            borderRadius: 'var(--radius-pill)',
+            background: 'color-mix(in srgb, var(--color-success) 14%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--color-success) 30%, transparent)',
+            color: 'var(--color-success)',
+          }}
+        >
+          <CheckIcon size={16} />
+          <span style={{ fontSize: 'var(--font-label-s-size)', fontWeight: 700, letterSpacing: '0.06em' }}>已登顶</span>
+        </div>
+        <div style={{ fontSize: 'var(--font-headline-m-size)', lineHeight: 'var(--font-headline-m-line)', fontWeight: 800, marginTop: 'var(--space-3)' }}>
+          {mountain?.name ?? '本次山行'}
+        </div>
+        <div
+          style={{
+            fontFamily: "'IBM Plex Mono', Menlo, monospace",
+            fontSize: 48,
+            lineHeight: 1,
+            fontWeight: 800,
+            color: 'var(--color-success)',
+            marginTop: 'var(--space-3)',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {formatMeters(altitude)}m
+        </div>
+        <div
+          style={{
+            marginTop: 6,
+            fontFamily: "'IBM Plex Mono', Menlo, monospace",
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            color: 'var(--color-on-surface-variant)',
+            letterSpacing: '0.14em',
+          }}
+        >
+          {timestamp || '已生成活动记录'}
+        </div>
+      </div>
+      <TrekMetricRow metrics={metrics} />
+      <div style={{ padding: 'var(--space-4) var(--space-4) 0' }}>
+        <div
+          style={{
+            padding: '12px 14px',
+            borderRadius: 14,
+            border: '1px solid var(--color-outline)',
+            background: 'var(--color-surface-variant)',
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: '20px',
+            color: 'var(--color-on-surface)',
+          }}
+        >
+          活动已生成 · 记录数据已保存，可以前往活动页查看完整结果。
+        </div>
+        {contributionNote ? (
+          <div
+            style={{
+              marginTop: 'var(--space-2)',
+              color: 'var(--color-on-surface-variant)',
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+            }}
+          >
+            {contributionNote}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function formatElapsedCompact(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+  }
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+function formatMeters(value: number | null | undefined) {
+  if (!Number.isFinite(Number(value))) return '0'
+  return String(Math.round(Number(value)))
+}
+
+function difficultyLabel(value: Mountain['difficulty'] | null | undefined) {
+  const labels: Record<Mountain['difficulty'], string> = {
+    beginner: '入门线',
+    intermediate: '进阶线',
+    advanced: '高阶线',
+    expert: '专家线',
+  }
+  return value ? labels[value] : '路线待确认'
+}
+
+function formatSummitTimestamp(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${year}·${month}·${day} · ${hour}:${minute}`
+}
+
+function isTrackingRuntimeActive(status: TrekStatus) {
+  return status === 'locating' || status === 'tracking' || status === 'approach_alert'
+}

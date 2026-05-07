@@ -66,7 +66,7 @@ export default function ExploreMountainCard({
 
   return (
     <Link
-      href={`/explore/${mountain.id}`}
+      href={`/mountain/${mountain.id}`}
       data-testid="explore-mountain-card"
       data-province={mountain.province}
       data-difficulty={mountain.difficulty}

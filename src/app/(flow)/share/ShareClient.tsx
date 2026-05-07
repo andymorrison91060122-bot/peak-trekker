@@ -1,7 +1,9 @@
 'use client'
 
-import type { CSSProperties, ReactNode } from 'react'
-import { useMemo, useState } from 'react'
+/* eslint-disable @next/next/no-img-element */
+
+import type { ChangeEvent, CSSProperties, ReactNode } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   BackIcon,
@@ -14,6 +16,8 @@ import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 
 type ShareTab = 'basic' | 'advanced'
 type TemplateId = ShareRenderTemplate
+type BasicTemplateId = Extract<TemplateId, 'base-classic' | 'base-minimal' | 'base-data'>
+type AdvancedTemplateId = Exclude<TemplateId, BasicTemplateId>
 type ShareFieldKey =
   | 'altitude'
   | 'distance'
@@ -46,9 +50,24 @@ type FieldConfig = {
 }
 
 type BasicTemplate = {
-  id: TemplateId
+  id: BasicTemplateId
   label: string
   variant: 'classic' | 'minimal' | 'data'
+}
+
+type AdvancedTemplate = {
+  id: AdvancedTemplateId
+  label: string
+  kind:
+    | 'photo-composite'
+    | 'photo-overlay'
+    | 'split-view'
+    | 'bold-number'
+    | 'data-scatter'
+    | 'mono-film'
+    | 'altitude-profile'
+    | 'summit-certificate'
+    | 'vertical-story'
 }
 
 const MOCK_DATA: ShareActivityData = {
@@ -79,13 +98,17 @@ const BASIC_TEMPLATES: BasicTemplate[] = [
   { id: 'base-data', label: 'Data', variant: 'data' },
 ]
 
-const ADVANCED_TEMPLATES = [
-  'Photo',
-  'Overlay',
-  'Split',
-  'Number',
-  'Story',
-] as const
+const ADVANCED_TEMPLATES: AdvancedTemplate[] = [
+  { id: 'premium-photo-composite', label: 'Photo', kind: 'photo-composite' },
+  { id: 'premium-photo-overlay', label: 'Overlay', kind: 'photo-overlay' },
+  { id: 'premium-split-view', label: 'Split', kind: 'split-view' },
+  { id: 'premium-bold-number', label: 'Number', kind: 'bold-number' },
+  { id: 'premium-data-scatter', label: 'HUD', kind: 'data-scatter' },
+  { id: 'premium-mono-film', label: 'Film', kind: 'mono-film' },
+  { id: 'premium-altitude-profile', label: 'Profile', kind: 'altitude-profile' },
+  { id: 'premium-summit-certificate', label: 'Cert', kind: 'summit-certificate' },
+  { id: 'premium-vertical-story', label: 'Story', kind: 'vertical-story' },
+]
 
 const initialFieldToggles = FIELD_CONFIGS.reduce<Record<ShareFieldKey, boolean>>((next, field) => {
   next[field.key] = field.defaultOn
@@ -175,22 +198,54 @@ function downloadBlob(blob: Blob, fileName: string) {
 
 function noop() {}
 
+function stripDataUrlPrefix(dataUrl: string | null) {
+  return dataUrl?.replace(/^data:image\/[a-zA-Z+.-]+;base64,/, '') ?? undefined
+}
+
+async function resizePhotoFile(file: File) {
+  const url = URL.createObjectURL(file)
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const nextImage = new Image()
+      nextImage.onload = () => resolve(nextImage)
+      nextImage.onerror = () => reject(new Error('照片读取失败，请换一张再试'))
+      nextImage.src = url
+    })
+    const maxWidth = 1080
+    const scale = image.width > maxWidth ? maxWidth / image.width : 1
+    const width = Math.max(1, Math.round(image.width * scale))
+    const height = Math.max(1, Math.round(image.height * scale))
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('照片处理失败，请换一张再试')
+    context.drawImage(image, 0, 0, width, height)
+    return canvas.toDataURL('image/jpeg', 0.85)
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 function IconButton({
   label,
   children,
   onClick = noop,
   style,
+  disabled = false,
 }: {
   label: string
   children: ReactNode
   onClick?: () => void
   style?: CSSProperties
+  disabled?: boolean
 }) {
   return (
     <button
       type="button"
       aria-label={label}
       onClick={onClick}
+      disabled={disabled}
       style={{
         width: 44,
         height: 44,
@@ -203,7 +258,8 @@ function IconButton({
         justifyContent: 'center',
         padding: 0,
         flexShrink: 0,
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.46 : 1,
         ...style,
       }}
     >
@@ -545,16 +601,18 @@ function BrandFooter({ data }: { data: ShareActivityData }) {
   )
 }
 
-function HeroTemplate({
+function BaseHeroPreview({
   data,
   toggles,
   showMap,
   template,
+  photoDataUrl,
 }: {
   data: ShareActivityData
   toggles: Record<ShareFieldKey, boolean>
   showMap: boolean
-  template: TemplateId
+  template: BasicTemplateId
+  photoDataUrl: string | null
 }) {
   const isMinimal = template === 'base-minimal'
   const isData = template === 'base-data'
@@ -592,7 +650,19 @@ function HeroTemplate({
         boxShadow: '0 24px 56px color-mix(in srgb, var(--color-surface) 76%, transparent)',
       }}
     >
-      {isData ? (
+      {photoDataUrl ? (
+        <>
+          <PreviewPhotoBackground photoDataUrl={photoDataUrl} />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 24%, transparent), color-mix(in srgb, var(--color-surface) 86%, transparent) 82%, var(--color-surface))',
+            }}
+          />
+          {isData ? <MountainTexturePreview /> : null}
+        </>
+      ) : isData ? (
         <>
           <div
             style={{
@@ -765,6 +835,584 @@ function HeroTemplate({
   )
 }
 
+function PreviewPhotoBackground({
+  photoDataUrl,
+  grayscale = false,
+  children,
+}: {
+  photoDataUrl: string | null
+  grayscale?: boolean
+  children?: ReactNode
+}) {
+  return (
+    <>
+      {photoDataUrl ? (
+        <img
+          src={photoDataUrl}
+          alt=""
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            filter: grayscale ? 'grayscale(1)' : 'none',
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(circle at 62% 18%, color-mix(in srgb, var(--color-success) 14%, transparent), transparent 26%), linear-gradient(180deg, var(--color-surface-variant), var(--color-surface))',
+          }}
+        />
+      )}
+      {children}
+    </>
+  )
+}
+
+function MiniRidges() {
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 280 498" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, opacity: 0.26 }} aria-hidden="true">
+      <path d="M-20 214 L38 168 L76 190 L128 134 L182 204 L224 154 L300 226" stroke="var(--color-on-surface)" strokeWidth="0.8" fill="none" opacity=".5" />
+      <path d="M-24 268 L52 208 L100 232 L154 178 L208 260 L260 212 L310 302" stroke="var(--color-on-surface)" strokeWidth="0.7" fill="none" opacity=".34" />
+      <path d="M-26 326 L44 270 L108 306 L168 250 L224 344 L276 286 L318 376" stroke="var(--color-on-surface)" strokeWidth="0.55" fill="none" opacity=".24" />
+    </svg>
+  )
+}
+
+function PremiumHeroPreview({
+  data,
+  toggles,
+  template,
+  photoDataUrl,
+}: {
+  data: ShareActivityData
+  toggles: Record<ShareFieldKey, boolean>
+  template: AdvancedTemplateId
+  photoDataUrl: string | null
+}) {
+  const statItems = [
+    { key: 'distance', label: 'DISTANCE', value: formatDistance(data.distance), unit: 'km' },
+    isVisible('duration', toggles) ? { key: 'duration', label: 'TIME', value: formatDuration(data.duration), unit: '' } : null,
+    isVisible('elevationGain', toggles) ? { key: 'elevationGain', label: 'GAIN', value: formatNumber(data.elevationGain), unit: 'm' } : null,
+  ].filter(Boolean) as Array<{ key: string; label: string; value: string; unit: string }>
+  const mountainLine = [
+    isVisible('mountainName', toggles) ? data.mountainName : null,
+    isVisible('location', toggles) ? data.location : null,
+    isVisible('date', toggles) ? data.date : null,
+  ].filter(Boolean).join(' · ')
+  const verticalStory = template === 'premium-vertical-story'
+  const monoFilm = template === 'premium-mono-film'
+  const certificate = template === 'premium-summit-certificate'
+  const dataScatter = template === 'premium-data-scatter'
+  const overlay = template === 'premium-photo-overlay'
+  const bold = template === 'premium-bold-number'
+  const profile = template === 'premium-altitude-profile'
+
+  if (monoFilm) {
+    return (
+      <div
+        data-testid="share-hero-preview"
+        data-template={template}
+        style={{
+          width: 'min(65vw, 246px)',
+          aspectRatio: '9 / 16',
+          borderRadius: 'var(--radius-md)',
+          overflow: 'hidden',
+          border: '1px solid var(--color-outline)',
+          background: 'var(--color-surface)',
+          position: 'relative',
+          flexShrink: 0,
+          boxShadow: '0 24px 56px color-mix(in srgb, var(--color-surface) 76%, transparent)',
+        }}
+      >
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '45%', overflow: 'hidden' }}>
+          <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <MiniRidges />}</PreviewPhotoBackground>
+          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '40%', background: 'linear-gradient(180deg, rgba(15,17,19,0) 0%, rgba(15,17,19,1) 100%)' }} />
+        </div>
+
+        <div style={{ position: 'absolute', left: 18, right: 18, top: '39%' }}>
+          {mountainLine ? (
+            <div style={{ color: 'var(--color-on-surface)', fontSize: 14, lineHeight: 1.2, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {mountainLine}
+            </div>
+          ) : null}
+          <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 10, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: 54, lineHeight: 0.92, fontWeight: 800 }}>{formatNumber(data.altitude)}</span>
+            <span style={{ fontSize: 18, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
+          </div>
+        </div>
+
+        <div style={{ position: 'absolute', left: 18, right: 18, top: '57%', height: '20%', overflow: 'hidden' }}>
+          <TopoBackground showMap />
+          <MiniMonoTrail />
+        </div>
+
+        <PreviewStats stats={statItems} bottom={62} compact />
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 18 }}>
+          <BrandFooter data={data} />
+        </div>
+      </div>
+    )
+  }
+
+  if (verticalStory) {
+    return (
+      <div
+        data-testid="share-hero-preview"
+        data-template={template}
+        style={{
+          width: 'min(65vw, 246px)',
+          aspectRatio: '9 / 16',
+          borderRadius: 'var(--radius-md)',
+          overflow: 'hidden',
+          border: '1px solid var(--color-outline)',
+          background: 'var(--color-surface)',
+          position: 'relative',
+          flexShrink: 0,
+          boxShadow: '0 24px 56px color-mix(in srgb, var(--color-surface) 76%, transparent)',
+        }}
+      >
+        <PreviewPhotoBackground photoDataUrl={photoDataUrl} grayscale>
+          {!photoDataUrl ? <MiniRidges /> : null}
+        </PreviewPhotoBackground>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 10%, transparent), color-mix(in srgb, var(--color-surface) 16%, transparent) 62%, transparent)' }} />
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '28%', background: 'linear-gradient(180deg, rgba(10,12,14,0) 0%, rgba(10,12,14,0.74) 46%, rgba(10,12,14,1) 100%)' }} />
+        <div style={{ position: 'absolute', left: 16, right: 16, top: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ color: 'var(--color-on-surface)', fontSize: 10, fontWeight: 800 }}>Peak Trekker</div>
+          {data.date ? <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 10, fontWeight: 800 }}>{data.date}</div> : null}
+        </div>
+        <div style={{ position: 'absolute', left: 18, right: 18, bottom: 122, textAlign: 'left' }}>
+          {mountainLine ? <div style={{ color: 'var(--color-on-surface)', fontSize: 13, lineHeight: 1.25, fontWeight: 800 }}>{mountainLine}</div> : null}
+          <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: 44, lineHeight: 0.92, fontWeight: 800 }}>{formatNumber(data.altitude)}</span>
+            <span style={{ fontSize: 16, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
+          </div>
+        </div>
+        <StoryPreviewDataBar data={data} toggles={toggles} />
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 18 }}>
+          <BrandFooter data={data} />
+        </div>
+      </div>
+    )
+  }
+
+  if (overlay) {
+    const overlayName = isVisible('mountainName', toggles) ? data.mountainName : ''
+    const overlayLocation = isVisible('location', toggles) ? data.location : ''
+    return (
+      <div
+        data-testid="share-hero-preview"
+        data-template={template}
+        style={{
+          width: 'min(65vw, 246px)',
+          aspectRatio: '9 / 16',
+          borderRadius: 'var(--radius-md)',
+          overflow: 'hidden',
+          border: '1px solid var(--color-outline)',
+          background: 'var(--color-surface)',
+          position: 'relative',
+          flexShrink: 0,
+          boxShadow: '0 24px 56px color-mix(in srgb, var(--color-surface) 76%, transparent)',
+        }}
+      >
+        <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground showMap />}</PreviewPhotoBackground>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, var(--color-surface), color-mix(in srgb, var(--color-surface) 80%, transparent) 44%, transparent)' }} />
+        <div style={{ position: 'absolute', left: 18, top: 74, width: 104 }}>
+          {overlayName ? <div style={{ color: 'var(--color-on-surface)', fontSize: 14, lineHeight: 1.18, fontWeight: 800 }}>{overlayName}</div> : null}
+          {overlayLocation ? <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 11, lineHeight: 1.1, fontWeight: 800, marginTop: 9 }}>{overlayLocation}</div> : null}
+          <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 20, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: 42, lineHeight: 0.92, fontWeight: 800 }}>{formatNumber(data.altitude)}</span>
+            <span style={{ fontSize: 14, marginLeft: 2, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 13, marginTop: 24 }}>
+            <PremiumMetric label="总距离" value={formatDistance(data.distance)} unit="km" />
+            {isVisible('duration', toggles) ? <PremiumMetric label="时长" value={formatDuration(data.duration)} /> : null}
+            {isVisible('elevationGain', toggles) ? <PremiumMetric label="爬升" value={formatNumber(data.elevationGain)} unit="m" /> : null}
+          </div>
+        </div>
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 18 }}>
+          <BrandFooter data={data} />
+        </div>
+      </div>
+    )
+  }
+
+  if (bold) {
+    return (
+      <div
+        data-testid="share-hero-preview"
+        data-template={template}
+        style={{
+          width: 'min(65vw, 246px)',
+          aspectRatio: '9 / 16',
+          borderRadius: 'var(--radius-md)',
+          overflow: 'hidden',
+          border: '1px solid var(--color-outline)',
+          background: 'var(--color-surface)',
+          position: 'relative',
+          flexShrink: 0,
+          boxShadow: '0 24px 56px color-mix(in srgb, var(--color-surface) 76%, transparent)',
+        }}
+      >
+        <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground showMap />}</PreviewPhotoBackground>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 12%, transparent), color-mix(in srgb, var(--color-surface) 86%, transparent) 78%, var(--color-surface))' }} />
+        <div style={{ position: 'absolute', left: 16, top: 54, color: 'rgba(255,255,255,0.32)', fontSize: 13, fontWeight: 800, letterSpacing: '0.08em' }}>峰顶海拔</div>
+        <div style={{ position: 'absolute', left: 14, right: 14, top: 78, color: 'rgba(255,255,255,0.25)', fontFamily: 'var(--font-mono)', fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
+          {formatNumber(data.altitude)}
+          <span style={{ fontSize: 22, marginLeft: 3 }}>m</span>
+        </div>
+        <div style={{ position: 'absolute', left: 16, right: 16, bottom: 104, textAlign: 'left' }}>
+          {mountainLine ? <div style={{ color: 'var(--color-on-surface)', fontSize: 14, lineHeight: 1.25, fontWeight: 800 }}>{mountainLine}</div> : null}
+          <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: 42, lineHeight: 0.92, fontWeight: 800 }}>{formatNumber(data.altitude)}</span>
+            <span style={{ fontSize: 16, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
+          </div>
+        </div>
+        <PreviewStats stats={statItems.slice(0, 2)} bottom={52} compact />
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 18 }}>
+          <BrandFooter data={data} />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      data-testid="share-hero-preview"
+      data-template={template}
+      style={{
+        width: 'min(65vw, 246px)',
+        aspectRatio: '9 / 16',
+        borderRadius: 'var(--radius-md)',
+        overflow: 'hidden',
+        border: '1px solid var(--color-outline)',
+        background: 'var(--color-surface)',
+        position: 'relative',
+        flexShrink: 0,
+        boxShadow: '0 24px 56px color-mix(in srgb, var(--color-surface) 76%, transparent)',
+      }}
+    >
+      {certificate ? (
+        <>
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, var(--color-surface-variant), var(--color-surface))' }} />
+          <MiniRidges />
+          <svg width="100%" height="56%" viewBox="0 0 280 278" style={{ position: 'absolute', insetInline: 0, top: 22 }} aria-hidden="true">
+            <path d="M26 210 H254M26 160 H254M26 110 H254" stroke="var(--color-on-surface)" strokeWidth=".6" strokeDasharray="3 5" opacity=".18" />
+            <path d="M26 222 C 58 190 86 208 116 162 S 164 110 198 82 S 228 58 254 38 L254 232 L26 232 Z" fill="var(--color-success)" opacity=".13" />
+            <path d="M26 222 C 58 190 86 208 116 162 S 164 110 198 82 S 228 58 254 38" stroke="var(--color-success)" strokeWidth="2" fill="none" />
+          </svg>
+        </>
+      ) : dataScatter ? (
+        <>
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '42%', background: 'linear-gradient(160deg, var(--color-surface-variant), var(--color-surface))' }} />
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '60%', overflow: 'hidden' }}>
+            <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground showMap />}</PreviewPhotoBackground>
+          </div>
+        </>
+      ) : (
+        <PreviewPhotoBackground photoDataUrl={photoDataUrl} grayscale={verticalStory}>
+          {!photoDataUrl ? <TopoBackground showMap /> : null}
+        </PreviewPhotoBackground>
+      )}
+
+      {!certificate && !dataScatter ? (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: overlay
+              ? 'linear-gradient(90deg, color-mix(in srgb, var(--color-surface) 88%, transparent), transparent 76%)'
+              : 'linear-gradient(180deg, transparent, color-mix(in srgb, var(--color-surface) 88%, transparent) 76%, var(--color-surface))',
+          }}
+        />
+      ) : null}
+
+      {template === 'premium-photo-composite' || template === 'premium-split-view' || monoFilm ? <TrailPath /> : null}
+
+      {bold ? (
+        <div style={{ position: 'absolute', left: 14, right: 14, top: 46, color: 'color-mix(in srgb, var(--color-on-surface) 26%, transparent)', fontFamily: 'var(--font-mono)', fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
+          {formatNumber(data.altitude)}
+          <span style={{ fontSize: 22, marginLeft: 3 }}>m</span>
+        </div>
+      ) : null}
+
+      {profile ? (
+        <>
+          <div style={{ position: 'absolute', left: 16, top: 36 }}><PremiumMetric label="DISTANCE" value={formatDistance(data.distance)} unit="km" accent /></div>
+          <div style={{ position: 'absolute', right: 16, top: 36, textAlign: 'right' }}><PremiumMetric label="GAIN" value={formatNumber(data.elevationGain)} unit="m" accent align="right" /></div>
+          <div style={{ position: 'absolute', left: 18, bottom: 120, width: 54, height: 54, borderRadius: 999, border: '1px solid color-mix(in srgb, var(--color-on-surface) 28%, transparent)', display: 'grid', placeItems: 'center' }}>
+            <svg width="34" height="34" viewBox="0 0 40 40"><path d="M5 30 Q 13 18 20 22 T 34 7" stroke="var(--color-on-surface)" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>
+          </div>
+        </>
+      ) : null}
+
+      {dataScatter ? (
+        <div style={{ position: 'absolute', left: 14, top: 66, width: 92 }}>
+          <div style={{ color: 'var(--color-on-surface)', fontSize: 11, lineHeight: 1.2, fontWeight: 800 }}>{mountainLine}</div>
+          <div style={{ marginTop: 16, color: 'var(--color-on-surface-variant)', fontSize: 8, fontWeight: 800, letterSpacing: '0.08em' }}>峰顶海拔</div>
+          <div style={{ color: 'var(--color-success)', fontFamily: 'var(--font-mono)', fontSize: 30, lineHeight: 1, fontWeight: 800 }}>{formatNumber(data.altitude)}<span style={{ fontSize: 10, marginLeft: 2 }}>m</span></div>
+          <div style={{ width: 22, height: 2, borderRadius: 999, background: 'var(--color-success)', marginTop: 14, marginBottom: 10 }} />
+          {statItems.map((item) => <TinyMetric key={item.key} label={item.label} value={item.value} unit={item.unit} />)}
+        </div>
+      ) : (
+        <div
+          style={{
+            position: 'absolute',
+            left: overlay ? 18 : 16,
+            right: overlay ? 118 : 16,
+            bottom: certificate ? 112 : verticalStory ? 96 : monoFilm ? 116 : 104,
+            textAlign: certificate || verticalStory || profile ? 'center' : 'left',
+          }}
+        >
+          {mountainLine ? (
+            <div style={{ color: 'var(--color-on-surface)', fontSize: 14, lineHeight: 1.25, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {mountainLine}
+            </div>
+          ) : null}
+          <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: certificate ? 44 : verticalStory ? 44 : profile ? 46 : 56, lineHeight: 0.92, fontWeight: 800 }}>{formatNumber(data.altitude)}</span>
+            <span style={{ fontSize: 18, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
+          </div>
+        </div>
+      )}
+
+      {!dataScatter && !profile && !verticalStory ? (
+        <PreviewStats stats={statItems} bottom={monoFilm ? 62 : certificate ? 74 : 52} compact={monoFilm || certificate} />
+      ) : null}
+      {verticalStory ? <PreviewStats stats={statItems} bottom={58} compact pill /> : null}
+      {profile ? (
+        <div style={{ position: 'absolute', right: 16, bottom: 112, display: 'flex', flexDirection: 'column', gap: 9, alignItems: 'flex-end' }}>
+          {isVisible('duration', toggles) ? <PremiumMetric label="TIME" value={formatDuration(data.duration)} align="right" /> : null}
+          {isVisible('date', toggles) && data.date ? <PremiumMetric label="DATE" value={data.date} align="right" /> : null}
+        </div>
+      ) : null}
+
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 18 }}>
+        <BrandFooter data={data} />
+      </div>
+    </div>
+  )
+}
+
+function HeroPreview({
+  data,
+  toggles,
+  showMap,
+  template,
+  photoDataUrl,
+}: {
+  data: ShareActivityData
+  toggles: Record<ShareFieldKey, boolean>
+  showMap: boolean
+  template: TemplateId
+  photoDataUrl: string | null
+}) {
+  if (template === 'base-classic' || template === 'base-minimal' || template === 'base-data') {
+    return <BaseHeroPreview data={data} toggles={toggles} showMap={showMap} template={template} photoDataUrl={photoDataUrl} />
+  }
+  return <PremiumHeroPreview data={data} toggles={toggles} template={template} photoDataUrl={photoDataUrl} />
+}
+
+function MiniMonoTrail() {
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 280 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }} aria-hidden="true">
+      <defs>
+        <filter id="share-preview-mono-trail-glow" x="-20%" y="-45%" width="140%" height="190%">
+          <feGaussianBlur stdDeviation="3" />
+        </filter>
+      </defs>
+      <path
+        d="M28 78 C 62 58 80 66 103 45 S 143 44 170 29 S 218 28 250 12"
+        stroke="var(--color-success)"
+        strokeWidth="14"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+        opacity=".16"
+        filter="url(#share-preview-mono-trail-glow)"
+      />
+      <path
+        d="M28 78 C 62 58 80 66 103 45 S 143 44 170 29 S 218 28 250 12"
+        stroke="var(--color-success)"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <circle cx="28" cy="78" r="6" fill="var(--color-surface)" stroke="var(--color-success)" strokeWidth="2.4" />
+      <circle cx="250" cy="12" r="7" fill="var(--color-success)" />
+    </svg>
+  )
+}
+
+function StoryPreviewDataBar({
+  data,
+  toggles,
+}: {
+  data: ShareActivityData
+  toggles: Record<ShareFieldKey, boolean>
+}) {
+  const items = [
+    { key: 'altitude', icon: 'pin', value: formatNumber(data.altitude), unit: 'm' },
+    { key: 'distance', icon: 'mountain', value: formatDistance(data.distance), unit: 'km' },
+    isVisible('duration', toggles) ? { key: 'duration', icon: 'clock', value: formatDuration(data.duration), unit: '' } : null,
+    isVisible('elevationGain', toggles) ? { key: 'gain', icon: 'arrow', value: formatNumber(data.elevationGain), unit: 'm' } : null,
+  ].filter(Boolean) as Array<{ key: string; icon: 'pin' | 'mountain' | 'clock' | 'arrow'; value: string; unit: string }>
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: 14,
+        right: 14,
+        bottom: 58,
+        minHeight: 36,
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      {items.map((item, index) => (
+        <div
+          key={item.key}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--color-on-surface)',
+            borderLeft: index === 0 ? 'none' : '1px solid color-mix(in srgb, var(--color-on-surface-variant) 42%, transparent)',
+            paddingInline: 3,
+          }}
+        >
+          <StoryPreviewIcon kind={item.icon} />
+          <span style={{ marginLeft: 3, color: 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap' }}>
+            {item.value}
+          </span>
+          {item.unit ? <span style={{ marginLeft: 1, color: 'var(--color-on-surface-variant)', fontSize: 6.5, fontWeight: 800 }}>{item.unit}</span> : null}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function StoryPreviewIcon({ kind }: { kind: 'pin' | 'mountain' | 'clock' | 'arrow' }) {
+  if (kind === 'mountain') {
+    return <MountainIcon size={10} color="var(--color-on-surface)" />
+  }
+  if (kind === 'clock') {
+    return (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+        <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2" />
+        <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    )
+  }
+  if (kind === 'arrow') {
+    return (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+        <path d="M6 18L18 6M10 6h8v8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path d="M12 21s7-5.2 7-12a7 7 0 0 0-14 0c0 6.8 7 12 7 12z" stroke="currentColor" strokeWidth="2" />
+      <circle cx="12" cy="9" r="2.2" fill="currentColor" />
+    </svg>
+  )
+}
+
+function PremiumMetric({
+  label,
+  value,
+  unit,
+  accent = false,
+  align = 'left',
+}: {
+  label: string
+  value: string
+  unit?: string
+  accent?: boolean
+  align?: 'left' | 'right'
+}) {
+  return (
+    <div style={{ textAlign: align }}>
+      <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 8, lineHeight: 1, fontWeight: 800, letterSpacing: '0.12em' }}>{label}</div>
+      <div style={{ marginTop: 4, color: accent ? 'var(--color-success)' : 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontSize: 17, lineHeight: 1, fontWeight: 800 }}>
+        {value}
+        {unit ? <span style={{ fontSize: 8, marginLeft: 2, color: 'var(--color-on-surface-variant)' }}>{unit}</span> : null}
+      </div>
+    </div>
+  )
+}
+
+function TinyMetric({ label, value, unit }: { label: string; value: string; unit: string }) {
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 7, fontWeight: 800, letterSpacing: '0.08em' }}>{label}</div>
+      <div style={{ color: 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 800, marginTop: 2 }}>
+        {value}
+        {unit ? <span style={{ fontSize: 6, color: 'var(--color-on-surface-variant)', marginLeft: 1 }}>{unit}</span> : null}
+      </div>
+    </div>
+  )
+}
+
+function PreviewStats({
+  stats,
+  bottom,
+  compact = false,
+  pill = false,
+}: {
+  stats: Array<{ key: string; label: string; value: string; unit: string }>
+  bottom: number
+  compact?: boolean
+  pill?: boolean
+}) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: pill ? 16 : 16,
+        right: pill ? 16 : 16,
+        bottom,
+        display: 'grid',
+        gridTemplateColumns: `repeat(${Math.max(1, stats.length)}, minmax(0, 1fr))`,
+        alignItems: 'stretch',
+        padding: pill ? '7px 8px' : 0,
+        borderRadius: pill ? 'var(--radius-pill)' : 0,
+        background: pill ? 'color-mix(in srgb, var(--color-surface) 72%, transparent)' : 'transparent',
+      }}
+    >
+      {stats.map((item, index) => (
+        <div
+          key={item.key}
+          style={{
+            textAlign: 'center',
+            paddingInline: 3,
+            borderLeft: index === 0 ? 'none' : '1px solid color-mix(in srgb, var(--color-on-surface-variant) 46%, transparent)',
+            minWidth: 0,
+          }}
+        >
+          <div style={{ color: 'var(--color-on-surface-variant)', fontSize: compact ? 7.5 : 9, lineHeight: 1, fontWeight: 800, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
+            {item.label}
+          </div>
+          <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: compact ? 13 : 18, lineHeight: 1, fontWeight: 800, color: 'var(--color-on-surface)', whiteSpace: 'nowrap' }}>
+            {item.value}
+            {item.unit ? <span style={{ fontFamily: 'var(--font-sans)', fontSize: compact ? 7 : 10, color: 'var(--color-on-surface-variant)', marginLeft: 1 }}>{item.unit}</span> : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function TemplateThumb({
   template,
   selected,
@@ -774,7 +1422,7 @@ function TemplateThumb({
   template: BasicTemplate
   selected: boolean
   data: ShareActivityData
-  onSelect: (template: TemplateId) => void
+  onSelect: (template: BasicTemplateId) => void
 }) {
   const showTopo = template.variant !== 'minimal'
   const isData = template.variant === 'data'
@@ -865,30 +1513,60 @@ function TemplateThumb({
   )
 }
 
-function AdvancedThumb({ label, selected }: { label: string; selected: boolean }) {
+function AdvancedThumb({
+  template,
+  selected,
+  onSelect,
+}: {
+  template: AdvancedTemplate
+  selected: boolean
+  onSelect: (template: AdvancedTemplateId) => void
+}) {
+  const photoLike = template.kind.includes('photo') || template.kind === 'split-view' || template.kind === 'vertical-story' || template.kind === 'mono-film'
+  const dataLike = template.kind === 'data-scatter' || template.kind === 'altitude-profile' || template.kind === 'summit-certificate'
   return (
     <button
       type="button"
       aria-pressed={selected}
-      onClick={noop}
+      onClick={() => onSelect(template.id)}
       style={{
         width: 82,
         height: 122,
         borderRadius: 'var(--radius-sm)',
         border: selected ? '2px solid var(--color-success)' : '1px solid var(--color-outline)',
-        background:
-          'linear-gradient(145deg, color-mix(in srgb, var(--color-surface-elevated) 86%, var(--color-primary)), var(--color-surface))',
+        background: photoLike
+          ? 'linear-gradient(145deg, color-mix(in srgb, var(--color-surface-elevated) 72%, var(--color-primary)), var(--color-surface))'
+          : dataLike
+            ? 'linear-gradient(180deg, color-mix(in srgb, var(--color-success) 12%, var(--color-surface-variant)), var(--color-surface))'
+            : 'var(--color-surface)',
         color: 'var(--color-on-surface)',
         position: 'relative',
         overflow: 'hidden',
         flex: '0 0 auto',
         padding: 0,
         cursor: 'pointer',
+        boxShadow: selected ? '0 0 0 4px color-mix(in srgb, var(--color-primary) 14%, transparent)' : 'none',
       }}
     >
       <svg width="100%" height="100%" viewBox="0 0 82 122" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }} aria-hidden="true">
-        <path d="M0 84 L18 64 L33 72 L50 52 L64 66 L82 45 L82 122 L0 122 Z" fill="color-mix(in srgb, var(--color-surface) 72%, transparent)" />
-        <path d="M12 94 Q 26 72 40 76 T 70 30" stroke="var(--color-success)" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+        {template.kind === 'summit-certificate' ? (
+          <>
+            <path d="M7 74 H75M7 55 H75M7 36 H75" stroke="var(--color-on-surface)" strokeWidth=".45" opacity=".18" />
+            <path d="M7 88 Q 22 67 34 72 T 57 42 T 75 24" stroke="var(--color-success)" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          </>
+        ) : template.kind === 'bold-number' ? (
+          <text x="8" y="54" fill="currentColor" opacity=".24" fontSize="27" fontWeight="800">3952</text>
+        ) : template.kind === 'data-scatter' ? (
+          <>
+            <rect x="0" y="0" width="35" height="122" fill="color-mix(in srgb, var(--color-surface) 78%, transparent)" />
+            <path d="M42 84 L57 62 L70 74 L82 52 L82 122 L42 122 Z" fill="color-mix(in srgb, var(--color-success) 10%, transparent)" />
+          </>
+        ) : (
+          <>
+            <path d="M0 84 L18 64 L33 72 L50 52 L64 66 L82 45 L82 122 L0 122 Z" fill="color-mix(in srgb, var(--color-surface) 72%, transparent)" />
+            <path d="M12 94 Q 26 72 40 76 T 70 30" stroke="var(--color-success)" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          </>
+        )}
       </svg>
       <div
         style={{
@@ -918,7 +1596,7 @@ function AdvancedThumb({ label, selected }: { label: string; selected: boolean }
           textAlign: 'center',
         }}
       >
-        {label}
+        {template.label}
       </div>
     </button>
   )
@@ -986,14 +1664,18 @@ function Tabs({
 
 function ThumbnailRow({
   activeTab,
-  selectedTemplate,
+  selectedBasicTemplate,
+  selectedAdvancedTemplate,
   data,
-  onSelectTemplate,
+  onSelectBasicTemplate,
+  onSelectAdvancedTemplate,
 }: {
   activeTab: ShareTab
-  selectedTemplate: TemplateId
+  selectedBasicTemplate: BasicTemplateId
+  selectedAdvancedTemplate: AdvancedTemplateId
   data: ShareActivityData
-  onSelectTemplate: (template: TemplateId) => void
+  onSelectBasicTemplate: (template: BasicTemplateId) => void
+  onSelectAdvancedTemplate: (template: AdvancedTemplateId) => void
 }) {
   return (
     <div
@@ -1011,13 +1693,18 @@ function ThumbnailRow({
             <TemplateThumb
               key={template.id}
               template={template}
-              selected={selectedTemplate === template.id}
+              selected={selectedBasicTemplate === template.id}
               data={data}
-              onSelect={onSelectTemplate}
+              onSelect={onSelectBasicTemplate}
             />
           ))
-        : ADVANCED_TEMPLATES.map((label) => (
-            <AdvancedThumb key={label} label={label} selected={false} />
+        : ADVANCED_TEMPLATES.map((template) => (
+            <AdvancedThumb
+              key={template.id}
+              template={template}
+              selected={selectedAdvancedTemplate === template.id}
+              onSelect={onSelectAdvancedTemplate}
+            />
           ))}
     </div>
   )
@@ -1080,9 +1767,15 @@ function InlineSwitch({ on }: { on: boolean }) {
 function ControlRow({
   showMap,
   onToggleMap,
+  onPickPhoto,
+  onRemovePhoto,
+  hasPhoto,
 }: {
   showMap: boolean
   onToggleMap: () => void
+  onPickPhoto: () => void
+  onRemovePhoto: () => void
+  hasPhoto: boolean
 }) {
   return (
     <div
@@ -1096,10 +1789,10 @@ function ControlRow({
         alignItems: 'center',
       }}
     >
-      <IconButton label="换照片">
+      <IconButton label="换照片" onClick={onPickPhoto}>
         <CameraIcon size={18} />
       </IconButton>
-      <IconButton label="移除照片">
+      <IconButton label="移除照片" onClick={onRemovePhoto} disabled={!hasPhoto}>
         <TrashIcon />
       </IconButton>
       <button
@@ -1490,14 +2183,18 @@ export default function ShareClient({
   checkinId?: string
 }) {
   const router = useRouter()
+  const photoInputRef = useRef<HTMLInputElement | null>(null)
   const [activeTab, setActiveTab] = useState<ShareTab>('basic')
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('base-classic')
+  const [selectedBasicTemplate, setSelectedBasicTemplate] = useState<BasicTemplateId>('base-classic')
+  const [selectedAdvancedTemplate, setSelectedAdvancedTemplate] = useState<AdvancedTemplateId>('premium-photo-composite')
+  const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null)
   const [showMap, setShowMap] = useState(true)
   const [fieldToggles, setFieldToggles] = useState<Record<ShareFieldKey, boolean>>(initialFieldToggles)
   const [exportingAction, setExportingAction] = useState<'save' | 'share' | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
 
   const activityData = useMemo(() => initialData ?? MOCK_DATA, [initialData])
+  const selectedTemplate: TemplateId = activeTab === 'basic' ? selectedBasicTemplate : selectedAdvancedTemplate
 
   function toggleField(field: ShareFieldKey) {
     const config = FIELD_CONFIGS.find((item) => item.key === field)
@@ -1515,6 +2212,7 @@ export default function ShareClient({
       body: JSON.stringify({
         template: selectedTemplate,
         data: buildRenderData(activityData, fieldToggles),
+        photoBase64: stripDataUrlPrefix(photoDataUrl),
       }),
     })
 
@@ -1523,6 +2221,22 @@ export default function ShareClient({
     }
 
     return response.blob()
+  }
+
+  async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setExportError('请选择图片文件')
+      return
+    }
+    setExportError(null)
+    try {
+      setPhotoDataUrl(await resizePhotoFile(file))
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : '照片处理失败，请换一张再试')
+    }
   }
 
   async function handleSave() {
@@ -1581,6 +2295,13 @@ export default function ShareClient({
         .share-editor-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
       <NavBar onBack={() => router.back()} />
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={handlePhotoChange}
+      />
 
       <section
         style={{
@@ -1589,18 +2310,32 @@ export default function ShareClient({
           padding: 'var(--space-2) var(--space-5) 0',
         }}
       >
-        <HeroTemplate data={activityData} toggles={fieldToggles} showMap={showMap} template={selectedTemplate} />
+        <HeroPreview
+          data={activityData}
+          toggles={fieldToggles}
+          showMap={showMap}
+          template={selectedTemplate}
+          photoDataUrl={photoDataUrl}
+        />
       </section>
 
       <Tabs activeTab={activeTab} onChange={setActiveTab} />
       <div style={{ height: 1, background: 'var(--color-outline)', opacity: 0.7, marginTop: 2 }} />
       <ThumbnailRow
         activeTab={activeTab}
-        selectedTemplate={selectedTemplate}
+        selectedBasicTemplate={selectedBasicTemplate}
+        selectedAdvancedTemplate={selectedAdvancedTemplate}
         data={activityData}
-        onSelectTemplate={setSelectedTemplate}
+        onSelectBasicTemplate={setSelectedBasicTemplate}
+        onSelectAdvancedTemplate={setSelectedAdvancedTemplate}
       />
-      <ControlRow showMap={showMap} onToggleMap={() => setShowMap((current) => !current)} />
+      <ControlRow
+        showMap={showMap}
+        onToggleMap={() => setShowMap((current) => !current)}
+        onPickPhoto={() => photoInputRef.current?.click()}
+        onRemovePhoto={() => setPhotoDataUrl(null)}
+        hasPhoto={Boolean(photoDataUrl)}
+      />
       <FieldSelector data={activityData} toggles={fieldToggles} onToggle={toggleField} />
       {exportError ? (
         <div

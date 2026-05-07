@@ -1,8 +1,10 @@
-import type { ShareTemplateData } from './types'
+import type { ShareTemplateProps } from './types'
 import {
   BrandFooter,
   C,
   DataRow,
+  PhotoLayer,
+  PhotoShade,
   PosterShell,
   TopoSvg,
   TrailSvg,
@@ -10,21 +12,28 @@ import {
   formatPlainNumber,
 } from './shared'
 
-export function BaseClassicTemplate({ data }: { data: ShareTemplateData }) {
+export function BaseClassicTemplate({ data, photoDataUrl }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
 
   return (
     <PosterShell background="linear-gradient(180deg, #14171a 0%, #0f1113 100%)">
-      <div
-        style={{
-          display: 'flex',
-          position: 'absolute',
-          inset: 0,
-          background:
-            'radial-gradient(circle at 72% 12%, rgba(110, 231, 161, 0.12), transparent 20%), linear-gradient(180deg, rgba(35, 39, 44, 0.34), rgba(18, 20, 22, 0.96) 70%)',
-        }}
-      />
-      <TopoSvg opacity={0.45} />
+      {photoDataUrl ? (
+        <>
+          <PhotoLayer photoDataUrl={photoDataUrl} />
+          <PhotoShade direction="full" strength={0.74} />
+        </>
+      ) : (
+        <div
+          style={{
+            display: 'flex',
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(circle at 72% 12%, rgba(110, 231, 161, 0.12), transparent 20%), linear-gradient(180deg, rgba(35, 39, 44, 0.34), rgba(18, 20, 22, 0.96) 70%)',
+          }}
+        />
+      )}
+      <TopoSvg opacity={photoDataUrl ? 0.22 : 0.45} />
       <TrailSvg glow={12} lineWidth={8} />
 
       <div

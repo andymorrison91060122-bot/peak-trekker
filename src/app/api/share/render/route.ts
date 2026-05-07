@@ -2,16 +2,39 @@ import satori from 'satori'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { Resvg, initWasm } from '@resvg/resvg-wasm'
+import sharp from 'sharp'
 import { BaseClassicTemplate } from '@/lib/share-templates/base-classic'
 import { BaseDataTemplate } from '@/lib/share-templates/base-data'
 import { BaseMinimalTemplate } from '@/lib/share-templates/base-minimal'
+import { PremiumAltitudeProfileTemplate } from '@/lib/share-templates/premium-altitude-profile'
+import { PremiumBoldNumberTemplate } from '@/lib/share-templates/premium-bold-number'
+import { PremiumDataScatterTemplate } from '@/lib/share-templates/premium-data-scatter'
+import { PremiumMonoFilmTemplate } from '@/lib/share-templates/premium-mono-film'
+import { PremiumPhotoCompositeTemplate } from '@/lib/share-templates/premium-photo-composite'
+import { PremiumPhotoOverlayTemplate } from '@/lib/share-templates/premium-photo-overlay'
+import { PremiumSplitViewTemplate } from '@/lib/share-templates/premium-split-view'
+import { PremiumSummitCertificateTemplate } from '@/lib/share-templates/premium-summit-certificate'
+import { PremiumVerticalStoryTemplate } from '@/lib/share-templates/premium-vertical-story'
 import { POSTER_HEIGHT, POSTER_WIDTH } from '@/lib/share-templates/shared'
 import type { ShareRenderRequest, ShareRenderTemplate, ShareTemplateData } from '@/lib/share-templates/types'
 import { loadShareFonts } from '@/lib/fonts/load-share-fonts'
 
 export const runtime = 'nodejs'
 
-const VALID_TEMPLATES: ShareRenderTemplate[] = ['base-classic', 'base-minimal', 'base-data']
+const VALID_TEMPLATES: ShareRenderTemplate[] = [
+  'base-classic',
+  'base-minimal',
+  'base-data',
+  'premium-photo-composite',
+  'premium-photo-overlay',
+  'premium-split-view',
+  'premium-bold-number',
+  'premium-data-scatter',
+  'premium-mono-film',
+  'premium-altitude-profile',
+  'premium-summit-certificate',
+  'premium-vertical-story',
+]
 
 let wasmReady = false
 
@@ -69,16 +92,43 @@ function normalizeRequest(body: unknown): ShareRenderRequest | null {
     },
   }
 
+  const photoBase64 = typeof body.photoBase64 === 'string'
+    ? body.photoBase64.replace(/^data:image\/[a-zA-Z+.-]+;base64,/, '').trim()
+    : undefined
+
   return {
     template: template as ShareRenderTemplate,
     data,
+    photoBase64: photoBase64 || undefined,
   }
 }
 
-function renderTemplate({ template, data }: ShareRenderRequest) {
-  if (template === 'base-minimal') return BaseMinimalTemplate({ data })
-  if (template === 'base-data') return BaseDataTemplate({ data })
-  return BaseClassicTemplate({ data })
+async function photoDataUrlForTemplate(template: ShareRenderTemplate, photoBase64?: string) {
+  if (!photoBase64) return null
+  if (template !== 'premium-vertical-story') {
+    return `data:image/jpeg;base64,${photoBase64}`
+  }
+
+  const grayBuffer = await sharp(Buffer.from(photoBase64, 'base64'))
+    .grayscale()
+    .jpeg({ quality: 86 })
+    .toBuffer()
+  return `data:image/jpeg;base64,${grayBuffer.toString('base64')}`
+}
+
+function renderTemplate({ template, data }: ShareRenderRequest, photoDataUrl: string | null) {
+  if (template === 'base-minimal') return BaseMinimalTemplate({ data, photoDataUrl })
+  if (template === 'base-data') return BaseDataTemplate({ data, photoDataUrl })
+  if (template === 'premium-photo-composite') return PremiumPhotoCompositeTemplate({ data, photoDataUrl })
+  if (template === 'premium-photo-overlay') return PremiumPhotoOverlayTemplate({ data, photoDataUrl })
+  if (template === 'premium-split-view') return PremiumSplitViewTemplate({ data, photoDataUrl })
+  if (template === 'premium-bold-number') return PremiumBoldNumberTemplate({ data, photoDataUrl })
+  if (template === 'premium-data-scatter') return PremiumDataScatterTemplate({ data, photoDataUrl })
+  if (template === 'premium-mono-film') return PremiumMonoFilmTemplate({ data, photoDataUrl })
+  if (template === 'premium-altitude-profile') return PremiumAltitudeProfileTemplate({ data, photoDataUrl })
+  if (template === 'premium-summit-certificate') return PremiumSummitCertificateTemplate({ data })
+  if (template === 'premium-vertical-story') return PremiumVerticalStoryTemplate({ data, photoDataUrl })
+  return BaseClassicTemplate({ data, photoDataUrl })
 }
 
 function fontText(data: ShareTemplateData) {
@@ -108,12 +158,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    const [fonts] = await Promise.all([
+    const [fonts, , photoDataUrl] = await Promise.all([
       loadShareFonts(fontText(payload.data)),
       ensureResvgWasm(),
+      photoDataUrlForTemplate(payload.template, payload.photoBase64),
     ])
 
-    const svg = await satori(renderTemplate(payload), {
+    const svg = await satori(renderTemplate(payload, photoDataUrl), {
       width: POSTER_WIDTH,
       height: POSTER_HEIGHT,
       fonts,

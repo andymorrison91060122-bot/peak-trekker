@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+
 import type { ReactNode } from 'react'
 import type { ShareTemplateData } from './types'
 
@@ -16,6 +18,9 @@ export const C = {
   success: '#6ee7a1',
   onPrimary: '#08120d',
 }
+
+export const DEFAULT_PHOTO_BACKGROUND =
+  'linear-gradient(180deg, #1a1f24 0%, #121416 58%, #0f1113 100%)'
 
 export function formatPlainNumber(value: number) {
   if (!Number.isFinite(value)) return '--'
@@ -47,6 +52,167 @@ export function visibleStats(data: ShareTemplateData) {
       ? { key: 'gain', label: 'GAIN', value: formatPlainNumber(data.elevationGain), unit: 'm' }
       : null,
   ].filter(Boolean) as Array<{ key: string; label: string; value: string; unit: string }>
+}
+
+export function fourStats(data: ShareTemplateData) {
+  return [
+    { key: 'distance', label: 'DISTANCE', value: formatDistance(data.distance), unit: 'km' },
+    data.visibleFields.duration
+      ? { key: 'duration', label: 'TIME', value: data.duration || '--', unit: '' }
+      : null,
+    data.visibleFields.elevationGain
+      ? { key: 'gain', label: 'GAIN', value: formatPlainNumber(data.elevationGain), unit: 'm' }
+      : null,
+    data.visibleFields.date && data.date ? { key: 'date', label: 'DATE', value: data.date, unit: '' } : null,
+  ].filter(Boolean) as Array<{ key: string; label: string; value: string; unit: string }>
+}
+
+export function PhotoLayer({
+  photoDataUrl,
+  width = POSTER_WIDTH,
+  height = POSTER_HEIGHT,
+  grayscale = false,
+  opacity = 1,
+}: {
+  photoDataUrl?: string | null
+  width?: number
+  height?: number
+  grayscale?: boolean
+  opacity?: number
+}) {
+  if (photoDataUrl) {
+    return (
+      <img
+        src={photoDataUrl}
+        width={width}
+        height={height}
+        alt=""
+        data-grayscale={grayscale ? 'true' : undefined}
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width,
+          height,
+          objectFit: 'cover',
+          opacity,
+        }}
+      />
+    )
+  }
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width,
+        height,
+        background:
+          'radial-gradient(circle at 62% 18%, rgba(110, 231, 161, 0.12), transparent 24%), radial-gradient(circle at 28% 70%, rgba(255, 255, 255, 0.045), transparent 32%), linear-gradient(180deg, #1a1f24 0%, #121416 62%, #0f1113 100%)',
+      }}
+    />
+  )
+}
+
+export function PhotoShade({
+  direction = 'bottom',
+  strength = 0.78,
+}: {
+  direction?: 'bottom' | 'left' | 'full'
+  strength?: number
+}) {
+  const alpha = Math.max(0, Math.min(0.92, strength))
+  const background =
+    direction === 'left'
+      ? `linear-gradient(90deg, rgba(10, 12, 14, ${alpha}) 0%, rgba(10, 12, 14, ${alpha * 0.72}) 38%, rgba(10, 12, 14, 0) 100%)`
+      : direction === 'full'
+        ? `linear-gradient(180deg, rgba(10, 12, 14, ${alpha * 0.35}) 0%, rgba(10, 12, 14, ${alpha * 0.45}) 48%, rgba(10, 12, 14, ${alpha}) 100%)`
+        : `linear-gradient(180deg, rgba(10, 12, 14, 0.05) 0%, rgba(10, 12, 14, ${alpha * 0.32}) 45%, rgba(10, 12, 14, ${alpha}) 100%)`
+
+  return <div style={{ display: 'flex', position: 'absolute', inset: 0, background }} />
+}
+
+export function MountainRidgeSvg({ opacity = 0.2 }: { opacity?: number }) {
+  const paths = [
+    'M-60 780 L145 620 L275 700 L430 535 L610 745 L760 585 L1140 840',
+    'M-80 900 L175 700 L322 780 L500 620 L666 838 L820 690 L1160 980',
+    'M-80 1050 L155 855 L340 960 L540 785 L740 1010 L925 884 L1160 1130',
+    'M-90 1230 L170 1005 L350 1124 L552 940 L760 1200 L940 1068 L1160 1326',
+  ]
+  return (
+    <svg width={POSTER_WIDTH} height={POSTER_HEIGHT} viewBox={`0 0 ${POSTER_WIDTH} ${POSTER_HEIGHT}`} style={{ position: 'absolute', inset: 0, opacity }}>
+      {paths.map((path, index) => (
+        <path
+          key={path}
+          d={path}
+          stroke={C.fg}
+          strokeWidth={index === 0 ? 3 : 1.8}
+          fill="none"
+          opacity={index === 0 ? 0.42 : 0.24}
+        />
+      ))}
+      {Array.from({ length: 14 }).map((_, index) => (
+        <path
+          key={index}
+          d={`M${24 + index * 78} 1160 C ${92 + index * 72} 920 ${164 + index * 62} 710 ${232 + index * 54} 500`}
+          stroke={C.fg}
+          strokeWidth="1.2"
+          fill="none"
+          opacity=".13"
+        />
+      ))}
+    </svg>
+  )
+}
+
+export function MiniTrailCircle({ size = 156 }: { size?: number }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        width: size,
+        height: size,
+        borderRadius: size,
+        border: '2px solid rgba(245, 247, 248, 0.28)',
+        background: 'rgba(18, 20, 22, 0.48)',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <svg width={size - 42} height={size - 42} viewBox="0 0 120 120">
+        <path d="M16 88 C 34 58 48 80 58 52 S 86 36 102 16" stroke={C.fg} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <circle cx="16" cy="88" r="7" fill={C.fg} />
+        <circle cx="102" cy="16" r="8" fill={C.success} />
+      </svg>
+    </div>
+  )
+}
+
+export function SmallMetric({
+  label,
+  value,
+  unit,
+  align = 'left',
+  accent = false,
+}: {
+  label: string
+  value: string
+  unit?: string
+  align?: 'left' | 'right' | 'center'
+  accent?: boolean
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start' }}>
+      <span style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.14em' }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 14 }}>
+        <span style={{ color: accent ? C.success : C.fg, fontSize: 50, lineHeight: 1, fontWeight: 800 }}>{value}</span>
+        {unit ? <span style={{ color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800, marginLeft: 8 }}>{unit}</span> : null}
+      </div>
+    </div>
+  )
 }
 
 export function MountainGlyph({ size = 40, color = C.success }: { size?: number; color?: string }) {

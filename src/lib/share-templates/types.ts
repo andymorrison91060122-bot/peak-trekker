@@ -1,4 +1,16 @@
-export type ShareRenderTemplate = 'base-classic' | 'base-minimal' | 'base-data'
+export type ShareRenderTemplate =
+  | 'base-classic'
+  | 'base-minimal'
+  | 'base-data'
+  | 'premium-photo-composite'
+  | 'premium-photo-overlay'
+  | 'premium-split-view'
+  | 'premium-bold-number'
+  | 'premium-data-scatter'
+  | 'premium-mono-film'
+  | 'premium-altitude-profile'
+  | 'premium-summit-certificate'
+  | 'premium-vertical-story'
 
 export type ShareRenderSource = 'gps' | 'uploaded'
 
@@ -26,4 +38,10 @@ export type ShareTemplateData = {
 export type ShareRenderRequest = {
   template: ShareRenderTemplate
   data: ShareTemplateData
+  photoBase64?: string
+}
+
+export type ShareTemplateProps = {
+  data: ShareTemplateData
+  photoDataUrl?: string | null
 }

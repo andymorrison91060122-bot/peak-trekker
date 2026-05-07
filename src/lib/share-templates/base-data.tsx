@@ -1,8 +1,10 @@
-import type { ShareTemplateData } from './types'
+import type { ShareTemplateProps } from './types'
 import {
   BrandFooter,
   C,
   DataRow,
+  PhotoLayer,
+  PhotoShade,
   PosterShell,
   buildMountainLine,
   formatPlainNumber,
@@ -44,11 +46,17 @@ function MountainTexture() {
   )
 }
 
-export function BaseDataTemplate({ data }: { data: ShareTemplateData }) {
+export function BaseDataTemplate({ data, photoDataUrl }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
 
   return (
     <PosterShell background="linear-gradient(180deg, #12181b 0%, #0a0c0e 100%)">
+      {photoDataUrl ? (
+        <>
+          <PhotoLayer photoDataUrl={photoDataUrl} />
+          <PhotoShade direction="full" strength={0.86} />
+        </>
+      ) : null}
       <MountainTexture />
       <div
         style={{

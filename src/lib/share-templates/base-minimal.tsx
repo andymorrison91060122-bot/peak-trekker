@@ -1,28 +1,37 @@
-import type { ShareTemplateData } from './types'
+import type { ShareTemplateProps } from './types'
 import {
   BrandFooter,
   C,
   DataRow,
+  PhotoLayer,
+  PhotoShade,
   PosterShell,
   TrailSvg,
   buildMountainLine,
   formatPlainNumber,
 } from './shared'
 
-export function BaseMinimalTemplate({ data }: { data: ShareTemplateData }) {
+export function BaseMinimalTemplate({ data, photoDataUrl }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
 
   return (
     <PosterShell background="#0a0c0e">
-      <div
-        style={{
-          display: 'flex',
-          position: 'absolute',
-          inset: 0,
-          background:
-            'radial-gradient(circle at 58% 26%, rgba(110, 231, 161, 0.08), transparent 20%), radial-gradient(circle at 46% 64%, rgba(255, 255, 255, 0.035), transparent 32%), #0a0c0e',
-        }}
-      />
+      {photoDataUrl ? (
+        <>
+          <PhotoLayer photoDataUrl={photoDataUrl} />
+          <PhotoShade direction="full" strength={0.82} />
+        </>
+      ) : (
+        <div
+          style={{
+            display: 'flex',
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(circle at 58% 26%, rgba(110, 231, 161, 0.08), transparent 20%), radial-gradient(circle at 46% 64%, rgba(255, 255, 255, 0.035), transparent 32%), #0a0c0e',
+          }}
+        />
+      )}
       <TrailSvg glow={18} lineWidth={9} />
 
       <div

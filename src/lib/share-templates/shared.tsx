@@ -292,6 +292,66 @@ export function BrandFooter({ source }: { source: ShareTemplateData['source'] })
   )
 }
 
+export function PreviewWatermarkLayer() {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        position: 'absolute',
+        left: -260,
+        right: -260,
+        top: 420,
+        height: 980,
+        overflow: 'hidden',
+        flexDirection: 'column',
+        justifyContent: 'space-around',
+        transform: 'rotate(-30deg)',
+      }}
+    >
+      {[0, 1, 2].map((row) => (
+        <div
+          key={row}
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            color: 'rgba(255, 255, 255, 0.2)',
+            fontSize: 76,
+            lineHeight: 1,
+            fontWeight: 800,
+            letterSpacing: '0.16em',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Peak Trekker 预览版 · Peak Trekker 预览版
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function RenderRoot({
+  children,
+  paywallWatermark = false,
+}: {
+  children: ReactNode
+  paywallWatermark?: boolean
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        position: 'relative',
+        width: POSTER_WIDTH,
+        height: POSTER_HEIGHT,
+        overflow: 'hidden',
+      }}
+    >
+      {children}
+      {paywallWatermark ? <PreviewWatermarkLayer /> : null}
+    </div>
+  )
+}
+
 export function TrailSvg({ glow = 10, lineWidth = 8 }: { glow?: number; lineWidth?: number }) {
   return (
     <svg width={POSTER_WIDTH} height={POSTER_HEIGHT} viewBox={`0 0 ${POSTER_WIDTH} ${POSTER_HEIGHT}`} style={{ position: 'absolute', inset: 0 }}>

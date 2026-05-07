@@ -15,9 +15,12 @@ import { PremiumPhotoOverlayTemplate } from '@/lib/share-templates/premium-photo
 import { PremiumSplitViewTemplate } from '@/lib/share-templates/premium-split-view'
 import { PremiumSummitCertificateTemplate } from '@/lib/share-templates/premium-summit-certificate'
 import { PremiumVerticalStoryTemplate } from '@/lib/share-templates/premium-vertical-story'
-import { POSTER_HEIGHT, POSTER_WIDTH } from '@/lib/share-templates/shared'
+import { RenderRoot, POSTER_HEIGHT, POSTER_WIDTH } from '@/lib/share-templates/shared'
+import { TransparentWatermarkTemplate } from '@/lib/share-templates/transparent-watermark'
 import type { ShareRenderRequest, ShareRenderTemplate, ShareTemplateData } from '@/lib/share-templates/types'
 import { loadShareFonts } from '@/lib/fonts/load-share-fonts'
+import { checkTemplateAccess, isPremiumPaywallEnabled } from '@/lib/premium'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
@@ -100,6 +103,7 @@ function normalizeRequest(body: unknown): ShareRenderRequest | null {
     template: template as ShareRenderTemplate,
     data,
     photoBase64: photoBase64 || undefined,
+    transparent: asBoolean(body.transparent, false),
   }
 }
 
@@ -131,6 +135,26 @@ function renderTemplate({ template, data }: ShareRenderRequest, photoDataUrl: st
   return BaseClassicTemplate({ data, photoDataUrl })
 }
 
+function renderPayload(payload: ShareRenderRequest, photoDataUrl: string | null) {
+  if (payload.transparent) {
+    return TransparentWatermarkTemplate({ data: payload.data })
+  }
+
+  return renderTemplate(payload, photoDataUrl)
+}
+
+async function getCurrentUserId() {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    return user?.id ?? null
+  } catch {
+    return null
+  }
+}
+
 function fontText(data: ShareTemplateData) {
   return [
     data.mountainName,
@@ -140,7 +164,7 @@ function fontText(data: ShareTemplateData) {
     String(data.altitude),
     String(data.distance),
     String(data.elevationGain),
-    '峰顶海拔总距离时长爬升日期Peak Trekker GPS VERIFIED UPLOADED',
+    '峰顶海拔总距离时长爬升日期Peak Trekker GPS VERIFIED UPLOADED 预览版',
   ].join(' ')
 }
 
@@ -158,21 +182,38 @@ export async function POST(request: Request) {
   }
 
   try {
-    const [fonts, , photoDataUrl] = await Promise.all([
+    const paywallEnabled = isPremiumPaywallEnabled()
+    const [fonts, , photoDataUrl, userId] = await Promise.all([
       loadShareFonts(fontText(payload.data)),
       ensureResvgWasm(),
       photoDataUrlForTemplate(payload.template, payload.photoBase64),
+      paywallEnabled ? getCurrentUserId() : Promise.resolve(null),
     ])
+    const access = paywallEnabled
+      ? await checkTemplateAccess(payload.template, userId)
+      : { allowed: true }
+    const templateElement = renderPayload(payload, photoDataUrl)
 
-    const svg = await satori(renderTemplate(payload, photoDataUrl), {
-      width: POSTER_WIDTH,
-      height: POSTER_HEIGHT,
-      fonts,
-    })
-    const png = new Resvg(svg, {
-      fitTo: { mode: 'original' },
-      background: '#121416',
-    }).render().asPng()
+    const svg = await satori(
+      access.allowed
+        ? templateElement
+        : RenderRoot({
+            paywallWatermark: true,
+            children: templateElement,
+          }),
+      {
+        width: POSTER_WIDTH,
+        height: POSTER_HEIGHT,
+        fonts,
+      },
+    )
+    const resvgOptions = payload.transparent
+      ? { fitTo: { mode: 'original' as const } }
+      : {
+          fitTo: { mode: 'original' as const },
+          background: '#121416',
+        }
+    const png = new Resvg(svg, resvgOptions).render().asPng()
     const pngCopy = new Uint8Array(png.byteLength)
     pngCopy.set(png)
 

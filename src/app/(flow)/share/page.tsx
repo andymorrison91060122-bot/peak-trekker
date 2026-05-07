@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { checkTemplateAccess, isPremiumPaywallEnabled } from '@/lib/premium'
 import ShareClient, { type ShareActivityData } from './ShareClient'
 
 export const metadata: Metadata = {
@@ -124,6 +125,18 @@ async function loadShareData(checkinId: string): Promise<ShareActivityData | nul
   }
 }
 
+async function getCurrentUserId() {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    return user?.id ?? null
+  } catch {
+    return null
+  }
+}
+
 export default async function SharePage({
   searchParams,
 }: {
@@ -132,6 +145,11 @@ export default async function SharePage({
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const checkinId = firstSearchValue(resolvedSearchParams.checkinId)
   const initialData = checkinId ? await loadShareData(checkinId) : null
+  const paywallEnabled = isPremiumPaywallEnabled()
+  const userId = paywallEnabled ? await getCurrentUserId() : null
+  const premiumAccess = paywallEnabled
+    ? await checkTemplateAccess('premium-photo-composite', userId)
+    : { allowed: true }
 
   return (
     <div
@@ -141,7 +159,12 @@ export default async function SharePage({
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
-      <ShareClient initialData={initialData} checkinId={checkinId} />
+      <ShareClient
+        initialData={initialData}
+        checkinId={checkinId}
+        paywallEnabled={paywallEnabled}
+        premiumUnlocked={premiumAccess.allowed}
+      />
     </div>
   )
 }

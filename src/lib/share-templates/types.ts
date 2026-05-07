@@ -39,6 +39,7 @@ export type ShareRenderRequest = {
   template: ShareRenderTemplate
   data: ShareTemplateData
   photoBase64?: string
+  transparent?: boolean
 }
 
 export type ShareTemplateProps = {

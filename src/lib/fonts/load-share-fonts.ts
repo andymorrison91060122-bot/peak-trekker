@@ -9,17 +9,15 @@ type ShareFont = {
 }
 
 const FONT_FAMILY = 'Noto Sans SC'
-const LOCAL_FONT_CANDIDATES = {
-  regular: [
-    'public/fonts/NotoSansSC-Regular.ttf',
-    'public/fonts/NotoSansSC-Regular.otf',
-    'public/fonts/NotoSansSC-Regular.woff2',
-  ],
-  bold: [
-    'public/fonts/NotoSansSC-Bold.ttf',
-    'public/fonts/NotoSansSC-Bold.otf',
-    'public/fonts/NotoSansSC-Bold.woff2',
-  ],
+const LOCAL_FONT_FILES = {
+  regular: 'NotoSansSC-Regular.otf',
+  bold: 'NotoSansSC-Bold.otf',
+}
+
+const REMOTE_FONT_URLS = {
+  regular:
+    'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf',
+  bold: 'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf',
 }
 
 const fontCache = new Map<string, ShareFont[]>()
@@ -30,51 +28,49 @@ function toArrayBuffer(buffer: Buffer) {
   return copy.buffer
 }
 
-async function readFirstExisting(paths: string[]) {
-  for (const relativePath of paths) {
-    try {
-      return toArrayBuffer(await readFile(relativePath.startsWith('/') ? relativePath : join(process.cwd(), relativePath)))
-    } catch {
-      // Try the next local candidate.
-    }
-  }
-  return null
+function buildFonts(regular: ArrayBuffer, bold: ArrayBuffer) {
+  return [
+    { name: FONT_FAMILY, data: regular, weight: 400, style: 'normal' as const },
+    { name: FONT_FAMILY, data: bold, weight: 500, style: 'normal' as const },
+    { name: FONT_FAMILY, data: bold, weight: 600, style: 'normal' as const },
+    { name: FONT_FAMILY, data: bold, weight: 700, style: 'normal' as const },
+    { name: FONT_FAMILY, data: bold, weight: 800, style: 'normal' as const },
+  ] satisfies ShareFont[]
 }
 
-async function fetchRemoteFont() {
-  const urls = [
-    'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf',
-    'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf',
-  ]
-
-  let lastError: unknown = null
-  for (const url of urls) {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      try {
-        const response = await fetch(url, {
-          cache: 'no-store',
-          signal: AbortSignal.timeout(60_000),
-        })
-        if (response.ok) return response.arrayBuffer()
-        lastError = new Error(`Remote font responded ${response.status}`)
-      } catch (error) {
-        lastError = error
-      }
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error('Unable to load remote share font')
+async function readLocalFont(fileName: string) {
+  return toArrayBuffer(await readFile(join(process.cwd(), 'public', 'fonts', fileName)))
 }
 
-async function loadRemoteCjkFonts() {
-  const data = await fetchRemoteFont()
+async function fetchRemoteFont(url: string) {
+  const response = await fetch(url, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(60_000),
+  })
 
-  return ([400, 500, 600, 700, 800] as const).map((weight) => ({
-    name: FONT_FAMILY,
-    data,
-    weight,
-    style: 'normal' as const,
-  }))
+  if (!response.ok) {
+    throw new Error(`Remote font responded ${response.status}`)
+  }
+
+  return response.arrayBuffer()
+}
+
+async function loadLocalFonts() {
+  const [regular, bold] = await Promise.all([
+    readLocalFont(LOCAL_FONT_FILES.regular),
+    readLocalFont(LOCAL_FONT_FILES.bold),
+  ])
+
+  return buildFonts(regular, bold)
+}
+
+async function loadRemoteFonts() {
+  const [regular, bold] = await Promise.all([
+    fetchRemoteFont(REMOTE_FONT_URLS.regular),
+    fetchRemoteFont(REMOTE_FONT_URLS.bold),
+  ])
+
+  return buildFonts(regular, bold)
 }
 
 export async function loadShareFonts(text: string): Promise<ShareFont[]> {
@@ -85,22 +81,23 @@ export async function loadShareFonts(text: string): Promise<ShareFont[]> {
   const cached = fontCache.get(normalizedText)
   if (cached) return cached
 
-  const [localRegular, localBold] = await Promise.all([
-    readFirstExisting(LOCAL_FONT_CANDIDATES.regular),
-    readFirstExisting(LOCAL_FONT_CANDIDATES.bold),
-  ])
-
-  if (localRegular && localBold) {
-    const localFonts: ShareFont[] = [
-      { name: FONT_FAMILY, data: localRegular, weight: 400, style: 'normal' },
-      { name: FONT_FAMILY, data: localBold, weight: 700, style: 'normal' },
-      { name: FONT_FAMILY, data: localBold, weight: 800, style: 'normal' },
-    ]
+  try {
+    const localFonts = await loadLocalFonts()
     fontCache.set(normalizedText, localFonts)
     return localFonts
+  } catch {
+    console.warn('Local share fonts not found, trying remote Noto Sans SC fonts...')
   }
 
-  const remoteFonts = await loadRemoteCjkFonts()
-  fontCache.set(normalizedText, remoteFonts)
-  return remoteFonts
+  try {
+    const remoteFonts = await loadRemoteFonts()
+    fontCache.set(normalizedText, remoteFonts)
+    return remoteFonts
+  } catch (error) {
+    throw new Error(
+      `Font loading failed: no local fonts and remote Noto Sans SC fonts are unreachable. Please add ${LOCAL_FONT_FILES.regular} and ${LOCAL_FONT_FILES.bold} to public/fonts/. Cause: ${
+        error instanceof Error ? error.message : 'unknown error'
+      }`,
+    )
+  }
 }

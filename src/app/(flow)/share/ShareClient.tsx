@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { ChangeEvent, CSSProperties, ReactNode } from 'react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   BackIcon,
@@ -15,6 +15,8 @@ import {
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 
 type ShareTab = 'basic' | 'advanced'
+type ShareViewMode = 'editor' | 'watermarkPreview'
+type ExportAction = 'save' | 'share' | 'transparent' | null
 type TemplateId = ShareRenderTemplate
 type BasicTemplateId = Extract<TemplateId, 'base-classic' | 'base-minimal' | 'base-data'>
 type AdvancedTemplateId = Exclude<TemplateId, BasicTemplateId>
@@ -157,6 +159,10 @@ function formatFieldValue(field: ShareFieldKey, data: ShareActivityData) {
 
 function renderSource(source: ShareActivityData['source']) {
   return source === 'gps' ? 'gps' : 'uploaded'
+}
+
+function isAdvancedTemplateId(template: TemplateId): template is AdvancedTemplateId {
+  return template.startsWith('premium-')
 }
 
 function isVisible(field: ShareFieldKey, toggles: Record<ShareFieldKey, boolean>) {
@@ -598,6 +604,113 @@ function BrandFooter({ data }: { data: ShareActivityData }) {
       </span>
       <PreviewSourcePill source={data.source} />
     </div>
+  )
+}
+
+function PreviewWatermarkOverlay() {
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position: 'absolute',
+        left: -48,
+        right: -48,
+        top: '20%',
+        height: '60%',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-around',
+        transform: 'rotate(-30deg) scale(1.25)',
+        transformOrigin: 'center',
+        pointerEvents: 'none',
+        zIndex: 8,
+      }}
+    >
+      {[0, 1, 2].map((row) => (
+        <div
+          key={row}
+          style={{
+            color: 'rgba(255,255,255,0.2)',
+            fontSize: 17,
+            lineHeight: 1,
+            fontWeight: 800,
+            letterSpacing: '0.14em',
+            whiteSpace: 'nowrap',
+            textAlign: 'center',
+          }}
+        >
+          Peak Trekker 预览版 · Peak Trekker 预览版
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function LockBadge() {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        position: 'absolute',
+        top: 7,
+        right: 7,
+        width: 22,
+        height: 22,
+        borderRadius: 'var(--radius-xs)',
+        background: 'color-mix(in srgb, var(--color-surface) 78%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--color-on-surface) 14%, transparent)',
+        display: 'grid',
+        placeItems: 'center',
+        zIndex: 3,
+      }}
+    >
+      <LockIcon />
+    </span>
+  )
+}
+
+function UnlockHintBar({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-testid="share-unlock-hint"
+      style={{
+        margin: 'var(--space-3) var(--space-5) 0',
+        minHeight: 46,
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid color-mix(in srgb, var(--color-success) 24%, transparent)',
+        background: 'color-mix(in srgb, var(--color-success) 7%, transparent)',
+        color: 'var(--color-success)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 'var(--space-3)',
+        padding: '0 var(--space-3)',
+        cursor: 'pointer',
+        width: 'calc(100% - var(--space-10))',
+      }}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <LockIcon />
+        <span
+          style={{
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 'var(--font-label-m-line)',
+            fontWeight: 700,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          解锁高级模板，导出无水印版本
+        </span>
+      </span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+        <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
   )
 }
 
@@ -1517,10 +1630,14 @@ function AdvancedThumb({
   template,
   selected,
   onSelect,
+  locked,
+  limitedFree,
 }: {
   template: AdvancedTemplate
   selected: boolean
   onSelect: (template: AdvancedTemplateId) => void
+  locked: boolean
+  limitedFree: boolean
 }) {
   const photoLike = template.kind.includes('photo') || template.kind === 'split-view' || template.kind === 'vertical-story' || template.kind === 'mono-film'
   const dataLike = template.kind === 'data-scatter' || template.kind === 'altitude-profile' || template.kind === 'summit-certificate'
@@ -1568,22 +1685,39 @@ function AdvancedThumb({
           </>
         )}
       </svg>
-      <div
-        style={{
-          position: 'absolute',
-          top: 7,
-          right: 7,
-          borderRadius: 'var(--radius-xs)',
-          background: 'color-mix(in srgb, var(--color-surface) 72%, transparent)',
-          border: '1px solid color-mix(in srgb, var(--color-on-surface) 12%, transparent)',
-          color: 'var(--color-on-surface)',
-          padding: '2px 6px',
-          fontSize: 10,
-          fontWeight: 700,
-        }}
-      >
-        限免
-      </div>
+      {limitedFree ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: 7,
+            right: 7,
+            borderRadius: 'var(--radius-xs)',
+            background: 'color-mix(in srgb, var(--color-surface) 72%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--color-on-surface) 12%, transparent)',
+            color: 'var(--color-on-surface)',
+            padding: '2px 6px',
+            fontSize: 10,
+            fontWeight: 700,
+            zIndex: 2,
+          }}
+        >
+          限免
+        </div>
+      ) : null}
+      {locked ? (
+        <>
+          <span
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(15,17,19,0.4)',
+              zIndex: 2,
+            }}
+          />
+          <LockBadge />
+        </>
+      ) : null}
       <div
         style={{
           position: 'absolute',
@@ -1669,6 +1803,8 @@ function ThumbnailRow({
   data,
   onSelectBasicTemplate,
   onSelectAdvancedTemplate,
+  paywallEnabled,
+  premiumUnlocked,
 }: {
   activeTab: ShareTab
   selectedBasicTemplate: BasicTemplateId
@@ -1676,7 +1812,10 @@ function ThumbnailRow({
   data: ShareActivityData
   onSelectBasicTemplate: (template: BasicTemplateId) => void
   onSelectAdvancedTemplate: (template: AdvancedTemplateId) => void
+  paywallEnabled: boolean
+  premiumUnlocked: boolean
 }) {
+  const advancedLocked = paywallEnabled && !premiumUnlocked
   return (
     <div
       className="share-editor-scrollbar"
@@ -1704,6 +1843,8 @@ function ThumbnailRow({
               template={template}
               selected={selectedAdvancedTemplate === template.id}
               onSelect={onSelectAdvancedTemplate}
+              locked={advancedLocked}
+              limitedFree={!paywallEnabled}
             />
           ))}
     </div>
@@ -1769,12 +1910,16 @@ function ControlRow({
   onToggleMap,
   onPickPhoto,
   onRemovePhoto,
+  onExportTransparent,
+  transparentExporting,
   hasPhoto,
 }: {
   showMap: boolean
   onToggleMap: () => void
   onPickPhoto: () => void
   onRemovePhoto: () => void
+  onExportTransparent: () => void
+  transparentExporting: boolean
   hasPhoto: boolean
 }) {
   return (
@@ -1821,7 +1966,8 @@ function ControlRow({
       </button>
       <button
         type="button"
-        onClick={noop}
+        onClick={onExportTransparent}
+        disabled={transparentExporting}
         style={{
           height: 44,
           borderRadius: 'var(--radius-md)',
@@ -1833,14 +1979,15 @@ function ControlRow({
           gap: 7,
           padding: '0 var(--space-3)',
           flexShrink: 0,
-          cursor: 'pointer',
+          cursor: transparentExporting ? 'wait' : 'pointer',
           fontSize: 'var(--font-label-m-size)',
           fontWeight: 800,
           whiteSpace: 'nowrap',
+          opacity: transparentExporting ? 0.72 : 1,
         }}
       >
         <DownloadIcon />
-        导出透明水印
+        {transparentExporting ? '生成中' : '导出透明水印'}
       </button>
     </div>
   )
@@ -2073,7 +2220,7 @@ function ActionBar({
   onSave,
   onShare,
 }: {
-  exportingAction: 'save' | 'share' | null
+  exportingAction: ExportAction
   onSave: () => void
   onShare: () => void
 }) {
@@ -2175,12 +2322,226 @@ function ActionBar({
   )
 }
 
+function WatermarkPreviewScreen({
+  imageUrl,
+  exportingAction,
+  onBack,
+  onSave,
+  onShare,
+}: {
+  imageUrl: string
+  exportingAction: ExportAction
+  onBack: () => void
+  onSave: () => void
+  onShare: () => void
+}) {
+  const exporting = Boolean(exportingAction)
+
+  return (
+    <main
+      data-testid="share-watermark-preview"
+      style={{
+        minHeight: '100dvh',
+        maxWidth: 'var(--page-max-width)',
+        margin: '0 auto',
+        background: 'var(--color-surface)',
+        color: 'var(--color-on-surface)',
+        overflowX: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        paddingBottom: 'calc(112px + env(safe-area-inset-bottom))',
+      }}
+    >
+      <NavBarTitle title="透明水印预览" onBack={onBack} />
+      <section
+        style={{
+          margin: 'var(--space-3) var(--space-4) 0',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--color-outline)',
+          overflow: 'hidden',
+          minHeight: 540,
+          display: 'grid',
+          placeItems: 'center',
+          backgroundColor: 'var(--color-surface-variant)',
+          backgroundImage: `
+            linear-gradient(45deg, color-mix(in srgb, var(--color-on-surface) 16%, transparent) 25%, transparent 25%),
+            linear-gradient(-45deg, color-mix(in srgb, var(--color-on-surface) 16%, transparent) 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--color-on-surface) 16%, transparent) 75%),
+            linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--color-on-surface) 16%, transparent) 75%)
+          `,
+          backgroundSize: '20px 20px',
+          backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0',
+        }}
+      >
+        <img
+          src={imageUrl}
+          alt="透明水印预览"
+          style={{
+            display: 'block',
+            width: '100%',
+            height: 'auto',
+            maxHeight: 620,
+            objectFit: 'contain',
+          }}
+        />
+      </section>
+
+      <div
+        style={{
+          margin: 'var(--space-4) var(--space-4) 0',
+          color: 'var(--color-on-surface-variant)',
+          fontSize: 'var(--font-label-m-size)',
+          lineHeight: 'var(--font-label-m-line)',
+          textAlign: 'center',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+        }}
+      >
+        导出为透明 PNG 叠层
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M12 10v6M12 7.5h.01" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      </div>
+
+      <div style={{ flex: 1 }} />
+
+      <div
+        style={{
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 40,
+          padding: 'var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom))',
+          background: 'linear-gradient(180deg, transparent, var(--color-surface) 20%, var(--color-surface) 100%)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 'var(--page-max-width)',
+            margin: '0 auto',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 'var(--space-3)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={exporting}
+            style={{
+              height: 52,
+              borderRadius: 'var(--radius-md)',
+              border: 'none',
+              background: 'var(--color-success)',
+              color: 'var(--color-on-primary)',
+              fontSize: 'var(--font-title-m-size)',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              cursor: exporting ? 'wait' : 'pointer',
+              opacity: exporting && exportingAction !== 'save' ? 0.58 : 1,
+            }}
+          >
+            <DownloadIcon />
+            {exportingAction === 'save' ? '保存中' : '保存到相册'}
+          </button>
+          <button
+            type="button"
+            onClick={onShare}
+            disabled={exporting}
+            style={{
+              height: 52,
+              borderRadius: 'var(--radius-md)',
+              border: '1.5px solid var(--color-success)',
+              background: 'transparent',
+              color: 'var(--color-success)',
+              fontSize: 'var(--font-title-m-size)',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              cursor: exporting ? 'wait' : 'pointer',
+              opacity: exporting && exportingAction !== 'share' ? 0.58 : 1,
+            }}
+          >
+            <ShareIcon size={17} />
+            {exportingAction === 'share' ? '分享中' : '分享'}
+          </button>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+function NavBarTitle({ title, onBack }: { title: string; onBack: () => void }) {
+  return (
+    <div
+      style={{
+        height: 48,
+        position: 'sticky',
+        top: 0,
+        zIndex: 30,
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 var(--space-2)',
+        background: 'color-mix(in srgb, var(--color-surface) 86%, transparent)',
+        backdropFilter: 'blur(18px)',
+      }}
+    >
+      <button
+        type="button"
+        aria-label="返回"
+        onClick={onBack}
+        style={{
+          width: 44,
+          height: 44,
+          border: 'none',
+          background: 'transparent',
+          color: 'var(--color-on-surface)',
+          display: 'grid',
+          placeItems: 'center',
+          padding: 0,
+          cursor: 'pointer',
+          zIndex: 1,
+        }}
+      >
+        <BackIcon size={22} />
+      </button>
+      <div
+        style={{
+          position: 'absolute',
+          insetInline: 0,
+          pointerEvents: 'none',
+          textAlign: 'center',
+          color: 'var(--color-on-surface)',
+          fontSize: 'var(--font-headline-m-size)',
+          lineHeight: 'var(--font-headline-m-line)',
+          fontWeight: 700,
+        }}
+      >
+        {title}
+      </div>
+    </div>
+  )
+}
+
 export default function ShareClient({
   initialData,
   checkinId,
+  paywallEnabled = false,
+  premiumUnlocked = true,
 }: {
   initialData?: ShareActivityData | null
   checkinId?: string
+  paywallEnabled?: boolean
+  premiumUnlocked?: boolean
 }) {
   const router = useRouter()
   const photoInputRef = useRef<HTMLInputElement | null>(null)
@@ -2188,13 +2549,21 @@ export default function ShareClient({
   const [selectedBasicTemplate, setSelectedBasicTemplate] = useState<BasicTemplateId>('base-classic')
   const [selectedAdvancedTemplate, setSelectedAdvancedTemplate] = useState<AdvancedTemplateId>('premium-photo-composite')
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<ShareViewMode>('editor')
+  const [transparentBlob, setTransparentBlob] = useState<Blob | null>(null)
+  const [transparentBlobUrl, setTransparentBlobUrl] = useState<string | null>(null)
   const [showMap, setShowMap] = useState(true)
   const [fieldToggles, setFieldToggles] = useState<Record<ShareFieldKey, boolean>>(initialFieldToggles)
-  const [exportingAction, setExportingAction] = useState<'save' | 'share' | null>(null)
+  const [exportingAction, setExportingAction] = useState<ExportAction>(null)
   const [exportError, setExportError] = useState<string | null>(null)
 
   const activityData = useMemo(() => initialData ?? MOCK_DATA, [initialData])
   const selectedTemplate: TemplateId = activeTab === 'basic' ? selectedBasicTemplate : selectedAdvancedTemplate
+  const premiumPreviewLocked = paywallEnabled && isAdvancedTemplateId(selectedTemplate) && !premiumUnlocked
+
+  useEffect(() => () => {
+    if (transparentBlobUrl) URL.revokeObjectURL(transparentBlobUrl)
+  }, [transparentBlobUrl])
 
   function toggleField(field: ShareFieldKey) {
     const config = FIELD_CONFIGS.find((item) => item.key === field)
@@ -2205,7 +2574,12 @@ export default function ShareClient({
     }))
   }
 
-  async function renderPosterBlob() {
+  function showPremiumExportHint() {
+    if (!premiumPreviewLocked) return
+    setExportError('当前为预览版，解锁后可导出无水印版本')
+  }
+
+  async function renderPosterBlob(options: { transparent?: boolean } = {}) {
     const response = await fetch('/api/share/render', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2213,6 +2587,7 @@ export default function ShareClient({
         template: selectedTemplate,
         data: buildRenderData(activityData, fieldToggles),
         photoBase64: stripDataUrlPrefix(photoDataUrl),
+        transparent: Boolean(options.transparent),
       }),
     })
 
@@ -2242,6 +2617,7 @@ export default function ShareClient({
   async function handleSave() {
     setExportingAction('save')
     setExportError(null)
+    showPremiumExportHint()
     try {
       const blob = await renderPosterBlob()
       downloadBlob(blob, `peak-trekker-${selectedTemplate}.png`)
@@ -2255,6 +2631,7 @@ export default function ShareClient({
   async function handleShare() {
     setExportingAction('share')
     setExportError(null)
+    showPremiumExportHint()
     try {
       const blob = await renderPosterBlob()
       const file = new File([blob], 'peak-trekker.png', { type: 'image/png' })
@@ -2272,6 +2649,73 @@ export default function ShareClient({
     } finally {
       setExportingAction(null)
     }
+  }
+
+  async function handleTransparentExport() {
+    setExportingAction('transparent')
+    setExportError(null)
+    showPremiumExportHint()
+    try {
+      const blob = await renderPosterBlob({ transparent: true })
+      const nextUrl = URL.createObjectURL(blob)
+      setTransparentBlob(blob)
+      setTransparentBlobUrl((current) => {
+        if (current) URL.revokeObjectURL(current)
+        return nextUrl
+      })
+      setViewMode('watermarkPreview')
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : '透明水印生成失败，请稍后再试')
+    } finally {
+      setExportingAction(null)
+    }
+  }
+
+  function handleWatermarkPreviewBack() {
+    setViewMode('editor')
+  }
+
+  async function handleSaveTransparent() {
+    if (!transparentBlob) return
+    setExportingAction('save')
+    try {
+      downloadBlob(transparentBlob, `peak-trekker-${selectedTemplate}-transparent.png`)
+    } finally {
+      setExportingAction(null)
+    }
+  }
+
+  async function handleShareTransparent() {
+    if (!transparentBlob) return
+    setExportingAction('share')
+    try {
+      const file = new File([transparentBlob], 'peak-trekker-transparent.png', { type: 'image/png' })
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: `${activityData.mountainName ?? 'Peak Trekker'} 透明水印`,
+          files: [file],
+        })
+      } else {
+        downloadBlob(transparentBlob, `peak-trekker-${selectedTemplate}-transparent.png`)
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return
+      setExportError(error instanceof Error ? error.message : '透明水印分享失败，请稍后再试')
+    } finally {
+      setExportingAction(null)
+    }
+  }
+
+  if (viewMode === 'watermarkPreview' && transparentBlobUrl) {
+    return (
+      <WatermarkPreviewScreen
+        imageUrl={transparentBlobUrl}
+        exportingAction={exportingAction}
+        onBack={handleWatermarkPreviewBack}
+        onSave={handleSaveTransparent}
+        onShare={handleShareTransparent}
+      />
+    )
   }
 
   return (
@@ -2310,14 +2754,20 @@ export default function ShareClient({
           padding: 'var(--space-2) var(--space-5) 0',
         }}
       >
-        <HeroPreview
-          data={activityData}
-          toggles={fieldToggles}
-          showMap={showMap}
-          template={selectedTemplate}
-          photoDataUrl={photoDataUrl}
-        />
+        <div style={{ position: 'relative', display: 'flex' }}>
+          <HeroPreview
+            data={activityData}
+            toggles={fieldToggles}
+            showMap={showMap}
+            template={selectedTemplate}
+            photoDataUrl={photoDataUrl}
+          />
+          {premiumPreviewLocked ? <PreviewWatermarkOverlay /> : null}
+        </div>
       </section>
+      {premiumPreviewLocked ? (
+        <UnlockHintBar onClick={() => window.alert('付费功能即将上线')} />
+      ) : null}
 
       <Tabs activeTab={activeTab} onChange={setActiveTab} />
       <div style={{ height: 1, background: 'var(--color-outline)', opacity: 0.7, marginTop: 2 }} />
@@ -2328,12 +2778,16 @@ export default function ShareClient({
         data={activityData}
         onSelectBasicTemplate={setSelectedBasicTemplate}
         onSelectAdvancedTemplate={setSelectedAdvancedTemplate}
+        paywallEnabled={paywallEnabled}
+        premiumUnlocked={premiumUnlocked}
       />
       <ControlRow
         showMap={showMap}
         onToggleMap={() => setShowMap((current) => !current)}
         onPickPhoto={() => photoInputRef.current?.click()}
         onRemovePhoto={() => setPhotoDataUrl(null)}
+        onExportTransparent={handleTransparentExport}
+        transparentExporting={exportingAction === 'transparent'}
         hasPhoto={Boolean(photoDataUrl)}
       />
       <FieldSelector data={activityData} toggles={fieldToggles} onToggle={toggleField} />

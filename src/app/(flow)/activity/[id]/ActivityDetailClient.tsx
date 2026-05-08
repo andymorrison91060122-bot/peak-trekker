@@ -974,7 +974,7 @@ function BackToRecords({ activity }: { activity: ActivityDetailViewModel }) {
     <section style={sectionPadding('var(--space-5)')}>
       <button
         type="button"
-        onClick={() => router.push('/profile#profile-records')}
+        onClick={() => router.push('/archive')}
         style={{
           width: '100%',
           display: 'flex',
@@ -1084,7 +1084,7 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
       router.back()
       return
     }
-    router.push('/profile#profile-records')
+    router.push('/archive')
   }
 
   async function handleShare() {

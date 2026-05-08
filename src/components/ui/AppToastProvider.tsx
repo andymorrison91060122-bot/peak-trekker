@@ -20,11 +20,13 @@ type ShowToastInput = {
 
 type ToastContextValue = {
   showToast: (input: ShowToastInput) => void
+  clearToasts: () => void
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null)
 const FALLBACK_TOAST_CONTEXT: ToastContextValue = {
   showToast: () => {},
+  clearToasts: () => {},
 }
 
 function toneStyles(tone: ToastTone) {
@@ -78,7 +80,11 @@ export default function AppToastProvider({
     }, durationMs ?? (nextAppearance === 'surface' ? 2000 : nextTone === 'error' ? 5200 : 2800))
   }, [])
 
-  const contextValue = useMemo(() => ({ showToast }), [showToast])
+  const clearToasts = useCallback(() => {
+    setToasts([])
+  }, [])
+
+  const contextValue = useMemo(() => ({ showToast, clearToasts }), [showToast, clearToasts])
 
   return (
     <ToastContext.Provider value={contextValue}>

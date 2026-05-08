@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { markActivationTask } from '@/lib/onboarding'
@@ -20,7 +20,7 @@ import {
   MountainIcon,
   WarnIcon,
 } from '@/components/ui/Icons'
-import type { Mountain, ReviewQueueRecord } from '@/types'
+import type { Mountain, ReviewQueueRecord, User } from '@/types'
 
 type TrekStatus =
   | 'idle'
@@ -31,6 +31,23 @@ type TrekStatus =
   | 'card_preview'
   | 'shared'
 type GpsState = { lat: number; lng: number; accuracy: number; altitude?: number | null } | null
+type TrekViewState =
+  | 'loading'
+  | 'permissionDenied'
+  | 'noMountain'
+  | 'restricted'
+  | 'preStart'
+  | 'live'
+  | 'paused'
+  | 'nearSummit'
+  | 'summitConfirmed'
+
+const LICENSE_RANK: Record<User['license_level'], number> = {
+  none: 0,
+  basic: 1,
+  intermediate: 2,
+  advanced: 3,
+}
 
 const APPROACH_RADIUS = TREK_RULES.defaultApproachRadiusM
 const SUMMIT_RADIUS = TREK_RULES.defaultSummitRadiusM
@@ -60,14 +77,16 @@ export default function TrekClient({
   initialReviewQueueRecords,
   initialReviewQueueCount,
   userProvince,
+  userLicense,
 }: {
   initialReviewQueueRecords: ReviewQueueRecord[]
   initialReviewQueueCount: number
   userProvince: string | null
+  userLicense: User['license_level']
 }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
   const router = useRouter()
-  const { showToast } = useAppToast()
+  const { showToast, clearToasts } = useAppToast()
   const searchParams = useSearchParams()
   const targetMountainId = searchParams.get('mountainId')
   void initialReviewQueueRecords
@@ -76,6 +95,8 @@ export default function TrekClient({
   const [status, setStatus] = useState<TrekStatus>('idle')
   const [gps, setGps] = useState<GpsState>(null)
   const [gpsError, setGpsError] = useState('')
+  const [gpsErrorCode, setGpsErrorCode] = useState<number | null>(null)
+  const [mountainsLoading, setMountainsLoading] = useState(true)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [distanceKm, setDistanceKm] = useState(0)
   const [ascentM, setAscentM] = useState(0)
@@ -126,6 +147,7 @@ export default function TrekClient({
     setIsPaused(false)
     setCheckinNote('')
     setGpsError('')
+    setGpsErrorCode(null)
     trackRef.current = []
     lastSyncRef.current = 0
   }, [])
@@ -152,6 +174,7 @@ export default function TrekClient({
         setMountains((data?.mountains ?? []) as Mountain[])
       })
       .catch(() => setMountains([]))
+      .finally(() => setMountainsLoading(false))
   }, [supabase])
 
   useEffect(() => {
@@ -278,6 +301,7 @@ export default function TrekClient({
     }
     if (!navigator.geolocation) {
       setGpsError('当前设备不支持定位。')
+      setGpsErrorCode(null)
       showToast({ key: 'device_location_unsupported' })
       return
     }
@@ -304,6 +328,7 @@ export default function TrekClient({
     setStatus('locating')
     setIsPaused(false)
     setGpsError('')
+    setGpsErrorCode(null)
     setElapsedSeconds(0)
     setDistanceKm(0)
     setAscentM(0)
@@ -345,6 +370,7 @@ export default function TrekClient({
         setGps({ lat: latitude, lng: longitude, accuracy, altitude })
         setStatus('tracking')
         setGpsError('')
+        setGpsErrorCode(null)
         checkNearby(latitude, longitude)
 
         if (nextSessionId && (lastSyncRef.current === 0 || now - lastSyncRef.current >= 4000)) {
@@ -363,6 +389,11 @@ export default function TrekClient({
         void finishSession(nextSessionId, 'aborted')
         resetLiveTrekState()
         setGpsError(message)
+        setGpsErrorCode(error.code)
+        if (error.code === 1) {
+          clearToasts()
+          return
+        }
         showToast({ key: 'location_error', message })
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
@@ -479,6 +510,12 @@ export default function TrekClient({
     distanceToTarget !== null && distanceToTarget <= SUMMIT_RADIUS && hasMinimumVerificationEvidence
   const isTrackingActive = status === 'locating' || status === 'tracking' || status === 'approach_alert'
   const isSummitFlow = status === 'summit_verified' || status === 'card_preview' || status === 'shared'
+  const activeMountainForGate = targetMountain ?? selectedMountain ?? suggestedMountain
+  const hasNoMountainTarget =
+    !mountainsLoading && !targetMountainId && !selectedMountainId && !confirmedMountainId && !activeMountainForGate
+  const isRestricted =
+    !!activeMountainForGate &&
+    LICENSE_RANK[userLicense] < LICENSE_RANK[activeMountainForGate.min_license]
   const needsTargetConfirmation = !targetMountain
   const hasIncomingTarget = Boolean(targetMountainId)
   const preflightTitle = hasIncomingTarget
@@ -515,15 +552,23 @@ export default function TrekClient({
     photoInputRef.current?.click()
   }
 
-  const viewState = isSummitFlow
-    ? 'summitConfirmed'
-    : isPaused && isTrackingActive
-      ? 'paused'
-      : status === 'approach_alert'
-        ? 'nearSummit'
-        : isTrackingActive
-          ? 'live'
-          : 'preStart'
+  const viewState: TrekViewState = mountainsLoading
+    ? 'loading'
+    : gpsErrorCode === 1
+      ? 'permissionDenied'
+      : hasNoMountainTarget
+        ? 'noMountain'
+        : isRestricted
+          ? 'restricted'
+          : isSummitFlow
+            ? 'summitConfirmed'
+            : isPaused && isTrackingActive
+              ? 'paused'
+              : status === 'approach_alert'
+                ? 'nearSummit'
+                : isTrackingActive
+                  ? 'live'
+                  : 'preStart'
   const activeMountain = targetMountain ?? selectedMountain ?? suggestedMountain
   const summitMountain = nearbyMountain ?? targetMountain ?? activeMountain
   const targetAltitude = targetMountain?.altitude ?? activeMountain?.altitude ?? 0
@@ -534,7 +579,20 @@ export default function TrekClient({
     { label: '距离 km', value: distanceKm.toFixed(2) },
     { label: '爬升 m', value: String(ascentM) },
   ]
+  const gpsWeak =
+    !!gps &&
+    (gps.accuracy > 20 ||
+      Boolean(gpsError && (gpsError.includes('漂移') || gpsError.includes('开阔') || gpsError.includes('信号'))))
+  const visibleTrekMetrics = gpsWeak
+    ? trekMetrics.map((metric) => (metric.label === '距离 km' ? { ...metric, value: '—' } : metric))
+    : trekMetrics
   const summitTimestamp = createdCheckinId ? formatSummitTimestamp(new Date()) : ''
+
+  useEffect(() => {
+    if (viewState === 'permissionDenied') {
+      clearToasts()
+    }
+  }, [clearToasts, viewState])
 
   function handleBack() {
     if (window.history.length > 1) {
@@ -557,6 +615,10 @@ export default function TrekClient({
     setConfirmedMountainId(targetMountain?.id ?? nearbyMountain?.id ?? null)
   }
 
+  function showManualPlaceholder() {
+    showToast({ key: 'action_blocked', message: '这个入口会在后续版本接入。' })
+  }
+
   void showPhotoPanel
   void isReviewQueueOpen
   void setIsReviewQueueOpen
@@ -569,13 +631,29 @@ export default function TrekClient({
   return (
     <TrekShell>
       <TrekTopBar state={viewState} onBack={handleBack} />
-      {gpsError ? (
+      {gpsError && viewState !== 'permissionDenied' && !gpsWeak ? (
         <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-1)' }}>
           <InlineBanner tone="warn" title="定位状态需要注意" sub={gpsError} />
         </div>
       ) : null}
 
-      {viewState === 'preStart' ? (
+      {viewState === 'loading' ? (
+        <LoadingView />
+      ) : viewState === 'permissionDenied' ? (
+        <PermissionDeniedView
+          onOpenSettings={() => showToast({ key: 'action_blocked', message: '请在系统设置中开启浏览器定位权限。' })}
+          onManualEntry={showManualPlaceholder}
+        />
+      ) : viewState === 'noMountain' ? (
+        <NoMountainView onPick={() => router.push('/explore')} onUnassigned={showManualPlaceholder} />
+      ) : viewState === 'restricted' ? (
+        <RestrictedView
+          mountain={activeMountainForGate}
+          userLicense={userLicense}
+          onChangeMountain={() => router.push('/explore')}
+          onUpgrade={() => router.push('/profile')}
+        />
+      ) : viewState === 'preStart' ? (
         <div>
           <div style={{ padding: 'var(--space-4) var(--space-5) var(--space-2)' }}>
             <div
@@ -677,6 +755,11 @@ export default function TrekClient({
         </div>
       ) : (
         <div>
+          {gpsWeak ? (
+            <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-1)' }}>
+              <InlineBanner tone="warn" title="GPS 信号弱" sub="海拔仍来自气压计 · 距离与地图会延迟更新" />
+            </div>
+          ) : null}
           {viewState === 'nearSummit' ? (
             <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-1)' }}>
               <InlineBanner
@@ -691,10 +774,18 @@ export default function TrekClient({
             value={currentAltitude}
             target={targetAltitude}
             pulse={viewState === 'nearSummit'}
-            sub={viewState === 'paused' ? '记录已暂停 · 数据保留' : gps?.altitude ? undefined : '等待 GPS 海拔 · 暂用目标海拔'}
+            sub={
+              viewState === 'paused'
+                ? '记录已暂停 · 数据保留'
+                : gpsWeak
+                  ? `水平精度 ±${Math.round(gps?.accuracy ?? 0)}m`
+                  : gps?.altitude
+                    ? undefined
+                    : '等待 GPS 海拔 · 暂用目标海拔'
+            }
           />
-          <TrekMetricRow metrics={trekMetrics} />
-          <TrekMiniMap progress={viewState === 'nearSummit' ? 0.95 : mapProgress} />
+          <TrekMetricRow metrics={visibleTrekMetrics} />
+          <TrekMiniMap progress={viewState === 'nearSummit' ? 0.95 : mapProgress} weak={gpsWeak} />
 
           {viewState === 'paused' ? (
             <BottomActionBar>
@@ -760,8 +851,13 @@ function TrekShell({ children }: { children: ReactNode }) {
           0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-error) 55%, transparent); }
           100% { box-shadow: 0 0 0 8px transparent; }
         }
+        @keyframes pt-shimmer {
+          0% { background-position: 0% 0%; }
+          100% { background-position: -200% 0%; }
+        }
         @media (prefers-reduced-motion: reduce) {
           .pt-rec-dot { animation: none !important; }
+          .pt-shimmer { animation: none !important; }
         }
       `}</style>
     </div>
@@ -772,7 +868,7 @@ function TrekTopBar({
   state,
   onBack,
 }: {
-  state: 'preStart' | 'live' | 'paused' | 'nearSummit' | 'summitConfirmed'
+  state: TrekViewState
   onBack: () => void
 }) {
   const isRecording = state === 'live' || state === 'nearSummit'
@@ -934,6 +1030,293 @@ function MountainContext({
         ) : null}
       </button>
     </div>
+  )
+}
+
+function NoMountainView({
+  onPick,
+  onUnassigned,
+}: {
+  onPick: () => void
+  onUnassigned: () => void
+}) {
+  return (
+    <div style={{ padding: '48px 28px 0', textAlign: 'center' }}>
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 16,
+          background: 'color-mix(in srgb, var(--color-primary) 12%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--color-primary) 22%, transparent)',
+          color: 'var(--color-success)',
+          margin: '0 auto',
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        <MountainIcon size={28} />
+      </div>
+      <div style={{ fontSize: 'var(--font-title-l-size)', lineHeight: 'var(--font-title-l-line)', fontWeight: 700, marginTop: 18 }}>
+        还没有选择这次要去的山
+      </div>
+      <div
+        style={{
+          fontSize: 'var(--font-label-m-size)',
+          lineHeight: 1.6,
+          color: 'var(--color-on-surface-variant)',
+          maxWidth: 300,
+          margin: 'var(--space-2) auto 0',
+        }}
+      >
+        Peak Trekker 的记录以一座真实的山为主语。<br />
+        先选一座，再开始记录。
+      </div>
+      <div
+        style={{
+          marginTop: 22,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 'var(--space-3)',
+        }}
+      >
+        <PrimaryButton onClick={onPick}>
+          去 Explore 选山
+        </PrimaryButton>
+        <button
+          type="button"
+          onClick={onUnassigned}
+          style={{
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--color-on-surface-variant)',
+            font: 'inherit',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            padding: 0,
+            cursor: 'pointer',
+          }}
+        >
+          直接记为无归属 · 事后再认领
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function PermissionDeniedView({
+  onOpenSettings,
+  onManualEntry,
+}: {
+  onOpenSettings: () => void
+  onManualEntry: () => void
+}) {
+  return (
+    <div style={{ padding: '48px 28px 0', textAlign: 'center' }}>
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 16,
+          background: 'color-mix(in srgb, var(--color-warning) 12%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--color-warning) 30%, transparent)',
+          color: 'var(--color-warning)',
+          margin: '0 auto',
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        <WarnIcon size={28} />
+      </div>
+      <div style={{ fontSize: 'var(--font-title-l-size)', lineHeight: 'var(--font-title-l-line)', fontWeight: 700, marginTop: 18 }}>
+        需要定位权限
+      </div>
+      <div
+        style={{
+          fontSize: 'var(--font-label-m-size)',
+          lineHeight: 1.6,
+          color: 'var(--color-on-surface-variant)',
+          maxWidth: 300,
+          margin: 'var(--space-2) auto 0',
+        }}
+      >
+        记录轨迹和海拔需要“始终允许”定位。<br />
+        仅在记录期间使用，不做后台追踪。
+      </div>
+      <div
+        style={{
+          marginTop: 22,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 'var(--space-3)',
+        }}
+      >
+        <PrimaryButton onClick={onOpenSettings}>
+          去系统设置开启
+        </PrimaryButton>
+        <button
+          type="button"
+          onClick={onManualEntry}
+          style={{
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--color-on-surface-variant)',
+            font: 'inherit',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            padding: 0,
+            cursor: 'pointer',
+          }}
+        >
+          手动补签（不自动记录）
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function RestrictedView({
+  mountain,
+  userLicense,
+  onChangeMountain,
+  onUpgrade,
+}: {
+  mountain: Mountain | null | undefined
+  userLicense: User['license_level']
+  onChangeMountain: () => void
+  onUpgrade: () => void
+}) {
+  const requiredLabel = mountain ? licenseShortLabel(mountain.min_license) : '更高等级'
+  const currentLabel = licenseShortLabel(userLicense)
+
+  return (
+    <div>
+      <MountainContext mountain={mountain} />
+      <div style={{ padding: 'var(--space-4) var(--space-4) 0' }}>
+        <div
+          style={{
+            background: 'var(--color-surface-variant)',
+            border: '1px solid color-mix(in srgb, var(--color-error) 35%, transparent)',
+            borderRadius: 14,
+            padding: 'var(--space-4)',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              background: 'color-mix(in srgb, var(--color-error) 12%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-error) 30%, transparent)',
+              color: 'var(--color-error)',
+              margin: '0 auto var(--space-3)',
+              display: 'grid',
+              placeItems: 'center',
+            }}
+          >
+            <WarnIcon size={24} />
+          </div>
+          <div style={{ fontSize: 'var(--font-title-m-size)', lineHeight: 'var(--font-title-m-line)', fontWeight: 700 }}>
+            等级不够 · 无法开始记录
+          </div>
+          <div
+            style={{
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 1.6,
+              color: 'var(--color-on-surface-variant)',
+              marginTop: 'var(--space-2)',
+            }}
+          >
+            {mountain?.name ?? '这座山'} 需要 {requiredLabel}{'\u00A0'}及以上登山等级。<br />
+            你当前为 {currentLabel}。这是硬性限制，不是建议。
+          </div>
+          <div
+            style={{
+              marginTop: 14,
+              padding: '10px 12px',
+              background: 'color-mix(in srgb, var(--color-on-surface) 3%, transparent)',
+              border: '1px solid var(--color-outline)',
+              borderRadius: 10,
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 1.55,
+              color: 'var(--color-on-surface)',
+              textAlign: 'left',
+            }}
+          >
+            <span style={{ fontWeight: 700 }}>下一步：</span>完成任一 5000m+ 山行（哈巴雪山 · 四姑娘大峰 · 雪宝顶）即可晋级。
+          </div>
+        </div>
+      </div>
+      <BottomActionBar>
+        <SecondaryButton style={{ width: '100%' }} onClick={onChangeMountain}>
+          换一座山
+        </SecondaryButton>
+        <PrimaryButton style={{ width: '100%' }} onClick={onUpgrade}>
+          查看升级路径
+        </PrimaryButton>
+      </BottomActionBar>
+    </div>
+  )
+}
+
+function LoadingView() {
+  return (
+    <div>
+      <div style={{ padding: '10px var(--space-4) 0' }}>
+        <SkeletonRow height={60} />
+      </div>
+      <div style={{ padding: 'var(--space-5) var(--space-5) var(--space-2)', textAlign: 'center' }}>
+        <SkeletonRow height={10} width={70} style={{ margin: '0 auto' }} />
+        <div style={{ height: 12 }} />
+        <SkeletonRow height={44} width={180} style={{ margin: '0 auto' }} />
+        <div style={{ height: 12 }} />
+        <SkeletonRow height={8} width={240} style={{ margin: '0 auto', borderRadius: 'var(--radius-pill)' }} />
+      </div>
+      <div
+        style={{
+          padding: 'var(--space-4) var(--space-4) 0',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: 'var(--space-2)',
+        }}
+      >
+        <SkeletonRow height={64} />
+        <SkeletonRow height={64} />
+        <SkeletonRow height={64} />
+      </div>
+      <div style={{ padding: 'var(--space-4) var(--space-4) 0' }}>
+        <SkeletonRow height={160} style={{ borderRadius: 14 }} />
+      </div>
+    </div>
+  )
+}
+
+function SkeletonRow({
+  height,
+  width = '100%',
+  style,
+}: {
+  height: number
+  width?: number | string
+  style?: CSSProperties
+}) {
+  return (
+    <div
+      className="pt-shimmer"
+      style={{
+        height,
+        width,
+        borderRadius: 10,
+        background:
+          'linear-gradient(90deg, color-mix(in srgb, var(--color-on-surface) 3%, transparent) 0%, color-mix(in srgb, var(--color-on-surface) 7%, transparent) 50%, color-mix(in srgb, var(--color-on-surface) 3%, transparent) 100%)',
+        backgroundSize: '200% 100%',
+        animation: 'pt-shimmer 1.4s ease-in-out infinite',
+        ...style,
+      }}
+    />
   )
 }
 
@@ -1247,7 +1630,7 @@ function TrekMetric({ label, value }: { label: string; value: string }) {
   )
 }
 
-function TrekMiniMap({ progress }: { progress: number }) {
+function TrekMiniMap({ progress, weak = false }: { progress: number; weak?: boolean }) {
   const p = Math.min(Math.max(progress, 0), 1)
   const dotX = 34 + p * 256
   const dotY = 126 - p * 78
@@ -1266,24 +1649,26 @@ function TrekMiniMap({ progress }: { progress: number }) {
       }}
     >
       <svg width="100%" height="100%" viewBox="0 0 343 160" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }}>
-        {[0, 1, 2, 3, 4, 5, 6].map((item) => (
-          <ellipse
-            key={item}
-            cx="180"
-            cy="82"
-            rx={38 + item * 28}
-            ry={18 + item * 12}
-            stroke="var(--color-outline)"
-            strokeOpacity="0.55"
-            strokeWidth="1"
-            fill="none"
-          />
-        ))}
-        <path d="M34 126 Q80 110 122 100 T204 78 T290 44" stroke="var(--color-outline)" strokeWidth="2" strokeDasharray="4 5" fill="none" />
-        <path d={walkedPath} stroke="var(--color-success)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-        <circle cx={dotX} cy={dotY} r="7" fill="var(--color-success)" />
-        <circle cx={dotX} cy={dotY} r="12" fill="none" stroke="var(--color-success)" strokeOpacity="0.25" strokeWidth="2" />
-        <path d="M276 48 L286 30 L296 48 Z" fill="var(--color-on-surface)" opacity="0.72" />
+        <g opacity={weak ? 0.4 : 1}>
+          {[0, 1, 2, 3, 4, 5, 6].map((item) => (
+            <ellipse
+              key={item}
+              cx="180"
+              cy="82"
+              rx={38 + item * 28}
+              ry={18 + item * 12}
+              stroke="var(--color-outline)"
+              strokeOpacity="0.55"
+              strokeWidth="1"
+              fill="none"
+            />
+          ))}
+          <path d="M34 126 Q80 110 122 100 T204 78 T290 44" stroke="var(--color-outline)" strokeWidth="2" strokeDasharray="4 5" fill="none" />
+          <path d={walkedPath} stroke="var(--color-success)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <circle cx={dotX} cy={dotY} r="7" fill="var(--color-success)" />
+          <circle cx={dotX} cy={dotY} r="12" fill="none" stroke="var(--color-success)" strokeOpacity="0.25" strokeWidth="2" />
+          <path d="M276 48 L286 30 L296 48 Z" fill="var(--color-on-surface)" opacity="0.72" />
+        </g>
       </svg>
       <span
         style={{
@@ -1301,6 +1686,24 @@ function TrekMiniMap({ progress }: { progress: number }) {
       >
         地图仅作参考
       </span>
+      {weak ? (
+        <span
+          style={{
+            position: 'absolute',
+            right: 10,
+            top: 10,
+            padding: '4px 8px',
+            borderRadius: 'var(--radius-pill)',
+            fontSize: 10,
+            fontWeight: 700,
+            background: 'color-mix(in srgb, var(--color-warning) 16%, var(--color-surface))',
+            color: 'var(--color-warning)',
+            letterSpacing: '0.05em',
+          }}
+        >
+          GPS 弱
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -1498,6 +1901,17 @@ function difficultyLabel(value: Mountain['difficulty'] | null | undefined) {
     expert: '专家线',
   }
   return value ? labels[value] : '路线待确认'
+}
+
+function licenseShortLabel(value: User['license_level'] | Mountain['min_license'] | null | undefined) {
+  const labels: Record<User['license_level'], string> = {
+    none: '无执照',
+    basic: '初级',
+    intermediate: '中级',
+    advanced: '高级',
+  }
+  if (value === 'basic' || value === 'intermediate' || value === 'advanced') return labels[value]
+  return labels.none
 }
 
 function formatSummitTimestamp(date: Date) {

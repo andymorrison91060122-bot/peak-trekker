@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { listPublishableRecords, listUserCommunityPosts } from '@/lib/community-server'
@@ -70,6 +71,80 @@ function getShanghaiYearMonth(date = new Date()) {
     month,
     label: `${year} 年 ${month} 月`,
   }
+}
+
+function SupportFaqEntry() {
+  return (
+    <section style={{ marginBottom: 18 }}>
+      <div
+        style={{
+          padding: '0 var(--space-1) var(--space-2)',
+          color: 'var(--color-on-surface-variant)',
+          fontSize: 'var(--font-label-s-size)',
+          lineHeight: 'var(--font-label-s-line)',
+          fontWeight: 700,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+        }}
+      >
+        支持
+      </div>
+      <Link
+        href="/faq"
+        className="surface-card"
+        style={{
+          minHeight: 56,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 'var(--space-3)',
+          padding: '0 var(--space-4)',
+          color: 'var(--color-on-surface)',
+          textDecoration: 'none',
+        }}
+      >
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            minWidth: 0,
+            fontSize: 'var(--font-body-m-size)',
+            lineHeight: 'var(--font-body-m-line)',
+            fontWeight: 500,
+          }}
+        >
+          帮助 · FAQ
+          <span
+            aria-hidden="true"
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 'var(--radius-pill)',
+              border: '1.5px solid var(--color-success)',
+              flexShrink: 0,
+            }}
+          />
+        </span>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+          style={{ flexShrink: 0, color: 'var(--color-on-surface-variant)' }}
+        >
+          <path
+            d="M9 6l6 6-6 6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </Link>
+    </section>
+  )
 }
 
 export default async function ProfilePage() {
@@ -189,6 +264,8 @@ export default async function ProfilePage() {
         contribution={provinceContribution}
         monthLabel={currentMonth.label}
       />
+
+      <SupportFaqEntry />
 
       <ProfileCommunitySections
         initialRecords={publishableRecords}

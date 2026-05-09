@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { startTransition, useMemo, useState } from 'react'
+import { startTransition, useMemo, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import type { CommunityPostViewModel } from '@/types'
 import { normalizeCommunityActionError } from '@/lib/community'
 import { sanitizeCommunityText, sanitizeCommunityUsername } from '@/components/community/communityRender'
@@ -15,6 +15,11 @@ import PostBody from '@/components/community/PostBody'
 
 function getPostMedia(post: CommunityPostViewModel) {
   return post.assets.filter((asset) => asset.type === 'image' || asset.type === 'video')
+}
+
+function shouldSkipCardNavigation(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false
+  return Boolean(target.closest('a, button, input, textarea, select, video, [data-community-menu-root], [data-community-card-no-nav]'))
 }
 
 export default function CommunityCard({
@@ -111,8 +116,33 @@ export default function CommunityCard({
     })
   }
 
+  function openDetail() {
+    router.push(detailHref)
+  }
+
+  function handleCardClick(event: MouseEvent<HTMLElement>) {
+    if (shouldSkipCardNavigation(event.target)) return
+    openDetail()
+  }
+
+  function handleCardKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (shouldSkipCardNavigation(event.target)) return
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    openDetail()
+  }
+
   return (
-    <article className="community-v2-card" data-testid="community-feed-card">
+    <article
+      className="community-v2-card"
+      data-testid="community-feed-card"
+      role="button"
+      tabIndex={0}
+      aria-label={`查看${mountain.name}山友圈动态`}
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
+      style={{ cursor: 'pointer' }}
+    >
       <AuthorStrip
         name={authorName}
         avatarUrl={post.author.avatarUrl}

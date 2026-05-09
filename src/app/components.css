@@ -2386,6 +2386,23 @@
   font-variant-numeric: tabular-nums;
 }
 
+.community-v2-author-strip__evidence {
+  flex: 0 0 auto;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
+  color: var(--color-on-surface-variant);
+  font-family: var(--font-mono);
+  font-size: var(--font-label-s-size);
+  line-height: var(--font-label-s-line);
+  font-weight: var(--font-label-s-weight);
+  white-space: nowrap;
+}
+
 .community-v2-author-strip__mine {
   color: color-mix(in srgb, var(--color-on-surface-variant) 78%, transparent);
   font-size: var(--font-label-s-size);

@@ -4,12 +4,14 @@ import { useState } from 'react'
 
 export default function PostBody({
   text,
+  full = false,
 }: {
   text: string
+  full?: boolean
 }) {
   const trimmed = text.trim()
   const [expanded, setExpanded] = useState(false)
-  const shouldClamp = trimmed.length > 116 || trimmed.split('\n').length > 2
+  const shouldClamp = !full && (trimmed.length > 116 || trimmed.split('\n').length > 2)
 
   if (!trimmed) return null
 

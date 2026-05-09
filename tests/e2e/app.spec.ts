@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 import { createHistoricalCheckinViaApi } from './community.helpers'
+import { isFeatureEnabled } from '../../src/lib/feature-flags'
+
+const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 
 type ExploreCardMeta = {
   href: string
@@ -156,7 +159,13 @@ test('first-time visitors can skip the intro, anchor a province, and continue wi
   await completeProvinceOnboarding(page)
 
   await expect(page.getByText('Activation Checklist')).toBeVisible()
-  await expect(page.getByText('已锁定 四川，切到“本省热门”会优先看同省路线。')).toBeVisible()
+  if (provinceRankingEnabled) {
+    await expect(page.getByText(/四川 的热门山峰已经优先展示了。/)).toBeVisible()
+  } else {
+    await expect(
+      page.getByText('先从探索页打开任意山峰详情。把路线和难度看明白，后面开始记录时会更笃定。')
+    ).toBeVisible()
+  }
   await expect(page.getByText('找下一座山')).toBeVisible()
 })
 

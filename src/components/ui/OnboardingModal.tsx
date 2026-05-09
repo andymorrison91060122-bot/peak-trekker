@@ -22,6 +22,7 @@ import {
   setOnboardingSuppressed as persistOnboardingSuppressed,
   setProvinceDraft as persistProvinceDraft,
 } from '@/lib/onboarding'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import { PROVINCES, getProvinceCode } from '@/lib/provinces'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import IconActionButton, { ActionGlyph } from '@/components/ui/IconActionButton'
@@ -50,6 +51,8 @@ const INTRO_SCENES = [
     accent: '#a7f3d0',
   },
 ] as const
+
+const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 
 const ACTIVATION_TASKS: Array<{
   key: ActivationTask
@@ -101,7 +104,7 @@ function getCoachCopy(task: ActivationTask | null, pathname: string, province: s
   if (task === 'find_peak') {
     return {
       title: '先挑一座想去的山',
-      description: province
+      description: province && provinceRankingEnabled
         ? `${province} 的热门山峰已经优先展示了。先点开一座详情，确认路线、海拔和门槛，再决定要不要开始第一条记录。`
         : '先从探索页打开任意山峰详情。把路线和难度看明白，后面开始记录时会更笃定。',
       primaryLabel: pathname === '/explore' ? '就在这里挑一座' : '去探索页',
@@ -1012,7 +1015,9 @@ export default function OnboardingModal({
                 告诉我，你将为哪片土地而战？
               </div>
               <div className="section-subtitle" style={{ fontSize: 14, marginBottom: 18 }}>
-                选择你的籍贯或常驻省。首页会优先展示本省热门，后续注册也会自动预填这里的归属地。
+                {provinceRankingEnabled
+                  ? '选择你的籍贯或常驻省。首页会优先展示本省热门，后续注册也会自动预填这里的归属地。'
+                  : '选择你的籍贯或常驻省。后续注册也会自动预填这里的归属地。'}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, maxHeight: 280, overflowY: 'auto', marginBottom: 18 }}>

@@ -1,4 +1,6 @@
 import type { CSSProperties } from 'react'
+import { redirect } from 'next/navigation'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import { formatRankWithPercentile } from '@/lib/province-ranking'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { getUserMonthlyContribution, listProvinceMonthlyRankings } from '@/lib/province-ranking-queries'
@@ -72,6 +74,8 @@ export default async function ProvinceRankingsPage({
 }: {
   searchParams?: Promise<{ year?: string | string[]; month?: string | string[] }>
 }) {
+  if (!isFeatureEnabled('PROVINCE_RANKING')) redirect('/explore')
+
   const resolvedSearchParams = searchParams ? await searchParams : undefined
   const { year, month, label } = resolveRankingMonth(resolvedSearchParams)
   const supabase = await createSupabaseServerClient()

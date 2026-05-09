@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import ProvinceBannerStrip, { type ProvinceBannerData } from '@/components/explore/ProvinceBannerStrip'
 import { ONBOARDING_EVENT, getProvinceDraft } from '@/lib/onboarding'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import ExploreMountainCard from '@/components/ui/ExploreMountainCard'
 import Card from '@/components/ui/Card'
 import Chip from '@/components/ui/Chip'
@@ -12,7 +13,10 @@ import { CameraIcon, FilterIcon, SearchIcon, ShareIcon } from '@/components/ui/I
 import { getDifficultyLevelLabel } from '@/lib/license-ui'
 import type { Mountain } from '@/types'
 
-const QUICK_TAGS = ['附近', '本省热门', '无执照可进', '高海拔', '长线'] as const
+const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
+const QUICK_TAGS = provinceRankingEnabled
+  ? (['附近', '本省热门', '无执照可进', '高海拔', '长线'] as const)
+  : (['附近', '无执照可进', '高海拔', '长线'] as const)
 
 function estimateLength(mountain: Mountain) {
   return mountain.length_km ?? Number(Math.max(4.2, Math.min(26, mountain.altitude / 260)).toFixed(1))
@@ -79,7 +83,7 @@ export default function ExploreClient({
 
     return withDistance.sort((a, b) => {
       if (tag === '附近' && a.distance !== null && b.distance !== null) return a.distance - b.distance
-      if (tag === '本省热门') {
+      if (provinceRankingEnabled && tag === '本省热门') {
         const aMatch = effectiveProvince ? a.mountain.province === effectiveProvince : false
         const bMatch = effectiveProvince ? b.mountain.province === effectiveProvince : false
         if (aMatch !== bMatch) return aMatch ? -1 : 1
@@ -99,7 +103,7 @@ export default function ExploreClient({
       const matchesTag =
         tag === '附近'
           ? true
-          : tag === '本省热门'
+          : provinceRankingEnabled && tag === '本省热门'
             ? effectiveProvince ? mountain.province === effectiveProvince : true
             : tag === '无执照可进'
               ? mountain.difficulty === 'beginner'
@@ -130,7 +134,7 @@ export default function ExploreClient({
   const mountainListDescription =
     tag === '附近' && position
       ? '已按你当前位置由近到远排序'
-      : tag === '本省热门' && effectiveProvince
+      : provinceRankingEnabled && tag === '本省热门' && effectiveProvince
         ? `已优先展示 ${effectiveProvince} 的热门路线`
         : `当前找到 ${filtered.length} 座可选山峰`
 
@@ -240,7 +244,7 @@ export default function ExploreClient({
             </button>
           </div>
 
-          {provinceBanner !== undefined ? (
+          {provinceRankingEnabled && provinceBanner !== undefined ? (
             <div>
               <ProvinceBannerStrip banner={provinceBanner} />
             </div>

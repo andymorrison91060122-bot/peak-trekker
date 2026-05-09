@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ReviewQueueRecord } from '@/types'
 import type { UserContribution } from '@/lib/province-ranking'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import { MountainIcon } from '@/components/ui/Icons'
@@ -593,6 +594,7 @@ export default function ProfileV2Client({
 }) {
   const visibleTrips = useMemo(() => trips.slice(0, 3), [trips])
   const visibleShares = useMemo(() => shares.slice(0, 3), [shares])
+  const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 
   return (
     <div
@@ -613,7 +615,9 @@ export default function ProfileV2Client({
       <SummaryTiles summary={summary} />
       <ArchivePreviewSection trips={visibleTrips} />
       <SharePreviewSection shares={visibleShares} currentUserId={identity.userId} />
-      <ProvinceContributionSection contribution={provinceContribution} monthLabel={monthLabel} />
+      {provinceRankingEnabled ? (
+        <ProvinceContributionSection contribution={provinceContribution} monthLabel={monthLabel} />
+      ) : null}
       <ReviewQueueSection records={reviewRecords} />
       <SupportSection />
       <LogoutLink />

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { markActivationTask } from '@/lib/onboarding'
 import { getCheckinScore } from '@/lib/province-ranking'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import { TREK_RULES } from '@/lib/trek-rules-client'
 import { haversineMeters } from '@/lib/trek-utils'
 import { useAppToast } from '@/components/ui/AppToastProvider'
@@ -525,9 +526,11 @@ export default function TrekClient({
   const photoTargetLocked = Boolean(targetMountain)
   const selectedPhotoTargetLabel = targetMountain ? `${targetMountain.name} · ${targetMountain.province}` : ''
   const photoButtonsAriaDisabled = !photoTargetLocked ? 'true' : undefined
-  const summitContributionScore = nearbyMountain ? getCheckinScore(nearbyMountain.difficulty ?? '') : 0
+  const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
+  const summitContributionScore =
+    provinceRankingEnabled && nearbyMountain ? getCheckinScore(nearbyMountain.difficulty ?? '') : 0
   const summitContributionNote =
-    createdCheckinId && userProvince && summitContributionScore > 0
+    provinceRankingEnabled && createdCheckinId && userProvince && summitContributionScore > 0
       ? `+${summitContributionScore} 分 贡献给 ${userProvince}`
       : null
 
@@ -1863,6 +1866,7 @@ function SummitConfirmedView({
         </div>
         {contributionNote ? (
           <div
+            data-testid="trek-province-contribution-note"
             style={{
               marginTop: 'var(--space-2)',
               color: 'var(--color-on-surface-variant)',

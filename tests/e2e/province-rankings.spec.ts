@@ -6,6 +6,9 @@ import {
   dismissActivationChecklistIfPresent,
   registerFreshUser,
 } from './community.helpers'
+import { isFeatureEnabled } from '../../src/lib/feature-flags'
+
+const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 
 type ActiveMountain = {
   id: string
@@ -262,6 +265,8 @@ async function completeGpsSummitViaUi(
 }
 
 test.describe('province rankings', () => {
+  test.skip(!provinceRankingEnabled, 'Province ranking UI is hidden by the feature flag.')
+
   test('province rankings page basic load shows title and footer notes', async ({ page, baseURL }) => {
     const root = baseURL ?? 'http://127.0.0.1:3100'
 
@@ -272,7 +277,7 @@ test.describe('province rankings', () => {
     await expect(page.getByText('难度权重：入门 1 · 进阶 2 · 挑战 5 · 硬核 10', { exact: true })).toBeVisible()
   })
 
-  test('province rankings page sorts by score desc and highlights current province row', async ({ page, browser, baseURL }) => {
+  test('province rankings page sorts by score desc and highlights current province row', async ({ browser, baseURL }) => {
     test.setTimeout(180_000)
     const root = baseURL ?? 'http://127.0.0.1:3100'
     const primaryUser = await openUserContext(browser, root, {
@@ -333,7 +338,7 @@ test.describe('province rankings', () => {
     await expect(page.getByTestId('province-ranking-row')).toHaveCount(0)
   })
 
-  test('profile province contribution section shows metrics and navigates to rankings when user has a province', async ({ page, browser, baseURL }) => {
+  test('profile province contribution section shows metrics and navigates to rankings when user has a province', async ({ browser, baseURL }) => {
     test.setTimeout(180_000)
     const root = baseURL ?? 'http://127.0.0.1:3100'
     const user = await openUserContext(browser, root, {
@@ -352,22 +357,21 @@ test.describe('province rankings', () => {
       const section = user.page.getByTestId('province-contribution-section')
       await section.scrollIntoViewIfNeeded()
       await expect(section).toBeVisible()
-      await expect(section.getByText('我的省域贡献', { exact: true })).toBeVisible()
-      await expect(section.getByText('所属省份', { exact: true })).toBeVisible()
+      await expect(section.getByText('省域贡献', { exact: true })).toBeVisible()
       await expect(section.getByText('河南', { exact: true })).toBeVisible()
-      await expect(section.getByText('我的排名', { exact: true })).toBeVisible()
-      await expect(section.getByText('我的积分', { exact: true })).toBeVisible()
-      await expect(section.getByText('我的登顶', { exact: true })).toBeVisible()
+      await expect(section.getByText('当前排名', { exact: true })).toBeVisible()
+      await expect(section.getByText('积分', { exact: true })).toBeVisible()
+      await expect(section.getByText('登顶数', { exact: true })).toBeVisible()
       await expect(section.getByText(/前 \d+%/)).toBeVisible()
 
-      await section.getByRole('link', { name: '查看月榜 →' }).click()
+      await section.getByRole('link', { name: '查看月榜' }).click()
       await expect(user.page).toHaveURL(`${root}/rankings/province`)
     } finally {
       await user.context.close()
     }
   })
 
-  test('profile province contribution section prompts completion when user has no province', async ({ page, browser, baseURL }) => {
+  test('profile province contribution section prompts completion when user has no province', async ({ browser, baseURL }) => {
     test.setTimeout(180_000)
     const root = baseURL ?? 'http://127.0.0.1:3100'
     const user = await openUserContext(browser, root, {
@@ -392,8 +396,8 @@ test.describe('province rankings', () => {
       const section = user.page.getByTestId('province-contribution-section')
       await section.scrollIntoViewIfNeeded()
       await expect(section).toBeVisible()
-      await expect(section.getByText('完善资料以参与省域月榜', { exact: true })).toBeVisible()
-      await expect(section.getByRole('link', { name: '查看月榜 →' })).toHaveCount(0)
+      await expect(section.getByText('完善资料后,你的省域贡献会显示在这里。', { exact: true })).toBeVisible()
+      await expect(section.getByRole('link', { name: '查看月榜' })).toHaveCount(0)
     } finally {
       await user.context.close()
     }
@@ -517,6 +521,63 @@ test.describe('province rankings', () => {
       await expect(successCard.getByRole('button', { name: /查看省榜/ })).toHaveCount(0)
       await expect(user.page.getByRole('link', { name: '查看攀登记录' })).toBeVisible()
       await expect(user.page.getByRole('link', { name: '分享到山友圈' })).toBeVisible()
+    } finally {
+      await user.context.close()
+    }
+  })
+})
+
+test.describe('province rankings disabled by feature flag', () => {
+  test.skip(provinceRankingEnabled, 'Province ranking UI is enabled by the feature flag.')
+
+  test('province rankings page redirects to explore when flag is off', async ({ page, baseURL }) => {
+    const root = baseURL ?? 'http://127.0.0.1:3100'
+
+    await page.goto(`${root}/rankings/province`, { waitUntil: 'domcontentloaded' })
+
+    await expect(page).toHaveURL(`${root}/explore`)
+    await expect(page.getByText('省域热力榜', { exact: true })).toHaveCount(0)
+    await expect(page.getByTestId('province-ranking-list')).toHaveCount(0)
+  })
+
+  test('profile hides province contribution section when flag is off', async ({ browser, baseURL }) => {
+    test.setTimeout(180_000)
+    const root = baseURL ?? 'http://127.0.0.1:3100'
+    const user = await openUserContext(browser, root, {
+      returnTo: '/profile',
+      province: '河南',
+    })
+
+    try {
+      await user.page.goto(`${root}/profile`, { waitUntil: 'domcontentloaded' })
+      await dismissActivationChecklistIfPresent(user.page)
+
+      await expect(user.page.getByTestId('province-contribution-section')).toHaveCount(0)
+      await expect(user.page.getByText('省域贡献', { exact: true })).toHaveCount(0)
+      await expect(user.page.getByRole('link', { name: '查看月榜' })).toHaveCount(0)
+      await expect(user.page.getByTestId('profile-archive-preview')).toBeVisible()
+      await expect(user.page.getByTestId('profile-share-preview-section')).toBeVisible()
+    } finally {
+      await user.context.close()
+    }
+  })
+
+  test('explore hides province banner and hot-province chip when flag is off', async ({ browser, baseURL }) => {
+    test.setTimeout(180_000)
+    const root = baseURL ?? 'http://127.0.0.1:3100'
+    const user = await openUserContext(browser, root, {
+      returnTo: '/explore',
+      province: '海南',
+    })
+
+    try {
+      await user.page.goto(`${root}/explore`, { waitUntil: 'domcontentloaded' })
+      await dismissActivationChecklistIfPresent(user.page)
+
+      await expect(user.page.getByTestId('province-banner-strip')).toHaveCount(0)
+      await expect(user.page.getByRole('button', { name: '本省热门' })).toHaveCount(0)
+      await expect(user.page.getByText('加入省域月榜', { exact: true })).toHaveCount(0)
+      await expect(user.page.getByText('山峰列表', { exact: true })).toBeVisible()
     } finally {
       await user.context.close()
     }

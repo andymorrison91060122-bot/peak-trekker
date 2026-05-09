@@ -1,9 +1,12 @@
 'use client'
 
+import { isFeatureEnabled } from '@/lib/feature-flags'
+
 export const ONBOARDING_QA_CHECK_KEY = 'peak_trekker_onboarding_regression_checks_v1'
 export const TREK_QA_CHECK_KEY = 'peak_trekker_trek_regression_checks_v1'
 export const COMMUNITY_QA_CHECK_KEY = 'peak_trekker_community_manual_checks_v1'
 export const QA_CHECKLIST_EVENT = 'peak-trekker:qa-checklist-update'
+const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 
 export const ONBOARDING_QA_SCENARIOS = [
   {
@@ -25,7 +28,9 @@ export const ONBOARDING_QA_SCENARIOS = [
     title: '省份选择即时个性化探索页',
     startAt: '/explore',
     action: '选择省份并完成空白执照过渡。',
-    expect: '探索页“本省热门”立即按所选省份展示。',
+    expect: provinceRankingEnabled
+      ? '探索页“本省热门”立即按所选省份展示。'
+      : '省份草稿会被保存，后续注册会自动预填归属地。',
   },
   {
     id: 'register-prefill',

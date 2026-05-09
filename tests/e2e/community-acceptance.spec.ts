@@ -421,8 +421,8 @@ test.skip('community immediate publish path works from trek summit success state
   const confirmTargetButton = page.getByRole('button', { name: '确认这座山，开始记录准备' })
   await expect(confirmTargetButton).toBeEnabled({ timeout: 15_000 })
   await confirmTargetButton.click()
-  await expect(page.getByRole('button', { name: 'Start 开启记录' })).toBeVisible()
-  await page.getByRole('button', { name: 'Start 开启记录' }).click()
+  await expect(page.getByRole('button', { name: '从这里开始' })).toBeVisible()
+  await page.getByRole('button', { name: '从这里开始' }).click()
   const recordStartedAt = Date.now()
   await expect(page.getByRole('button', { name: '停止记录' })).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText('已接近峰顶')).toBeVisible({ timeout: 15_000 })
@@ -697,7 +697,7 @@ test('historical photo share defaults to summit template and keeps altitude-firs
   const { mountainId } = await getFirstMountain(page, root)
   const checkinId = await createHistoricalCheckinViaApi(page, mountainId, `share-historical-${Date.now()}`)
 
-  const { dialog, previewSurface, previewImage, photoPreview } = await openShareSheetForCheckin(page, root, checkinId)
+  const { previewSurface, previewImage, photoPreview } = await openShareSheetForCheckin(page, root, checkinId)
   const beforeSrc = await previewImage.getAttribute('src')
 
   await expect(previewSurface).toHaveAttribute('data-template', 'summit_card')

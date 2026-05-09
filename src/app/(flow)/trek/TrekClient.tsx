@@ -17,6 +17,7 @@ import {
   BackIcon,
   CameraIcon,
   CheckIcon,
+  GpsIcon,
   MoreIcon,
   MountainIcon,
   WarnIcon,
@@ -116,6 +117,7 @@ export default function TrekClient({
   const [userId, setUserId] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [isPaused, setIsPaused] = useState(false)
+  const [preStartClock, setPreStartClock] = useState(() => new Date())
   const photoInputRef = useRef<HTMLInputElement | null>(null)
 
   const watchIdRef = useRef<number | null>(null)
@@ -183,6 +185,14 @@ export default function TrekClient({
       clearTrackingRuntime()
     }
   }, [clearTrackingRuntime])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setPreStartClock(new Date())
+    }, 30000)
+
+    return () => window.clearInterval(timer)
+  }, [])
 
   const effectiveSelectedMountainId = selectedMountainId || targetMountainId || ''
 
@@ -657,78 +667,24 @@ export default function TrekClient({
           onUpgrade={() => router.push('/profile')}
         />
       ) : viewState === 'preStart' ? (
-        <div>
-          <div style={{ padding: 'var(--space-4) var(--space-5) var(--space-2)' }}>
-            <div
-              style={{
-                fontSize: 'var(--font-label-s-size)',
-                lineHeight: 'var(--font-label-s-line)',
-                fontWeight: 700,
-                color: 'var(--color-on-surface-variant)',
-                letterSpacing: '0.08em',
-              }}
-            >
-              即将开始
-            </div>
-            <div
-              style={{
-                marginTop: 'var(--space-1)',
-                fontSize: 24,
-                lineHeight: '30px',
-                fontWeight: 800,
-                color: 'var(--color-on-surface)',
-              }}
-            >
-              准备一次真实山行
-            </div>
-          </div>
-
-          {needsTargetConfirmation ? (
-            <MountainTargetPicker
-              title={preflightTitle}
-              description={
-                selectedMountain
-                  ? `你将以 ${selectedMountain.name} 作为本次记录目标。确认前不会创建记录会话。`
-                  : suggestedMountain
-                    ? '来自山峰详情页的目标已带入，确认后才会正式进入记录流程。'
-                    : '直接来到这里时需要先选择一座山，避免误开无效记录。'
-              }
-              value={effectiveSelectedMountainId}
-              mountains={mountains}
-              selectedMountain={selectedMountain}
-              actionLabel={preflightActionLabel}
-              onChange={setSelectedMountainId}
-              onConfirm={confirmTargetMountain}
-            />
-          ) : (
-            <MountainContext mountain={activeMountain} onClick={() => setConfirmedMountainId(null)} />
-          )}
-
-          <PreflightCard gps={gps} gpsError={gpsError} />
-          <TrekMiniMap progress={0.18} />
-
-          <BottomActionBar columns="single">
-            <PrimaryButton
-              style={{ width: '100%' }}
-              onClick={startTrek}
-              disabled={!targetMountain}
-              data-onboarding="trek-start"
-            >
-              开始记录
-            </PrimaryButton>
-            <div
-              style={{
-                textAlign: 'center',
-                fontSize: 'var(--font-label-s-size)',
-                lineHeight: 'var(--font-label-s-line)',
-                color: 'var(--color-on-surface-variant)',
-                marginTop: 'var(--space-2)',
-              }}
-            >
-              开始后自动记录轨迹与海拔
-            </div>
-          </BottomActionBar>
-        </div>
+        <PreStartView
+          clock={preStartClock}
+          needsTargetConfirmation={needsTargetConfirmation}
+          preflightTitle={preflightTitle}
+          selectedMountain={selectedMountain}
+          suggestedMountain={suggestedMountain}
+          effectiveSelectedMountainId={effectiveSelectedMountainId}
+          mountains={mountains}
+          preflightActionLabel={preflightActionLabel}
+          onMountainChange={setSelectedMountainId}
+          onConfirmTarget={confirmTargetMountain}
+          activeMountain={activeMountain}
+          gps={gps}
+          gpsError={gpsError}
+          canStart={Boolean(targetMountain)}
+          onStart={startTrek}
+          onOpenMountain={(mountainId) => router.push(`/mountain/${encodeURIComponent(mountainId)}`)}
+        />
       ) : viewState === 'summitConfirmed' ? (
         <div>
           <SummitConfirmedView
@@ -854,12 +810,17 @@ function TrekShell({ children }: { children: ReactNode }) {
           0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-error) 55%, transparent); }
           100% { box-shadow: 0 0 0 8px transparent; }
         }
+        @keyframes pt-start-dot-pulse {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 1; }
+        }
         @keyframes pt-shimmer {
           0% { background-position: 0% 0%; }
           100% { background-position: -200% 0%; }
         }
         @media (prefers-reduced-motion: reduce) {
           .pt-rec-dot { animation: none !important; }
+          .pt-start-dot { animation: none !important; }
           .pt-shimmer { animation: none !important; }
         }
       `}</style>
@@ -875,7 +836,13 @@ function TrekTopBar({
   onBack: () => void
 }) {
   const isRecording = state === 'live' || state === 'nearSummit'
-  const label = isRecording ? '记录中' : state === 'paused' || state === 'summitConfirmed' ? '已暂停' : '待开始'
+  const label = state === 'preStart'
+    ? '待出发'
+    : isRecording
+      ? '记录中'
+      : state === 'paused' || state === 'summitConfirmed'
+        ? '已暂停'
+        : '待开始'
 
   return (
     <div
@@ -943,6 +910,239 @@ function RecDot({ active }: { active: boolean }) {
         flex: '0 0 auto',
       }}
     />
+  )
+}
+
+function PreStartView({
+  clock,
+  needsTargetConfirmation,
+  preflightTitle,
+  selectedMountain,
+  suggestedMountain,
+  effectiveSelectedMountainId,
+  mountains,
+  preflightActionLabel,
+  onMountainChange,
+  onConfirmTarget,
+  activeMountain,
+  gps,
+  gpsError,
+  canStart,
+  onStart,
+  onOpenMountain,
+}: {
+  clock: Date
+  needsTargetConfirmation: boolean
+  preflightTitle: string
+  selectedMountain: Mountain | null
+  suggestedMountain: Mountain | null
+  effectiveSelectedMountainId: string
+  mountains: Mountain[]
+  preflightActionLabel: string
+  onMountainChange: (value: string) => void
+  onConfirmTarget: () => void
+  activeMountain: Mountain | null
+  gps: GpsState
+  gpsError: string
+  canStart: boolean
+  onStart: () => void
+  onOpenMountain: (mountainId: string) => void
+}) {
+  return (
+    <div>
+      <section style={{ padding: 'var(--space-6) var(--space-6) var(--space-1)' }}>
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            fontWeight: 600,
+            color: 'var(--color-on-surface-variant)',
+            letterSpacing: '0.12em',
+          }}
+        >
+          {formatPreStartClock(clock)} · 出发前
+        </div>
+        <div
+          style={{
+            marginTop: 'var(--space-3)',
+            fontSize: 'var(--font-display-l-size)',
+            lineHeight: 'var(--font-display-l-line)',
+            fontWeight: 600,
+            color: 'var(--color-on-surface)',
+          }}
+        >
+          <div>山在这里。</div>
+          <div style={{ marginTop: 'var(--space-1)', color: 'var(--color-on-surface-variant)' }}>你也在了。</div>
+        </div>
+        <p
+          style={{
+            margin: 'var(--space-4) 0 0',
+            maxWidth: 292,
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 1.65,
+            fontWeight: 400,
+            color: 'var(--color-on-surface-variant)',
+          }}
+        >
+          准备好之后再出发。这次山行只属于你和这座山。
+        </p>
+      </section>
+
+      {needsTargetConfirmation ? (
+        <MountainTargetPicker
+          title={preflightTitle}
+          description={
+            selectedMountain
+              ? `你将以 ${selectedMountain.name} 作为本次记录目标。确认前不会创建记录会话。`
+              : suggestedMountain
+                ? '来自山峰详情页的目标已带入，确认后才会正式进入记录流程。'
+                : '直接来到这里时需要先选择一座山，避免误开无效记录。'
+          }
+          value={effectiveSelectedMountainId}
+          mountains={mountains}
+          selectedMountain={selectedMountain}
+          actionLabel={preflightActionLabel}
+          onChange={onMountainChange}
+          onConfirm={onConfirmTarget}
+        />
+      ) : (
+        <>
+          <PreStartMountainCard mountain={activeMountain} onClick={() => {
+            if (activeMountain) onOpenMountain(activeMountain.id)
+          }} />
+
+          <PreStartPreflightList mountain={activeMountain} gps={gps} gpsError={gpsError} />
+
+          <BottomActionBar columns="single">
+            <PrimaryButton
+              style={{ width: '100%' }}
+              onClick={onStart}
+              disabled={!canStart}
+              data-onboarding="trek-start"
+            >
+              <span
+                aria-hidden="true"
+                className="pt-start-dot"
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 'var(--radius-pill)',
+                  background: 'var(--color-success)',
+                  marginRight: 'var(--space-2)',
+                  animation: 'pt-start-dot-pulse 2s ease-in-out infinite',
+                }}
+              />
+              从这里开始
+            </PrimaryButton>
+            <div
+              style={{
+                marginTop: 'var(--space-4)',
+                textAlign: 'center',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--font-label-s-size)',
+                lineHeight: 1.6,
+                fontWeight: 500,
+                color: 'var(--color-on-surface-variant)',
+              }}
+            >
+              Peak Trekker 不会催促你。<br />
+              路上请把这部手机放回口袋。
+            </div>
+          </BottomActionBar>
+        </>
+      )}
+    </div>
+  )
+}
+
+function PreStartMountainCard({
+  mountain,
+  onClick,
+}: {
+  mountain: Mountain | null | undefined
+  onClick: () => void
+}) {
+  return (
+    <div style={{ padding: 'var(--space-5) var(--space-4) 0' }}>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={!mountain}
+        style={{
+          width: '100%',
+          minHeight: 64,
+          padding: '14px var(--space-4)',
+          display: 'grid',
+          gridTemplateColumns: '32px minmax(0, 1fr) auto',
+          alignItems: 'center',
+          gap: 'var(--space-3)',
+          borderRadius: 14,
+          border: '1px solid var(--color-outline)',
+          background: 'var(--color-surface-variant)',
+          color: 'var(--color-on-surface)',
+          font: 'inherit',
+          textAlign: 'left',
+          cursor: mountain ? 'pointer' : 'default',
+        }}
+      >
+        <span
+          style={{
+            width: 32,
+            height: 32,
+            display: 'grid',
+            placeItems: 'center',
+            borderRadius: 'var(--radius-sm)',
+            background: 'color-mix(in srgb, var(--color-success) 12%, transparent)',
+            color: 'var(--color-success)',
+          }}
+        >
+          <MountainIcon size={20} />
+        </span>
+        <span style={{ minWidth: 0 }}>
+          <span
+            style={{
+              display: 'block',
+              fontSize: 'var(--font-title-m-size)',
+              lineHeight: 'var(--font-title-m-line)',
+              fontWeight: 600,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {mountain ? mountain.name : '尚未选择目标山峰'}
+          </span>
+          <span
+            style={{
+              display: 'block',
+              marginTop: 2,
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+              color: 'var(--color-on-surface-variant)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {mountain
+              ? `${mountain.province} · 目标 ${formatMeters(mountain.altitude)}m · ${difficultyLabel(mountain.difficulty)}`
+              : '先确认一座山，再开始记录'}
+          </span>
+        </span>
+        <span
+          style={{
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 20,
+            lineHeight: 1,
+          }}
+          aria-hidden="true"
+        >
+          ›
+        </span>
+      </button>
+    </div>
   )
 }
 
@@ -1427,50 +1627,80 @@ function MountainTargetPicker({
   )
 }
 
-function PreflightCard({ gps, gpsError }: { gps: GpsState; gpsError: string }) {
+type PreflightTone = 'success' | 'warning' | 'neutral'
+
+function PreStartPreflightList({
+  mountain,
+  gps,
+  gpsError,
+}: {
+  mountain: Mountain | null | undefined
+  gps: GpsState
+  gpsError: string
+}) {
+  const gpsTone: PreflightTone = gpsError ? 'warning' : gps?.accuracy ? 'success' : 'neutral'
+  const gpsLabel = gpsError ? 'GPS 需要重新确认' : gps?.accuracy ? 'GPS 信号清晰' : 'GPS 待确认'
+  const gpsSub = gpsError || (gps?.accuracy ? `水平精度 ±${Math.round(gps.accuracy)}m` : '开始后请求高精度定位')
+  const mountainName = mountain?.name ?? '山峰'
+
   return (
     <div
       style={{
         margin: 'var(--space-4) var(--space-4) 0',
-        padding: 'var(--space-4)',
-        borderRadius: 14,
-        border: '1px solid var(--color-outline)',
-        background: 'var(--color-surface-variant)',
+        display: 'grid',
+        gap: 'var(--space-2)',
       }}
     >
-      <PreflightRow ok={!gpsError} label={gpsError ? '定位需要重新确认' : 'GPS 状态可用'} sub={gpsError || (gps?.accuracy ? `水平精度 ±${Math.round(gps.accuracy)}m` : '开始后请求高精度定位')} />
-      <PreflightRow ok label="路线参考已准备" sub="静态路线仅作参考 · 山区请以现场判断为准" />
-      <PreflightRow ok label="记录数据本地保留" sub="短时断网不影响本次采集" last />
+      <PreStartPreflightItem tone={gpsTone} icon="gps" label={gpsLabel} sub={gpsSub} />
+      <PreStartPreflightItem tone="success" label="离线地图已就绪" sub={`${mountainName}区域 · 静态路线参考`} />
+      <PreStartPreflightItem tone="neutral" label="电量信息" sub="开启省电模式可记录更久" />
     </div>
   )
 }
 
-function PreflightRow({
-  ok,
+function PreStartPreflightItem({
+  tone,
+  icon = 'check',
   label,
   sub,
-  last = false,
 }: {
-  ok: boolean
+  tone: PreflightTone
+  icon?: 'check' | 'gps'
   label: string
   sub: string
-  last?: boolean
 }) {
+  const color = tone === 'success'
+    ? 'var(--color-success)'
+    : tone === 'warning'
+      ? 'var(--color-warning)'
+      : 'var(--color-on-surface-variant)'
+
   return (
     <div
       style={{
         display: 'flex',
         gap: 'var(--space-3)',
         alignItems: 'flex-start',
-        padding: '10px 0',
-        borderBottom: last ? 'none' : '1px solid var(--color-outline)',
+        padding: '14px var(--space-4)',
+        borderRadius: 14,
+        border: '1px solid var(--color-outline)',
+        background: 'var(--color-surface-variant)',
       }}
     >
-      <span style={{ color: ok ? 'var(--color-success)' : 'var(--color-warning)', marginTop: 1 }}>
-        {ok ? <CheckIcon size={18} /> : <WarnIcon size={18} />}
+      <span style={{ color, marginTop: 1, flex: '0 0 auto' }}>
+        {tone === 'warning' ? <WarnIcon size={18} /> : icon === 'gps' ? <GpsIcon size={18} /> : <CheckIcon size={18} />}
       </span>
       <span style={{ minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 'var(--font-body-m-size)', fontWeight: 600 }}>{label}</span>
+        <span
+          style={{
+            display: 'block',
+            fontSize: 'var(--font-title-m-size)',
+            lineHeight: 'var(--font-title-m-line)',
+            fontWeight: 500,
+          }}
+        >
+          {label}
+        </span>
         <span
           style={{
             display: 'block',
@@ -1890,6 +2120,12 @@ function formatElapsedCompact(totalSeconds: number) {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
   }
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+function formatPreStartClock(date: Date) {
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
 }
 
 function formatMeters(value: number | null | undefined) {

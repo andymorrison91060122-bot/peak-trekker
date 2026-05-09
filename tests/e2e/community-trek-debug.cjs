@@ -140,7 +140,7 @@ async function main() {
 
   console.log('AT_TREK', page.url())
 
-  await page.getByRole('button', { name: 'Start 开启记录' }).click()
+  await page.getByRole('button', { name: '从这里开始' }).click()
   await page.getByRole('button', { name: '停止记录' }).waitFor({ timeout: 15000 })
   await page.getByText('已接近峰顶').waitFor({ timeout: 15000 })
   await page.getByRole('button', { name: '确认登顶' }).waitFor({ timeout: 15000 })

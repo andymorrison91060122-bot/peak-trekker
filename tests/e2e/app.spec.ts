@@ -53,9 +53,9 @@ const DIFFICULTY_FILTER_LABEL: Record<string, string> = {
 
 async function getFirstMountain(page: Page) {
   await page.goto('/explore', { waitUntil: 'domcontentloaded' })
-  await expect(page.getByText('找下一座山')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '山峰列表' })).toBeVisible()
 
-  const firstMountainLink = page.locator('a[href^="/explore/"]').first()
+  const firstMountainLink = page.locator('a[href^="/mountain/"]').first()
   await expect(firstMountainLink).toBeVisible()
   const href = await firstMountainLink.getAttribute('href')
 
@@ -140,7 +140,7 @@ test('guest can register from protected trek redirect and return to the targeted
   const confirmTargetButton = page.getByRole('button', { name: '确认这座山，开始记录准备' })
   await expect(confirmTargetButton).toBeEnabled({ timeout: 30000 })
   await confirmTargetButton.click()
-  await expect(page.getByRole('button', { name: 'Start 开启记录' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '从这里开始' })).toBeVisible()
 
   await page.goto('/onboarding-qa')
   await expect(page.getByText('Product QA Console')).toBeVisible()
@@ -394,11 +394,11 @@ test('targeted trek flow requires explicit mountain confirmation before recordin
   await dismissActivationChecklistIfPresent(page)
 
   await expect(page.getByText('确认今天要记录的山峰')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Start 开启记录' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '从这里开始' })).toHaveCount(0)
   const confirmTargetButton = page.getByRole('button', { name: '确认这座山，开始记录准备' })
   await expect(confirmTargetButton).toBeEnabled({ timeout: 30000 })
   await confirmTargetButton.click()
-  await expect(page.getByRole('button', { name: 'Start 开启记录' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '从这里开始' })).toBeVisible()
 })
 
 test('direct trek access requires choosing a mountain before recording can begin', async ({ page }) => {

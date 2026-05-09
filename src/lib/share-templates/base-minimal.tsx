@@ -69,7 +69,7 @@ export function BaseMinimalTemplate({ data, photoDataUrl }: ShareTemplateProps) 
         </div>
       </div>
 
-      <div style={{ display: 'flex', position: 'absolute', left: 72, right: 72, bottom: 248 }}>
+      <div style={{ display: 'flex', position: 'absolute', left: 80, right: 64, bottom: 248 }}>
         <DataRow data={data} />
       </div>
 

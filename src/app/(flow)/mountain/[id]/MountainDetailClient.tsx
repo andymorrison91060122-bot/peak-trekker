@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
 import type { Waypoint, WaypointType } from '@/lib/waypoints'
+import { getRouteSegments, type RouteSegment } from '@/lib/mountain-route-segments'
 import type { MountainDetailWeather } from './page'
 import { getLicenseRequirementLabel, getLicenseShortLabel } from '@/lib/license-ui'
 import { BackIcon, CheckIcon, MoreIcon, PinIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
@@ -1096,8 +1097,123 @@ function WeatherSection({
   )
 }
 
-function RouteReferenceSection({ waypoints }: { waypoints: Waypoint[] }) {
+function RouteFootnote({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-2)',
+        marginTop: 'var(--space-3)',
+        padding: '8px 10px',
+        borderTop: '1px solid var(--color-outline)',
+        color: 'var(--color-on-surface-variant)',
+        fontFamily: 'var(--font-mono)',
+        fontSize: 'var(--font-label-s-size)',
+        lineHeight: 'var(--font-label-s-line)',
+        fontWeight: 500,
+      }}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden style={{ flexShrink: 0 }}>
+        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+        <path d="M12 8v5M12 16.5v.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+      <span>{children}</span>
+    </div>
+  )
+}
+
+function RouteTextFallback({ segments }: { segments: RouteSegment[] }) {
+  return (
+    <section data-testid="mountain-route-section">
+      <SectionHeader
+        title="路线参考"
+        right={
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+              fontWeight: 500,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            仅文字版本
+          </span>
+        }
+      />
+      <div style={{ padding: '0 var(--space-4)' }}>
+        <div
+          style={{
+            background: 'var(--color-surface-variant)',
+            border: '1px solid var(--color-outline)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '14px 14px 6px',
+          }}
+        >
+          {segments.map((segment, index) => (
+            <div
+              key={`${segment.altitude}-${segment.title}`}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '64px minmax(0, 1fr)',
+                gap: 'var(--space-3)',
+                padding: '8px 0',
+                borderBottom: index === segments.length - 1 ? 'none' : '1px solid var(--color-outline)',
+              }}
+            >
+              <div
+                style={{
+                  color: 'var(--color-warning)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'var(--font-label-m-size)',
+                  lineHeight: 'var(--font-label-m-line)',
+                  fontWeight: 500,
+                  fontVariantNumeric: 'tabular-nums',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {formatInteger(segment.altitude)}m
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    color: 'var(--color-on-surface)',
+                    fontSize: 'var(--font-title-m-size)',
+                    lineHeight: 'var(--font-title-m-line)',
+                    fontWeight: 'var(--font-title-m-weight)',
+                  }}
+                >
+                  {segment.title}
+                </div>
+                <div
+                  style={{
+                    marginTop: 2,
+                    color: 'var(--color-on-surface-variant)',
+                    fontSize: 'var(--font-body-m-size)',
+                    lineHeight: 'var(--font-body-m-line)',
+                    fontWeight: 'var(--font-body-m-weight)',
+                  }}
+                >
+                  {segment.description}
+                </div>
+              </div>
+            </div>
+          ))}
+          <RouteFootnote>没有缓存到底图 · 仅展示路线分段说明</RouteFootnote>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function RouteReferenceSection({ mountain, waypoints }: { mountain: Mountain; waypoints: Waypoint[] }) {
   if (waypoints.length < 2) {
+    const segments = getRouteSegments(mountain.name)
+
+    if (segments) return <RouteTextFallback segments={segments} />
+
     return (
       <section data-testid="mountain-route-section">
         <SectionHeader title="路线参考" right="暂无 · 不可用" />
@@ -1518,7 +1634,7 @@ export default function MountainDetailClient({
       />
 
       <WeatherSection weather={weather} mountain={mountain} onRetry={() => router.refresh()} />
-      <RouteReferenceSection waypoints={waypoints} />
+      <RouteReferenceSection mountain={mountain} waypoints={waypoints} />
       {waypoints.length > 0 ? <WaypointSection waypoints={waypoints} /> : null}
       {featuredPosts.length > 0 ? <FeaturedSection posts={featuredPosts} /> : null}
 

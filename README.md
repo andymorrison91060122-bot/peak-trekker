@@ -21,6 +21,17 @@ npm run lint
 npx next build --webpack
 ```
 
+## 字体
+
+Share template 使用 Noto Sans SC（中文字体），文件不入仓库。
+本地开发和部署时会自动下载到 `public/fonts/`，无需手动操作。
+
+如需手动下载或更新：
+
+```bash
+npm run fonts:download
+```
+
 ## Supabase setup
 
 Initialize schema and seed data:

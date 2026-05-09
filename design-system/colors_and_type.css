@@ -20,6 +20,9 @@
 
   /* Brand-adjacent (used in posters / accents, not semantic) */
   --green-bright: #6ee7a1;
+  /* trail / route rendering — used for SVG paths, dotted previews,
+     activity track visualizations. Distinct from --color-success. */
+  --color-trail: #7ef0b4;
   --accent-soft: rgba(34, 197, 94, 0.14);
   --accent-outline: rgba(34, 197, 94, 0.26);
 

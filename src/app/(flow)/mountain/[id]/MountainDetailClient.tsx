@@ -1327,7 +1327,7 @@ function RouteReferenceSection({ mountain, waypoints }: { mountain: Mountain; wa
                   </pattern>
                 </defs>
                 <rect width="320" height="180" fill="url(#route-contour)" opacity="0.9" />
-                <path d={path} fill="none" stroke="#7ef0b4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="8 8" />
+                <path d={path} fill="none" stroke="var(--color-trail)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="8 8" />
                 {points.map((point, index) => {
                   const color =
                     point.tone === 'success'

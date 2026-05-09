@@ -86,6 +86,9 @@
   --color-error: #ef4444;
   --color-success: #6ee7a1;
   --color-warning: #f59e0b;
+  /* trail / route rendering — used for SVG paths, dotted previews,
+     activity track visualizations. Distinct from --color-success. */
+  --color-trail: #7ef0b4;
 
   --btn-height: 44px;
   --btn-padding-x: var(--space-5);

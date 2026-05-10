@@ -40,9 +40,9 @@ function toneStyles(tone: ToastTone) {
 
   if (tone === 'info') {
     return {
-      borderColor: 'rgba(96,165,250,0.22)',
-      background: 'rgba(96,165,250,0.12)',
-      color: '#bfdbfe',
+      borderColor: 'var(--color-outline)',
+      background: 'var(--color-surface-variant)',
+      color: 'var(--color-on-surface-variant)',
     }
   }
 

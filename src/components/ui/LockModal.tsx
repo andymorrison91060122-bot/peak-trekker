@@ -82,10 +82,10 @@ export default function LockModal({
     >
       <div style={{ display: 'grid', gap: 20 }}>
         <div className="danger-card" style={{ padding: 16 }}>
-          <div className="card-title" style={{ fontSize: 16, color: '#fecaca', marginBottom: 8 }}>
+          <div className="card-title" style={{ fontSize: 16, color: 'color-mix(in oklch, var(--color-error) 32%, var(--color-on-surface))', marginBottom: 8 }}>
             {getLicenseLevelLabel(minLicense)}
           </div>
-          <div className="section-subtitle" style={{ color: '#f0b5b8' }}>
+          <div className="section-subtitle" style={{ color: 'color-mix(in oklch, var(--color-error) 58%, var(--color-on-surface))' }}>
             当前路线{getLicenseRequirementLabel(minLicense)}。{info.currentMaxHint} 你当前优先完成 {info.current_max.toLocaleString()} m 以下的山峰，会更快解锁下一阶段路线。
           </div>
         </div>

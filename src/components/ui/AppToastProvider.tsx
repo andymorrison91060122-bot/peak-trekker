@@ -34,7 +34,7 @@ function toneStyles(tone: ToastTone) {
     return {
       borderColor: 'rgba(34,197,94,0.22)',
       background: 'rgba(34,197,94,0.12)',
-      color: '#a7f3d0',
+      color: 'var(--color-success)',
     }
   }
 
@@ -49,7 +49,7 @@ function toneStyles(tone: ToastTone) {
   return {
     borderColor: 'rgba(239,68,68,0.28)',
     background: 'rgba(127,29,29,0.22)',
-    color: '#fecaca',
+    color: 'color-mix(in oklch, var(--color-error) 32%, var(--color-on-surface))',
   }
 }
 

@@ -193,7 +193,7 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
 
           {isLocked && (
             <div className="danger-card" style={{ padding: 14 }}>
-              <div className="section-subtitle" style={{ color: '#f0b5b8' }}>
+              <div className="section-subtitle" style={{ color: 'color-mix(in oklch, var(--color-error) 58%, var(--color-on-surface))' }}>
                 {getLockPromptCopy(mountain.min_license)}
               </div>
             </div>

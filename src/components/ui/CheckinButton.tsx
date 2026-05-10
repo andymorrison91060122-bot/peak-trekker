@@ -63,7 +63,7 @@ export default function CheckinButton({
           justifyContent: 'center',
           borderColor: 'rgba(239,68,68,0.24)',
           background: 'rgba(239,68,68,0.1)',
-          color: '#fca5a5',
+          color: 'color-mix(in oklch, var(--color-error) 45%, var(--color-on-surface))',
         }}
       >
         查看执照要求

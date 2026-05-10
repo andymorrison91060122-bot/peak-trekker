@@ -281,7 +281,7 @@
 
 .icon-action-btn[data-variant='danger'],
 .icon-action-link[data-variant='danger'] {
-  color: #fca5a5;
+  color: color-mix(in oklch, var(--color-error) 45%, var(--color-on-surface));
   border-color: rgba(239, 68, 68, 0.22);
   background: rgba(239, 68, 68, 0.08);
 }

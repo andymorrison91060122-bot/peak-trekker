@@ -368,7 +368,7 @@ export default function TrekClient({
     trackRef.current = []
     startTimeRef.current = Date.now()
     lastSyncRef.current = 0
-    showToast({ key: 'trek_start_success' })
+    showToast({ key: 'trek_start_success', durationMs: 2500 })
 
     timerRef.current = setInterval(() => {
       setElapsedSeconds(Math.floor((Date.now() - startTimeRef.current) / 1000))
@@ -566,7 +566,11 @@ export default function TrekClient({
     setStatus('idle')
     setNearbyMountain(null)
     setDistanceToTarget(null)
-    showToast({ key: 'mountain_target_confirmed', message: `已锁定目标山峰：${selectedMountain.name}。` })
+    showToast({
+      key: 'mountain_target_confirmed',
+      message: `已锁定目标山峰：${selectedMountain.name}。`,
+      durationMs: 2500,
+    })
   }
 
   function handlePhotoTargetBlocked() {
@@ -621,7 +625,9 @@ export default function TrekClient({
   ]
 
   useEffect(() => {
-    if (viewState === 'permissionDenied') {
+    const fullScreenStates: TrekViewState[] = ['gpsWeak', 'nearSummit', 'summitConfirmed', 'permissionDenied']
+
+    if (fullScreenStates.includes(viewState)) {
       clearToasts()
     }
   }, [clearToasts, viewState])

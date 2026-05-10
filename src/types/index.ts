@@ -323,16 +323,12 @@ export type ProfileSummary = {
   province_rank: number | null
 }
 
-export type OnboardingPhase = 'intro' | 'province' | 'activation' | 'done'
-
-export type ActivationTask = 'find_peak' | 'open_start' | 'learn_share'
+export type OnboardingPhase = 'intro' | 'province' | 'done'
 
 export type OnboardingProgress = {
   introSeen: boolean
   provinceChosen: boolean
-  activationCompleted: boolean
   version: string
-  tasks: Record<ActivationTask, boolean>
 }
 
 export type LicenseLevel = {

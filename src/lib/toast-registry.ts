@@ -2,10 +2,6 @@ export type ToastTone = 'success' | 'error' | 'info'
 export type ToastAppearance = 'tone' | 'surface'
 
 export const TOAST_REGISTRY = {
-  onboarding_complete: {
-    tone: 'success',
-    message: '新手引导已完成，接下来去拿下你的第一座山。',
-  },
   trek_start_success: {
     tone: 'success',
     message: '开始记录成功，正在采集本次登山轨迹。',

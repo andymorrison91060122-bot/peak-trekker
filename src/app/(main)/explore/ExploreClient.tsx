@@ -141,7 +141,7 @@ export default function ExploreClient({
   return (
     <>
       <style>
-        {'.explore-filter-scroll::-webkit-scrollbar{display:none}.explore-search-input::placeholder{color:var(--color-on-surface-variant);opacity:1}body:has(.explore-page-shell) button[aria-label="开始登山"]{display:none!important}'}
+        {'.explore-filter-scroll::-webkit-scrollbar{display:none}.explore-search-input::placeholder{color:var(--color-on-surface-variant);opacity:1}'}
       </style>
       <div
         className="explore-page-shell"

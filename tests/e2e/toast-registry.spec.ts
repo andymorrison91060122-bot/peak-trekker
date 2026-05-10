@@ -4,7 +4,6 @@ import { TOAST_REGISTRY } from '../../src/lib/toast-registry'
 test('toast registry covers acceptance-critical states', () => {
   expect(Object.keys(TOAST_REGISTRY)).toEqual(
     expect.arrayContaining([
-      'onboarding_complete',
       'trek_start_success',
       'trek_record_too_short',
       'summit_verify_success',

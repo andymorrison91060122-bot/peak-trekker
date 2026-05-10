@@ -1,8 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
 import { createHistoricalCheckinViaApi } from './community.helpers'
-import { isFeatureEnabled } from '../../src/lib/feature-flags'
-
-const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 
 type ExploreCardMeta = {
   href: string
@@ -155,60 +152,12 @@ test('guest can register from protected trek redirect and return to the targeted
   expect(download.suggestedFilename()).toMatch(/^peak-trekker-qa-report-\d{4}-\d{2}-\d{2}\.md$/)
 })
 
-test('first-time visitors can skip the intro, anchor a province, and continue with explore activation', async ({ page }) => {
+test('first-time visitors can skip the intro, anchor a province, and continue to explore', async ({ page }) => {
   await completeProvinceOnboarding(page)
 
-  await expect(page.getByText('Activation Checklist')).toBeVisible()
-  if (provinceRankingEnabled) {
-    await expect(page.getByText(/四川 的热门山峰已经优先展示了。/)).toBeVisible()
-  } else {
-    await expect(
-      page.getByText('先从探索页打开任意山峰详情。把路线和难度看明白，后面开始记录时会更笃定。')
-    ).toBeVisible()
-  }
-  await expect(page.getByText('找下一座山')).toBeVisible()
-})
-
-test('onboarding completion feedback is emitted through the global toast layer', async ({ page }) => {
-  await page.goto('/explore', { waitUntil: 'domcontentloaded' })
-  await page.evaluate(() => {
-    window.localStorage.setItem('peak_trekker_intro_seen', '2026-v1')
-    window.localStorage.setItem('peak_trekker_province_draft', '四川')
-    window.localStorage.removeItem('peak_trekker_activation_done')
-    window.localStorage.setItem(
-      'peak_trekker_activation_tasks',
-      JSON.stringify({
-        version: '2026-v1',
-        tasks: {
-          find_peak: false,
-          open_start: false,
-          learn_share: false,
-        },
-      })
-    )
-  })
-  await page.reload()
-  await expect(page.getByText('Activation Checklist')).toBeVisible()
-
-  await page.evaluate(() => {
-    window.localStorage.removeItem('peak_trekker_activation_done')
-    window.localStorage.setItem(
-      'peak_trekker_activation_tasks',
-      JSON.stringify({
-        version: '2026-v1',
-        tasks: {
-          find_peak: true,
-          open_start: true,
-          learn_share: true,
-        },
-      })
-    )
-    window.dispatchEvent(new CustomEvent('peak-trekker:onboarding-update'))
-  })
-
-  await expect(
-    page.locator('[role="alert"]').filter({ hasText: '新手引导已完成，接下来去拿下你的第一座山。' })
-  ).toBeVisible()
+  await expect(page.getByText('Activation Checklist')).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: '探索' })).toBeVisible()
+  await expect(page.getByText('山峰列表')).toBeVisible()
 })
 
 test('province draft from onboarding prefills the register profile step', async ({ page }) => {

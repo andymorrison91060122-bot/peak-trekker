@@ -5,7 +5,6 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import {
   ONBOARDING_VERSION,
   getProvinceDraft,
-  resetActivationDone,
   setIntroSeen,
   setProvinceDraft,
 } from '@/lib/onboarding'
@@ -60,7 +59,6 @@ function RegisterPageContent() {
 
     setProvinceDraft(province)
     setIntroSeen()
-    resetActivationDone()
 
     const syncProfile = async () => {
       if (!activeUserId) return

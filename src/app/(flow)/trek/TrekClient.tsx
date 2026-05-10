@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
-import { markActivationTask } from '@/lib/onboarding'
 import { TREK_RULES } from '@/lib/trek-rules-client'
 import { haversineMeters } from '@/lib/trek-utils'
 import { useAppToast } from '@/components/ui/AppToastProvider'
@@ -325,7 +324,6 @@ export default function TrekClient({
   )
 
   async function startTrek() {
-    markActivationTask('open_start')
     if (!targetMountain) {
       showToast({ key: 'action_blocked', message: '请先确认目标山峰，再开始今天的记录。' })
       return

@@ -1,7 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import TabBar from '@/components/layout/TabBar'
 import AppHeader from '@/components/layout/AppHeader'
-import TrekFAB from '@/components/ui/TrekFAB'
 import OnboardingModal from '@/components/ui/OnboardingModal'
 import AppToastProvider from '@/components/ui/AppToastProvider'
 
@@ -39,7 +38,6 @@ export default async function MainLayout({
         >
           {children}
         </main>
-        <TrekFAB />
         <TabBar />
       </div>
     </AppToastProvider>

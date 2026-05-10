@@ -1,7 +1,6 @@
 'use client'
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
-import { markActivationTask } from '@/lib/onboarding'
 import type { ShareAnchorPosition, ShareCardTemplate, ShareRenderMode } from '@/types'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import IconButton from '@/components/ui/IconButton'
@@ -494,7 +493,6 @@ const SharePosterButton = forwardRef<SharePosterButtonHandle, SharePosterButtonP
   }
 
   function openComposer() {
-    markActivationTask('learn_share')
     setIsOpen(true)
     setMoreOpen(false)
     if (!autoPreviewOnOpen) {

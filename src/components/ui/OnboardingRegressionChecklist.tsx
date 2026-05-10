@@ -6,7 +6,6 @@ import {
   ONBOARDING_EVENT,
   getOnboardingProgress,
   getProvinceDraft,
-  resetActivationProgress,
   restartIntroFlow,
 } from '@/lib/onboarding'
 import {
@@ -21,13 +20,7 @@ import type { OnboardingProgress } from '@/types'
 const DEFAULT_PROGRESS: OnboardingProgress = {
   introSeen: false,
   provinceChosen: false,
-  activationCompleted: false,
   version: 'unknown',
-  tasks: {
-    find_peak: false,
-    open_start: false,
-    learn_share: false,
-  },
 }
 
 export default function OnboardingRegressionChecklist() {
@@ -83,12 +76,6 @@ export default function OnboardingRegressionChecklist() {
     startTransition(() => router.push('/explore'))
   }
 
-  function resetPhaseBOnly() {
-    resetActivationProgress()
-    setMessage('已重置 Phase B checklist，保留 intro 与省份草稿。')
-    startTransition(() => router.push('/explore'))
-  }
-
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <div className="surface-card" style={{ padding: 18 }}>
@@ -96,22 +83,19 @@ export default function OnboardingRegressionChecklist() {
           Onboarding 回归清单
         </div>
         <div className="section-subtitle" style={{ marginBottom: 14 }}>
-          这页用于演示和验收真实用户链路，覆盖首次访问、省份锚定、注册回流与 activation 完成。
+          这页用于演示和验收真实用户链路，覆盖首次访问、省份锚定与注册回流。
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
           <Metric title="回归完成度" value={`${finishedCount}/${ONBOARDING_QA_SCENARIOS.length}`} />
           <Metric title="省份草稿" value={provinceDraft ?? '未选择'} />
           <Metric title="Phase A" value={progress.introSeen ? '已完成' : '未完成'} />
-          <Metric title="Phase B" value={progress.activationCompleted ? '已完成' : '未完成'} />
+          <Metric title="省份锚定" value={progress.provinceChosen ? '已完成' : '未完成'} />
         </div>
 
         <div style={{ display: 'grid', gap: 10 }}>
           <button type="button" className="secondary-btn" disabled={isPending} onClick={resetToFirstVisit}>
             重置到首次访问（重播三幕）
-          </button>
-          <button type="button" className="secondary-btn" disabled={isPending} onClick={resetPhaseBOnly}>
-            仅重置 Phase B checklist
           </button>
           <button type="button" className="secondary-btn" onClick={clearChecked}>
             清空回归勾选

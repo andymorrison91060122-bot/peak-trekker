@@ -40,27 +40,6 @@ export const ONBOARDING_QA_SCENARIOS = [
     expect: '自动带入之前 onboarding 里选定的省份。',
   },
   {
-    id: 'activation-find-peak',
-    title: 'Checklist 第一步：找一座山',
-    startAt: '/explore',
-    action: '打开任意山峰详情页 `/explore/[id]`。',
-    expect: 'Activation checklist 的 find_peak 自动完成。',
-  },
-  {
-    id: 'activation-open-start',
-    title: 'Checklist 第二步：打开 Start',
-    startAt: '/trek',
-    action: '点击 `Start 开启记录` 主按钮。',
-    expect: 'Activation checklist 的 open_start 自动完成。',
-  },
-  {
-    id: 'activation-learn-share',
-    title: 'Checklist 第三步：了解分享卡',
-    startAt: '/trek',
-    action: '在生成分享卡入口打开模板选择或点“查看说明”。',
-    expect: 'Activation checklist 的 learn_share 自动完成并触发完成提示。',
-  },
-  {
     id: 'repeat-suppression',
     title: '完成后不重复弹完整引导',
     startAt: '/explore',

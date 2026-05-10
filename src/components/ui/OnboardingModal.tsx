@@ -1,32 +1,20 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import {
   ONBOARDING_EVENT,
   ONBOARDING_VERSION,
-  areAllActivationTasksComplete,
-  clearActivationDismissPath,
-  clearOnboardingSuppressed,
-  getActivationDismissPath,
   getOnboardingProgress,
   getProvinceDraft,
-  isOnboardingSuppressed,
-  markActivationTask,
   migrateLegacyOnboarding,
-  restartIntroFlow,
-  setActivationDismissPath as persistActivationDismissPath,
-  setActivationDone,
   setIntroSeen,
-  setOnboardingSuppressed as persistOnboardingSuppressed,
   setProvinceDraft as persistProvinceDraft,
 } from '@/lib/onboarding'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { PROVINCES, getProvinceCode } from '@/lib/provinces'
-import { useAppToast } from '@/components/ui/AppToastProvider'
-import IconActionButton, { ActionGlyph } from '@/components/ui/IconActionButton'
-import type { ActivationTask, OnboardingPhase, OnboardingProgress } from '@/types'
+import type { OnboardingPhase, OnboardingProgress } from '@/types'
 
 const INTRO_SCENES = [
   {
@@ -54,91 +42,12 @@ const INTRO_SCENES = [
 
 const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 
-const ACTIVATION_TASKS: Array<{
-  key: ActivationTask
-  title: string
-  description: string
-}> = [
-  {
-    key: 'find_peak',
-    title: '找一座想去的山',
-    description: '先打开一座山的详情，因为路线信息和门槛会直接影响你接下来要不要开始记录。',
-  },
-  {
-    key: 'open_start',
-    title: '确认目标后开始记录',
-    description: '去出发页确认目标山峰，再开始记录，这样不会误以为已经成功开录。',
-  },
-  {
-    key: 'learn_share',
-    title: '看一眼怎么分享',
-    description: '先知道海报和山友圈怎么接起来，这样第一次完成记录后就能直接发出去。',
-  },
-] as const
-
-type SpotlightRect = {
-  top: number
-  left: number
-  width: number
-  height: number
-  radius: number
-}
-
 type ProvinceStage = 'select' | 'license'
 
 function derivePhase(progress: OnboardingProgress, province: string | null): OnboardingPhase {
   if (!progress.introSeen) return 'intro'
   if (!province) return 'province'
-  if (!progress.activationCompleted) return 'activation'
   return 'done'
-}
-
-function nextIncompleteTask(tasks: OnboardingProgress['tasks']): ActivationTask | null {
-  if (!tasks.find_peak) return 'find_peak'
-  if (!tasks.open_start) return 'open_start'
-  if (!tasks.learn_share) return 'learn_share'
-  return null
-}
-
-function getCoachCopy(task: ActivationTask | null, pathname: string, province: string | null) {
-  if (task === 'find_peak') {
-    return {
-      title: '先挑一座想去的山',
-      description: province && provinceRankingEnabled
-        ? `${province} 的热门山峰已经优先展示了。先点开一座详情，确认路线、海拔和门槛，再决定要不要开始第一条记录。`
-        : '先从探索页打开任意山峰详情。把路线和难度看明白，后面开始记录时会更笃定。',
-      primaryLabel: pathname === '/explore' ? '就在这里挑一座' : '去探索页',
-      primaryHref: '/explore',
-    }
-  }
-
-  if (task === 'open_start') {
-    return {
-      title: '接着确认目标再开录',
-      description:
-        pathname === '/trek'
-          ? '先确认今天要记录的山峰，再按 Start。这样系统才会把这条记录算作一次正式出发。'
-          : '下一步去出发页，把目标山峰锁定后再开始记录，避免误开一条无效记录。',
-      primaryLabel: pathname === '/trek' ? '就在这页开始' : '去出发页',
-      primaryHref: '/trek',
-    }
-  }
-
-  if (task === 'learn_share') {
-    return {
-      title: '最后看一眼怎么分享',
-      description: 'Summit Card 更适合强调登顶核验，Activity Summary 更像整段活动总结。先看懂差别，记录完成后就知道该发哪一种。',
-      primaryLabel: '查看说明',
-      primaryHref: null,
-    }
-  }
-
-  return {
-    title: '准备就绪',
-    description: '你的首次行动已经完成。接下来只需要把这套流程走成真正的登顶记录。',
-    primaryLabel: '',
-    primaryHref: null,
-  }
 }
 
 function sceneVisual(sceneId: (typeof INTRO_SCENES)[number]['id']) {
@@ -463,16 +372,11 @@ export default function OnboardingModal({
   currentUserId: string | null
 }) {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
   const router = useRouter()
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
-  const { showToast } = useAppToast()
   const interactedRef = useRef(false)
   const provinceSyncRef = useRef<string | null>(null)
-  const completionSyncRef = useRef(false)
   const supportsEntryFlow = pathname === '/explore'
-  const supportsActivationFlow =
-    pathname === '/explore' || pathname.startsWith('/explore/') || pathname === '/trek'
   const suppressOnboardingUI = pathname === '/onboarding-qa' || pathname === '/share-card-lab'
 
   const [ready, setReady] = useState(false)
@@ -480,28 +384,13 @@ export default function OnboardingModal({
   const [progress, setProgress] = useState<OnboardingProgress>({
     introSeen: false,
     provinceChosen: false,
-    activationCompleted: false,
     version: ONBOARDING_VERSION,
-    tasks: {
-      find_peak: false,
-      open_start: false,
-      learn_share: false,
-    },
   })
   const [draftProvince, setDraftProvince] = useState<string | null>(initialProvince)
   const [selectedProvince, setSelectedProvince] = useState(initialProvince ?? '')
   const [provinceStage, setProvinceStage] = useState<ProvinceStage>('select')
   const [introStep, setIntroStep] = useState(0)
   const [reducedMotion, setReducedMotion] = useState(false)
-  const [showSharePrimer, setShowSharePrimer] = useState(false)
-  const [spotlights, setSpotlights] = useState<SpotlightRect[]>([])
-  const [activationDismissPath, setActivationDismissPath] = useState<string | null>(null)
-  const [onboardingSuppressed, setOnboardingSuppressed] = useState(false)
-
-  const coach = useMemo(
-    () => getCoachCopy(nextIncompleteTask(progress.tasks), pathname, draftProvince),
-    [draftProvince, pathname, progress.tasks]
-  )
 
   const resolvePostIntroPhase = useCallback(
     (province: string | null) =>
@@ -520,20 +409,12 @@ export default function OnboardingModal({
 
     const nextProgress = getOnboardingProgress()
     const nextProvince = initialProvince ?? getProvinceDraft()
-    const nextActivationDismissPath = getActivationDismissPath()
-    const nextSuppressed = isOnboardingSuppressed()
 
     setProgress(nextProgress)
     setDraftProvince(nextProvince)
     setSelectedProvince((value) => value || nextProvince || '')
-    setActivationDismissPath(nextActivationDismissPath)
-    setOnboardingSuppressed(nextSuppressed)
     setPhase((current) => {
       if (provinceStage === 'license') return current
-      if (nextSuppressed) return 'done'
-      if (nextActivationDismissPath && nextProgress.introSeen && !nextProgress.activationCompleted) {
-        return 'done'
-      }
       return derivePhase(nextProgress, nextProvince)
     })
     setReady(true)
@@ -567,28 +448,6 @@ export default function OnboardingModal({
     },
     [currentUserId, supabase]
   )
-
-  const syncOnboardingCompletion = useCallback(async () => {
-    if (!currentUserId) return
-    const completedAt = new Date().toISOString()
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        onboarding_version: ONBOARDING_VERSION,
-        onboarding_completed_at: completedAt,
-      })
-      .eq('id', currentUserId)
-
-    if (!error) return
-
-    await supabase
-      .from('profiles')
-      .update({
-        province: draftProvince,
-        province_code: getProvinceCode(draftProvince),
-      })
-      .eq('id', currentUserId)
-  }, [currentUserId, draftProvince, supabase])
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => refreshProgress())
@@ -633,13 +492,6 @@ export default function OnboardingModal({
   }, [refreshProgress])
 
   useEffect(() => {
-    if (!pathname) return
-    if (pathname.startsWith('/explore/') && pathname !== '/explore') {
-      markActivationTask('find_peak')
-    }
-  }, [pathname])
-
-  useEffect(() => {
     if (phase !== 'intro' || reducedMotion || !supportsEntryFlow) return
     const timer = window.setTimeout(() => {
       if (introStep === INTRO_SCENES.length - 1) {
@@ -657,112 +509,20 @@ export default function OnboardingModal({
     if (phase !== 'province' || provinceStage !== 'license') return
     const timer = window.setTimeout(() => {
       setProvinceStage('select')
-      setShowSharePrimer(false)
-      setPhase(progress.activationCompleted ? 'done' : 'activation')
+      setPhase('done')
       if (pathname !== '/explore') {
         router.replace('/explore')
       }
     }, 1250)
 
     return () => window.clearTimeout(timer)
-  }, [pathname, phase, progress.activationCompleted, provinceStage, router])
-
-  useEffect(() => {
-    if (progress.activationCompleted || !areAllActivationTasksComplete(progress.tasks) || completionSyncRef.current) {
-      return
-    }
-
-    completionSyncRef.current = true
-    setActivationDone()
-    triggerHaptic(24)
-    void syncOnboardingCompletion()
-    showToast({ key: 'onboarding_complete' })
-  }, [progress.activationCompleted, progress.tasks, showToast, syncOnboardingCompletion, triggerHaptic])
-
-  useEffect(() => {
-    if (!progress.activationCompleted) {
-      completionSyncRef.current = false
-    }
-  }, [progress.activationCompleted])
-
-  useEffect(() => {
-    const task = nextIncompleteTask(progress.tasks)
-    if (phase !== 'activation' || !task) {
-      const frame = window.requestAnimationFrame(() => setSpotlights([]))
-      return () => window.cancelAnimationFrame(frame)
-    }
-
-    const selectors =
-      task === 'find_peak'
-        ? ['[data-onboarding="explore-hot"]']
-        : task === 'open_start'
-          ? ['[data-onboarding="trek-map"]', '[data-onboarding="trek-panel"]', '[data-onboarding="trek-start"]']
-          : ['[data-onboarding="share-card"]']
-
-    const measure = () => {
-      const nextRects = selectors.flatMap((selector) => {
-        const element = document.querySelector<HTMLElement>(selector)
-        if (!element) return []
-
-        const rect = element.getBoundingClientRect()
-        if (rect.width < 1 || rect.height < 1) return []
-
-        const borderRadius = window.getComputedStyle(element).borderRadius
-        const radius = Number.parseFloat(borderRadius) || 18
-
-        return [
-          {
-            top: Math.max(rect.top - 10, 12),
-            left: Math.max(rect.left - 10, 12),
-            width: rect.width + 20,
-            height: rect.height + 20,
-            radius,
-          },
-        ]
-      })
-
-      setSpotlights(nextRects)
-    }
-
-    measure()
-    window.addEventListener('resize', measure)
-    window.addEventListener('scroll', measure, true)
-    return () => {
-      window.removeEventListener('resize', measure)
-      window.removeEventListener('scroll', measure, true)
-    }
-  }, [pathname, phase, progress.tasks])
+  }, [pathname, phase, provinceStage, router])
 
   if (!ready) return null
 
-  if (suppressOnboardingUI || (phase === 'activation' && !supportsActivationFlow)) return null
+  if (suppressOnboardingUI || phase === 'done') return null
 
-  const suppressTrekActivation =
-    phase === 'activation' &&
-    pathname === '/trek' &&
-    (progress.tasks.open_start || Boolean(searchParams.get('mountainId')))
-  if (suppressTrekActivation) return null
-
-  const showActivationResume =
-    phase === 'done' &&
-    Boolean(activationDismissPath) &&
-    !onboardingSuppressed &&
-    !progress.activationCompleted &&
-    progress.introSeen &&
-    supportsActivationFlow
-
-  const showSuppressedReopen =
-    phase === 'done' &&
-    onboardingSuppressed &&
-    !progress.activationCompleted &&
-    progress.introSeen &&
-    supportsActivationFlow
-
-  if (phase === 'done' && !showActivationResume && !showSuppressedReopen) return null
-
-  const activeTask = nextIncompleteTask(progress.tasks)
   const currentScene = INTRO_SCENES[introStep]
-  const compactActivation = phase === 'activation' && pathname === '/trek'
 
   async function handleProvinceConfirm() {
     if (!selectedProvince) return
@@ -794,55 +554,6 @@ export default function OnboardingModal({
     setIntroSeen()
     setPhase(resolvePostIntroPhase(draftProvince))
     triggerHaptic(12)
-  }
-
-  function handleCoachPrimary() {
-    interactedRef.current = true
-    if (activeTask === 'learn_share') {
-      setShowSharePrimer(true)
-      markActivationTask('learn_share')
-      triggerHaptic(12)
-      return
-    }
-
-    if (coach.primaryHref && pathname !== coach.primaryHref) {
-      router.push(coach.primaryHref)
-    }
-  }
-
-  function dismissActivationForCurrentPage() {
-    clearOnboardingSuppressed()
-    persistActivationDismissPath(pathname)
-    setActivationDismissPath(pathname)
-    setOnboardingSuppressed(false)
-    setPhase('done')
-  }
-
-  function suppressOnboardingForCurrentVersion() {
-    persistOnboardingSuppressed()
-    clearActivationDismissPath()
-    setOnboardingSuppressed(true)
-    setActivationDismissPath(null)
-    setPhase('done')
-  }
-
-  function reopenActivationGuide() {
-    clearOnboardingSuppressed()
-    clearActivationDismissPath()
-    setOnboardingSuppressed(false)
-    setActivationDismissPath(null)
-    setShowSharePrimer(false)
-    setPhase(progress.activationCompleted ? 'done' : 'activation')
-  }
-
-  function restartFullGuide() {
-    restartIntroFlow()
-    setOnboardingSuppressed(false)
-    setActivationDismissPath(null)
-    setShowSharePrimer(false)
-    setProvinceStage('select')
-    setIntroStep(0)
-    setPhase('intro')
   }
 
   if ((phase === 'intro' || phase === 'province') && !supportsEntryFlow) {
@@ -1075,198 +786,7 @@ export default function OnboardingModal({
     )
   }
 
-  return (
-    <>
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 120,
-          pointerEvents: 'none',
-          background: phase === 'activation' ? 'rgba(10,12,14,0.18)' : 'transparent',
-        }}
-      >
-        {spotlights.map((rect, index) => (
-          <div
-            key={`${rect.left}-${rect.top}-${index}`}
-            style={{
-              position: 'fixed',
-              top: rect.top,
-              left: rect.left,
-              width: rect.width,
-              height: rect.height,
-              borderRadius: rect.radius,
-              border: '1px solid rgba(255,255,255,0.18)',
-              boxShadow:
-                '0 0 0 1px rgba(34,197,94,0.36), 0 0 0 8px rgba(34,197,94,0.08), 0 18px 30px rgba(0,0,0,0.18)',
-            }}
-          />
-        ))}
-      </div>
-
-      {phase === 'activation' && (
-        <div
-          style={{
-            position: 'fixed',
-            left: compactActivation ? '50%' : 16,
-            right: compactActivation ? 'auto' : 16,
-            top: compactActivation ? 84 : 'auto',
-            bottom: compactActivation ? 'auto' : 88,
-            transform: compactActivation ? 'translateX(-50%)' : 'none',
-            zIndex: 130,
-            pointerEvents: 'none',
-            width: compactActivation ? 'min(calc(100vw - 32px), 460px)' : 'auto',
-          }}
-        >
-          <div className="surface-card" style={{ padding: compactActivation ? 16 : 18, pointerEvents: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
-              <div>
-                <div className="font-mono" style={{ fontSize: 12, color: 'var(--green-bright)', marginBottom: 6 }}>
-                  Activation Checklist
-                </div>
-                <div className="font-pixel" style={{ fontSize: 22, marginBottom: 4 }}>{coach.title}</div>
-                <div className="section-subtitle" style={{ fontSize: 14 }}>{coach.description}</div>
-              </div>
-              <IconActionButton
-                label="关闭"
-                icon={<ActionGlyph name="close" />}
-                size="sm"
-                onClick={dismissActivationForCurrentPage}
-              />
-            </div>
-
-            {compactActivation ? (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                {ACTIVATION_TASKS.map((task) => {
-                  const done = progress.tasks[task.key]
-                  return (
-                    <span key={task.key} className={`muted-chip ${done ? 'active' : ''}`}>
-                      {done ? '✓ ' : ''}{task.title}
-                    </span>
-                  )
-                })}
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gap: 10, marginBottom: 16 }}>
-                {ACTIVATION_TASKS.map((task) => {
-                  const done = progress.tasks[task.key]
-                  return (
-                    <div
-                      key={task.key}
-                      style={{
-                        display: 'flex',
-                        gap: 12,
-                        alignItems: 'flex-start',
-                        padding: 12,
-                        borderRadius: 14,
-                        background: done ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.03)',
-                        border: done ? '1px solid rgba(34,197,94,0.16)' : '1px solid rgba(255,255,255,0.06)',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: 999,
-                          background: done ? 'var(--green-primary)' : 'rgba(255,255,255,0.08)',
-                          color: done ? '#08120d' : 'var(--text-muted)',
-                          display: 'grid',
-                          placeItems: 'center',
-                          fontSize: 12,
-                          fontWeight: 800,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {done ? '✓' : '•'}
-                      </div>
-                      <div>
-                        <div className="font-pixel" style={{ fontSize: 15, marginBottom: 4 }}>{task.title}</div>
-                        <div className="section-subtitle">{task.description}</div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {showSharePrimer && !compactActivation && (
-              <div className="surface-card" style={{ padding: 14, marginBottom: 14, background: 'rgba(255,255,255,0.03)' }}>
-                <div className="font-pixel" style={{ fontSize: 16, marginBottom: 8 }}>分享卡差异</div>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <TemplatePrimer
-                    title="Summit Card"
-                    description="用于已核验登顶，强调山峰名、峰顶海拔、总爬升、用时和核验状态。"
-                  />
-                  <TemplatePrimer
-                    title="Activity Summary"
-                    description="用于整段活动总结，强调总距离、总时长、累计爬升和路线概览。"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div style={{ display: 'grid', gap: 10 }}>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button type="button" className="secondary-btn" style={{ flex: 1 }} onClick={dismissActivationForCurrentPage}>
-                  先自己逛逛
-                </button>
-                <button type="button" className="primary-btn" style={{ flex: 1.3 }} onClick={handleCoachPrimary}>
-                  {coach.primaryLabel || '完成'}
-                </button>
-              </div>
-              <button
-                type="button"
-                className="secondary-btn"
-                style={{ width: '100%' }}
-                onClick={suppressOnboardingForCurrentVersion}
-              >
-                不再提醒
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showActivationResume && (
-        <button
-          type="button"
-          className="secondary-btn"
-          onClick={reopenActivationGuide}
-          style={{
-            position: 'fixed',
-            right: 16,
-            bottom: 96,
-            zIndex: 131,
-            minHeight: 40,
-            padding: '0 14px',
-          }}
-        >
-          继续引导
-        </button>
-      )}
-
-      {showSuppressedReopen && (
-        <div
-          style={{
-            position: 'fixed',
-            right: 16,
-            bottom: 96,
-            zIndex: 131,
-            display: 'grid',
-            gap: 8,
-            width: 'min(calc(100vw - 32px), 220px)',
-          }}
-        >
-          <button type="button" className="secondary-btn" onClick={reopenActivationGuide} style={{ minHeight: 40 }}>
-            重新开启引导
-          </button>
-          <button type="button" className="secondary-btn" onClick={restartFullGuide} style={{ minHeight: 40 }}>
-            从头再看一遍
-          </button>
-        </div>
-      )}
-    </>
-  )
+  return null
 }
 
 function LicenseRow({ label, value }: { label: string; value: string }) {
@@ -1274,21 +794,6 @@ function LicenseRow({ label, value }: { label: string; value: string }) {
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
       <div className="section-subtitle">{label}</div>
       <div className="font-pixel" style={{ fontSize: 14, textAlign: 'right' }}>{value}</div>
-    </div>
-  )
-}
-
-function TemplatePrimer({
-  title,
-  description,
-}: {
-  title: string
-  description: string
-}) {
-  return (
-    <div style={{ padding: 12, borderRadius: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="font-pixel" style={{ fontSize: 15, marginBottom: 4 }}>{title}</div>
-      <div className="section-subtitle">{description}</div>
     </div>
   )
 }

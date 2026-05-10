@@ -146,8 +146,6 @@ async function signInUser(page: Page, baseURL: string, email: string, password: 
 async function clearOnboardingProvinceDraft(page: Page) {
   await page.evaluate(() => {
     window.localStorage.removeItem('peak_trekker_province_draft')
-    window.localStorage.removeItem('peak_trekker_activation_dismiss')
-    window.localStorage.removeItem('peak_trekker_onboarding_suppressed')
   })
 }
 

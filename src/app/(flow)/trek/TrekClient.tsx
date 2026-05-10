@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { markActivationTask } from '@/lib/onboarding'
-import { getCheckinScore } from '@/lib/province-ranking'
-import { isFeatureEnabled } from '@/lib/feature-flags'
 import { TREK_RULES } from '@/lib/trek-rules-client'
 import { haversineMeters } from '@/lib/trek-utils'
 import { useAppToast } from '@/components/ui/AppToastProvider'
@@ -122,6 +120,7 @@ export default function TrekClient({
   const [gpsWeakStartedAt, setGpsWeakStartedAt] = useState<number | null>(null)
   const [gpsWeakClock, setGpsWeakClock] = useState(() => Date.now())
   const [lastValidAltitudeM, setLastValidAltitudeM] = useState<number | null>(null)
+  const [summitConfirmedAt, setSummitConfirmedAt] = useState<Date | null>(null)
   const photoInputRef = useRef<HTMLInputElement | null>(null)
 
   const watchIdRef = useRef<number | null>(null)
@@ -157,6 +156,7 @@ export default function TrekClient({
     setGpsErrorCode(null)
     setGpsWeakStartedAt(null)
     setLastValidAltitudeM(null)
+    setSummitConfirmedAt(null)
     trackRef.current = []
     lastSyncRef.current = 0
   }, [])
@@ -545,13 +545,6 @@ export default function TrekClient({
   const photoTargetLocked = Boolean(targetMountain)
   const selectedPhotoTargetLabel = targetMountain ? `${targetMountain.name} · ${targetMountain.province}` : ''
   const photoButtonsAriaDisabled = !photoTargetLocked ? 'true' : undefined
-  const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
-  const summitContributionScore =
-    provinceRankingEnabled && nearbyMountain ? getCheckinScore(nearbyMountain.difficulty ?? '') : 0
-  const summitContributionNote =
-    provinceRankingEnabled && createdCheckinId && userProvince && summitContributionScore > 0
-      ? `+${summitContributionScore} 分 贡献给 ${userProvince}`
-      : null
 
   function confirmTargetMountain() {
     if (!selectedMountain) return
@@ -604,18 +597,29 @@ export default function TrekClient({
   const summitMountain = nearbyMountain ?? targetMountain ?? activeMountain
   const targetAltitude = targetMountain?.altitude ?? activeMountain?.altitude ?? 0
   const mapProgress = targetAltitude > 0 && currentAltitude > 0 ? Math.min(Math.max(currentAltitude / targetAltitude, 0.08), 0.98) : 0.18
+  const summitStartAltitude = getFirstValidAltitude(trackRef.current)
   const trekMetrics = [
     { label: '已用时', value: formatElapsedCompact(elapsedSeconds) },
     { label: '距离 km', value: distanceKm.toFixed(2) },
     { label: '爬升 m', value: String(ascentM) },
   ]
-  const summitTimestamp = createdCheckinId ? formatSummitTimestamp(new Date()) : ''
 
   useEffect(() => {
     if (viewState === 'permissionDenied') {
       clearToasts()
     }
   }, [clearToasts, viewState])
+
+  useEffect(() => {
+    if (viewState === 'summitConfirmed') {
+      setSummitConfirmedAt((value) => value ?? new Date())
+      return
+    }
+
+    if (!isSummitFlow) {
+      setSummitConfirmedAt(null)
+    }
+  }, [isSummitFlow, viewState])
 
   useEffect(() => {
     if (viewState !== 'gpsWeak') {
@@ -650,22 +654,17 @@ export default function TrekClient({
     setIsPaused(false)
   }
 
-  function restartAfterSummit() {
-    resetLiveTrekState()
-    setConfirmedMountainId(targetMountain?.id ?? nearbyMountain?.id ?? null)
-  }
-
   function showManualPlaceholder() {
     showToast({ key: 'action_blocked', message: '这个入口会在后续版本接入。' })
   }
 
+  void userProvince
   void showPhotoPanel
   void isReviewQueueOpen
   void setIsReviewQueueOpen
   void photoLoading
   void selectedPhotoTargetLabel
   void photoButtonsAriaDisabled
-  void handlePhotoFilePick
   void handlePhotoCheckin
   void checkinLoading
   void canConfirmSummit
@@ -721,32 +720,24 @@ export default function TrekClient({
           lostMinutes={formatGpsWeakMinutes(gpsWeakStartedAt, gpsWeakClock)}
         />
       ) : viewState === 'summitConfirmed' ? (
-        <div>
-          <SummitConfirmedView
-            mountain={summitMountain}
-            altitude={summitMountain?.altitude ?? currentAltitude}
-            timestamp={summitTimestamp}
-            metrics={trekMetrics}
-            contributionNote={summitContributionNote}
-          />
-          <BottomActionBar>
-            <SecondaryButton style={{ width: '100%' }} onClick={restartAfterSummit}>
-              重新开始
-            </SecondaryButton>
-            <PrimaryButton
-              style={{ width: '100%' }}
-              onClick={() => {
-                if (createdCheckinId) {
-                  router.push(`/activity/${createdCheckinId}`)
-                  return
-                }
-                router.push('/profile')
-              }}
-            >
-              查看活动
-            </PrimaryButton>
-          </BottomActionBar>
-        </div>
+        <SummitConfirmedView
+          mountain={summitMountain}
+          altitude={summitMountain?.altitude ?? currentAltitude}
+          confirmedAt={summitConfirmedAt}
+          elapsedSeconds={elapsedSeconds}
+          distanceKm={distanceKm}
+          ascentM={ascentM}
+          startAltitude={summitStartAltitude}
+          onAddPhoto={handlePhotoFilePick}
+          onSave={() => {
+            if (createdCheckinId) {
+              router.push(`/activity/${createdCheckinId}`)
+              return
+            }
+            router.push('/profile')
+          }}
+          onLater={() => router.push('/profile')}
+        />
       ) : viewState === 'nearSummit' ? (
         <NearSummitView
           distanceMeters={distanceToTarget}
@@ -850,6 +841,11 @@ function TrekShell({ children }: { children: ReactNode }) {
           0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-success) 55%, transparent); }
           100% { box-shadow: 0 0 0 8px transparent; }
         }
+        @keyframes pt-summit-check-enter {
+          0% { opacity: 0; transform: scale(0); }
+          60% { opacity: 1; transform: scale(1.15); }
+          100% { opacity: 1; transform: scale(1); }
+        }
         @keyframes pt-shimmer {
           0% { background-position: 0% 0%; }
           100% { background-position: -200% 0%; }
@@ -859,6 +855,7 @@ function TrekShell({ children }: { children: ReactNode }) {
           .pt-start-dot { animation: none !important; }
           .pt-gps-weak-dot { animation: none !important; }
           .pt-near-summit-dot { animation: none !important; }
+          .pt-summit-check-enter { animation: none !important; opacity: 1 !important; transform: scale(1) !important; }
           .pt-shimmer { animation: none !important; }
         }
       `}</style>
@@ -876,20 +873,23 @@ function TrekTopBar({
   const isRecording = state === 'live'
   const isGpsWeak = state === 'gpsWeak'
   const isNearSummit = state === 'nearSummit'
+  const isSummitConfirmed = state === 'summitConfirmed'
   const label = state === 'preStart'
     ? '待出发'
     : isGpsWeak
       ? '信号微弱'
       : isNearSummit
         ? '临近峰顶'
-        : isRecording
-          ? '记录中'
-          : state === 'paused' || state === 'summitConfirmed'
-            ? '已暂停'
-            : '待开始'
+        : isSummitConfirmed
+          ? '登顶完成'
+          : isRecording
+            ? '记录中'
+            : state === 'paused'
+              ? '已暂停'
+              : '待开始'
   const chipTone: 'warning' | 'success' | 'recording' | 'neutral' = isGpsWeak
     ? 'warning'
-    : isNearSummit
+    : isNearSummit || isSummitConfirmed
       ? 'success'
       : isRecording
         ? 'recording'
@@ -945,7 +945,25 @@ function TrekTopBar({
           ...chipStyle,
         }}
       >
-        <RecDot active={isRecording} tone={isGpsWeak ? 'warning' : isNearSummit ? 'success' : 'default'} />
+        {isSummitConfirmed ? (
+          <span
+            data-testid="trek-summit-check"
+            className="pt-summit-check-enter"
+            style={{
+              width: 14,
+              height: 14,
+              display: 'grid',
+              placeItems: 'center',
+              animation: 'pt-summit-check-enter 600ms ease-out forwards',
+              transformOrigin: 'center',
+              flex: '0 0 auto',
+            }}
+          >
+            <CheckIcon size={14} />
+          </span>
+        ) : (
+          <RecDot active={isRecording} tone={isGpsWeak ? 'warning' : isNearSummit ? 'success' : 'default'} />
+        )}
         <span
           style={{
             fontSize: 'var(--font-label-s-size)',
@@ -2663,91 +2681,416 @@ function BottomActionBar({
 function SummitConfirmedView({
   mountain,
   altitude,
-  timestamp,
-  metrics,
-  contributionNote,
+  confirmedAt,
+  elapsedSeconds,
+  distanceKm,
+  ascentM,
+  startAltitude,
+  onAddPhoto,
+  onSave,
+  onLater,
 }: {
   mountain: Mountain | null | undefined
   altitude: number
-  timestamp: string
-  metrics: Array<{ label: string; value: string }>
-  contributionNote: string | null
+  confirmedAt: Date | null
+  elapsedSeconds: number
+  distanceKm: number
+  ascentM: number
+  startAltitude: number | null
+  onAddPhoto: () => void
+  onSave: () => void
+  onLater: () => void
 }) {
+  const altitudeLabel = formatGroupedMeters(altitude)
+  const timeLabel = formatSummitTime(confirmedAt)
+  const locationLabel = formatSummitLocation(mountain)
+  const stats = [
+    { label: '总用时', value: formatSummitElapsed(elapsedSeconds) },
+    { label: '距离', value: formatSummitDistance(distanceKm) },
+    { label: '爬升', value: formatSummitAscent(ascentM) },
+    { label: '出发海拔', value: formatSummitAltitude(startAltitude) },
+  ]
+
   return (
-    <div>
-      <div style={{ padding: 'var(--space-8) var(--space-5) 0', textAlign: 'center' }}>
+    <div
+      data-testid="trek-summit-confirmed-view"
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        isolation: 'isolate',
+        minHeight: 'calc(100dvh - 56px)',
+        paddingBottom: 'calc(var(--space-6) + env(safe-area-inset-bottom))',
+      }}
+    >
+      <div
+        data-testid="trek-summit-ambient"
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 320,
+          pointerEvents: 'none',
+          zIndex: 0,
+          background: 'radial-gradient(ellipse at top, color-mix(in oklch, var(--color-success) 14%, transparent) 0%, transparent 68%)',
+        }}
+      />
+
+      <section
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          padding: 'var(--space-12) var(--space-5) 0',
+          textAlign: 'center',
+        }}
+      >
         <div
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-            padding: '6px 12px',
-            borderRadius: 'var(--radius-pill)',
-            background: 'color-mix(in srgb, var(--color-success) 14%, transparent)',
-            border: '1px solid color-mix(in srgb, var(--color-success) 30%, transparent)',
-            color: 'var(--color-success)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            fontWeight: 500,
+            letterSpacing: '0.16em',
+            color: 'var(--color-on-surface-variant)',
+            textTransform: 'uppercase',
           }}
         >
-          <CheckIcon size={16} />
-          <span style={{ fontSize: 'var(--font-label-s-size)', fontWeight: 700, letterSpacing: '0.06em' }}>已登顶</span>
+          ALT · SUMMIT
         </div>
-        <div style={{ fontSize: 'var(--font-headline-m-size)', lineHeight: 'var(--font-headline-m-line)', fontWeight: 800, marginTop: 'var(--space-3)' }}>
+
+        <h1
+          style={{
+            margin: 'var(--space-3) 0 0',
+            color: 'var(--color-on-surface)',
+            fontSize: 'var(--font-headline-m-size)',
+            lineHeight: 'var(--font-headline-m-line)',
+            fontWeight: 600,
+          }}
+        >
           {mountain?.name ?? '本次山行'}
-        </div>
-        <div
-          style={{
-            fontFamily: "'IBM Plex Mono', Menlo, monospace",
-            fontSize: 48,
-            lineHeight: 1,
-            fontWeight: 800,
-            color: 'var(--color-success)',
-            marginTop: 'var(--space-3)',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          {formatMeters(altitude)}m
-        </div>
+        </h1>
+
         <div
           style={{
             marginTop: 6,
-            fontFamily: "'IBM Plex Mono', Menlo, monospace",
-            fontSize: 'var(--font-label-s-size)',
-            lineHeight: 'var(--font-label-s-line)',
             color: 'var(--color-on-surface-variant)',
-            letterSpacing: '0.14em',
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 'var(--font-label-m-line)',
+            fontWeight: 400,
           }}
         >
-          {timestamp || '已生成活动记录'}
+          {locationLabel}
         </div>
-      </div>
-      <TrekMetricRow metrics={metrics} />
-      <div style={{ padding: 'var(--space-4) var(--space-4) 0' }}>
+
         <div
           style={{
-            padding: '12px 14px',
-            borderRadius: 14,
-            border: '1px solid var(--color-outline)',
-            background: 'var(--color-surface-variant)',
-            fontSize: 'var(--font-label-m-size)',
-            lineHeight: '20px',
-            color: 'var(--color-on-surface)',
+            marginTop: 'var(--space-8)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'baseline',
           }}
         >
-          活动已生成 · 记录数据已保存，可以前往活动页查看完整结果。
-        </div>
-        {contributionNote ? (
-          <div
-            data-testid="trek-province-contribution-note"
+          <span
+            data-testid="trek-summit-altitude"
             style={{
-              marginTop: 'var(--space-2)',
-              color: 'var(--color-on-surface-variant)',
-              fontSize: 'var(--font-label-s-size)',
-              lineHeight: 'var(--font-label-s-line)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 88,
+              lineHeight: 1,
+              fontWeight: 700,
+              color: 'var(--color-success)',
+              fontVariantNumeric: 'tabular-nums',
             }}
           >
-            {contributionNote}
-          </div>
-        ) : null}
+            {altitudeLabel}
+          </span>
+          <span
+            style={{
+              marginLeft: 6,
+              paddingBottom: 10,
+              fontFamily: 'var(--font-mono)',
+              fontSize: 22,
+              lineHeight: 1,
+              fontWeight: 600,
+              color: 'var(--color-success)',
+            }}
+          >
+            m
+          </span>
+        </div>
+
+        <div
+          style={{
+            marginTop: 'var(--space-3)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 'var(--font-label-m-line)',
+            fontWeight: 500,
+            color: 'var(--color-success)',
+          }}
+        >
+          {timeLabel} · 留证已确认
+        </div>
+      </section>
+
+      <section style={{ position: 'relative', zIndex: 1, marginTop: 'var(--space-8)' }}>
+        <SummitRidgeDivider />
+      </section>
+
+      <section
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          padding: 'var(--space-8) var(--space-5) 0',
+          textAlign: 'center',
+        }}
+      >
+        <h2
+          style={{
+            margin: 0,
+            color: 'var(--color-on-surface)',
+            fontSize: 26,
+            lineHeight: '32px',
+            fontWeight: 700,
+          }}
+        >
+          到了。
+        </h2>
+        <div
+          style={{
+            marginTop: 'var(--space-4)',
+            display: 'grid',
+            gap: 'var(--space-2)',
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 'var(--font-body-m-size)',
+            lineHeight: 1.6,
+            fontWeight: 'var(--font-body-m-weight)',
+          }}
+        >
+          <p style={{ margin: 0 }}>留 10 分钟给这里 ·</p>
+          <p style={{ margin: 0 }}>下山的路慢慢走。</p>
+        </div>
+      </section>
+
+      <section style={{ position: 'relative', zIndex: 1, padding: 'var(--space-8) var(--space-4) 0' }}>
+        <div
+          data-testid="trek-summit-stats"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+            background: 'var(--color-surface-variant)',
+            borderRadius: 16,
+            padding: '16px 8px',
+          }}
+        >
+          {stats.map((stat, index) => (
+            <SummitStat key={stat.label} label={stat.label} value={stat.value} withDivider={index < stats.length - 1} />
+          ))}
+        </div>
+      </section>
+
+      <section style={{ position: 'relative', zIndex: 1, padding: 'var(--space-6) var(--space-4) 0' }}>
+        <PrimaryButton
+          data-testid="trek-summit-primary-cta"
+          style={{ width: '100%', height: 52, minHeight: 52, borderRadius: 16 }}
+          onClick={onAddPhoto}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <CameraIcon size={18} />
+            <span>留下峰顶记录</span>
+          </span>
+        </PrimaryButton>
+
+        <div
+          style={{
+            marginTop: 'var(--space-3)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            gap: 'var(--space-3)',
+          }}
+        >
+          <SecondaryButton
+            data-testid="trek-summit-save-cta"
+            style={{
+              width: '100%',
+              height: 52,
+              minHeight: 52,
+              borderRadius: 16,
+              background: 'var(--color-surface-variant)',
+              border: '1px solid color-mix(in oklch, var(--color-outline) 60%, transparent)',
+              color: 'var(--color-on-surface)',
+              fontSize: 'var(--font-title-m-size)',
+              fontWeight: 'var(--font-title-m-weight)',
+              paddingInline: 'var(--space-3)',
+            }}
+            onClick={onSave}
+          >
+            保存这次登顶
+          </SecondaryButton>
+          <SecondaryButton
+            data-testid="trek-summit-later-cta"
+            style={{
+              width: '100%',
+              height: 52,
+              minHeight: 52,
+              borderRadius: 16,
+              background: 'var(--color-surface-variant)',
+              border: '1px solid color-mix(in oklch, var(--color-outline) 60%, transparent)',
+              color: 'var(--color-on-surface)',
+              fontSize: 'var(--font-title-m-size)',
+              fontWeight: 'var(--font-title-m-weight)',
+              paddingInline: 'var(--space-3)',
+            }}
+            onClick={onLater}
+          >
+            稍后整理
+          </SecondaryButton>
+        </div>
+
+        <div
+          style={{
+            marginTop: 'var(--space-5)',
+            marginBottom: 'var(--space-6)',
+            textAlign: 'center',
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 12,
+            lineHeight: 1.5,
+            fontWeight: 400,
+          }}
+        >
+          峰顶留证窗口仍有 8 分钟 · 不急。
+          <br />
+          下山途中也可以补充照片与一段话。
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function SummitRidgeDivider() {
+  return (
+    <div
+      data-testid="trek-summit-divider"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        padding: '0 var(--space-5)',
+      }}
+    >
+      <span
+        data-testid="trek-summit-divider-line"
+        aria-hidden="true"
+        style={{
+          flex: 1,
+          height: 1,
+          background: 'color-mix(in oklch, var(--color-outline) 50%, transparent)',
+        }}
+      />
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          fontFamily: 'var(--font-mono)',
+          fontSize: 'var(--font-label-s-size)',
+          lineHeight: 1,
+          color: 'var(--color-on-surface-variant)',
+          letterSpacing: '0.08em',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <ArrowUpRightMini />
+        <span>此刻 · 山顶</span>
+      </span>
+      <span
+        data-testid="trek-summit-divider-line"
+        aria-hidden="true"
+        style={{
+          flex: 1,
+          height: 1,
+          background: 'color-mix(in oklch, var(--color-outline) 50%, transparent)',
+        }}
+      />
+    </div>
+  )
+}
+
+function ArrowUpRightMini() {
+  return (
+    <svg
+      width={12}
+      height={12}
+      viewBox="0 0 12 12"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+      style={{
+        width: 12,
+        height: 12,
+        display: 'block',
+        flex: '0 0 auto',
+        color: 'var(--color-on-surface-variant)',
+      }}
+    >
+      <path
+        d="M3.25 8.75L8.75 3.25M4.25 3.25h4.5v4.5"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function SummitStat({
+  label,
+  value,
+  withDivider = false,
+}: {
+  label: string
+  value: string
+  withDivider?: boolean
+}) {
+  return (
+    <div
+      data-testid="trek-summit-stat"
+      style={{
+        minWidth: 0,
+        position: 'relative',
+        boxSizing: 'border-box',
+        padding: '0 4px',
+        textAlign: 'center',
+        borderRight: withDivider ? '1px solid color-mix(in oklch, var(--color-outline) 50%, transparent)' : undefined,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 14,
+          lineHeight: '18px',
+          fontWeight: 600,
+          color: 'var(--color-on-surface)',
+          fontVariantNumeric: 'tabular-nums',
+          whiteSpace: 'nowrap',
+          overflow: 'visible',
+        }}
+      >
+        {value}
+      </div>
+      <div
+        style={{
+          marginTop: 'var(--space-1)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 'var(--font-label-s-size)',
+          lineHeight: 'var(--font-label-s-line)',
+          fontWeight: 500,
+          color: 'var(--color-on-surface-variant)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {label}
       </div>
     </div>
   )
@@ -2784,6 +3127,48 @@ function formatGroupedMeters(value: number | null | undefined) {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Math.max(0, Math.round(Number(value))))
 }
 
+function getFirstValidAltitude(points: Array<{ altitude?: number | null }>) {
+  const firstPoint = points.find((point) => typeof point.altitude === 'number' && Number.isFinite(point.altitude))
+  return typeof firstPoint?.altitude === 'number' ? Math.round(firstPoint.altitude) : null
+}
+
+function formatSummitTime(date: Date | null) {
+  if (!date) return '--'
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
+function formatSummitLocation(mountain: Mountain | null | undefined) {
+  if (!mountain) return '--'
+  const parts = [mountain.province, difficultyLabel(mountain.difficulty)].filter(Boolean)
+  return parts.length > 0 ? parts.join(' · ') : '--'
+}
+
+function formatSummitElapsed(totalSeconds: number) {
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return '--'
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds))
+  const hours = Math.floor(safeSeconds / 3600)
+  const minutes = Math.floor((safeSeconds % 3600) / 60)
+  if (hours > 0) return `${hours}h ${minutes}m`
+  return `${minutes}m`
+}
+
+function formatSummitDistance(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return '--'
+  return `${value.toFixed(1)}km`
+}
+
+function formatSummitAscent(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return '--'
+  return `${formatGroupedMeters(value)}m`
+}
+
+function formatSummitAltitude(value: number | null | undefined) {
+  if (!Number.isFinite(Number(value))) return '--'
+  return `${formatGroupedMeters(value)}m`
+}
+
 function formatElapsedForNearSummit(totalSeconds: number) {
   const safeSeconds = Math.max(0, Math.floor(totalSeconds))
   const hours = Math.floor(safeSeconds / 3600)
@@ -2816,15 +3201,6 @@ function licenseShortLabel(value: User['license_level'] | Mountain['min_license'
   }
   if (value === 'basic' || value === 'intermediate' || value === 'advanced') return labels[value]
   return labels.none
-}
-
-function formatSummitTimestamp(date: Date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hour = String(date.getHours()).padStart(2, '0')
-  const minute = String(date.getMinutes()).padStart(2, '0')
-  return `${year}·${month}·${day} · ${hour}:${minute}`
 }
 
 function isTrackingRuntimeActive(status: TrekStatus) {

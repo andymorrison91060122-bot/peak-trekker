@@ -31,6 +31,7 @@ type TrekStatus =
   | 'card_preview'
   | 'shared'
 type GpsState = { lat: number; lng: number; accuracy: number; altitude?: number | null } | null
+type ReferenceMapVariant = 'default' | 'gpsWeak' | 'offlineCache'
 type TrekViewState =
   | 'loading'
   | 'permissionDenied'
@@ -121,6 +122,7 @@ export default function TrekClient({
   const [gpsWeakClock, setGpsWeakClock] = useState(() => Date.now())
   const [lastValidAltitudeM, setLastValidAltitudeM] = useState<number | null>(null)
   const [summitConfirmedAt, setSummitConfirmedAt] = useState<Date | null>(null)
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine))
   const photoInputRef = useRef<HTMLInputElement | null>(null)
 
   const watchIdRef = useRef<number | null>(null)
@@ -198,6 +200,18 @@ export default function TrekClient({
     }, 30000)
 
     return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    const syncOnlineState = () => setIsOnline(navigator.onLine)
+    syncOnlineState()
+    window.addEventListener('online', syncOnlineState)
+    window.addEventListener('offline', syncOnlineState)
+
+    return () => {
+      window.removeEventListener('online', syncOnlineState)
+      window.removeEventListener('offline', syncOnlineState)
+    }
   }, [])
 
   const effectiveSelectedMountainId = selectedMountainId || targetMountainId || ''
@@ -596,7 +610,9 @@ export default function TrekClient({
   const activeMountain = targetMountain ?? selectedMountain ?? suggestedMountain
   const summitMountain = nearbyMountain ?? targetMountain ?? activeMountain
   const targetAltitude = targetMountain?.altitude ?? activeMountain?.altitude ?? 0
-  const mapProgress = targetAltitude > 0 && currentAltitude > 0 ? Math.min(Math.max(currentAltitude / targetAltitude, 0.08), 0.98) : 0.18
+  const currentGpsAltitude = typeof gps?.altitude === 'number' && Number.isFinite(gps.altitude) ? Math.round(gps.altitude) : 0
+  const referenceMapProgress = targetAltitude > 0 && currentGpsAltitude > 0 ? clamp01(currentGpsAltitude / targetAltitude) : 0
+  const referenceMapVariant: ReferenceMapVariant = isOnline ? 'default' : 'offlineCache'
   const summitStartAltitude = getFirstValidAltitude(trackRef.current)
   const trekMetrics = [
     { label: '已用时', value: formatElapsedCompact(elapsedSeconds) },
@@ -710,6 +726,8 @@ export default function TrekClient({
           activeMountain={activeMountain}
           gps={gps}
           gpsError={gpsError}
+          referenceMapProgress={referenceMapProgress}
+          referenceMapVariant={referenceMapVariant}
           canStart={Boolean(targetMountain)}
           onStart={startTrek}
           onOpenMountain={(mountainId) => router.push(`/mountain/${encodeURIComponent(mountainId)}`)}
@@ -760,7 +778,11 @@ export default function TrekClient({
             }
           />
           <TrekMetricRow metrics={trekMetrics} />
-          <TrekMiniMap progress={mapProgress} />
+          <TrekReferenceMap
+            progress={referenceMapProgress}
+            variant={referenceMapVariant}
+            showCurrentMarker={viewState === 'live'}
+          />
 
           {viewState === 'paused' ? (
             <BottomActionBar>
@@ -1586,6 +1608,8 @@ function PreStartView({
   activeMountain,
   gps,
   gpsError,
+  referenceMapProgress,
+  referenceMapVariant,
   canStart,
   onStart,
   onOpenMountain,
@@ -1603,6 +1627,8 @@ function PreStartView({
   activeMountain: Mountain | null
   gps: GpsState
   gpsError: string
+  referenceMapProgress: number
+  referenceMapVariant: ReferenceMapVariant
   canStart: boolean
   onStart: () => void
   onOpenMountain: (mountainId: string) => void
@@ -1672,6 +1698,12 @@ function PreStartView({
           }} />
 
           <PreStartPreflightList mountain={activeMountain} gps={gps} gpsError={gpsError} />
+
+          <TrekReferenceMap
+            progress={referenceMapProgress}
+            variant={referenceMapVariant}
+            showCurrentMarker={false}
+          />
 
           <BottomActionBar columns="single">
             <PrimaryButton
@@ -2522,82 +2554,226 @@ function TrekMetric({ label, value }: { label: string; value: string }) {
   )
 }
 
-function TrekMiniMap({ progress, weak = false }: { progress: number; weak?: boolean }) {
-  const p = Math.min(Math.max(progress, 0), 1)
-  const dotX = 34 + p * 256
-  const dotY = 126 - p * 78
-  const walkedPath = `M34 126 Q80 110 122 100 T${dotX} ${dotY}`
+function TrekReferenceMap({
+  progress,
+  variant = 'default',
+  showCurrentMarker = true,
+}: {
+  progress: number
+  variant?: ReferenceMapVariant
+  showCurrentMarker?: boolean
+}) {
+  const p = clamp01(progress)
+  const progressPercent = Math.round(p * 100)
+  const isGpsWeak = variant === 'gpsWeak'
+  const isOffline = variant === 'offlineCache'
+  const dotX = 42 + p * 235
+  const dotY = 204 - p * 162 - Math.sin(p * Math.PI) * 16
+  const walkedControlX = 64 + p * 84
+  const walkedControlY = 188 - p * 64
+  const walkedPath = `M28 204 Q${walkedControlX} ${walkedControlY} ${dotX} ${dotY}`
 
   return (
     <div
+      data-testid="trek-reference-map-module"
       style={{
         margin: 'var(--space-4) var(--space-4) 0',
-        height: 160,
-        borderRadius: 14,
-        border: '1px solid var(--color-outline)',
-        overflow: 'hidden',
-        position: 'relative',
-        background: 'var(--color-surface-variant)',
       }}
     >
-      <svg width="100%" height="100%" viewBox="0 0 343 160" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }}>
-        <g opacity={weak ? 0.4 : 1}>
-          {[0, 1, 2, 3, 4, 5, 6].map((item) => (
-            <ellipse
-              key={item}
-              cx="180"
-              cy="82"
-              rx={38 + item * 28}
-              ry={18 + item * 12}
-              stroke="var(--color-outline)"
-              strokeOpacity="0.55"
-              strokeWidth="1"
-              fill="none"
-            />
-          ))}
-          <path d="M34 126 Q80 110 122 100 T204 78 T290 44" stroke="var(--color-outline)" strokeWidth="2" strokeDasharray="4 5" fill="none" />
-          <path d={walkedPath} stroke="var(--color-success)" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-          <circle cx={dotX} cy={dotY} r="7" fill="var(--color-success)" />
-          <circle cx={dotX} cy={dotY} r="12" fill="none" stroke="var(--color-success)" strokeOpacity="0.25" strokeWidth="2" />
-          <path d="M276 48 L286 30 L296 48 Z" fill="var(--color-on-surface)" opacity="0.72" />
-        </g>
-      </svg>
-      <span
+      <div
+        data-testid="trek-reference-map-header"
         style={{
-          position: 'absolute',
-          left: 10,
-          top: 10,
-          padding: '4px 8px',
-          borderRadius: 'var(--radius-pill)',
-          fontSize: 10,
-          fontWeight: 600,
-          background: 'color-mix(in srgb, var(--color-surface) 76%, transparent)',
-          color: 'var(--color-on-surface-variant)',
-          letterSpacing: '0.05em',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: 0,
+          marginBottom: 8,
+          gap: 'var(--space-3)',
         }}
       >
-        地图仅作参考
-      </span>
-      {weak ? (
         <span
           style={{
-            position: 'absolute',
-            right: 10,
-            top: 10,
-            padding: '4px 8px',
-            borderRadius: 'var(--radius-pill)',
-            fontSize: 10,
-            fontWeight: 700,
-            background: 'color-mix(in srgb, var(--color-warning) 16%, var(--color-surface))',
-            color: 'var(--color-warning)',
-            letterSpacing: '0.05em',
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 'var(--font-label-m-line)',
+            fontWeight: 500,
+            color: 'var(--color-on-surface-variant)',
           }}
         >
-          GPS 弱
+          位置参考
         </span>
+        <span
+          style={{
+            minWidth: 0,
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            fontWeight: 400,
+            color: 'var(--color-on-surface-variant)',
+            textAlign: 'right',
+          }}
+        >
+          海拔与进度仍是主要信息
+        </span>
+      </div>
+      {isOffline ? (
+        <div
+          data-testid="trek-reference-map-offline-hint"
+          style={{
+            marginBottom: 8,
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            fontWeight: 400,
+            color: 'var(--color-on-surface-variant)',
+          }}
+        >
+          本地缓存模式 · 数据未与云端同步
+        </div>
       ) : null}
+      <div
+        data-testid="trek-reference-map-canvas"
+        style={{
+          height: 240,
+          borderRadius: 16,
+          overflow: 'hidden',
+          position: 'relative',
+          background: 'var(--color-surface-variant)',
+        }}
+      >
+        <svg
+          data-testid="trek-reference-map-svg"
+          width="100%"
+          height="100%"
+          viewBox="0 0 343 240"
+          preserveAspectRatio="none"
+          style={{ position: 'absolute', inset: 0 }}
+        >
+          <g data-testid="trek-reference-map-contours">
+            {[0, 1, 2, 3, 4, 5].map((item) => (
+              <ellipse
+                key={item}
+                cx="246"
+                cy="62"
+                rx={24 + item * 29}
+                ry={14 + item * 18}
+                stroke="color-mix(in oklch, var(--color-outline) 40%, transparent)"
+                strokeWidth="1"
+                fill="none"
+              />
+            ))}
+          </g>
+          <g data-testid="trek-reference-map-route" opacity={isOffline ? 0.7 : 1}>
+            {isOffline ? null : (
+              <path
+                data-testid="trek-reference-map-future-route"
+                d="M28 204 C72 184 98 164 126 150 S178 112 208 98 S257 65 277 42"
+                stroke="color-mix(in oklch, var(--color-outline) 48%, transparent)"
+                strokeWidth="1.5"
+                strokeDasharray="3 5"
+                fill="none"
+                strokeLinecap="round"
+              />
+            )}
+            <path
+              data-testid="trek-reference-map-trail"
+              d={walkedPath}
+              stroke="var(--color-trail)"
+              strokeWidth="2.5"
+              fill="none"
+              strokeLinecap="round"
+            />
+            {showCurrentMarker ? (
+              <g data-testid="trek-reference-map-current-marker" opacity={isGpsWeak ? 0.72 : 1}>
+                <circle
+                  cx={dotX}
+                  cy={dotY}
+                  r="12"
+                  fill="color-mix(in oklch, var(--color-success) 25%, transparent)"
+                />
+                <circle cx={dotX} cy={dotY} r="6" fill="var(--color-success)" />
+              </g>
+            ) : null}
+          </g>
+          <path data-testid="trek-reference-map-summit-marker" d="M270 49 L277 35 L284 49 Z" fill="var(--color-on-surface-variant)" />
+        </svg>
+        <span
+          data-testid="trek-reference-map-chip"
+          style={{
+            position: 'absolute',
+            left: 12,
+            top: 12,
+            padding: '4px 10px',
+            borderRadius: 'var(--radius-pill)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            fontWeight: 500,
+            background: 'color-mix(in oklch, var(--color-surface) 80%, transparent)',
+            backdropFilter: 'blur(8px)',
+            color: 'var(--color-on-surface-variant)',
+          }}
+        >
+          地图仅作参考
+        </span>
+        <span
+          data-testid="trek-reference-map-progress"
+          style={{
+            position: 'absolute',
+            right: 12,
+            top: 12,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 'var(--font-label-m-line)',
+            fontWeight: 600,
+            color: 'var(--color-success)',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" focusable="false">
+            <path d="M1.5 8L5 2L8.5 8Z" fill="var(--color-on-surface-variant)" />
+          </svg>
+          {progressPercent}% · 顶峰
+        </span>
+        {isGpsWeak ? (
+          <span
+            data-testid="trek-reference-map-gps-weak-chip"
+            style={{
+              position: 'absolute',
+              right: 12,
+              bottom: 12,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-pill)',
+              border: '1px solid color-mix(in oklch, var(--color-warning) 40%, transparent)',
+              background: 'color-mix(in oklch, var(--color-warning) 16%, var(--color-surface))',
+              color: 'var(--color-warning)',
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+              fontWeight: 500,
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 'var(--radius-pill)',
+                background: 'var(--color-warning)',
+              }}
+            />
+            GPS弱 · 位置可能延迟
+          </span>
+        ) : null}
+      </div>
     </div>
   )
+}
+
+function clamp01(value: number) {
+  if (!Number.isFinite(value)) return 0
+  return Math.min(Math.max(value, 0), 1)
 }
 
 function InlineBanner({

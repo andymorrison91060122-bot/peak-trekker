@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { assertActivityUpdatePolicy } from '@/lib/activity-field-policy'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import { TREK_RULES } from '@/lib/trek-rules-server'
@@ -698,12 +699,15 @@ export async function POST(request: NextRequest) {
     const isOwner = checkin.user_id === user.id
 
     if (isOwner) {
+      const posterUpdate = {
+        poster_template: template,
+        poster_url: posterUrl,
+      }
+      assertActivityUpdatePolicy(posterUpdate, { allowedFields: ['poster_template', 'poster_url'] })
+
       await supabase
         .from('checkins')
-        .update({
-          poster_template: template,
-          poster_url: posterUrl,
-        })
+        .update(posterUpdate)
         .eq('id', checkin.id)
         .eq('user_id', user.id)
     }

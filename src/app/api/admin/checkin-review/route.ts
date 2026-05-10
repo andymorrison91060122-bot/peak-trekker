@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  ActivityFieldPolicyError,
+  assertActivityUpdatePolicy,
+} from '@/lib/activity-field-policy'
 import { canAccessAdminTools } from '@/lib/admin-access'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
@@ -11,6 +15,19 @@ type CheckinReviewStatsRow = {
 
 function firstRelation<T>(relation: T | T[] | null): T | null {
   return Array.isArray(relation) ? relation[0] ?? null : relation
+}
+
+function policyErrorResponse(error: unknown) {
+  if (!(error instanceof ActivityFieldPolicyError)) return null
+
+  return NextResponse.json(
+    {
+      error: error.message,
+      field: error.field,
+      reason: error.reason,
+    },
+    { status: error.status }
+  )
 }
 
 export async function POST(request: NextRequest) {
@@ -37,22 +54,38 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
-  const { id, action, note } = await request.json()
+  const body = await request.json()
+  const { id, action, note } = body
+
+  try {
+    assertActivityUpdatePolicy(body as Record<string, unknown>, {
+      ignoredFields: ['id', 'action'],
+      allowedFields: ['note'],
+    })
+  } catch (error) {
+    return policyErrorResponse(error) ?? NextResponse.json({ error: 'invalid update payload' }, { status: 400 })
+  }
 
   if (!id || !['approve', 'reject'].includes(action)) {
     return NextResponse.json({ error: 'invalid params' }, { status: 400 })
   }
 
   const newStatus = action === 'approve' ? 'approved' : 'rejected'
+  const reviewUpdate = { status: newStatus, ...(note ? { review_note: note } : {}) }
+  assertActivityUpdatePolicy(reviewUpdate, { allowedFields: ['status', 'review_note'] })
+
   let { error } = await supabase
     .from('checkins')
-    .update({ status: newStatus, ...(note ? { review_note: note } : {}) })
+    .update(reviewUpdate)
     .eq('id', id)
 
   if (error && note && /review_note/i.test(error.message)) {
+    const adminNoteUpdate = { status: newStatus, admin_note: note }
+    assertActivityUpdatePolicy(adminNoteUpdate, { allowedFields: ['status', 'admin_note'] })
+
     const fallbackUpdate = await supabase
       .from('checkins')
-      .update({ status: newStatus, admin_note: note })
+      .update(adminNoteUpdate)
       .eq('id', id)
     error = fallbackUpdate.error
   }

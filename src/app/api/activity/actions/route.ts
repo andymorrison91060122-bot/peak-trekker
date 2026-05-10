@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server'
+import {
+  ActivityFieldPolicyError,
+  assertActivityUpdatePolicy,
+} from '@/lib/activity-field-policy'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { COMMUNITY_MAX_IMAGE_COUNT } from '@/lib/community'
 import { describeStorageError, normalizeStorageUploadError } from '@/lib/storage-errors'
@@ -33,6 +37,27 @@ type CheckinAssetRow = {
 function normalizeNote(value: unknown) {
   if (typeof value !== 'string') return ''
   return value.trim().slice(0, 2000)
+}
+
+function policyErrorResponse(error: unknown) {
+  if (!(error instanceof ActivityFieldPolicyError)) return null
+
+  return NextResponse.json(
+    {
+      error: error.message,
+      field: error.field,
+      reason: error.reason,
+    },
+    { status: error.status }
+  )
+}
+
+function formDataToUpdateObject(formData: FormData | null) {
+  const updates: Record<string, unknown> = {}
+  formData?.forEach((value, key) => {
+    updates[key] = value
+  })
+  return updates
 }
 
 async function bestEffortRemoveCheckinPhotoObjects(
@@ -111,6 +136,15 @@ export async function POST(request: Request) {
 
     if (action !== 'add_activity_images') {
       return NextResponse.json({ error: 'unsupported action' }, { status: 400 })
+    }
+
+    try {
+      assertActivityUpdatePolicy(formDataToUpdateObject(formData), {
+        ignoredFields: ['action', 'checkinId', 'files'],
+        allowedFields: [],
+      })
+    } catch (error) {
+      return policyErrorResponse(error) ?? NextResponse.json({ error: 'invalid update payload' }, { status: 400 })
     }
 
     const checkinId = typeof formData?.get('checkinId') === 'string' ? String(formData?.get('checkinId')) : ''
@@ -213,9 +247,12 @@ export async function POST(request: Request) {
 
       const nextCoverUrl = !checkin.photo_url && uploadedRows[0] ? uploadedRows[0].url : checkin.photo_url
       if (!checkin.photo_url && uploadedRows[0]) {
+        const coverUpdate = { photo_url: uploadedRows[0].url }
+        assertActivityUpdatePolicy(coverUpdate, { allowedFields: ['photo_url'] })
+
         const { error: updatePhotoError } = await supabase
           .from('checkins')
-          .update({ photo_url: uploadedRows[0].url })
+          .update(coverUpdate)
           .eq('id', checkinId)
           .eq('user_id', user.id)
 
@@ -249,6 +286,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'unsupported action' }, { status: 400 })
   }
 
+  try {
+    assertActivityUpdatePolicy(body as Record<string, unknown>, {
+      ignoredFields: ['action', 'checkinId'],
+      allowedFields: ['note'],
+    })
+  } catch (error) {
+    return policyErrorResponse(error) ?? NextResponse.json({ error: 'invalid update payload' }, { status: 400 })
+  }
+
   const checkinId = typeof body?.checkinId === 'string' ? body.checkinId : ''
   if (!checkinId) {
     return NextResponse.json({ error: 'checkinId required' }, { status: 400 })
@@ -266,9 +312,12 @@ export async function POST(request: Request) {
   }
 
   const note = normalizeNote(body?.note)
+  const noteUpdate = { note }
+  assertActivityUpdatePolicy(noteUpdate, { allowedFields: ['note'] })
+
   const { error: updateError } = await supabase
     .from('checkins')
-    .update({ note })
+    .update(noteUpdate)
     .eq('id', checkinId)
     .eq('user_id', user.id)
 

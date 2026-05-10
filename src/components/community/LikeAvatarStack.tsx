@@ -19,7 +19,7 @@ const avatarBaseStyle = {
   width: 24,
   height: 24,
   borderRadius: '50%',
-  border: '2px solid #0f1113',
+  border: '2px solid var(--color-surface)',
   background: 'var(--color-surface-elevated)',
   display: 'grid',
   placeItems: 'center',

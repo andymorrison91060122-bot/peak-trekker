@@ -19,8 +19,21 @@ export const C = {
   onPrimary: '#08120d',
 }
 
+/**
+ * Share template palette
+ *
+ * These hex values are used by Satori (HTML-to-image) rendering and CANNOT
+ * use CSS custom properties. Keep them centralized here so they aren't
+ * confused with UI-layer color debt.
+ */
+export const SHARE_TEMPLATE_PALETTE = {
+  bgPrimary: '#0f1113',
+  bgGradient: '#14171a',
+  bgPhotoStart: '#1a1f24',
+} as const
+
 export const DEFAULT_PHOTO_BACKGROUND =
-  'linear-gradient(180deg, #1a1f24 0%, #121416 58%, #0f1113 100%)'
+  `linear-gradient(180deg, ${SHARE_TEMPLATE_PALETTE.bgPhotoStart} 0%, ${C.bg} 58%, ${SHARE_TEMPLATE_PALETTE.bgPrimary} 100%)`
 
 export function formatPlainNumber(value: number) {
   if (!Number.isFinite(value)) return '--'
@@ -111,7 +124,7 @@ export function PhotoLayer({
         width,
         height,
         background:
-          'radial-gradient(circle at 62% 18%, rgba(110, 231, 161, 0.12), transparent 24%), radial-gradient(circle at 28% 70%, rgba(255, 255, 255, 0.045), transparent 32%), linear-gradient(180deg, #1a1f24 0%, #121416 62%, #0f1113 100%)',
+          `radial-gradient(circle at 62% 18%, rgba(110, 231, 161, 0.12), transparent 24%), radial-gradient(circle at 28% 70%, rgba(255, 255, 255, 0.045), transparent 32%), linear-gradient(180deg, ${SHARE_TEMPLATE_PALETTE.bgPhotoStart} 0%, ${C.bg} 62%, ${SHARE_TEMPLATE_PALETTE.bgPrimary} 100%)`,
       }}
     />
   )

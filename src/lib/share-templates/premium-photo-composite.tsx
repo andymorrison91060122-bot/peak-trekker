@@ -6,6 +6,7 @@ import {
   PhotoLayer,
   PhotoShade,
   PosterShell,
+  SHARE_TEMPLATE_PALETTE,
   TopoSvg,
   TrailSvg,
   buildMountainLine,
@@ -16,7 +17,7 @@ export function PremiumPhotoCompositeTemplate({ data, photoDataUrl }: ShareTempl
   const mountainLine = buildMountainLine(data)
 
   return (
-    <PosterShell background="#0f1113">
+    <PosterShell background={SHARE_TEMPLATE_PALETTE.bgPrimary}>
       <PhotoLayer photoDataUrl={photoDataUrl} />
       {!photoDataUrl ? <TopoSvg opacity={0.28} /> : null}
       <PhotoShade direction="bottom" strength={0.86} />

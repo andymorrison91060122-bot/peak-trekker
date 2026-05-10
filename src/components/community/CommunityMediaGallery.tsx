@@ -95,7 +95,7 @@ function renderMedia(asset: CheckinAsset, title: string, index: number, posterFa
         muted={!withControls}
         playsInline
         preload="metadata"
-        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', background: '#0f1113' }}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', background: 'var(--color-surface)' }}
       />
     )
   }
@@ -218,7 +218,7 @@ export default function CommunityMediaGallery({
                         minHeight: 0,
                         overflow: 'hidden',
                         borderRadius: 12,
-                        background: '#0f1113',
+                        background: 'var(--color-surface)',
                         gridRow: highlightPrimaryTile ? 'span 2' : undefined,
                       }}
                     >
@@ -585,7 +585,7 @@ export default function CommunityMediaGallery({
                 borderRadius: 24,
                 overflow: 'hidden',
                 border: '1px solid rgba(255,255,255,0.08)',
-                background: '#0f1113',
+                background: 'var(--color-surface)',
               }}
             >
               {renderMedia(activeAsset, title, safeActiveIndex, coverUrl, true)}

@@ -5,6 +5,7 @@ import {
   PhotoLayer,
   PhotoShade,
   PosterShell,
+  SHARE_TEMPLATE_PALETTE,
   TopoSvg,
   formatDistance,
   formatPlainNumber,
@@ -15,7 +16,7 @@ export function PremiumPhotoOverlayTemplate({ data, photoDataUrl }: ShareTemplat
   const location = data.visibleFields.location ? data.location : ''
 
   return (
-    <PosterShell background="#0f1113">
+    <PosterShell background={SHARE_TEMPLATE_PALETTE.bgPrimary}>
       <PhotoLayer photoDataUrl={photoDataUrl} />
       {!photoDataUrl ? <TopoSvg opacity={0.22} /> : null}
       <PhotoShade direction="left" strength={0.86} />

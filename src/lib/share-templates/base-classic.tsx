@@ -6,6 +6,7 @@ import {
   PhotoLayer,
   PhotoShade,
   PosterShell,
+  SHARE_TEMPLATE_PALETTE,
   TopoSvg,
   TrailSvg,
   buildMountainLine,
@@ -16,7 +17,7 @@ export function BaseClassicTemplate({ data, photoDataUrl }: ShareTemplateProps) 
   const mountainLine = buildMountainLine(data)
 
   return (
-    <PosterShell background="linear-gradient(180deg, #14171a 0%, #0f1113 100%)">
+    <PosterShell background={`linear-gradient(180deg, ${SHARE_TEMPLATE_PALETTE.bgGradient} 0%, ${SHARE_TEMPLATE_PALETTE.bgPrimary} 100%)`}>
       {photoDataUrl ? (
         <>
           <PhotoLayer photoDataUrl={photoDataUrl} />

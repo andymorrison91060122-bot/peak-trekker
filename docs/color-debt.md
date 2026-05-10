@@ -14,10 +14,6 @@
 
 ## Mountain Detail 页
 
-- 色值: `#14171a`
-  出现位置: `src/components/ui/MountainUI.tsx:39`
-  推测用途: 山峰详情旧版深色背景层。
-
 - 色值: `#14181b`
   出现位置: `src/app/api/poster/route.ts:309`, `src/components/ui/MountainUI.tsx:119`
   推测用途: 分享海报和山峰详情的深色表面底。
@@ -59,12 +55,6 @@
 - 色值: `#fca5a5`
   出现位置: `src/app/components.css:284`, `src/components/ui/CheckinButton.tsx:66`
   推测用途: 删除/危险操作里的浅红提示文字。
-
-## 社区媒体画廊
-
-- 色值: `#0f1113`
-  出现位置: `src/components/community/CommunityMediaGallery.tsx:218`, `src/components/community/CommunityMediaGallery.tsx:585`, `src/components/community/CommunityMediaGallery.tsx:95`
-  推测用途: 社区媒体画廊的遮罩层和深色底。
 
 ## Profile 头像上传
 
@@ -149,6 +139,13 @@
 # P2 · 非主线 / 后置
 
 以下色值在 admin、海报装饰、QA 测试、登录注册等非主线场景。允许后置或保留特殊色板。
+
+## Satori 模板专用 palette
+
+以下色值用于 share template 的 HTML-to-image 渲染，Satori 不支持 CSS custom properties，必须保留 literal。已抽取到 `src/lib/share-templates/shared.tsx::SHARE_TEMPLATE_PALETTE` 集中维护。
+
+- `#0f1113` — `SHARE_TEMPLATE_PALETTE.bgPrimary`（poster shell 背景）
+- `#14171a` — `SHARE_TEMPLATE_PALETTE.bgGradient`（poster 渐变中段）
 
 ## 装饰例外（不进入 token 系统）
 

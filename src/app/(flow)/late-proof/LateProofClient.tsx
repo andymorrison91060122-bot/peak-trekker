@@ -355,7 +355,124 @@ function UploadView({
   )
 }
 
-function PlaceholderView({ viewState }: { viewState: Exclude<LateProofViewState, 'intro'> }) {
+function PendingClockIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="9" stroke="var(--color-on-surface-variant)" strokeWidth="1.5" />
+      <path d="M12 7v5l3 2" stroke="var(--color-on-surface)" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function VerifiedTag() {
+  return (
+    <span className="lp-verified-tag">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
+        <path d="M3 6l2 2 4-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      用户自报
+    </span>
+  )
+}
+
+type TimelineState = 'done' | 'active' | 'future'
+
+function TimelineRow({
+  state,
+  label,
+  sub,
+  last,
+}: {
+  state: TimelineState
+  label: string
+  sub: string
+  last?: boolean
+}) {
+  return (
+    <div className="lp-timeline-row" data-state={state} data-last={last ? 'true' : 'false'}>
+      <div className="lp-timeline-marker" aria-hidden="true">
+        <span className="lp-timeline-dot" />
+        {!last ? <span className="lp-timeline-line" /> : null}
+      </div>
+      <div className="lp-timeline-copy">
+        <div className="lp-timeline-label">{label}</div>
+        <div className="lp-timeline-sub">{sub}</div>
+      </div>
+    </div>
+  )
+}
+
+function PendingView({
+  mountainName,
+  altitude,
+  summitDate,
+  previewUrl,
+  exifData,
+  userNote,
+}: {
+  mountainName: string
+  altitude: string | null
+  summitDate: string | null
+  previewUrl: string | null
+  exifData: LateProofExifData | null
+  userNote: string
+}) {
+  const summitTitle = altitude ? `${mountainName} · ${altitude}m` : mountainName
+  const submittedAtLabel = pendingSummitDateLabel(exifData?.dateTime, summitDate)
+  const trimmedNote = userNote.trim()
+
+  return (
+    <main className="lp-content">
+      <section className="lp-pending-hero" aria-labelledby="late-proof-pending-title">
+        <div className="lp-pending-icon">
+          <div className="lp-pending-pulse" aria-hidden="true" />
+          <PendingClockIcon />
+        </div>
+        <h1 id="late-proof-pending-title" className="lp-pending-title">
+          已收到，正在整理
+        </h1>
+        <p className="lp-pending-copy">
+          这次补登记会以「用户自报」的形式收录。
+          <br />
+          通常 24 小时内会出现在你的山行档案里。
+        </p>
+      </section>
+
+      <SectionHeader>这一次提交</SectionHeader>
+      <section className="lp-section-shell" aria-label="这一次提交">
+        <div className="lp-submission-card">
+          <div className="lp-submission-main">
+            <div className="lp-submission-thumb">
+              {previewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- blob previews cannot be optimized by next/image
+                <img src={previewUrl} alt="补登记照片缩略图" />
+              ) : (
+                <span aria-hidden="true" />
+              )}
+            </div>
+            <div className="lp-submission-info">
+              <div className="lp-submission-title">{summitTitle}</div>
+              <div className="lp-submission-time">{submittedAtLabel}</div>
+            </div>
+            <VerifiedTag />
+          </div>
+          {trimmedNote ? <div className="lp-submission-note">{trimmedNote}</div> : null}
+        </div>
+      </section>
+
+      <SectionHeader>之后会发生什么</SectionHeader>
+      <section className="lp-timeline-shell" aria-label="之后会发生什么">
+        <div className="lp-timeline-card">
+          <TimelineRow state="done" label="提交已收到" sub="刚刚 · 你这边已完成" />
+          <TimelineRow state="active" label="进入档案整理" sub="约 24 小时内 · 自动处理" />
+          <TimelineRow state="future" label="出现在你的山行档案" sub="标记为「用户自报」" last />
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function PlaceholderView({ viewState }: { viewState: 'submitted' }) {
   return <div className="lp-placeholder">{viewState} — 待实现</div>
 }
 
@@ -448,6 +565,15 @@ export default function LateProofClient({
           onNoteChange={setUserNote}
           onSubmit={() => setViewState('pending')}
         />
+      ) : viewState === 'pending' ? (
+        <PendingView
+          mountainName={mountainName}
+          altitude={altitude}
+          summitDate={summitDate}
+          previewUrl={previewUrl}
+          exifData={exifData}
+          userNote={userNote}
+        />
       ) : (
         <PlaceholderView viewState={viewState} />
       )}
@@ -459,4 +585,13 @@ function fileTimeLabel(exifLoading: boolean, exifData: LateProofExifData | null)
   if (exifLoading) return '正在读取拍摄信息'
   if (exifData?.dateTime) return `拍摄于 ${exifData.dateTime.replace(' · ', ' ')}`
   return '未读取到拍摄时间'
+}
+
+function pendingSummitDateLabel(dateTime: string | undefined, summitDate: string | null) {
+  const [exifDate, exifTime] = dateTime?.split(' · ') ?? []
+  const dateLabel = summitDate || exifDate
+
+  if (dateLabel && exifTime) return `${dateLabel} · ${exifTime} 登顶`
+  if (dateLabel) return `${dateLabel} 登顶`
+  return '未记录日期 登顶'
 }

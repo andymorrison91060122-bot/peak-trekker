@@ -486,6 +486,212 @@
   animation: lp-fade-in 200ms ease both;
 }
 
+.lp-pending-hero {
+  padding: 40px 24px 0;
+  text-align: center;
+}
+
+.lp-pending-icon {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+  border: 1px solid var(--color-outline);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.03);
+  color: var(--color-on-surface);
+}
+
+.lp-pending-pulse {
+  position: absolute;
+  inset: -4px;
+  border: 1px solid rgba(141,149,155,0.18);
+  border-radius: 50%;
+  animation: lp-ringpulse 2.4s ease-out infinite;
+}
+
+.lp-pending-title {
+  margin: 22px 0 0;
+  color: var(--color-on-surface);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.lp-pending-copy {
+  max-width: 280px;
+  margin: 10px auto 0;
+  color: var(--color-on-surface-variant);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.lp-submission-card {
+  padding: 14px 16px;
+  border: 1px solid var(--color-outline);
+  border-radius: 14px;
+  background: var(--color-surface-variant);
+}
+
+.lp-submission-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lp-submission-thumb {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 10px;
+  background: color-mix(in oklch, var(--color-on-surface-variant) 18%, transparent);
+}
+
+.lp-submission-thumb img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.lp-submission-thumb span {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--color-outline);
+  border-radius: 50%;
+}
+
+.lp-submission-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.lp-submission-title {
+  overflow: hidden;
+  color: var(--color-on-surface);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lp-submission-time {
+  margin-top: 3px;
+  color: var(--color-on-surface-variant);
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.lp-verified-tag {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid rgba(245,158,11,0.28);
+  border-radius: var(--radius-pill);
+  background: rgba(245,158,11,0.1);
+  color: var(--color-warning);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.lp-submission-note {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-outline);
+  color: rgba(245,247,248,0.72);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.lp-timeline-shell {
+  padding: 0 16px 26px;
+}
+
+.lp-timeline-card {
+  padding: 4px;
+  border: 1px solid var(--color-outline);
+  border-radius: 14px;
+  background: var(--color-surface-variant);
+}
+
+.lp-timeline-row {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-outline);
+}
+
+.lp-timeline-row[data-last='true'] {
+  border-bottom: 0;
+}
+
+.lp-timeline-marker {
+  position: relative;
+  padding-top: 4px;
+}
+
+.lp-timeline-dot {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  vertical-align: top;
+}
+
+.lp-timeline-row[data-state='done'] .lp-timeline-dot {
+  background: var(--color-success);
+}
+
+.lp-timeline-row[data-state='active'] .lp-timeline-dot {
+  background: var(--color-on-surface);
+}
+
+.lp-timeline-row[data-state='future'] .lp-timeline-dot {
+  border: 1.5px solid var(--color-on-surface-variant);
+  background: transparent;
+}
+
+.lp-timeline-line {
+  position: absolute;
+  left: 4.5px;
+  top: 18px;
+  width: 1px;
+  height: 28px;
+  background: var(--color-outline);
+}
+
+.lp-timeline-label {
+  color: var(--color-on-surface);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.lp-timeline-row[data-state='future'] .lp-timeline-label {
+  color: var(--color-on-surface-variant);
+}
+
+.lp-timeline-sub {
+  margin-top: 3px;
+  color: var(--color-on-surface-variant);
+  font-size: 11px;
+  line-height: 14px;
+}
+
 @keyframes lp-fade-in {
   from {
     opacity: 0;
@@ -496,8 +702,21 @@
   }
 }
 
+@keyframes lp-ringpulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .lp-fade-in {
+  .lp-fade-in,
+  .lp-pending-pulse {
     animation: none;
   }
 }

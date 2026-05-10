@@ -12,12 +12,6 @@
 
 以下色值出现在用户主链路或反馈层（导航、Mountain、Explore、Trek、社区画廊、Toast、Onboarding、锁定提示等），上线前必须统一到 token。
 
-## 底部导航 / TabBar
-
-- 色值: `#6b7280`
-  出现位置: `src/app/admin/layout.tsx:40`, `src/app/admin/layout.tsx:54`, `src/app/admin/users/AdminUsersClient.tsx:9`, `src/components/layout/TabBar.tsx:35`, `src/components/layout/TabBar.tsx:43`, `src/components/layout/TabBar.tsx:44`, `src/components/layout/TabBar.tsx:53`, `src/components/layout/TabBar.tsx:54`, `src/components/layout/TabBar.tsx:62`, `src/components/layout/TabBar.tsx:64`, `src/components/layout/TabBar.tsx:72`
-  推测用途: 管理后台和底部导航里的旧版中灰文字/未激活状态。
-
 ## Mountain Detail 页
 
 - 色值: `#14171a`
@@ -28,21 +22,9 @@
   出现位置: `src/app/api/poster/route.ts:309`, `src/components/ui/MountainUI.tsx:119`
   推测用途: 分享海报和山峰详情的深色表面底。
 
-- 色值: `#171b1f`
-  出现位置: `src/app/api/poster/route.ts:328`, `src/components/ui/ExploreMountainCard.tsx:63`, `src/components/ui/MountainUI.tsx:274`
-  推测用途: 海报、Explore 卡片和山峰详情中的旧版边缘深色块。
-
 - 色值: `#171c20`
   出现位置: `src/components/ui/MountainUI.tsx:163`
   推测用途: 山峰详情旧版地图/信息条底色。
-
-- 色值: `#1a1f23`
-  出现位置: `src/app/api/poster/route.ts:384`, `src/components/ui/ExploreMountainCard.tsx:51`, `src/components/ui/MountainUI.tsx:267`
-  推测用途: 海报、Explore 卡片和山峰详情中的中层深色背景。
-
-- 色值: `#1b2421`
-  出现位置: `src/components/ui/ExploreMountainCard.tsx:51`, `src/components/ui/MountainUI.tsx:267`
-  推测用途: Explore / MountainUI 里带绿调的深色面。
 
 - 色值: `#1c2024`
   出现位置: `src/components/ui/MountainUI.tsx:39`
@@ -51,20 +33,6 @@
 - 色值: `#20262a`
   出现位置: `src/components/ui/MountainUI.tsx:163`
   推测用途: 山峰详情旧版面板边界层。
-
-- 色值: `#23292e`
-  出现位置: `src/components/ui/ExploreMountainCard.tsx:51`, `src/components/ui/MountainUI.tsx:267`
-  推测用途: Explore / MountainUI 里的旧版卡片深灰。
-
-- 色值: `#2f3a40`
-  出现位置: `src/components/ui/MountainUI.tsx:273`
-  推测用途: 山峰详情旧版描边或次级卡片底。
-
-## Explore 卡片与详情
-
-- 色值: `#364148`
-  出现位置: `src/components/ui/ExploreMountainCard.tsx:62`
-  推测用途: Explore 山卡片中的辅助边框/次级面板底。
 
 ## Trek 错误提示
 
@@ -93,26 +61,6 @@
   推测用途: 删除/危险操作里的浅红提示文字。
 
 ## Onboarding 首启引导
-
-- 色值: `#019`
-  出现位置: `src/components/ui/OnboardingModal.tsx:317`
-  推测用途: Onboarding modal 中的遗留调试/链接色。
-
-- 色值: `#26343b`
-  出现位置: `src/components/ui/OnboardingModal.tsx:244`
-  推测用途: Onboarding 插图里的深蓝灰山体色。
-
-- 色值: `#4d6c76`
-  出现位置: `src/components/ui/OnboardingModal.tsx:244`
-  推测用途: Onboarding 插图里的中层山体或雾层色。
-
-- 色值: `#7dd3fc`
-  出现位置: `src/components/ui/OnboardingModal.tsx:347`, `src/components/ui/OnboardingModal.tsx:348`, `src/components/ui/OnboardingModal.tsx:43`
-  推测用途: Onboarding 中的信息提示蓝和插图高光。
-
-- 色值: `#ecb173`
-  出现位置: `src/components/ui/OnboardingModal.tsx:244`
-  推测用途: Onboarding 插图里的暖色日照高光。
 
 - 色值: `#f6d28d`
   出现位置: `src/components/ui/OnboardingModal.tsx:1008`, `src/components/ui/OnboardingModal.tsx:198`, `src/components/ui/OnboardingModal.tsx:224`, `src/components/ui/OnboardingModal.tsx:36`

@@ -37,7 +37,7 @@ export function PixelMountainBg() {
         position: 'absolute',
         inset: 0,
         background:
-          'radial-gradient(circle at top left, rgba(255,255,255,0.12), transparent 28%), linear-gradient(180deg, rgba(34,197,94,0.08) 0%, transparent 35%), linear-gradient(180deg, #1c2024 0%, #14171a 65%, #121416 100%)',
+          'radial-gradient(circle at top left, rgba(255,255,255,0.12), transparent 28%), linear-gradient(180deg, rgba(34,197,94,0.08) 0%, transparent 35%), linear-gradient(180deg, color-mix(in oklch, var(--color-surface-variant) 55%, var(--color-surface)) 0%, var(--color-surface) 65%, var(--color-surface) 100%)',
       }}
     />
   )
@@ -117,7 +117,7 @@ function MiniRoutePreview({
           overflow: 'hidden',
           border: '1px solid rgba(255,255,255,0.12)',
           position: 'relative',
-          background: '#14181b',
+          background: 'var(--color-surface)',
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -161,7 +161,7 @@ function MiniRoutePreview({
         overflow: 'hidden',
         border: '1px solid rgba(255,255,255,0.12)',
         background:
-          'linear-gradient(180deg, rgba(18,20,22,0.1), rgba(18,20,22,0.65)), linear-gradient(135deg, #20262a 0%, #171c20 100%)',
+          'linear-gradient(180deg, rgba(18,20,22,0.1), rgba(18,20,22,0.65)), linear-gradient(135deg, var(--color-surface-variant) 0%, var(--color-surface) 100%)',
         position: 'relative',
       }}
     >

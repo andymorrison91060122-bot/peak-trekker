@@ -603,7 +603,6 @@ export default function TrekClient({
   const activeMountain = targetMountain ?? selectedMountain ?? suggestedMountain
   const summitMountain = nearbyMountain ?? targetMountain ?? activeMountain
   const targetAltitude = targetMountain?.altitude ?? activeMountain?.altitude ?? 0
-  const distanceToSummit = targetAltitude > 0 && currentAltitude > 0 ? Math.max(targetAltitude - currentAltitude, 0) : null
   const mapProgress = targetAltitude > 0 && currentAltitude > 0 ? Math.min(Math.max(currentAltitude / targetAltitude, 0.08), 0.98) : 0.18
   const trekMetrics = [
     { label: '已用时', value: formatElapsedCompact(elapsedSeconds) },
@@ -668,6 +667,9 @@ export default function TrekClient({
   void photoButtonsAriaDisabled
   void handlePhotoFilePick
   void handlePhotoCheckin
+  void checkinLoading
+  void canConfirmSummit
+  void handleGpsCheckin
 
   return (
     <TrekShell>
@@ -745,22 +747,19 @@ export default function TrekClient({
             </PrimaryButton>
           </BottomActionBar>
         </div>
+      ) : viewState === 'nearSummit' ? (
+        <NearSummitView
+          distanceMeters={distanceToTarget}
+          altitude={currentAltitude}
+          elapsedSeconds={elapsedSeconds}
+        />
       ) : (
         <div>
-          {viewState === 'nearSummit' ? (
-            <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-1)' }}>
-              <InlineBanner
-                tone="success"
-                title="接近峰顶"
-                sub={`距顶 ${distanceToSummit !== null ? Math.round(distanceToSummit) : '--'}m · 准备登顶留证`}
-              />
-            </div>
-          ) : null}
           <MountainContext mountain={activeMountain} />
           <ElevationHero
             value={currentAltitude}
             target={targetAltitude}
-            pulse={viewState === 'nearSummit'}
+            pulse={false}
             sub={
               viewState === 'paused'
                 ? '记录已暂停 · 数据保留'
@@ -770,7 +769,7 @@ export default function TrekClient({
             }
           />
           <TrekMetricRow metrics={trekMetrics} />
-          <TrekMiniMap progress={viewState === 'nearSummit' ? 0.95 : mapProgress} />
+          <TrekMiniMap progress={mapProgress} />
 
           {viewState === 'paused' ? (
             <BottomActionBar>
@@ -779,20 +778,6 @@ export default function TrekClient({
               </SecondaryButton>
               <PrimaryButton style={{ width: '100%' }} onClick={resumeTrek}>
                 继续记录
-              </PrimaryButton>
-            </BottomActionBar>
-          ) : viewState === 'nearSummit' ? (
-            <BottomActionBar>
-              <SecondaryButton style={{ width: '100%' }} onClick={pauseTrek}>
-                暂停
-              </SecondaryButton>
-              <PrimaryButton
-                style={{ width: '100%' }}
-                onClick={handleGpsCheckin}
-                disabled={checkinLoading || !canConfirmSummit}
-              >
-                <CameraIcon size={16} />
-                {checkinLoading ? '确认中...' : '登顶留证'}
               </PrimaryButton>
             </BottomActionBar>
           ) : (
@@ -823,6 +808,7 @@ function TrekShell({ children }: { children: ReactNode }) {
     <div
       style={{
         '--color-bg': 'var(--color-surface)',
+        '--font-mono': "'IBM Plex Mono', 'Menlo', monospace",
         minHeight: '100dvh',
         background: 'var(--color-surface)',
         color: 'var(--color-on-surface)',
@@ -860,6 +846,10 @@ function TrekShell({ children }: { children: ReactNode }) {
           0%, 100% { opacity: 0.5; transform: scale(1); }
           50% { opacity: 1; transform: scale(1.12); }
         }
+        @keyframes pt-near-summit-pulse {
+          0% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-success) 55%, transparent); }
+          100% { box-shadow: 0 0 0 8px transparent; }
+        }
         @keyframes pt-shimmer {
           0% { background-position: 0% 0%; }
           100% { background-position: -200% 0%; }
@@ -868,6 +858,7 @@ function TrekShell({ children }: { children: ReactNode }) {
           .pt-rec-dot { animation: none !important; }
           .pt-start-dot { animation: none !important; }
           .pt-gps-weak-dot { animation: none !important; }
+          .pt-near-summit-dot { animation: none !important; }
           .pt-shimmer { animation: none !important; }
         }
       `}</style>
@@ -882,28 +873,44 @@ function TrekTopBar({
   state: TrekViewState
   onBack: () => void
 }) {
-  const isRecording = state === 'live' || state === 'nearSummit'
+  const isRecording = state === 'live'
   const isGpsWeak = state === 'gpsWeak'
+  const isNearSummit = state === 'nearSummit'
   const label = state === 'preStart'
     ? '待出发'
     : isGpsWeak
       ? '信号微弱'
-    : isRecording
-      ? '记录中'
-      : state === 'paused' || state === 'summitConfirmed'
-        ? '已暂停'
-        : '待开始'
-  const chipStyle: CSSProperties = isGpsWeak
+      : isNearSummit
+        ? '临近峰顶'
+        : isRecording
+          ? '记录中'
+          : state === 'paused' || state === 'summitConfirmed'
+            ? '已暂停'
+            : '待开始'
+  const chipTone: 'warning' | 'success' | 'recording' | 'neutral' = isGpsWeak
+    ? 'warning'
+    : isNearSummit
+      ? 'success'
+      : isRecording
+        ? 'recording'
+        : 'neutral'
+  const chipStyle: CSSProperties = chipTone === 'warning'
     ? {
         background: 'color-mix(in oklch, var(--color-surface) 80%, transparent)',
         border: '1px solid color-mix(in oklch, var(--color-warning) 40%, transparent)',
         color: 'var(--color-warning)',
       }
-    : {
-        background: 'color-mix(in oklch, var(--color-surface) 80%, transparent)',
-        border: '1px solid var(--color-outline)',
-        color: 'var(--color-on-surface)',
-      }
+    : chipTone === 'success'
+      ? {
+          background: 'color-mix(in oklch, var(--color-surface) 80%, transparent)',
+          border: '1px solid color-mix(in oklch, var(--color-success) 40%, transparent)',
+          color: 'var(--color-success)',
+        }
+      : {
+          background: 'color-mix(in oklch, var(--color-surface) 80%, transparent)',
+          border: '1px solid var(--color-outline)',
+          color: 'var(--color-on-surface)',
+        }
 
   return (
     <div
@@ -927,6 +934,7 @@ function TrekTopBar({
         onClick={onBack}
       />
       <div
+        data-testid="trek-status-chip"
         style={{
           minHeight: 32,
           padding: '6px 14px',
@@ -937,7 +945,7 @@ function TrekTopBar({
           ...chipStyle,
         }}
       >
-        <RecDot active={isRecording} tone={isGpsWeak ? 'warning' : 'default'} />
+        <RecDot active={isRecording} tone={isGpsWeak ? 'warning' : isNearSummit ? 'success' : 'default'} />
         <span
           style={{
             fontSize: 'var(--font-label-s-size)',
@@ -960,17 +968,21 @@ function TrekTopBar({
   )
 }
 
-function RecDot({ active, tone = 'default' }: { active: boolean; tone?: 'default' | 'warning' }) {
+function RecDot({ active, tone = 'default' }: { active: boolean; tone?: 'default' | 'warning' | 'success' }) {
   const isWarningPulse = tone === 'warning' && !active
+  const isSuccessPulse = tone === 'success' && !active
   const background = active
     ? 'var(--color-error)'
     : tone === 'warning'
       ? 'var(--color-warning)'
-      : 'var(--color-on-surface-variant)'
+      : tone === 'success'
+        ? 'var(--color-success)'
+        : 'var(--color-on-surface-variant)'
 
   return (
     <span
-      className={isWarningPulse ? 'pt-rec-dot pt-gps-weak-dot' : 'pt-rec-dot'}
+      data-testid="trek-status-dot"
+      className={isWarningPulse ? 'pt-rec-dot pt-gps-weak-dot' : isSuccessPulse ? 'pt-rec-dot pt-near-summit-dot' : 'pt-rec-dot'}
       style={{
         width: 8,
         height: 8,
@@ -980,7 +992,9 @@ function RecDot({ active, tone = 'default' }: { active: boolean; tone?: 'default
           ? 'pt-rec-pulse 1.4s ease-out infinite'
           : isWarningPulse
             ? 'pt-gps-weak-pulse 2.5s ease-in-out infinite'
-            : 'none',
+            : isSuccessPulse
+              ? 'pt-near-summit-pulse 2.5s ease-out infinite'
+              : 'none',
         transformOrigin: 'center',
         flex: '0 0 auto',
       }}
@@ -1238,6 +1252,304 @@ function GpsWeakRetryItem({
           {sub}
         </span>
       </span>
+    </div>
+  )
+}
+
+function NearSummitView({
+  distanceMeters,
+  altitude,
+  elapsedSeconds,
+}: {
+  distanceMeters: number | null
+  altitude: number
+  elapsedSeconds: number
+}) {
+  const distanceLabel = formatNearSummitDistance(distanceMeters)
+  const altitudeLabel = formatGroupedMeters(altitude)
+  const elapsedLabel = formatElapsedForNearSummit(elapsedSeconds)
+
+  return (
+    <div
+      data-testid="trek-near-summit-view"
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        isolation: 'isolate',
+        paddingBottom: 128,
+      }}
+    >
+      <div
+        data-testid="trek-near-summit-ambient"
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 280,
+          pointerEvents: 'none',
+          zIndex: 0,
+          background: 'radial-gradient(ellipse at top, color-mix(in oklch, var(--color-success) 6%, transparent) 0%, transparent 68%)',
+        }}
+      />
+
+      <section
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          padding: 'var(--space-12) var(--space-5) 0',
+          textAlign: 'center',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            fontWeight: 500,
+            color: 'var(--color-on-surface-variant)',
+            letterSpacing: '0.08em',
+          }}
+        >
+          距离峰顶
+        </div>
+        <div
+          style={{
+            marginTop: 'var(--space-2)',
+            display: 'flex',
+            alignItems: 'baseline',
+            justifyContent: 'center',
+          }}
+        >
+          <span
+            data-testid="trek-near-summit-distance"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 56,
+              lineHeight: 1,
+              fontWeight: 700,
+              color: 'var(--color-success)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {distanceLabel}
+          </span>
+          <span
+            style={{
+              marginLeft: 4,
+              paddingBottom: 6,
+              fontFamily: 'var(--font-mono)',
+              fontSize: 18,
+              lineHeight: 1,
+              fontWeight: 600,
+              color: 'var(--color-success)',
+            }}
+          >
+            m
+          </span>
+        </div>
+
+        <div style={{ marginTop: 'var(--space-8)' }}>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 'var(--font-headline-m-size)',
+              lineHeight: 'var(--font-headline-m-line)',
+              fontWeight: 600,
+              color: 'var(--color-on-surface)',
+            }}
+          >
+            慢一点 · 看一眼脚下
+          </h1>
+          <div
+            style={{
+              marginTop: 'var(--space-4)',
+              display: 'grid',
+              gap: 'var(--space-2)',
+              fontSize: 'var(--font-body-m-size)',
+              lineHeight: 1.6,
+              fontWeight: 'var(--font-body-m-weight)',
+              color: 'var(--color-on-surface-variant)',
+            }}
+          >
+            <p style={{ margin: 0 }}>山顶在前方。这一段更要稳。</p>
+            <p style={{ margin: 0 }}>到了之后，留 10 分钟给自己。</p>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ position: 'relative', zIndex: 1, padding: 'var(--space-8) var(--space-4) 0' }}>
+        <div
+          data-testid="trek-near-summit-stats"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            background: 'var(--color-surface-variant)',
+            borderRadius: 16,
+            padding: '20px 16px',
+          }}
+        >
+          <NearSummitStat label="当前海拔" value={`${altitudeLabel}m`} />
+          <NearSummitStat label="已用时" value={elapsedLabel} withDivider />
+          <div
+            data-testid="trek-near-summit-stat"
+            style={{
+              minWidth: 0,
+              paddingLeft: 'var(--space-3)',
+              borderLeft: '1px solid color-mix(in oklch, var(--color-outline) 50%, transparent)',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--font-label-s-size)',
+                lineHeight: 'var(--font-label-s-line)',
+                fontWeight: 500,
+                color: 'var(--color-on-surface-variant)',
+              }}
+            >
+              留证准备
+            </div>
+            <div
+              style={{
+                marginTop: 'var(--space-2)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 'var(--space-2)',
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 'var(--radius-pill)',
+                  background: 'var(--color-success)',
+                }}
+              />
+              <span
+                style={{
+                  color: 'var(--color-success)',
+                  fontSize: 'var(--font-body-m-size)',
+                  lineHeight: 'var(--font-body-m-line)',
+                  fontWeight: 500,
+                }}
+              >
+                就绪
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ position: 'relative', zIndex: 1, padding: 'var(--space-4) var(--space-4) 0' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 'var(--space-3)',
+            padding: 'var(--space-4)',
+            borderRadius: 16,
+            border: '1px solid color-mix(in oklch, var(--color-success) 20%, transparent)',
+            background: 'var(--color-surface-variant)',
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              width: 36,
+              height: 36,
+              display: 'grid',
+              placeItems: 'center',
+              borderRadius: 'var(--radius-pill)',
+              background: 'color-mix(in oklch, var(--color-success) 12%, transparent)',
+              color: 'var(--color-success)',
+              flex: '0 0 auto',
+            }}
+          >
+            <CameraIcon size={20} />
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                color: 'var(--color-on-surface)',
+                fontSize: 'var(--font-title-m-size)',
+                lineHeight: 'var(--font-title-m-line)',
+                fontWeight: 'var(--font-title-m-weight)',
+              }}
+            >
+              到达峰顶时
+            </div>
+            <p
+              style={{
+                margin: 'var(--space-1) 0 0',
+                color: 'var(--color-on-surface-variant)',
+                fontSize: 'var(--font-label-m-size)',
+                lineHeight: 1.5,
+                fontWeight: 400,
+              }}
+            >
+              系统会请你拍一张登顶照作为留证 · 一张就够。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <BottomActionBar columns="single">
+        <PrimaryButton data-testid="trek-near-summit-cta" style={{ width: '100%' }} onClick={() => {}}>
+          继续
+        </PrimaryButton>
+      </BottomActionBar>
+    </div>
+  )
+}
+
+function NearSummitStat({
+  label,
+  value,
+  withDivider = false,
+}: {
+  label: string
+  value: string
+  withDivider?: boolean
+}) {
+  return (
+    <div
+      data-testid="trek-near-summit-stat"
+      style={{
+        minWidth: 0,
+        padding: withDivider ? '0 var(--space-3)' : '0 var(--space-3) 0 0',
+        borderLeft: withDivider ? '1px solid color-mix(in oklch, var(--color-outline) 50%, transparent)' : 'none',
+        textAlign: 'center',
+      }}
+    >
+      <div
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 'var(--font-label-s-size)',
+          lineHeight: 'var(--font-label-s-line)',
+          fontWeight: 500,
+          color: 'var(--color-on-surface-variant)',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          marginTop: 'var(--space-2)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 18,
+          lineHeight: 1.2,
+          fontWeight: 600,
+          color: 'var(--color-on-surface)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {value}
+      </div>
     </div>
   )
 }
@@ -2460,6 +2772,24 @@ function formatPreStartClock(date: Date) {
 function formatGpsWeakMinutes(startedAt: number | null, now: number) {
   if (!startedAt) return 0
   return Math.max(0, Math.floor((now - startedAt) / 60000))
+}
+
+function formatNearSummitDistance(value: number | null | undefined) {
+  if (!Number.isFinite(Number(value))) return '--'
+  return String(Math.max(0, Math.round(Number(value))))
+}
+
+function formatGroupedMeters(value: number | null | undefined) {
+  if (!Number.isFinite(Number(value))) return '--'
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Math.max(0, Math.round(Number(value))))
+}
+
+function formatElapsedForNearSummit(totalSeconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds))
+  const hours = Math.floor(safeSeconds / 3600)
+  const minutes = Math.floor((safeSeconds % 3600) / 60)
+  if (hours > 0) return `${hours}h ${minutes}m`
+  return `${minutes}m`
 }
 
 function formatMeters(value: number | null | undefined) {

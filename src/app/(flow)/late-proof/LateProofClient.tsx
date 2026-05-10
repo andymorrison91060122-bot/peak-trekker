@@ -472,8 +472,113 @@ function PendingView({
   )
 }
 
-function PlaceholderView({ viewState }: { viewState: 'submitted' }) {
-  return <div className="lp-placeholder">{viewState} — 待实现</div>
+function SubmittedCheckIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path
+        className="lp-submitted-check-path"
+        d="M5 12.5l4 4 10-10"
+        stroke="var(--color-success)"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function ActivityPreviewPlaceholder() {
+  return (
+    <div className="lp-activity-preview__placeholder" aria-hidden="true">
+      <svg width="132" height="58" viewBox="0 0 132 58" fill="none" focusable="false">
+        <path
+          d="M4 48L26 28L42 38L61 14L83 34L101 22L128 48"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M18 50L45 34L65 42L83 24L113 48"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.55"
+        />
+      </svg>
+    </div>
+  )
+}
+
+function SubmittedView({
+  mountainName,
+  altitude,
+  summitDate,
+  previewUrl,
+  onViewRecord,
+  onSubmitAnother,
+  onArchive,
+}: {
+  mountainName: string
+  altitude: string | null
+  summitDate: string | null
+  previewUrl: string | null
+  onViewRecord: () => void
+  onSubmitAnother: () => void
+  onArchive: () => void
+}) {
+  const year = submittedYearLabel(summitDate)
+  const dateAltitudeLabel = submittedDateAltitudeLabel(summitDate, altitude)
+
+  return (
+    <main className="lp-content">
+      <section className="lp-submitted-hero" aria-labelledby="late-proof-submitted-title">
+        <div className="lp-submitted-icon">
+          <SubmittedCheckIcon />
+        </div>
+        <h1 id="late-proof-submitted-title" className="lp-submitted-title">
+          已收录到你的档案
+        </h1>
+        <p className="lp-submitted-copy">{year} 年的第 3 次登顶 · 已加入你的山行档案。</p>
+      </section>
+
+      <section className="lp-activity-preview-shell" aria-label="补登记活动预览">
+        <div className="lp-activity-preview-card">
+          <div className="lp-activity-preview-photo">
+            {previewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- blob previews cannot be optimized by next/image
+              <img src={previewUrl} alt="补登记活动预览" />
+            ) : (
+              <ActivityPreviewPlaceholder />
+            )}
+            <div className="lp-activity-preview-scrim" aria-hidden="true" />
+            <div className="lp-activity-preview-meta">
+              <div className="lp-activity-preview-copy">
+                <div className="lp-activity-preview-name">{mountainName}</div>
+                <div className="lp-activity-preview-sub">{dateAltitudeLabel}</div>
+              </div>
+              <VerifiedTag />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="lp-submitted-actions" aria-label="补登记完成操作">
+        <button type="button" className="lp-primary-btn" onClick={onViewRecord}>
+          查看这次记录
+        </button>
+        <div className="lp-submitted-secondary-grid">
+          <button type="button" className="lp-secondary-btn" onClick={onSubmitAnother}>
+            再补一次
+          </button>
+          <button type="button" className="lp-secondary-btn" onClick={onArchive}>
+            回到档案
+          </button>
+        </div>
+      </section>
+    </main>
+  )
 }
 
 export default function LateProofClient({
@@ -483,6 +588,7 @@ export default function LateProofClient({
   mountainLat,
   mountainLng,
 }: LateProofClientProps) {
+  const router = useRouter()
   const [viewState, setViewState] = useState<LateProofViewState>('intro')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -497,6 +603,16 @@ export default function LateProofClient({
       if (previewUrl) URL.revokeObjectURL(previewUrl)
     }
   }, [previewUrl])
+
+  useEffect(() => {
+    if (viewState !== 'pending') return undefined
+
+    const timer = window.setTimeout(() => {
+      setViewState('submitted')
+    }, 2400)
+
+    return () => window.clearTimeout(timer)
+  }, [viewState])
 
   const exifRows = useMemo(
     () =>
@@ -542,12 +658,31 @@ export default function LateProofClient({
     fileInputRef.current?.click()
   }
 
+  function resetFlow() {
+    exifRequestIdRef.current += 1
+    setSelectedFile(null)
+    setPreviewUrl(null)
+    setExifData(null)
+    setExifLoading(false)
+    setUserNote('')
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+    setViewState('intro')
+  }
+
   return (
     <div className="lp-page">
       <TopBar
         mountainName={mountainName}
         right={viewState === 'upload' ? '2 / 3' : undefined}
-        onBack={viewState === 'upload' ? () => setViewState('intro') : undefined}
+        onBack={
+          viewState === 'upload'
+            ? () => setViewState('intro')
+            : viewState === 'submitted'
+              ? () => router.push('/archive')
+              : undefined
+        }
       />
       {viewState === 'intro' ? (
         <IntroView summitDate={summitDate} onStart={() => setViewState('upload')} />
@@ -575,7 +710,15 @@ export default function LateProofClient({
           userNote={userNote}
         />
       ) : (
-        <PlaceholderView viewState={viewState} />
+        <SubmittedView
+          mountainName={mountainName}
+          altitude={altitude}
+          summitDate={summitDate}
+          previewUrl={previewUrl}
+          onViewRecord={() => router.push('/archive')}
+          onSubmitAnother={resetFlow}
+          onArchive={() => router.push('/archive')}
+        />
       )}
     </div>
   )
@@ -594,4 +737,14 @@ function pendingSummitDateLabel(dateTime: string | undefined, summitDate: string
   if (dateLabel && exifTime) return `${dateLabel} · ${exifTime} 登顶`
   if (dateLabel) return `${dateLabel} 登顶`
   return '未记录日期 登顶'
+}
+
+function submittedYearLabel(summitDate: string | null) {
+  const match = summitDate?.match(/^(\d{4})/)
+  return match?.[1] ?? String(new Date().getFullYear())
+}
+
+function submittedDateAltitudeLabel(summitDate: string | null, altitude: string | null) {
+  const dateLabel = summitDate ?? '未记录日期'
+  return altitude ? `${dateLabel} · ${altitude}m` : dateLabel
 }

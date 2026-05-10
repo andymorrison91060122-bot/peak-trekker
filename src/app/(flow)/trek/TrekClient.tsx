@@ -40,6 +40,7 @@ type TrekViewState =
   | 'restricted'
   | 'preStart'
   | 'live'
+  | 'gpsWeak'
   | 'paused'
   | 'nearSummit'
   | 'summitConfirmed'
@@ -118,6 +119,9 @@ export default function TrekClient({
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [isPaused, setIsPaused] = useState(false)
   const [preStartClock, setPreStartClock] = useState(() => new Date())
+  const [gpsWeakStartedAt, setGpsWeakStartedAt] = useState<number | null>(null)
+  const [gpsWeakClock, setGpsWeakClock] = useState(() => Date.now())
+  const [lastValidAltitudeM, setLastValidAltitudeM] = useState<number | null>(null)
   const photoInputRef = useRef<HTMLInputElement | null>(null)
 
   const watchIdRef = useRef<number | null>(null)
@@ -151,6 +155,8 @@ export default function TrekClient({
     setCheckinNote('')
     setGpsError('')
     setGpsErrorCode(null)
+    setGpsWeakStartedAt(null)
+    setLastValidAltitudeM(null)
     trackRef.current = []
     lastSyncRef.current = 0
   }, [])
@@ -360,6 +366,9 @@ export default function TrekClient({
         const now = Date.now()
         const nextPoint = { lat: latitude, lng: longitude, ts: now, altitude, accuracy }
         const previousPoint = trackRef.current.at(-1)
+        if (typeof altitude === 'number' && Number.isFinite(altitude)) {
+          setLastValidAltitudeM(Math.round(altitude))
+        }
 
         if (previousPoint) {
           const segmentMeters = haversineMeters(previousPoint.lat, previousPoint.lng, latitude, longitude)
@@ -565,6 +574,13 @@ export default function TrekClient({
     photoInputRef.current?.click()
   }
 
+  const gpsWeak =
+    !!gps &&
+    isTrackingActive &&
+    !isPaused &&
+    !isSummitFlow &&
+    (gps.accuracy > 20 ||
+      Boolean(gpsError && (gpsError.includes('漂移') || gpsError.includes('开阔') || gpsError.includes('信号'))))
   const viewState: TrekViewState = mountainsLoading
     ? 'loading'
     : gpsErrorCode === 1
@@ -577,11 +593,13 @@ export default function TrekClient({
             ? 'summitConfirmed'
             : isPaused && isTrackingActive
               ? 'paused'
-              : status === 'approach_alert'
-                ? 'nearSummit'
-                : isTrackingActive
-                  ? 'live'
-                  : 'preStart'
+              : gpsWeak
+                ? 'gpsWeak'
+                : status === 'approach_alert'
+                  ? 'nearSummit'
+                  : isTrackingActive
+                    ? 'live'
+                    : 'preStart'
   const activeMountain = targetMountain ?? selectedMountain ?? suggestedMountain
   const summitMountain = nearbyMountain ?? targetMountain ?? activeMountain
   const targetAltitude = targetMountain?.altitude ?? activeMountain?.altitude ?? 0
@@ -592,13 +610,6 @@ export default function TrekClient({
     { label: '距离 km', value: distanceKm.toFixed(2) },
     { label: '爬升 m', value: String(ascentM) },
   ]
-  const gpsWeak =
-    !!gps &&
-    (gps.accuracy > 20 ||
-      Boolean(gpsError && (gpsError.includes('漂移') || gpsError.includes('开阔') || gpsError.includes('信号'))))
-  const visibleTrekMetrics = gpsWeak
-    ? trekMetrics.map((metric) => (metric.label === '距离 km' ? { ...metric, value: '—' } : metric))
-    : trekMetrics
   const summitTimestamp = createdCheckinId ? formatSummitTimestamp(new Date()) : ''
 
   useEffect(() => {
@@ -606,6 +617,23 @@ export default function TrekClient({
       clearToasts()
     }
   }, [clearToasts, viewState])
+
+  useEffect(() => {
+    if (viewState !== 'gpsWeak') {
+      setGpsWeakStartedAt(null)
+      return
+    }
+
+    const now = Date.now()
+    setGpsWeakStartedAt((value) => value ?? now)
+    setGpsWeakClock(now)
+
+    const timer = window.setInterval(() => {
+      setGpsWeakClock(Date.now())
+    }, 60000)
+
+    return () => window.clearInterval(timer)
+  }, [viewState])
 
   function handleBack() {
     if (window.history.length > 1) {
@@ -644,7 +672,7 @@ export default function TrekClient({
   return (
     <TrekShell>
       <TrekTopBar state={viewState} onBack={handleBack} />
-      {gpsError && viewState !== 'permissionDenied' && !gpsWeak ? (
+      {gpsError && viewState !== 'permissionDenied' && viewState !== 'gpsWeak' ? (
         <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-1)' }}>
           <InlineBanner tone="warn" title="定位状态需要注意" sub={gpsError} />
         </div>
@@ -685,6 +713,11 @@ export default function TrekClient({
           onStart={startTrek}
           onOpenMountain={(mountainId) => router.push(`/mountain/${encodeURIComponent(mountainId)}`)}
         />
+      ) : viewState === 'gpsWeak' ? (
+        <GpsWeakView
+          altitude={lastValidAltitudeM ?? currentAltitude}
+          lostMinutes={formatGpsWeakMinutes(gpsWeakStartedAt, gpsWeakClock)}
+        />
       ) : viewState === 'summitConfirmed' ? (
         <div>
           <SummitConfirmedView
@@ -714,11 +747,6 @@ export default function TrekClient({
         </div>
       ) : (
         <div>
-          {gpsWeak ? (
-            <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-1)' }}>
-              <InlineBanner tone="warn" title="GPS 信号弱" sub="海拔仍来自气压计 · 距离与地图会延迟更新" />
-            </div>
-          ) : null}
           {viewState === 'nearSummit' ? (
             <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-1)' }}>
               <InlineBanner
@@ -736,15 +764,13 @@ export default function TrekClient({
             sub={
               viewState === 'paused'
                 ? '记录已暂停 · 数据保留'
-                : gpsWeak
-                  ? `水平精度 ±${Math.round(gps?.accuracy ?? 0)}m`
-                  : gps?.altitude
-                    ? undefined
-                    : '等待 GPS 海拔 · 暂用目标海拔'
+                : gps?.altitude
+                  ? undefined
+                  : '等待 GPS 海拔 · 暂用目标海拔'
             }
           />
-          <TrekMetricRow metrics={visibleTrekMetrics} />
-          <TrekMiniMap progress={viewState === 'nearSummit' ? 0.95 : mapProgress} weak={gpsWeak} />
+          <TrekMetricRow metrics={trekMetrics} />
+          <TrekMiniMap progress={viewState === 'nearSummit' ? 0.95 : mapProgress} />
 
           {viewState === 'paused' ? (
             <BottomActionBar>
@@ -796,14 +822,30 @@ function TrekShell({ children }: { children: ReactNode }) {
   return (
     <div
       style={{
+        '--color-bg': 'var(--color-surface)',
         minHeight: '100dvh',
         background: 'var(--color-surface)',
         color: 'var(--color-on-surface)',
         position: 'relative',
         paddingBottom: 120,
         overflowX: 'hidden',
-      }}
+      } as CSSProperties}
     >
+      <div
+        data-testid="trek-top-gradient-mask"
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 140,
+          pointerEvents: 'none',
+          zIndex: 1,
+          background:
+            'linear-gradient(to bottom, var(--color-bg) 0%, color-mix(in oklch, var(--color-bg) 60%, transparent) 50%, transparent 100%)',
+        }}
+      />
       {children}
       <style>{`
         @keyframes pt-rec-pulse {
@@ -814,6 +856,10 @@ function TrekShell({ children }: { children: ReactNode }) {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 1; }
         }
+        @keyframes pt-gps-weak-pulse {
+          0%, 100% { opacity: 0.5; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.12); }
+        }
         @keyframes pt-shimmer {
           0% { background-position: 0% 0%; }
           100% { background-position: -200% 0%; }
@@ -821,6 +867,7 @@ function TrekShell({ children }: { children: ReactNode }) {
         @media (prefers-reduced-motion: reduce) {
           .pt-rec-dot { animation: none !important; }
           .pt-start-dot { animation: none !important; }
+          .pt-gps-weak-dot { animation: none !important; }
           .pt-shimmer { animation: none !important; }
         }
       `}</style>
@@ -836,17 +883,34 @@ function TrekTopBar({
   onBack: () => void
 }) {
   const isRecording = state === 'live' || state === 'nearSummit'
+  const isGpsWeak = state === 'gpsWeak'
   const label = state === 'preStart'
     ? '待出发'
+    : isGpsWeak
+      ? '信号微弱'
     : isRecording
       ? '记录中'
       : state === 'paused' || state === 'summitConfirmed'
         ? '已暂停'
         : '待开始'
+  const chipStyle: CSSProperties = isGpsWeak
+    ? {
+        background: 'color-mix(in oklch, var(--color-surface) 80%, transparent)',
+        border: '1px solid color-mix(in oklch, var(--color-warning) 40%, transparent)',
+        color: 'var(--color-warning)',
+      }
+    : {
+        background: 'color-mix(in oklch, var(--color-surface) 80%, transparent)',
+        border: '1px solid var(--color-outline)',
+        color: 'var(--color-on-surface)',
+      }
 
   return (
     <div
+      data-testid="trek-top-bar"
       style={{
+        position: 'relative',
+        zIndex: 2,
         height: 56,
         padding: 'var(--space-1) var(--space-3)',
         display: 'flex',
@@ -865,16 +929,15 @@ function TrekTopBar({
       <div
         style={{
           minHeight: 32,
-          padding: '0 var(--space-3)',
+          padding: '6px 14px',
           display: 'inline-flex',
           alignItems: 'center',
           gap: 'var(--space-2)',
           borderRadius: 'var(--radius-pill)',
-          background: 'var(--color-surface-variant)',
-          border: '1px solid var(--color-outline)',
+          ...chipStyle,
         }}
       >
-        <RecDot active={isRecording} />
+        <RecDot active={isRecording} tone={isGpsWeak ? 'warning' : 'default'} />
         <span
           style={{
             fontSize: 'var(--font-label-s-size)',
@@ -897,19 +960,285 @@ function TrekTopBar({
   )
 }
 
-function RecDot({ active }: { active: boolean }) {
+function RecDot({ active, tone = 'default' }: { active: boolean; tone?: 'default' | 'warning' }) {
+  const isWarningPulse = tone === 'warning' && !active
+  const background = active
+    ? 'var(--color-error)'
+    : tone === 'warning'
+      ? 'var(--color-warning)'
+      : 'var(--color-on-surface-variant)'
+
   return (
     <span
-      className="pt-rec-dot"
+      className={isWarningPulse ? 'pt-rec-dot pt-gps-weak-dot' : 'pt-rec-dot'}
       style={{
         width: 8,
         height: 8,
         borderRadius: 'var(--radius-pill)',
-        background: active ? 'var(--color-error)' : 'var(--color-on-surface-variant)',
-        animation: active ? 'pt-rec-pulse 1.4s ease-out infinite' : 'none',
+        background,
+        animation: active
+          ? 'pt-rec-pulse 1.4s ease-out infinite'
+          : isWarningPulse
+            ? 'pt-gps-weak-pulse 2.5s ease-in-out infinite'
+            : 'none',
+        transformOrigin: 'center',
         flex: '0 0 auto',
       }}
     />
+  )
+}
+
+function GpsWeakView({
+  altitude,
+  lostMinutes,
+}: {
+  altitude: number
+  lostMinutes: number
+}) {
+  const safeAltitude = Math.max(Math.round(altitude || 0), 0)
+
+  return (
+    <div
+      data-testid="trek-gps-weak-view"
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        isolation: 'isolate',
+        paddingBottom: 128,
+      }}
+    >
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: -96,
+          left: -80,
+          right: -80,
+          height: 300,
+          pointerEvents: 'none',
+          zIndex: 0,
+          background: 'radial-gradient(ellipse at top, color-mix(in oklch, var(--color-warning) 8%, transparent) 0%, transparent 68%)',
+        }}
+      />
+      <section
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          padding: 'var(--space-6) var(--space-5) var(--space-8)',
+          textAlign: 'center',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            fontWeight: 600,
+            color: 'var(--color-on-surface-variant)',
+            letterSpacing: '0.12em',
+            }}
+        >
+          当前海拔 · 暂用上次值
+        </div>
+        <div style={{ marginTop: 'var(--space-3)', display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 6 }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 700,
+              fontSize: 56,
+              lineHeight: 1,
+              color: 'var(--color-warning)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {safeAltitude}
+          </div>
+          <div
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 16,
+              lineHeight: 1,
+              color: 'var(--color-on-surface-variant)',
+              fontWeight: 600,
+              paddingBottom: 4,
+            }}
+          >
+            m
+          </div>
+        </div>
+        <div
+          style={{
+            marginTop: 'var(--space-4)',
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 'var(--font-label-m-line)',
+            color: 'var(--color-on-surface-variant)',
+          }}
+        >
+          GPS 暂时拿不到信号 · 等回到开阔处会自动续上
+        </div>
+      </section>
+
+      <section style={{ position: 'relative', zIndex: 1, padding: '0 var(--space-4)' }}>
+        <div
+          style={{
+            padding: '20px 18px',
+            borderRadius: 14,
+            border: '1px solid var(--color-outline)',
+            background: 'var(--color-surface-variant)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            <span
+              style={{
+                width: 32,
+                height: 32,
+                display: 'grid',
+                placeItems: 'center',
+                borderRadius: 10,
+                background: 'color-mix(in srgb, var(--color-warning) 12%, transparent)',
+                color: 'var(--color-warning)',
+                flex: '0 0 auto',
+              }}
+            >
+              <WarnIcon size={18} />
+            </span>
+            <h2
+              style={{
+                margin: 0,
+                color: 'var(--color-on-surface)',
+                fontSize: 'var(--font-title-m-size)',
+                lineHeight: 'var(--font-title-m-line)',
+                fontWeight: 600,
+              }}
+            >
+              暂时拿不到稳定信号
+            </h2>
+          </div>
+          <div
+            style={{
+              marginTop: 'var(--space-4)',
+              display: 'grid',
+              gap: 'var(--space-3)',
+              color: 'var(--color-on-surface-variant)',
+              fontSize: 'var(--font-body-m-size)',
+              lineHeight: 1.65,
+              fontWeight: 'var(--font-body-m-weight)',
+            }}
+          >
+            <p style={{ margin: 0 }}>山里树林密、谷地深，GPS 偶尔会跟丢。</p>
+            <p style={{ margin: 0 }}>距离暂停更新，等信号回来会自动续上。</p>
+            <p style={{ margin: 0 }}>信号丢失了 {lostMinutes} 分钟 · 这段会标记为估算，不会影响登顶留证。</p>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ position: 'relative', zIndex: 1, padding: 'var(--space-6) var(--space-4) 0' }}>
+        <div
+          style={{
+            padding: '20px 18px',
+            borderRadius: 14,
+            border: '1px solid var(--color-outline)',
+            background: 'var(--color-surface-variant)',
+          }}
+        >
+          <div
+            style={{
+              marginBottom: 'var(--space-2)',
+              color: 'var(--color-on-surface-variant)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+              fontWeight: 500,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+            }}
+          >
+            正在尝试
+          </div>
+          <GpsWeakRetryItem label="重新搜星" sub="约 30 秒一次" />
+          <GpsWeakRetryItem label="使用最后有效海拔" sub="GPS 续上后会重新校准" />
+          <GpsWeakRetryItem label="保留你已经走过的所有点" sub="不会丢" isLast />
+        </div>
+      </section>
+
+      <BottomActionBar columns="single">
+        <PrimaryButton style={{ width: '100%' }} onClick={() => {}}>
+          继续记录
+        </PrimaryButton>
+        <div
+          style={{
+            marginTop: 'var(--space-3)',
+            textAlign: 'center',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+            fontWeight: 500,
+            color: 'var(--color-on-surface-variant)',
+          }}
+        >
+          专注路上 · 信号会回来的
+        </div>
+      </BottomActionBar>
+    </div>
+  )
+}
+
+function GpsWeakRetryItem({
+  label,
+  sub,
+  isLast = false,
+}: {
+  label: string
+  sub: string
+  isLast?: boolean
+}) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '12px minmax(0, 1fr)',
+        gap: 'var(--space-3)',
+        padding: '12px 0',
+        borderBottom: isLast ? 'none' : '1px solid var(--color-outline)',
+      }}
+    >
+      <span style={{ paddingTop: 6 }}>
+        <span
+          aria-hidden="true"
+          style={{
+            display: 'block',
+            width: 7,
+            height: 7,
+            borderRadius: 'var(--radius-pill)',
+            background: 'var(--color-success)',
+          }}
+        />
+      </span>
+      <span style={{ minWidth: 0 }}>
+        <span
+          style={{
+            display: 'block',
+            color: 'var(--color-on-surface)',
+            fontSize: 'var(--font-title-m-size)',
+            lineHeight: 'var(--font-title-m-line)',
+            fontWeight: 'var(--font-title-m-weight)',
+          }}
+        >
+          {label}
+        </span>
+        <span
+          style={{
+            display: 'block',
+            marginTop: 'var(--space-1)',
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+          }}
+        >
+          {sub}
+        </span>
+      </span>
+    </div>
   )
 }
 
@@ -2126,6 +2455,11 @@ function formatPreStartClock(date: Date) {
   const hours = String(date.getHours()).padStart(2, '0')
   const minutes = String(date.getMinutes()).padStart(2, '0')
   return `${hours}:${minutes}`
+}
+
+function formatGpsWeakMinutes(startedAt: number | null, now: number) {
+  if (!startedAt) return 0
+  return Math.max(0, Math.floor((now - startedAt) / 60000))
 }
 
 function formatMeters(value: number | null | undefined) {

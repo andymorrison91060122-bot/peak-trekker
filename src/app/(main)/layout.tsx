@@ -15,20 +15,26 @@ export default async function MainLayout({
   } = await supabase.auth.getUser()
 
   let initialProvince: string | null = null
+  let initialOnboardingVersion: string | null = null
   if (user) {
     const { data } = await supabase
       .from('profiles')
-      .select('province')
+      .select('province,onboarding_version')
       .eq('id', user.id)
       .single()
     initialProvince = data?.province ?? null
+    initialOnboardingVersion = data?.onboarding_version ?? null
   }
 
   return (
     <AppToastProvider>
       <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
         <AppHeader />
-        <OnboardingModal initialProvince={initialProvince} currentUserId={user?.id ?? null} />
+        <OnboardingModal
+          initialProvince={initialProvince}
+          initialOnboardingVersion={initialOnboardingVersion}
+          currentUserId={user?.id ?? null}
+        />
         <main
           className="mx-auto"
           style={{

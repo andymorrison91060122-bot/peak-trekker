@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import IntroCarousel from '@/components/onboarding/IntroCarousel'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import {
   ONBOARDING_EVENT,
@@ -16,31 +17,8 @@ import { isFeatureEnabled } from '@/lib/feature-flags'
 import { PROVINCES, getProvinceCode } from '@/lib/provinces'
 import type { OnboardingPhase, OnboardingProgress } from '@/types'
 
-const INTRO_SCENES = [
-  {
-    id: 'unlock',
-    eyebrow: 'First Step',
-    title: '先找一座你真的想去的山。',
-    lines: ['Peak Trekker 会先帮你看清路线、海拔和门槛。', '第一次打开详情，就能知道这座山适不适合现在出发。'],
-    accent: '#f6d28d',
-  },
-  {
-    id: 'camera',
-    eyebrow: 'Real Record',
-    title: '开始记录后，轨迹、照片和海报会串成一条完整记录。',
-    lines: ['确认目标山峰后再开始，能避免误以为已经开录。', '完成一次有效记录后，海报和分享素材会自动准备好。'],
-    accent: '#7dd3fc',
-  },
-  {
-    id: 'glory',
-    eyebrow: 'After The Trek',
-    title: '记录完成后，去“我的”管理记录，再决定要不要发到山友圈。',
-    lines: ['你可以回看自己的登山记录、重新分享海报，或者把内容带去山友圈。', '整个流程先求顺，再慢慢补充自己的风格和故事。'],
-    accent: '#a7f3d0',
-  },
-] as const
-
 const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
+const INTRO_SLIDE_COUNT = 3
 
 type ProvinceStage = 'select' | 'license'
 
@@ -50,325 +28,13 @@ function derivePhase(progress: OnboardingProgress, province: string | null): Onb
   return 'done'
 }
 
-function sceneVisual(sceneId: (typeof INTRO_SCENES)[number]['id']) {
-  if (sceneId === 'unlock') {
-    return (
-      <div
-        className="surface-card"
-        style={{
-          position: 'relative',
-          minHeight: 284,
-          overflow: 'hidden',
-          background:
-            'radial-gradient(circle at top, rgba(246,210,141,0.14), transparent 26%), linear-gradient(180deg, rgba(25,28,31,0.98), rgba(15,17,19,0.98))',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            inset: '18% 0 auto',
-            height: 160,
-            background:
-              'radial-gradient(circle at 50% 100%, rgba(255,255,255,0.06), transparent 55%), linear-gradient(180deg, transparent, rgba(0,0,0,0.34))',
-            filter: 'blur(4px)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            left: '12%',
-            right: '12%',
-            bottom: 48,
-            height: 160,
-            borderRadius: '46% 46% 14px 14px / 80% 80% 14px 14px',
-            background:
-              'linear-gradient(180deg, rgba(90,96,104,0.18), rgba(40,44,49,0.9)), linear-gradient(135deg, rgba(255,255,255,0.05), transparent 45%)',
-            clipPath: 'polygon(8% 100%, 26% 58%, 40% 40%, 50% 12%, 58% 34%, 72% 54%, 92% 100%)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            left: '44%',
-            bottom: 74,
-            width: 3,
-            height: 106,
-            borderRadius: 999,
-            background: 'linear-gradient(180deg, rgba(246,210,141,0.05), rgba(246,210,141,0.95))',
-            boxShadow: '0 0 26px rgba(246,210,141,0.4)',
-            transform: 'rotate(22deg)',
-            transformOrigin: 'bottom center',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            left: '58%',
-            bottom: 134,
-            width: 18,
-            height: 18,
-            background: '#f6d28d',
-            clipPath: 'polygon(0 0, 100% 30%, 0 60%)',
-            boxShadow: '0 0 18px rgba(246,210,141,0.42)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            left: 24,
-            right: 24,
-            bottom: 18,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(9, minmax(0, 1fr))',
-            gap: 10,
-          }}
-        >
-          {Array.from({ length: 18 }).map((_, index) => {
-            const active = [1, 4, 9, 13, 16].includes(index)
-            return (
-              <span
-                key={index}
-                style={{
-                  width: active ? 10 : 6,
-                  height: active ? 10 : 6,
-                  borderRadius: 999,
-                  justifySelf: 'center',
-                  background: active ? '#f6d28d' : 'rgba(141,149,155,0.38)',
-                  boxShadow: active ? '0 0 12px rgba(246,210,141,0.4)' : 'none',
-                }}
-              />
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
-
-  if (sceneId === 'camera') {
-    return (
-      <div
-        className="surface-card"
-        style={{
-          position: 'relative',
-          minHeight: 284,
-          overflow: 'hidden',
-          background:
-            'linear-gradient(180deg, rgba(17,20,22,0.12), rgba(17,20,22,0.78)), linear-gradient(120deg, #26343b 0%, #4d6c76 34%, #ecb173 100%)',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            inset: 18,
-            borderRadius: 18,
-            background:
-              'linear-gradient(180deg, rgba(255,255,255,0.08), transparent 32%), linear-gradient(180deg, rgba(10,12,14,0.02), rgba(10,12,14,0.58))',
-            border: '1px solid rgba(255,255,255,0.12)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            left: 30,
-            right: 30,
-            top: 30,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-          }}
-        >
-          <div>
-            <div className="font-mono" style={{ fontSize: 12, color: 'rgba(245,247,248,0.78)', marginBottom: 6 }}>
-              SUMMIT MODE
-            </div>
-            <div className="font-pixel" style={{ fontSize: 36, lineHeight: 1, marginBottom: 4 }}>
-              5396m
-            </div>
-            <div className="section-subtitle" style={{ color: 'rgba(245,247,248,0.72)' }}>
-              梅里雪山 · Summit Card
-            </div>
-          </div>
-          <div
-            style={{
-              padding: '8px 10px',
-              borderRadius: 999,
-              background: 'rgba(8,15,12,0.56)',
-              border: '1px solid rgba(110,231,161,0.24)',
-              color: '#a7f3d0',
-              fontSize: 12,
-              fontWeight: 700,
-            }}
-          >
-            VERIFIED
-          </div>
-        </div>
-        <div
-          style={{
-            position: 'absolute',
-            left: 30,
-            right: 30,
-            bottom: 26,
-            display: 'grid',
-            gridTemplateColumns: '1.3fr 0.9fr',
-            gap: 12,
-            alignItems: 'end',
-          }}
-        >
-          <div
-            style={{
-              padding: 14,
-              borderRadius: 18,
-              background: 'rgba(10,12,14,0.68)',
-              border: '1px solid rgba(255,255,255,0.08)',
-            }}
-          >
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
-              {[
-                ['总爬升', '1382m'],
-                ['用时', '05:42'],
-                ['顺位', '#019'],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <div className="font-pixel" style={{ fontSize: 16, marginBottom: 4 }}>{value}</div>
-                  <div className="section-subtitle" style={{ fontSize: 11 }}>{label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div
-            style={{
-              padding: 14,
-              borderRadius: 18,
-              background: 'rgba(10,12,14,0.68)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              minHeight: 94,
-              position: 'relative',
-            }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                inset: 14,
-                borderRadius: 14,
-                background:
-                  'linear-gradient(180deg, rgba(255,255,255,0.03), transparent), radial-gradient(circle at 72% 28%, rgba(125,211,252,0.24), transparent 24%)',
-              }}
-            />
-            <svg viewBox="0 0 160 70" width="100%" height="66" style={{ position: 'relative' }}>
-              <path d="M4 60 C24 54 36 44 48 46 C66 49 76 20 92 18 C105 16 117 38 128 34 C140 30 148 12 156 10" stroke="rgba(245,247,248,0.24)" strokeWidth="6" fill="none" strokeLinecap="round" />
-              <path d="M4 60 C24 54 36 44 48 46 C66 49 76 20 92 18 C105 16 117 38 128 34 C140 30 148 12 156 10" stroke="#7dd3fc" strokeWidth="3" fill="none" strokeLinecap="round" />
-              <circle cx="156" cy="10" r="5" fill="#7dd3fc" />
-            </svg>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div
-      className="surface-card"
-      style={{
-        position: 'relative',
-        minHeight: 284,
-        overflow: 'hidden',
-        padding: 18,
-        background:
-          'radial-gradient(circle at top left, rgba(167,243,208,0.12), transparent 24%), linear-gradient(180deg, rgba(25,28,31,0.98), rgba(15,17,19,0.98))',
-      }}
-    >
-      <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 14, height: '100%' }}>
-        <div
-          style={{
-            borderRadius: 18,
-            padding: 16,
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            display: 'grid',
-            gap: 10,
-          }}
-        >
-          <div className="section-subtitle" style={{ color: 'rgba(245,247,248,0.76)' }}>个人成就墙</div>
-          {[
-            '四姑娘山征服者',
-            '高海拔记录保持',
-            '省域热度推动者',
-          ].map((title) => (
-            <div
-              key={title}
-              style={{
-                padding: '12px 14px',
-                borderRadius: 14,
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))',
-                border: '1px solid rgba(255,255,255,0.06)',
-                boxShadow: '0 10px 18px rgba(0,0,0,0.16)',
-              }}
-            >
-              <div className="font-pixel" style={{ fontSize: 15 }}>{title}</div>
-            </div>
-          ))}
-        </div>
-
-        <div
-          style={{
-            borderRadius: 18,
-            padding: 16,
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            display: 'grid',
-            alignContent: 'start',
-            gap: 12,
-          }}
-        >
-          <div className="section-subtitle" style={{ color: 'rgba(245,247,248,0.76)' }}>省域荣耀榜</div>
-          {[
-            ['四川', 82],
-            ['云南', 74],
-            ['西藏', 69],
-          ].map(([province, value], index) => (
-            <div key={province}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <div className="font-pixel" style={{ fontSize: 14 }}>{province}</div>
-                <div className="font-mono" style={{ fontSize: 12, color: index === 0 ? '#a7f3d0' : 'var(--text-muted)' }}>
-                  {value}%
-                </div>
-              </div>
-              <div className="altitude-bar">
-                <div
-                  className="altitude-bar-fill"
-                  style={{
-                    width: `${value}%`,
-                    background: index === 0 ? 'linear-gradient(90deg, rgba(34,197,94,0.6), #a7f3d0)' : undefined,
-                  }}
-                />
-              </div>
-            </div>
-          ))}
-          <div
-            style={{
-              marginTop: 'auto',
-              padding: '10px 12px',
-              borderRadius: 14,
-              background: 'rgba(34,197,94,0.1)',
-              border: '1px solid rgba(34,197,94,0.18)',
-              color: '#a7f3d0',
-              fontSize: 12,
-              fontWeight: 700,
-            }}
-          >
-            四川刚刚升到第 1 位
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function OnboardingModal({
   initialProvince,
+  initialOnboardingVersion,
   currentUserId,
 }: {
   initialProvince: string | null
+  initialOnboardingVersion: string | null
   currentUserId: string | null
 }) {
   const pathname = usePathname()
@@ -407,7 +73,7 @@ export default function OnboardingModal({
   const refreshProgress = useCallback(() => {
     migrateLegacyOnboarding()
 
-    const nextProgress = getOnboardingProgress()
+    const nextProgress = getOnboardingProgress(initialOnboardingVersion)
     const nextProvince = initialProvince ?? getProvinceDraft()
 
     setProgress(nextProgress)
@@ -418,7 +84,7 @@ export default function OnboardingModal({
       return derivePhase(nextProgress, nextProvince)
     })
     setReady(true)
-  }, [initialProvince, provinceStage])
+  }, [initialOnboardingVersion, initialProvince, provinceStage])
 
   const triggerHaptic = useCallback((duration = 18) => {
     if (!interactedRef.current) return
@@ -448,6 +114,23 @@ export default function OnboardingModal({
     },
     [currentUserId, supabase]
   )
+
+  const syncOnboardingVersionToProfile = useCallback(async () => {
+    if (!currentUserId) return
+    await supabase
+      .from('profiles')
+      .update({
+        onboarding_version: ONBOARDING_VERSION,
+      })
+      .eq('id', currentUserId)
+  }, [currentUserId, supabase])
+
+  const completeIntro = useCallback(() => {
+    setIntroSeen()
+    setProgress((value) => ({ ...value, introSeen: true }))
+    setPhase(resolvePostIntroPhase(draftProvince))
+    void syncOnboardingVersionToProfile()
+  }, [draftProvince, resolvePostIntroPhase, syncOnboardingVersionToProfile])
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => refreshProgress())
@@ -492,20 +175,6 @@ export default function OnboardingModal({
   }, [refreshProgress])
 
   useEffect(() => {
-    if (phase !== 'intro' || reducedMotion || !supportsEntryFlow) return
-    const timer = window.setTimeout(() => {
-      if (introStep === INTRO_SCENES.length - 1) {
-        setIntroSeen()
-        setPhase(resolvePostIntroPhase(draftProvince))
-        return
-      }
-      setIntroStep((value) => Math.min(value + 1, INTRO_SCENES.length - 1))
-    }, 3400)
-
-    return () => window.clearTimeout(timer)
-  }, [draftProvince, introStep, phase, reducedMotion, resolvePostIntroPhase, supportsEntryFlow])
-
-  useEffect(() => {
     if (phase !== 'province' || provinceStage !== 'license') return
     const timer = window.setTimeout(() => {
       setProvinceStage('select')
@@ -522,8 +191,6 @@ export default function OnboardingModal({
 
   if (suppressOnboardingUI || phase === 'done') return null
 
-  const currentScene = INTRO_SCENES[introStep]
-
   async function handleProvinceConfirm() {
     if (!selectedProvince) return
 
@@ -538,21 +205,19 @@ export default function OnboardingModal({
 
   function handleIntroAdvance() {
     interactedRef.current = true
-    if (reducedMotion || introStep === INTRO_SCENES.length - 1) {
-      setIntroSeen()
-      setPhase(resolvePostIntroPhase(draftProvince))
+    if (introStep >= INTRO_SLIDE_COUNT - 1) {
+      completeIntro()
       triggerHaptic(14)
       return
     }
 
-    setIntroStep((value) => Math.min(value + 1, INTRO_SCENES.length - 1))
+    setIntroStep((value) => Math.min(value + 1, INTRO_SLIDE_COUNT - 1))
     triggerHaptic(10)
   }
 
   function handleIntroSkip() {
     interactedRef.current = true
-    setIntroSeen()
-    setPhase(resolvePostIntroPhase(draftProvince))
+    completeIntro()
     triggerHaptic(12)
   }
 
@@ -562,104 +227,12 @@ export default function OnboardingModal({
 
   if (phase === 'intro') {
     return (
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 180,
-          background:
-            'radial-gradient(circle at top, rgba(255,255,255,0.04), transparent 26%), linear-gradient(180deg, rgba(13,15,17,0.94), rgba(9,11,12,0.98))',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 20,
-        }}
-      >
-        <div style={{ width: '100%', maxWidth: 420 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div style={{ display: 'flex', gap: 8, flex: 1 }}>
-              {INTRO_SCENES.map((scene, index) => (
-                <button
-                  key={scene.id}
-                  type="button"
-                  onClick={() => {
-                    interactedRef.current = true
-                    setIntroStep(index)
-                  }}
-                  style={{
-                    flex: 1,
-                    height: 6,
-                    border: 'none',
-                    borderRadius: 999,
-                    background: index <= introStep ? currentScene.accent : 'rgba(255,255,255,0.08)',
-                    cursor: 'pointer',
-                  }}
-                  aria-label={`切换到第 ${index + 1} 幕`}
-                />
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={handleIntroSkip}
-              style={{
-                marginLeft: 12,
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-              }}
-            >
-              跳过
-            </button>
-          </div>
-
-          {reducedMotion ? (
-            <div style={{ display: 'grid', gap: 14 }}>
-              {INTRO_SCENES.map((scene) => (
-                <div key={scene.id} className="surface-card" style={{ padding: 18 }}>
-                  <div className="font-mono" style={{ fontSize: 12, color: scene.accent, marginBottom: 10 }}>
-                    {scene.eyebrow}
-                  </div>
-                  <div className="font-pixel" style={{ fontSize: 24, marginBottom: 10 }}>
-                    {scene.title}
-                  </div>
-                  <div className="section-subtitle">
-                    {scene.lines.join(' ')}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: 16 }}>
-              {sceneVisual(currentScene.id)}
-              <div className="surface-card" style={{ padding: 20 }}>
-                <div className="font-mono" style={{ fontSize: 12, color: currentScene.accent, marginBottom: 12 }}>
-                  {currentScene.eyebrow}
-                </div>
-                <div className="font-pixel" style={{ fontSize: 28, lineHeight: 1.1, marginBottom: 12 }}>
-                  {currentScene.title}
-                </div>
-                <div style={{ display: 'grid', gap: 8 }}>
-                  {currentScene.lines.map((line) => (
-                    <div key={line} className="section-subtitle" style={{ fontSize: 14 }}>
-                      {line}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-            <button type="button" className="secondary-btn" style={{ flex: 1 }} onClick={handleIntroSkip}>
-              稍后再说
-            </button>
-            <button type="button" className="primary-btn" style={{ flex: 1.4 }} onClick={handleIntroAdvance}>
-              {introStep === INTRO_SCENES.length - 1 || reducedMotion ? '继续' : '快进下一幕'}
-            </button>
-          </div>
-        </div>
-      </div>
+      <IntroCarousel
+        currentIndex={introStep}
+        reducedMotion={reducedMotion}
+        onNext={handleIntroAdvance}
+        onSkip={handleIntroSkip}
+      />
     )
   }
 

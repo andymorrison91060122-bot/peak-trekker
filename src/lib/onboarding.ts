@@ -2,7 +2,7 @@
 
 import type { OnboardingProgress } from '@/types'
 
-export const ONBOARDING_VERSION = '2026-v1'
+export const ONBOARDING_VERSION = '2026-v2'
 export const LEGACY_ONBOARDED_KEY = 'peak_trekker_onboarded'
 export const INTRO_SEEN_KEY = 'peak_trekker_intro_seen'
 export const PROVINCE_DRAFT_KEY = 'peak_trekker_province_draft'
@@ -18,19 +18,12 @@ function emitUpdate() {
 }
 
 export function migrateLegacyOnboarding() {
-  if (!isBrowser()) return
-
-  const legacyDone = localStorage.getItem(LEGACY_ONBOARDED_KEY)
-  if (!legacyDone) return
-
-  if (localStorage.getItem(INTRO_SEEN_KEY) !== ONBOARDING_VERSION) {
-    localStorage.setItem(INTRO_SEEN_KEY, ONBOARDING_VERSION)
-  }
+  return
 }
 
-export function hasIntroSeen() {
+export function hasIntroSeen(profileVersion?: string | null) {
   if (!isBrowser()) return false
-  if (localStorage.getItem(LEGACY_ONBOARDED_KEY)) return true
+  if (profileVersion === ONBOARDING_VERSION) return true
   return localStorage.getItem(INTRO_SEEN_KEY) === ONBOARDING_VERSION
 }
 
@@ -59,9 +52,9 @@ export function restartIntroFlow() {
   emitUpdate()
 }
 
-export function getOnboardingProgress(): OnboardingProgress {
+export function getOnboardingProgress(profileVersion?: string | null): OnboardingProgress {
   return {
-    introSeen: hasIntroSeen(),
+    introSeen: hasIntroSeen(profileVersion),
     provinceChosen: Boolean(getProvinceDraft()),
     version: ONBOARDING_VERSION,
   }

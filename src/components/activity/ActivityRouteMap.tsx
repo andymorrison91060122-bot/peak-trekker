@@ -2,14 +2,6 @@ import type { ActivityDetailViewModel } from '@/app/(flow)/activity/[id]/Activit
 
 const routeNumberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 
-function formatRouteDuration(totalSeconds: number) {
-  const safeSeconds = Math.max(0, Math.round(totalSeconds))
-  const hours = Math.floor(safeSeconds / 3600)
-  const minutes = Math.floor((safeSeconds % 3600) / 60)
-  if (hours > 0) return `${hours}h ${String(minutes).padStart(2, '0')}m`
-  return `${minutes}m`
-}
-
 function formatRouteTime(value: string | null) {
   if (!value) return '--:--'
   const date = new Date(value)
@@ -17,26 +9,28 @@ function formatRouteTime(value: string | null) {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
-function formatAltitude(value: number) {
+function formatWaypointAltitude(value: number) {
   if (value <= 0) return '--'
-  return `${routeNumberFormatter.format(Math.round(value))} m`
+  return `${routeNumberFormatter.format(Math.round(value))}m`
 }
 
-function formatDistance(value: number) {
-  if (value <= 0) return '--'
-  return `${value.toFixed(1)} km`
+function formatWaypointTime(value: string) {
+  if (/^\d{2}:\d{2}$/.test(value)) return value
+  return formatRouteTime(value)
 }
+
+const fallbackWaypoints = [
+  { time: '04:22', name: '大本营 · 出发', altitudeM: 4280, tone: 'fg' as const },
+  { time: '08:48', name: 'C1 高营地 · 短歇', altitudeM: 5100, tone: 'fg2' as const },
+  { time: '11:36', name: '冰雪过渡带 · 结组', altitudeM: 5800, tone: 'warning' as const },
+  { time: '13:24', name: '山顶 · 留证', altitudeM: 6178, tone: 'success' as const },
+]
 
 export default function ActivityRouteMap({ activity }: { activity: ActivityDetailViewModel }) {
-  // Until track max is guaranteed on every imported record, fall back to mountain altitude for the stat strip.
-  const maxAltitudeM = activity.metrics.maxAltitudeM > 0 ? activity.metrics.maxAltitudeM : activity.mountain.altitude
   const summitTime = formatRouteTime(activity.summitAt)
-  const stats = [
-    { label: '总距离', value: formatDistance(activity.metrics.distanceKm) },
-    { label: '用时', value: activity.metrics.durationSeconds > 0 ? formatRouteDuration(activity.metrics.durationSeconds) : '--' },
-    { label: '最高点', value: formatAltitude(maxAltitudeM), accent: true },
-  ]
   const contourOpacities = [0.28, 0.255, 0.23, 0.205, 0.18, 0.155, 0.13]
+  // TODO: Replace fallback rows with activity.waypoints after the Activity waypoint data contract lands.
+  const waypoints = activity.waypoints?.length ? activity.waypoints : fallbackWaypoints
 
   return (
     <section className="act-route" data-testid="activity-route-map">
@@ -116,14 +110,18 @@ export default function ActivityRouteMap({ activity }: { activity: ActivityDetai
           </button>
         </div>
 
-        <div className="act-route__stats" data-testid="activity-route-map-stats">
-          {stats.map((stat, index) => (
-            <div className="act-route__stat" key={stat.label}>
-              <div className={stat.accent ? 'act-route__stat-value act-route__stat-value--accent' : 'act-route__stat-value'}>
-                {stat.value}
+        <div className="act-waypoints" data-testid="activity-waypoint-timeline">
+          {waypoints.map((point, index) => (
+            <div className="act-waypoint" key={`${point.time}-${point.name}`}>
+              <div className="act-waypoint__time">{formatWaypointTime(point.time)}</div>
+              <div className="act-waypoint__dot-cell" aria-hidden="true">
+                <span className={`act-waypoint__dot act-waypoint__dot--${point.tone}`} />
               </div>
-              <div className="act-route__stat-label">{stat.label}</div>
-              {index < stats.length - 1 ? <span className="act-route__stat-divider" aria-hidden="true" /> : null}
+              <div className="act-waypoint__body">
+                <span className="act-waypoint__name">{point.name}</span>
+                <span className="act-waypoint__altitude">{formatWaypointAltitude(point.altitudeM)}</span>
+              </div>
+              {index < waypoints.length - 1 ? <span className="act-waypoint__divider" aria-hidden="true" /> : null}
             </div>
           ))}
         </div>

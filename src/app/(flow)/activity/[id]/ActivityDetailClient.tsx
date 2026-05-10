@@ -25,6 +25,20 @@ export type ActivityPhotoViewModel = {
   thumbnailUrl: string
 }
 
+export type ActivityWaypointViewModel = {
+  time: string
+  name: string
+  altitudeM: number
+  tone: 'fg' | 'fg2' | 'warning' | 'success'
+}
+
+export type ActivityCompanionViewModel = {
+  id: string
+  name: string
+  handle?: string
+  avatarUrl?: string | null
+}
+
 export type ActivityDetailViewModel = {
   id: string
   createdAt: string
@@ -52,6 +66,8 @@ export type ActivityDetailViewModel = {
   }
   note: string
   photos: ActivityPhotoViewModel[]
+  waypoints?: ActivityWaypointViewModel[]
+  companions?: ActivityCompanionViewModel[]
   elevationSamples: number[]
   proofStatus: 'confirmed' | 'partial' | 'none'
   recordCount: number
@@ -670,8 +686,8 @@ function RouteSnapshot({ activity }: { activity: ActivityDetailViewModel }) {
 }
 
 function PhotoStrip({ activity, onAddPhoto }: { activity: ActivityDetailViewModel; onAddPhoto: () => void }) {
-  const photos = activity.photos.slice(0, 4)
-  const labels = ['起点', 'C1', '山顶', '回营']
+  const photos = activity.photos.slice(0, 3)
+  const labels = ['13:24 · 山顶', '08:48 · C1', '06:12 · 出发后']
 
   if (!photos.length) {
     return (
@@ -725,72 +741,30 @@ function PhotoStrip({ activity, onAddPhoto }: { activity: ActivityDetailViewMode
     )
   }
 
+  const layoutClass =
+    photos.length >= 3
+      ? 'act-photos__layout act-photos__layout--three'
+      : photos.length === 2
+        ? 'act-photos__layout act-photos__layout--two'
+        : 'act-photos__layout act-photos__layout--one'
+
   return (
     <section style={sectionPadding('var(--space-5)')}>
-      <SectionHead right={`${activity.photos.length} 张`}>照片</SectionHead>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-          gap: 'var(--space-2)',
-        }}
-      >
-        {photos.map((photo, index) => (
-          <div
-            key={photo.id}
-            style={{
-              position: 'relative',
-              overflow: 'hidden',
-              aspectRatio: '1 / 1',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--color-outline)',
-              backgroundImage: `url("${photo.thumbnailUrl}")`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center 35%',
-            }}
-          >
+      <SectionHead right={`${photos.length} 张 · 你选的`}>这次的照片</SectionHead>
+      <div className={layoutClass} data-testid="activity-photo-gallery">
+        {photos.map((photo, index) => {
+          const isHero = photos.length >= 3 && index === 0
+          return (
             <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'linear-gradient(180deg, transparent 58%, color-mix(in srgb, var(--color-surface) 60%, transparent))',
-              }}
-            />
-            <div
-              style={{
-                ...monoStyle,
-                position: 'absolute',
-                left: 10,
-                bottom: 8,
-                color: 'var(--color-on-surface)',
-                fontSize: 10,
-                lineHeight: '14px',
-                fontWeight: 600,
-                letterSpacing: '0.05em',
-              }}
+              key={photo.id}
+              className={isHero ? 'act-photo act-photo--hero' : 'act-photo'}
+              style={{ backgroundImage: `url("${photo.thumbnailUrl}")` }}
             >
-              {labels[index] ?? `C${index + 1}`}
+              <div className="act-photo__scrim" />
+              <div className="act-photo__label">{labels[index] ?? `C${index + 1}`}</div>
             </div>
-          </div>
-        ))}
-        <button
-          type="button"
-          aria-label="补充照片"
-          onClick={onAddPhoto}
-          style={{
-            display: 'grid',
-            placeItems: 'center',
-            aspectRatio: '1 / 1',
-            borderRadius: 'var(--radius-md)',
-            border: '1px dashed var(--color-outline)',
-            color: 'var(--color-on-surface-variant)',
-            background: 'var(--color-surface)',
-            font: 'inherit',
-            cursor: 'pointer',
-          }}
-        >
-          <CameraIcon size={32} />
-        </button>
+          )
+        })}
       </div>
     </section>
   )
@@ -968,6 +942,38 @@ function ProofStrip({ status }: { status: ActivityDetailViewModel['proofStatus']
   )
 }
 
+function CompanionStrip({ companions }: { companions: ActivityCompanionViewModel[] }) {
+  const visibleCompanions = companions.slice(0, 3)
+  const companionNames = companions
+    .slice(0, 3)
+    .map((companion) => companion.handle ?? companion.name)
+    .join(' · ')
+
+  if (!companions.length) return null
+
+  return (
+    <section style={sectionPadding('var(--space-5)')} data-testid="activity-companion-strip">
+      <SectionHead>同行者</SectionHead>
+      <div className="act-companion">
+        <div className="act-companion__avatars" aria-hidden="true">
+          {visibleCompanions.map((companion, index) => (
+            <div
+              key={companion.id}
+              className={`act-companion__avatar act-companion__avatar--${index}`}
+              style={companion.avatarUrl ? { backgroundImage: `url("${companion.avatarUrl}")` } : undefined}
+            />
+          ))}
+        </div>
+        <div className="act-companion__copy">
+          <div className="act-companion__title">{companions.length} 位山友 · 一同登顶</div>
+          <div className="act-companion__subtitle">{companionNames}</div>
+        </div>
+        <SecondaryButton style={{ minHeight: 36, height: 36, padding: '0 14px' }}>查看</SecondaryButton>
+      </div>
+    </section>
+  )
+}
+
 function BackToRecords({ activity }: { activity: ActivityDetailViewModel }) {
   const router = useRouter()
 
@@ -1032,42 +1038,21 @@ function BackToRecords({ activity }: { activity: ActivityDetailViewModel }) {
   )
 }
 
-function ActivityBottomBar({ activity }: { activity: ActivityDetailViewModel }) {
+function ActivityInlineActions({ activity }: { activity: ActivityDetailViewModel }) {
   const router = useRouter()
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        zIndex: 10,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        padding: '12px var(--space-4) 26px',
-        background:
-          'linear-gradient(180deg, transparent, color-mix(in srgb, var(--color-surface) 96%, transparent) 30%)',
-      }}
-    >
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'auto minmax(0, 1fr)',
-          gap: 10,
-          maxWidth: 'var(--page-max-width)',
-          margin: '0 auto',
-        }}
-      >
-        <SecondaryButton as="a" href={`/community/publish/${activity.id}`} style={{ whiteSpace: 'nowrap' }}>
-          发布到山友圈
+    <section className="act-actions" data-testid="activity-inline-actions">
+      <div className="act-actions__grid">
+        <SecondaryButton as="a" href={`/share?checkinId=${activity.id}`} style={{ width: '100%', whiteSpace: 'nowrap' }}>
+          生成分享
         </SecondaryButton>
-        <PrimaryButton
-          onClick={() => router.push(`/share?checkinId=${activity.id}`)}
-          style={{ width: '100%', whiteSpace: 'nowrap' }}
-        >
-          分享这次山行
+        <PrimaryButton onClick={() => router.push(`/community/publish/${activity.id}`)} style={{ width: '100%', whiteSpace: 'nowrap' }}>
+          发布到山友圈
         </PrimaryButton>
       </div>
-    </div>
+      <div className="act-actions__hint">这是属于你的山行 · 不发布也是好选择</div>
+    </section>
   )
 }
 
@@ -1112,7 +1097,6 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
         position: 'relative',
         minHeight: '100dvh',
         marginTop: 'calc(-1 * max(env(safe-area-inset-top), var(--space-2)))',
-        paddingBottom: 120,
         color: 'var(--color-on-surface)',
         background: 'var(--color-surface)',
         overflowX: 'hidden',
@@ -1126,9 +1110,10 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
       <ActivityRouteMap activity={activity} />
       <RouteSnapshot activity={activity} />
       <PhotoStrip activity={activity} onAddPhoto={() => showLocalToast('照片补传功能即将上线')} />
+      <CompanionStrip companions={activity.companions ?? []} />
       <ProofStrip status={activity.proofStatus} />
       <BackToRecords activity={activity} />
-      <ActivityBottomBar activity={activity} />
+      <ActivityInlineActions activity={activity} />
       {toastMessage ? (
         <div
           role="status"

@@ -1,8 +1,15 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode, type RefObject } from 'react'
 import { useRouter } from 'next/navigation'
 import { BackIcon } from '@/components/ui/Icons'
+import {
+  buildLateProofExifRows,
+  formatFileSize,
+  parseLateProofExif,
+  type LateProofExifData,
+  type LateProofExifRow,
+} from '@/lib/exif-utils'
 
 type LateProofViewState = 'intro' | 'upload' | 'pending' | 'submitted'
 
@@ -11,6 +18,8 @@ type LateProofClientProps = {
   mountainName: string
   altitude: string | null
   summitDate: string | null
+  mountainLat: number | null
+  mountainLng: number | null
 }
 
 type ProofType = {
@@ -81,16 +90,55 @@ function ChevronIcon() {
   )
 }
 
-function TopBar({ mountainName }: { mountainName: string }) {
+function UploadCameraIcon() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path
+        d="M4 8h3l2-2h6l2 2h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+      <circle cx="12" cy="13" r="3" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  )
+}
+
+function ExifStatusIcon({ status }: { status: LateProofExifRow['status'] }) {
+  if (status === 'ok') {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M8 12l3 3 5-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 8v5M12 16.5v.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function TopBar({
+  mountainName,
+  right,
+  onBack,
+}: {
+  mountainName: string
+  right?: ReactNode
+  onBack?: () => void
+}) {
   const router = useRouter()
 
   return (
     <header className="lp-topbar">
-      <button type="button" className="lp-topbar__back" aria-label="返回" onClick={() => router.back()}>
+      <button type="button" className="lp-topbar__back" aria-label="返回" onClick={onBack ?? (() => router.back())}>
         <BackIcon size={20} />
       </button>
       <div className="lp-topbar__title">补登记 · {mountainName}</div>
-      <div className="lp-topbar__spacer" aria-hidden="true" />
+      {right ? <div className="lp-topbar__step">{right}</div> : <div className="lp-topbar__spacer" aria-hidden="true" />}
     </header>
   )
 }
@@ -175,21 +223,240 @@ function IntroView({
   )
 }
 
+function ExifRow({ row, last }: { row: LateProofExifRow; last: boolean }) {
+  return (
+    <div className="lp-exif-row" data-last={last ? 'true' : 'false'}>
+      <div className={`lp-exif-icon lp-exif-icon--${row.status}`}>
+        <ExifStatusIcon status={row.status} />
+      </div>
+      <div className="lp-exif-label">{row.label}</div>
+      <div className="lp-exif-value">{row.value}</div>
+    </div>
+  )
+}
+
+function UploadView({
+  selectedFile,
+  previewUrl,
+  exifData,
+  exifLoading,
+  userNote,
+  exifRows,
+  fileInputRef,
+  onFileChange,
+  onFilePick,
+  onNoteChange,
+  onSubmit,
+}: {
+  selectedFile: File | null
+  previewUrl: string | null
+  exifData: LateProofExifData | null
+  exifLoading: boolean
+  userNote: string
+  exifRows: LateProofExifRow[]
+  fileInputRef: RefObject<HTMLInputElement | null>
+  onFileChange: (event: ChangeEvent<HTMLInputElement>) => void
+  onFilePick: () => void
+  onNoteChange: (value: string) => void
+  onSubmit: () => void
+}) {
+  const fileMeta = selectedFile
+    ? `${formatFileSize(selectedFile.size)} · ${fileTimeLabel(exifLoading, exifData)}`
+    : ''
+
+  return (
+    <>
+      <main className="lp-content">
+        <section className="lp-upload-head" aria-labelledby="late-proof-upload-title">
+          <h1 id="late-proof-upload-title" className="lp-upload-title">
+            放一张你登顶时的照片
+          </h1>
+          <p className="lp-upload-subtitle">有山顶标志或合影都好 · 单张即可，不需多张</p>
+        </section>
+
+        <section className="lp-upload-shell" aria-label="照片上传">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="lp-file-input"
+            onChange={onFileChange}
+          />
+          {selectedFile && previewUrl ? (
+            <div className="lp-photo-preview lp-fade-in">
+              {/* eslint-disable-next-line @next/next/no-img-element -- blob previews cannot be optimized by next/image */}
+              <img className="lp-photo-preview__image" src={previewUrl} alt="登顶照片预览" />
+              <div className="lp-photo-preview__scrim" aria-hidden="true" />
+              <div className="lp-photo-preview__meta">
+                <div className="lp-photo-preview__copy">
+                  <div className="lp-photo-preview__name">{selectedFile.name}</div>
+                  <div className="lp-photo-preview__info">{fileMeta}</div>
+                </div>
+                <button type="button" className="lp-change-photo-btn" onClick={onFilePick}>
+                  更换
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="lp-upload-dropzone" onClick={onFilePick}>
+              <span className="lp-upload-dropzone__icon">
+                <UploadCameraIcon />
+              </span>
+              <span className="lp-upload-dropzone__title">点击选择一张照片</span>
+              <span className="lp-upload-dropzone__hint">支持 JPG / PNG / HEIC</span>
+            </button>
+          )}
+        </section>
+
+        {selectedFile ? (
+          <>
+            <SectionHeader>从这张照片读到了</SectionHeader>
+            <section className="lp-section-shell" aria-label="从这张照片读到了">
+              <div className="lp-exif-card">
+                {exifLoading ? (
+                  <ExifRow
+                    row={{
+                      key: 'metadata',
+                      status: 'warn',
+                      label: '照片信息',
+                      value: '正在读取拍摄信息',
+                    }}
+                    last
+                  />
+                ) : (
+                  exifRows.map((row, index) => (
+                    <ExifRow key={row.key} row={row} last={index === exifRows.length - 1} />
+                  ))
+                )}
+              </div>
+            </section>
+          </>
+        ) : null}
+
+        <section className="lp-note-shell" aria-label="补登记说明">
+          <textarea
+            className="lp-note-input"
+            placeholder="想说点什么吗？路线、同行者、当天的状态… 一两行就好。"
+            value={userNote}
+            onChange={(event) => onNoteChange(event.target.value)}
+          />
+        </section>
+
+        <div className="lp-bottom-spacer" aria-hidden="true" />
+      </main>
+
+      <div className="lp-sticky-bottom">
+        <button type="button" className="lp-primary-btn" disabled={!selectedFile} onClick={onSubmit}>
+          提交补登记
+        </button>
+        <div className="lp-hint">提交后会标记为「用户自报 · 待生效」</div>
+      </div>
+    </>
+  )
+}
+
 function PlaceholderView({ viewState }: { viewState: Exclude<LateProofViewState, 'intro'> }) {
   return <div className="lp-placeholder">{viewState} — 待实现</div>
 }
 
-export default function LateProofClient({ mountainName, summitDate }: LateProofClientProps) {
+export default function LateProofClient({
+  mountainName,
+  altitude,
+  summitDate,
+  mountainLat,
+  mountainLng,
+}: LateProofClientProps) {
   const [viewState, setViewState] = useState<LateProofViewState>('intro')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [exifData, setExifData] = useState<LateProofExifData | null>(null)
+  const [exifLoading, setExifLoading] = useState(false)
+  const [userNote, setUserNote] = useState('')
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const exifRequestIdRef = useRef(0)
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [previewUrl])
+
+  const exifRows = useMemo(
+    () =>
+      buildLateProofExifRows({
+        exifData,
+        mountainName,
+        altitude,
+        mountainLat,
+        mountainLng,
+      }),
+    [altitude, exifData, mountainLat, mountainLng, mountainName],
+  )
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    const requestId = exifRequestIdRef.current + 1
+    exifRequestIdRef.current = requestId
+    setSelectedFile(file)
+    setPreviewUrl(URL.createObjectURL(file))
+    setExifData(null)
+    setExifLoading(true)
+
+    try {
+      const parsedExif = await parseLateProofExif(file)
+      if (exifRequestIdRef.current === requestId) {
+        setExifData(parsedExif)
+      }
+    } catch {
+      if (exifRequestIdRef.current === requestId) {
+        setExifData({ hasFullMetadata: false })
+      }
+    } finally {
+      if (exifRequestIdRef.current === requestId) {
+        setExifLoading(false)
+      }
+    }
+  }
+
+  function handleFilePick() {
+    fileInputRef.current?.click()
+  }
 
   return (
     <div className="lp-page">
-      <TopBar mountainName={mountainName} />
+      <TopBar
+        mountainName={mountainName}
+        right={viewState === 'upload' ? '2 / 3' : undefined}
+        onBack={viewState === 'upload' ? () => setViewState('intro') : undefined}
+      />
       {viewState === 'intro' ? (
         <IntroView summitDate={summitDate} onStart={() => setViewState('upload')} />
+      ) : viewState === 'upload' ? (
+        <UploadView
+          selectedFile={selectedFile}
+          previewUrl={previewUrl}
+          exifData={exifData}
+          exifLoading={exifLoading}
+          userNote={userNote}
+          exifRows={exifRows}
+          fileInputRef={fileInputRef}
+          onFileChange={handleFileChange}
+          onFilePick={handleFilePick}
+          onNoteChange={setUserNote}
+          onSubmit={() => setViewState('pending')}
+        />
       ) : (
         <PlaceholderView viewState={viewState} />
       )}
     </div>
   )
+}
+
+function fileTimeLabel(exifLoading: boolean, exifData: LateProofExifData | null) {
+  if (exifLoading) return '正在读取拍摄信息'
+  if (exifData?.dateTime) return `拍摄于 ${exifData.dateTime.replace(' · ', ' ')}`
+  return '未读取到拍摄时间'
 }

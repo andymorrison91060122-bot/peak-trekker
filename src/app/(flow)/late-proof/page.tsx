@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import LateProofClient from './LateProofClient'
 import './late-proof.css'
+import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 interface LateProofPageProps {
   searchParams: Promise<{
@@ -9,6 +10,30 @@ interface LateProofPageProps {
     altitude?: string
     summitDate?: string
   }>
+}
+
+async function loadMountainCoordinates(mountainId: string) {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const { data } = await supabase
+      .from('mountains')
+      .select('latitude, longitude')
+      .eq('id', mountainId)
+      .maybeSingle()
+
+    const latitude = Number(data?.latitude)
+    const longitude = Number(data?.longitude)
+
+    return {
+      mountainLat: Number.isFinite(latitude) ? latitude : null,
+      mountainLng: Number.isFinite(longitude) ? longitude : null,
+    }
+  } catch {
+    return {
+      mountainLat: null,
+      mountainLng: null,
+    }
+  }
 }
 
 export default async function LateProofPage({ searchParams }: LateProofPageProps) {
@@ -31,12 +56,16 @@ export default async function LateProofPage({ searchParams }: LateProofPageProps
     )
   }
 
+  const { mountainLat, mountainLng } = await loadMountainCoordinates(mountainId)
+
   return (
     <LateProofClient
       mountainId={mountainId}
       mountainName={mountainName}
       altitude={resolvedSearchParams.altitude?.trim() || null}
       summitDate={resolvedSearchParams.summitDate?.trim() || null}
+      mountainLat={mountainLat}
+      mountainLng={mountainLng}
     />
   )
 }

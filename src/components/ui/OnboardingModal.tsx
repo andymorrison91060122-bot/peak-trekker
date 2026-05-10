@@ -292,7 +292,7 @@ export default function OnboardingModal({
             </div>
           ) : (
             <>
-              <div className="font-mono" style={{ fontSize: 12, color: '#f6d28d', marginBottom: 10 }}>
+              <div className="font-mono" style={{ fontSize: 12, color: '#f6d28d' /* illustration-gold */, marginBottom: 10 }}>
                 Identity Anchor
               </div>
               <div className="font-pixel" style={{ fontSize: 28, lineHeight: 1.1, marginBottom: 10 }}>

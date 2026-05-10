@@ -60,12 +60,6 @@
   出现位置: `src/app/components.css:284`, `src/components/ui/CheckinButton.tsx:66`
   推测用途: 删除/危险操作里的浅红提示文字。
 
-## Onboarding 首启引导
-
-- 色值: `#f6d28d`
-  出现位置: `src/components/ui/OnboardingModal.tsx:1008`, `src/components/ui/OnboardingModal.tsx:198`, `src/components/ui/OnboardingModal.tsx:224`, `src/components/ui/OnboardingModal.tsx:36`
-  推测用途: Onboarding 流程中的金色主装饰色。
-
 ## 社区媒体画廊
 
 - 色值: `#0f1113`
@@ -155,6 +149,15 @@
 # P2 · 非主线 / 后置
 
 以下色值在 admin、海报装饰、QA 测试、登录注册等非主线场景。允许后置或保留特殊色板。
+
+## 装饰例外（不进入 token 系统）
+
+以下色值是插图、海报、Onboarding 等装饰场景的资产色，**不属于 UI 语义体系**，保留 inline。
+
+- 色值: `#f6d28d`
+  出现位置: `src/components/ui/OnboardingModal.tsx:295`
+  用途: Onboarding 装饰金色 / 插图色
+  决策: Sprint 6 · Task 6.1d 锁定为插图资产，不进入 token 系统
 
 ## Admin 后台
 

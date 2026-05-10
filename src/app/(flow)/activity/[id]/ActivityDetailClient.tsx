@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import IconButton from '@/components/ui/IconButton'
+import ActivityRouteMap from '@/components/activity/ActivityRouteMap'
 import { SourceLabel, type SourceLabelProps } from '@/components/ui/SourceLabel'
 import {
   ArchiveIcon,
@@ -1122,6 +1123,7 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
       <MemoryNote activity={activity} onEditNote={() => showLocalToast('手记功能即将上线')} />
       {activity.isSummit ? <SummitReachedCard activity={activity} /> : <MaxAltitudeCard activity={activity} />}
       <KeyDataGrid activity={activity} />
+      <ActivityRouteMap activity={activity} />
       <RouteSnapshot activity={activity} />
       <PhotoStrip activity={activity} onAddPhoto={() => showLocalToast('照片补传功能即将上线')} />
       <ProofStrip status={activity.proofStatus} />

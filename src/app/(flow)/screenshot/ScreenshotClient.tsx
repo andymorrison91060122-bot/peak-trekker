@@ -824,20 +824,6 @@ function DragHandle() {
   )
 }
 
-function EditPencil() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-      <path
-        d="M14.7 4.3l5 5L8.5 20.5 3 22l1.5-5.5L14.7 4.3z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
 function LockIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
@@ -967,25 +953,6 @@ function FieldRow({
           </div>
         ) : null}
       </div>
-      <button
-        type="button"
-        aria-label={`编辑${config.label}`}
-        onClick={() => undefined}
-        style={{
-          width: 28,
-          height: 28,
-          display: 'grid',
-          placeItems: 'center',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          padding: 0,
-          color: missing ? 'var(--color-success)' : 'var(--color-on-surface-variant)',
-          flexShrink: 0,
-        }}
-      >
-        <EditPencil />
-      </button>
       <div
         style={{
           width: 38,

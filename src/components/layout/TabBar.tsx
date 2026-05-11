@@ -36,12 +36,12 @@ const TabIcons = {
       </svg>
     </Icon>
   ),
-  prep: (active: boolean) => (
+  archive: (active: boolean) => (
     <Icon active={active}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M7 19V7.5A1.5 1.5 0 0 1 8.5 6h7A1.5 1.5 0 0 1 17 7.5V19" stroke={active ? 'var(--color-success)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" />
-        <path d="M9 6.5C9 5.1 10.1 4 11.5 4h1C13.9 4 15 5.1 15 6.5" stroke={active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M9.5 11.5h5" stroke={active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M3.5 18.5l5-8.2 4 5.4 2.8-3.7 5.2 6.5" stroke={active ? 'var(--color-success)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M6.5 18.2c2.1-1.2 4.2-1.1 6.2.2 1.9 1.2 3.6 1.3 5.2.2" stroke={active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" strokeLinecap="round" />
+        <circle cx="4.2" cy="18.4" r="1.1" fill={active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)'} />
       </svg>
     </Icon>
   ),
@@ -77,7 +77,7 @@ const TabIcons = {
 
 const tabs = [
   { href: '/explore', label: '探索', icon: TabIcons.explore },
-  { href: '/prep', label: '备赛', icon: TabIcons.prep },
+  { href: '/archive', label: '山行', icon: TabIcons.archive },
   { href: '/trek', label: '出发', icon: TabIcons.trek },
   { href: '/community', label: '山友圈', icon: TabIcons.community },
   { href: '/profile', label: '我的', icon: TabIcons.profile },

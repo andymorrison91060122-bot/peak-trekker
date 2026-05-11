@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Synthesized test fixture - based on real export format from Two Steps.
+  Coordinates are fictional (Beijing area).
+  Timestamps are fictional (Oct 2025).
+  No personal information included.
+-->
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Synthetic Two Steps Coordinates</name>
+    <ExtendedData>
+      <Data name="BeginTime">
+        <value>1759276800000</value>
+      </Data>
+      <Data name="EndTime">
+        <value>1759278600000</value>
+      </Data>
+    </ExtendedData>
+    <Placemark>
+      <name>Synthetic route</name>
+      <LineString>
+        <coordinates>
+          116.407400,39.904200,80 116.408100,39.904800,95
+          116.409000,39.905200,120 116.410000,39.905800,110
+        </coordinates>
+      </LineString>
+    </Placemark>
+  </Document>
+</kml>

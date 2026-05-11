@@ -57,3 +57,6 @@ supabase/config.toml
 # Codex/agent skill cache
 .agents/
 design-system.zip
+
+# Local-only import test samples (personal GPS data, never commit)
+peak-trekker-import-samples/

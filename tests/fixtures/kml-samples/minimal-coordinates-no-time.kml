@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Synthesized test fixture - based on a standard KML coordinate export format.
+  Coordinates are fictional (Beijing area).
+  Timestamps are fictional (Oct 2025), but this fixture intentionally omits time tags.
+  No personal information included.
+-->
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Synthetic Minimal Coordinates</name>
+    <Placemark>
+      <LineString>
+        <coordinates>
+          116.407400,39.904200,80 116.407900,39.904600,82 116.408500,39.905000,90
+        </coordinates>
+      </LineString>
+    </Placemark>
+  </Document>
+</kml>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Synthesized test fixture - based on real export format from Two Steps.
+  Coordinates are fictional (Beijing area).
+  Timestamps are fictional (Oct 2025).
+  No personal information included.
+-->
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+  <Document>
+    <name>Synthetic Two Steps gx Track</name>
+    <Placemark>
+      <name>Synthetic ascent</name>
+      <gx:Track>
+        <gx:coord>116.407400 39.904200 80</gx:coord>
+        <gx:coord>116.408000 39.904800 95</gx:coord>
+        <gx:coord>116.408800 39.905500 120</gx:coord>
+        <when>2025-10-01T00:00:00Z</when>
+        <when>2025-10-01T00:05:00Z</when>
+        <when>2025-10-01T00:10:00Z</when>
+      </gx:Track>
+    </Placemark>
+    <Placemark>
+      <name>Synthetic ridge</name>
+      <gx:Track>
+        <gx:coord>116.409500 39.906000 130</gx:coord>
+        <gx:coord>116.410200 39.906400 125</gx:coord>
+        <gx:coord>116.411000 39.907000 140</gx:coord>
+        <when>2025-10-01T00:15:00Z</when>
+        <when>2025-10-01T00:20:00Z</when>
+        <when>2025-10-01T00:25:00Z</when>
+      </gx:Track>
+    </Placemark>
+  </Document>
+</kml>

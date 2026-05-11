@@ -1,7 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const sourceExtension = 'ts'
+const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/kml-samples')
 
 async function loadImportIndex() {
   return import(`../src/lib/import/index.${sourceExtension}`)
@@ -45,6 +49,10 @@ const mockKml = `<?xml version="1.0"?>
   </Document>
 </kml>`
 
+function readKmlFixture(fileName: string) {
+  return readFileSync(join(fixturesDir, fileName), 'utf8')
+}
+
 test('GPX parser extracts track points, name, and computed stats', async () => {
   const { parseGpx } = await loadGpxParser()
   const parsed = parseGpx(mockGpx, 'test-track.gpx')
@@ -82,6 +90,59 @@ test('KML parser reads longitude-latitude-elevation coordinate order', async () 
   })
   assert.equal(parsed.elevationGainMeters, 100)
   assert.equal(parsed.elevationLossMeters, 0)
+})
+
+test('KML parser reads gx:Track coordinates with per-point timestamps', async () => {
+  const { parseTrackFile } = await loadImportIndex()
+  const content = readKmlFixture('gx-track-with-timestamps.kml')
+  const parsed = await parseTrackFile('gx-track-with-timestamps.kml', Buffer.from(content))
+
+  assert.equal(parsed.format, 'kml')
+  assert.equal(parsed.name, 'Synthetic Two Steps gx Track')
+  assert.equal(parsed.trackPoints.length, 6)
+  assert.equal(parsed.trackPoints[0].timestamp, '2025-10-01T00:00:00.000Z')
+  assert.equal(parsed.trackPoints[5].timestamp, '2025-10-01T00:25:00.000Z')
+  assert.equal(parsed.startTime, '2025-10-01T00:00:00.000Z')
+  assert.equal(parsed.endTime, '2025-10-01T00:25:00.000Z')
+  assert.equal(parsed.durationSeconds, 1500)
+  assert.ok((parsed.distanceMeters ?? 0) > 0)
+})
+
+test('KML parser concatenates multiple gx:Track blocks in document order', async () => {
+  const { parseKml } = await loadKmlParser()
+  const parsed = parseKml(readKmlFixture('gx-track-with-timestamps.kml'), 'gx-track-with-timestamps.kml')
+
+  assert.deepEqual(parsed.trackPoints.map((point: { elevation?: number }) => point.elevation), [80, 95, 120, 130, 125, 140])
+  assert.equal(parsed.elevationGainMeters, 65)
+  assert.equal(parsed.elevationLossMeters, 5)
+})
+
+test('KML parser uses ExtendedData BeginTime and EndTime as standard coordinate fallback', async () => {
+  const { parseTrackFile } = await loadImportIndex()
+  const content = readKmlFixture('standard-coordinates-with-extdata.kml')
+  const parsed = await parseTrackFile('standard-coordinates-with-extdata.kml', Buffer.from(content))
+
+  assert.equal(parsed.trackPoints.length, 4)
+  assert.equal(parsed.trackPoints[0].timestamp, '2025-10-01T00:00:00.000Z')
+  assert.equal(parsed.trackPoints[1].timestamp, undefined)
+  assert.equal(parsed.trackPoints[3].timestamp, '2025-10-01T00:30:00.000Z')
+  assert.equal(parsed.startTime, '2025-10-01T00:00:00.000Z')
+  assert.equal(parsed.endTime, '2025-10-01T00:30:00.000Z')
+  assert.equal(parsed.durationSeconds, 1800)
+  assert.equal(parsed.elevationGainMeters, 40)
+  assert.equal(parsed.elevationLossMeters, 10)
+})
+
+test('KML parser still accepts minimal coordinates without any time data', async () => {
+  const { parseKml } = await loadKmlParser()
+  const parsed = parseKml(readKmlFixture('minimal-coordinates-no-time.kml'), 'minimal-coordinates-no-time.kml')
+
+  assert.equal(parsed.trackPoints.length, 3)
+  assert.equal(parsed.startTime, undefined)
+  assert.equal(parsed.endTime, undefined)
+  assert.equal(parsed.durationSeconds, undefined)
+  assert.ok((parsed.distanceMeters ?? 0) > 0)
+  assert.equal(parsed.elevationGainMeters, 10)
 })
 
 test('FIT parser normalizes semicircles and parsed FIT records', async () => {

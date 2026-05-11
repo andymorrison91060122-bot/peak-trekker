@@ -10,6 +10,8 @@
     "start": "next start",
     "lint": "eslint",
     "fonts:download": "node scripts/download-fonts.js",
+    "test:field-policy": "node --test --experimental-strip-types tests/activity-field-policy.test.ts tests/share-render-api.test.ts tests/import-parser.test.ts && npm run test:field-policy-static",
+    "test:field-policy-static": "! rg -q 'EditPencil|aria-label=.*编辑' 'src/app/(flow)/screenshot/' 'src/app/(flow)/share/'",
     "test:e2e": "playwright test"
   },
   "dependencies": {

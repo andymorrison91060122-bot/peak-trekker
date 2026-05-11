@@ -177,6 +177,25 @@ test('track stats provide server-side import metrics instead of trusting client 
   assert.equal(computed.endTime, '2026-01-01T09:00:00Z')
 })
 
+test('track stats provide import metrics when client sends only track points', async () => {
+  const { buildComputedTrackStats } = await loadStats()
+  const points = [
+    { latitude: 30, longitude: 100, elevation: 3000, timestamp: '2026-01-01T08:00:00Z' },
+    { latitude: 30.001, longitude: 100.001, elevation: 3200, timestamp: '2026-01-01T08:15:00Z' },
+  ]
+
+  const computed = buildComputedTrackStats(points)
+
+  assert.ok(computed.distanceMeters > 0)
+  assert.equal(computed.durationSeconds, 900)
+  assert.equal(computed.elevationGainMeters, 200)
+  assert.equal(computed.elevationLossMeters, 0)
+  assert.equal(computed.maxElevation, 3200)
+  assert.equal(computed.minElevation, 3000)
+  assert.equal(computed.startTime, '2026-01-01T08:00:00Z')
+  assert.equal(computed.endTime, '2026-01-01T08:15:00Z')
+})
+
 test('parseTrackFile routes by extension and rejects unsupported files', async () => {
   const { parseTrackFile } = await loadImportIndex()
 

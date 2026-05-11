@@ -25,6 +25,7 @@ import type {
 } from '@/lib/share-templates/types'
 import { loadShareFonts } from '@/lib/fonts/load-share-fonts'
 import { checkTemplateAccess, isPremiumPaywallEnabled } from '@/lib/premium'
+import { ShareRenderPayloadPolicyError, assertShareRenderPayload } from '@/lib/share-render-policy'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
@@ -56,17 +57,6 @@ async function ensureResvgWasm() {
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
-
-const METRIC_OVERRIDE_KEYS = [
-  'altitude',
-  'distance',
-  'duration',
-  'elevationGain',
-  'altitude_m',
-  'distance_m',
-  'duration_seconds',
-  'elevation_gain_meters',
-] as const
 
 type ShareRenderApiRequest = {
   template: ShareRenderTemplate
@@ -138,53 +128,29 @@ function sourceForRender(source?: string | null): ShareTemplateData['source'] {
   return source === 'track_import' || source === 'screenshot_recognition' ? 'uploaded' : 'gps'
 }
 
-function metricOverrideResponse(field: string) {
-  return Response.json(
-    {
-      error: `Field "${field}" cannot be overridden; values are read from server-side records`,
-      hint: 'Use checkinId to identify the activity; metrics come from the database.',
-    },
-    { status: 400 },
-  )
-}
-
-function validateNoClientMetricOverrides(body: Record<string, unknown>) {
-  for (const key of METRIC_OVERRIDE_KEYS) {
-    if (key in body) return metricOverrideResponse(key)
-  }
-
-  if ('data' in body) {
-    return Response.json(
-      {
-        error: 'Client-side render data cannot be supplied; values are read from server-side records',
-        hint: 'Use checkinId and fieldVisibility; metrics come from the database.',
-      },
-      { status: 400 },
-    )
-  }
-
-  const rawFieldVisibility = isObject(body.fieldVisibility) ? body.fieldVisibility : {}
-  if ('altitude' in rawFieldVisibility) return metricOverrideResponse('fieldVisibility.altitude')
-  if ('distance' in rawFieldVisibility) return metricOverrideResponse('fieldVisibility.distance')
-
-  return null
-}
-
 function parseRequestBody(body: unknown): ShareRenderApiRequest | Response {
   if (!isObject(body)) {
     return Response.json({ error: 'Invalid share render request' }, { status: 400 })
   }
-
-  const overrideResponse = validateNoClientMetricOverrides(body)
-  if (overrideResponse) return overrideResponse
 
   const template = body.template
   if (typeof template !== 'string' || !VALID_TEMPLATES.includes(template as ShareRenderTemplate)) {
     return Response.json({ error: 'Invalid share render request' }, { status: 400 })
   }
 
-  if (typeof body.checkinId !== 'string' || !body.checkinId.trim()) {
-    return Response.json({ error: 'checkinId required' }, { status: 400 })
+  try {
+    assertShareRenderPayload(body)
+  } catch (error) {
+    if (error instanceof ShareRenderPayloadPolicyError) {
+      return Response.json(
+        {
+          error: error.message,
+          ...(error.hint ? { hint: error.hint } : {}),
+        },
+        { status: 400 },
+      )
+    }
+    throw error
   }
 
   const rawFieldVisibility = isObject(body.fieldVisibility) ? body.fieldVisibility : {}

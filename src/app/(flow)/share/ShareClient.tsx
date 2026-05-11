@@ -158,10 +158,6 @@ function formatFieldValue(field: ShareFieldKey, data: ShareActivityData) {
   return data.mountainName ?? '--'
 }
 
-function renderSource(source: ShareActivityData['source']) {
-  return source === 'gps' ? 'gps' : 'uploaded'
-}
-
 function isAdvancedTemplateId(template: TemplateId): template is AdvancedTemplateId {
   return template.startsWith('premium-')
 }
@@ -169,27 +165,6 @@ function isAdvancedTemplateId(template: TemplateId): template is AdvancedTemplat
 function isVisible(field: ShareFieldKey, toggles: Record<ShareFieldKey, boolean>) {
   const config = FIELD_CONFIGS.find((item) => item.key === field)
   return Boolean(config?.locked || toggles[field])
-}
-
-function buildRenderData(data: ShareActivityData, toggles: Record<ShareFieldKey, boolean>) {
-  return {
-    mountainName: data.mountainName ?? '未知山峰',
-    location: data.location ?? '',
-    date: data.date ?? '',
-    altitude: typeof data.altitude === 'number' ? data.altitude : 0,
-    distance: typeof data.distance === 'number' ? data.distance : 0,
-    duration: formatDuration(data.duration),
-    elevationGain: typeof data.elevationGain === 'number' ? data.elevationGain : 0,
-    source: renderSource(data.source),
-    visibleFields: {
-      duration: isVisible('duration', toggles),
-      elevationGain: isVisible('elevationGain', toggles),
-      date: isVisible('date', toggles),
-      location: isVisible('location', toggles),
-      pace: isVisible('pace', toggles),
-      mountainName: isVisible('mountainName', toggles),
-    },
-  }
 }
 
 function downloadBlob(blob: Blob, fileName: string) {
@@ -2006,14 +1981,6 @@ function DragHandle() {
   )
 }
 
-function EditPencil() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M14.7 4.3l5 5L8.5 20.5 3 22l1.5-5.5L14.7 4.3z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
 function LockIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -2102,8 +2069,7 @@ function FieldSectionHeader() {
           whiteSpace: 'nowrap',
         }}
       >
-        必填项已锁定
-        <LockIcon />
+        数据由系统记录
         <HelpTrigger anchor="privacy.share-content" size={14} style={{ width: 28, height: 28 }} />
       </div>
     </div>
@@ -2155,25 +2121,6 @@ function FieldRow({
       >
         {value}
       </div>
-      <button
-        type="button"
-        aria-label={`编辑${field.label}`}
-        onClick={noop}
-        style={{
-          width: 30,
-          height: 30,
-          border: 'none',
-          background: 'transparent',
-          color: missing ? 'var(--color-success)' : 'var(--color-on-surface-variant)',
-          display: 'grid',
-          placeItems: 'center',
-          padding: 0,
-          cursor: 'pointer',
-          flexShrink: 0,
-        }}
-      >
-        <EditPencil />
-      </button>
       <div style={{ width: 42, display: 'flex', justifyContent: 'flex-end', color: 'var(--color-on-surface-variant)', flexShrink: 0 }}>
         {field.locked ? <LockIcon /> : <Toggle label={`切换${field.label}`} on={on} onClick={onToggle} />}
       </div>
@@ -2582,12 +2529,24 @@ export default function ShareClient({
   }
 
   async function renderPosterBlob(options: { transparent?: boolean } = {}) {
+    if (!checkinId) {
+      throw new Error('缺少活动记录，无法生成分享图')
+    }
+
     const response = await fetch('/api/share/render', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         template: selectedTemplate,
-        data: buildRenderData(activityData, fieldToggles),
+        checkinId,
+        fieldVisibility: {
+          duration: fieldToggles.duration,
+          elevationGain: fieldToggles.elevationGain,
+          date: fieldToggles.date,
+          location: fieldToggles.location,
+          pace: fieldToggles.pace,
+          mountainName: fieldToggles.mountainName,
+        },
         photoBase64: stripDataUrlPrefix(photoDataUrl),
         transparent: Boolean(options.transparent),
       }),

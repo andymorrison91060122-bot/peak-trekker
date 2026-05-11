@@ -12,6 +12,7 @@ import {
   MountainIcon,
   ShareIcon,
 } from '@/components/ui/Icons'
+import { HelpTrigger } from '@/components/help/HelpTrigger'
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 
 type ShareTab = 'basic' | 'advanced'
@@ -2103,6 +2104,7 @@ function FieldSectionHeader() {
       >
         必填项已锁定
         <LockIcon />
+        <HelpTrigger anchor="privacy.share-content" size={14} style={{ width: 28, height: 28 }} />
       </div>
     </div>
   )

@@ -7,6 +7,7 @@ import SecondaryButton from '@/components/ui/SecondaryButton'
 import IconButton from '@/components/ui/IconButton'
 import ActivityRouteMap from '@/components/activity/ActivityRouteMap'
 import { SourceLabel, type SourceLabelProps } from '@/components/ui/SourceLabel'
+import { HelpLink } from '@/components/help/HelpLink'
 import {
   ArchiveIcon,
   BackIcon,
@@ -1050,6 +1051,9 @@ function ActivityInlineActions({ activity }: { activity: ActivityDetailViewModel
         <PrimaryButton onClick={() => router.push(`/community/publish/${activity.id}`)} style={{ width: '100%', whiteSpace: 'nowrap' }}>
           发布到山友圈
         </PrimaryButton>
+      </div>
+      <div style={{ marginTop: 'var(--space-3)', textAlign: 'center' }}>
+        <HelpLink anchor="review.community-eligibility">什么样能发到山友圈</HelpLink>
       </div>
       <div className="act-actions__hint">这是属于你的山行 · 不发布也是好选择</div>
     </section>

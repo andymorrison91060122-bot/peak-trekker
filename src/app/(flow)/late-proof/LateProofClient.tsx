@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode, type RefObject } from 'react'
 import { useRouter } from 'next/navigation'
 import { BackIcon } from '@/components/ui/Icons'
+import { HelpTrigger } from '@/components/help/HelpTrigger'
 import {
   buildLateProofExifRows,
   formatFileSize,
@@ -364,13 +365,22 @@ function PendingClockIcon() {
   )
 }
 
-function VerifiedTag() {
-  return (
+function VerifiedTag({ helpAnchor }: { helpAnchor?: string }) {
+  const tag = (
     <span className="lp-verified-tag">
       <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true" focusable="false">
         <path d="M3 6l2 2 4-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       用户自报
+    </span>
+  )
+
+  if (!helpAnchor) return tag
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto' }}>
+      {tag}
+      <HelpTrigger anchor={helpAnchor} size={14} style={{ width: 28, height: 28 }} />
     </span>
   )
 }
@@ -454,7 +464,7 @@ function PendingView({
               <div className="lp-submission-title">{summitTitle}</div>
               <div className="lp-submission-time">{submittedAtLabel}</div>
             </div>
-            <VerifiedTag />
+            <VerifiedTag helpAnchor="review.what-is-review" />
           </div>
           {trimmedNote ? <div className="lp-submission-note">{trimmedNote}</div> : null}
         </div>

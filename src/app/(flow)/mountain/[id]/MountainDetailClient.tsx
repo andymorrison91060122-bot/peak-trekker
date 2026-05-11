@@ -8,6 +8,7 @@ import { getRouteSegments, type RouteSegment } from '@/lib/mountain-route-segmen
 import type { MountainDetailWeather } from './page'
 import { getLicenseRequirementLabel, getLicenseShortLabel } from '@/lib/license-ui'
 import { BackIcon, CheckIcon, MoreIcon, PinIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
+import { HelpTrigger } from '@/components/help/HelpTrigger'
 import Chip from '@/components/ui/Chip'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
@@ -307,11 +308,13 @@ function DecisionRow({
   label,
   sub,
   last = false,
+  helpAnchor,
 }: {
   tone: 'ok' | 'warn' | 'neutral'
   label: string
   sub: string
   last?: boolean
+  helpAnchor?: string
 }) {
   const iconColor =
     tone === 'ok'
@@ -340,9 +343,13 @@ function DecisionRow({
             fontSize: 'var(--font-body-m-size)',
             lineHeight: 'var(--font-body-m-line)',
             fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
           }}
         >
-          {label}
+          <span>{label}</span>
+          {helpAnchor ? <HelpTrigger anchor={helpAnchor} size={14} style={{ width: 26, height: 26 }} /> : null}
         </div>
         <div
           style={{
@@ -584,6 +591,7 @@ function DecisionSection({
                 ? `${getLicenseRequirementLabel(mountain.min_license)} · 登录后可判断是否适合出发`
                 : `你当前 ${currentLabel} · 本山需要 ${requiredLabel} 及以上`
             }
+            helpAnchor="license.license-tiers"
           />
           <DecisionRow
             tone={season.ok ? 'ok' : 'warn'}
@@ -854,7 +862,15 @@ function WeatherSection({
   if (!weather || !weather.current || weather.forecast.length === 0) {
     return (
       <section data-testid="mountain-weather-section">
-        <SectionHeader title="天气参考" right="数据源 · 不可用" />
+        <SectionHeader
+          title="天气参考"
+          right={
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              数据源 · 不可用
+              <HelpTrigger anchor="map.weather-lag" size={14} style={{ width: 26, height: 26 }} />
+            </span>
+          }
+        />
         <div style={{ padding: '0 var(--space-4)' }}>
           <EmptyModuleCard
             icon={<span style={{ fontSize: 24 }}>↓</span>}
@@ -896,6 +912,7 @@ function WeatherSection({
               />
             ) : null}
             {age.label}
+            <HelpTrigger anchor="map.weather-lag" size={14} style={{ width: 26, height: 26 }} />
           </span>
         }
       />
@@ -1270,22 +1287,25 @@ function RouteReferenceSection({ mountain, waypoints }: { mountain: Mountain; wa
         >
           <div style={{ position: 'relative', padding: '14px 14px 0' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '4px 9px',
-                  borderRadius: 'var(--radius-pill)',
-                  background: 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
-                  border: '1px solid var(--color-outline)',
-                  color: 'var(--color-on-surface-variant)',
-                  fontSize: 'var(--font-label-s-size)',
-                  lineHeight: 'var(--font-label-s-line)',
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                仅参考路线
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '4px 9px',
+                    borderRadius: 'var(--radius-pill)',
+                    background: 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
+                    border: '1px solid var(--color-outline)',
+                    color: 'var(--color-on-surface-variant)',
+                    fontSize: 'var(--font-label-s-size)',
+                    lineHeight: 'var(--font-label-s-line)',
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  仅参考路线
+                </span>
+                <HelpTrigger anchor="map.map-no-nav" size={14} style={{ width: 26, height: 26 }} />
               </span>
               <button
                 type="button"

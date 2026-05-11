@@ -10,6 +10,7 @@ import AltitudeBar from '@/components/ui/AltitudeBar'
 import IconButton from '@/components/ui/IconButton'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
+import { HelpTrigger } from '@/components/help/HelpTrigger'
 import {
   BackIcon,
   CameraIcon,
@@ -937,6 +938,7 @@ function TrekTopBar({
           border: '1px solid var(--color-outline)',
           color: 'var(--color-on-surface)',
         }
+  const helpAnchor = isGpsWeak ? 'record.gps-weak' : isNearSummit || isSummitConfirmed ? 'record.summit-window' : null
 
   return (
     <div
@@ -959,47 +961,50 @@ function TrekTopBar({
         shape="circular"
         onClick={onBack}
       />
-      <div
-        data-testid="trek-status-chip"
-        style={{
-          minHeight: 32,
-          padding: '6px 14px',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 'var(--space-2)',
-          borderRadius: 'var(--radius-pill)',
-          ...chipStyle,
-        }}
-      >
-        {isSummitConfirmed ? (
-          <span
-            data-testid="trek-summit-check"
-            className="pt-summit-check-enter"
-            style={{
-              width: 14,
-              height: 14,
-              display: 'grid',
-              placeItems: 'center',
-              animation: 'pt-summit-check-enter 600ms ease-out forwards',
-              transformOrigin: 'center',
-              flex: '0 0 auto',
-            }}
-          >
-            <CheckIcon size={14} />
-          </span>
-        ) : (
-          <RecDot active={isRecording} tone={isGpsWeak ? 'warning' : isNearSummit ? 'success' : 'default'} />
-        )}
-        <span
+      <div style={{ minWidth: 0, display: 'inline-flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+        <div
+          data-testid="trek-status-chip"
           style={{
-            fontSize: 'var(--font-label-s-size)',
-            lineHeight: 'var(--font-label-s-line)',
-            fontWeight: 700,
-            letterSpacing: '0.06em',
+            minHeight: 32,
+            padding: '6px 14px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            borderRadius: 'var(--radius-pill)',
+            ...chipStyle,
           }}
         >
-          {label}
-        </span>
+          {isSummitConfirmed ? (
+            <span
+              data-testid="trek-summit-check"
+              className="pt-summit-check-enter"
+              style={{
+                width: 14,
+                height: 14,
+                display: 'grid',
+                placeItems: 'center',
+                animation: 'pt-summit-check-enter 600ms ease-out forwards',
+                transformOrigin: 'center',
+                flex: '0 0 auto',
+              }}
+            >
+              <CheckIcon size={14} />
+            </span>
+          ) : (
+            <RecDot active={isRecording} tone={isGpsWeak ? 'warning' : isNearSummit ? 'success' : 'default'} />
+          )}
+          <span
+            style={{
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+            }}
+          >
+            {label}
+          </span>
+        </div>
+        {helpAnchor ? <HelpTrigger anchor={helpAnchor} size={15} /> : null}
       </div>
       <IconButton
         icon={<MoreIcon size={20} />}

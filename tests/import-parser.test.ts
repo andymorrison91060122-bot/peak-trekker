@@ -151,6 +151,32 @@ test('track stats compute distance, elevation gain/loss, duration, and highest p
   assert.equal(findHighestTrackPoint(points)?.elevation, 200)
 })
 
+test('track stats provide server-side import metrics instead of trusting client values', async () => {
+  const { buildComputedTrackStats } = await loadStats()
+  const clientSuppliedMetrics = {
+    distanceMeters: 99999,
+    durationSeconds: 99999,
+    elevationGainMeters: 99999,
+    maxElevation: 99999,
+  }
+  const points = [
+    { latitude: 30, longitude: 100, elevation: 3000, timestamp: '2026-01-01T08:00:00Z' },
+    { latitude: 30.001, longitude: 100.001, elevation: 3500, timestamp: '2026-01-01T08:30:00Z' },
+    { latitude: 30.002, longitude: 100.002, elevation: 3400, timestamp: '2026-01-01T09:00:00Z' },
+  ]
+
+  const computed = buildComputedTrackStats(points)
+
+  assert.ok(computed.distanceMeters < clientSuppliedMetrics.distanceMeters)
+  assert.equal(computed.durationSeconds, 3600)
+  assert.equal(computed.elevationGainMeters, 500)
+  assert.equal(computed.elevationLossMeters, 100)
+  assert.equal(computed.maxElevation, 3500)
+  assert.equal(computed.minElevation, 3000)
+  assert.equal(computed.startTime, '2026-01-01T08:00:00Z')
+  assert.equal(computed.endTime, '2026-01-01T09:00:00Z')
+})
+
 test('parseTrackFile routes by extension and rejects unsupported files', async () => {
   const { parseTrackFile } = await loadImportIndex()
 

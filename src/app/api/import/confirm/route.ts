@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { findHighestTrackPoint, haversineMeters } from '@/lib/import/track-stats'
+import { buildComputedTrackStats, findHighestTrackPoint, haversineMeters } from '@/lib/import/track-stats'
 import type { ImportedTrackData, TrackPoint } from '@/lib/import/types'
 import { rankingWeightByDifficulty } from '@/lib/trek-utils'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
@@ -23,18 +23,23 @@ type NormalizedImportedTrackData = Pick<ImportedTrackData, 'format' | 'fileName'
     Pick<
       ImportedTrackData,
       | 'name'
-      | 'startTime'
-      | 'endTime'
-      | 'durationSeconds'
-      | 'distanceMeters'
-      | 'elevationGainMeters'
-      | 'elevationLossMeters'
-      | 'maxElevation'
-      | 'minElevation'
     >
   >
 
 type ImportConfirmSource = 'track_import' | 'screenshot_recognition'
+
+const CLIENT_METRIC_KEYS = [
+  'distanceMeters',
+  'durationSeconds',
+  'elevationGainMeters',
+  'elevationLossMeters',
+  'maxElevation',
+  'minElevation',
+] as const
+
+type NormalizeImportedTrackResult =
+  | { ok: true; data: NormalizedImportedTrackData }
+  | { ok: false; reason: 'invalid' | 'trackPointsRequired' }
 
 function toSafeNote(value: unknown) {
   if (typeof value !== 'string') return ''
@@ -45,16 +50,6 @@ function toSafeTrackName(value: unknown) {
   if (typeof value !== 'string') return undefined
   const trimmed = value.trim()
   return trimmed ? trimmed.slice(0, 180) : undefined
-}
-
-function toFiniteNumber(value: unknown) {
-  const numberValue = Number(value)
-  return Number.isFinite(numberValue) ? numberValue : undefined
-}
-
-function toFiniteInteger(value: unknown) {
-  const numberValue = toFiniteNumber(value)
-  return typeof numberValue === 'number' ? Math.round(numberValue) : undefined
 }
 
 function toIsoTimestamp(value: unknown) {
@@ -90,46 +85,54 @@ function toPersistedTrackPoints(trackPoints: TrackPoint[]): PersistedTrackPoint[
   }))
 }
 
-function normalizeImportedTrackData(value: unknown): NormalizedImportedTrackData | null {
-  if (!value || typeof value !== 'object') return null
+function trackPointsRequiredResponse() {
+  return NextResponse.json({
+    error: 'trackPoints required',
+    hint: 'Import confirm must include parsed track points for server-side metric calculation.',
+  }, { status: 400 })
+}
+
+function getClientMetricKeys(value: unknown) {
+  if (!value || typeof value !== 'object') return []
+  const record = value as Record<string, unknown>
+  return CLIENT_METRIC_KEYS.filter((key) => Object.prototype.hasOwnProperty.call(record, key))
+}
+
+function warnIgnoredClientMetrics(value: unknown) {
+  const metricKeys = getClientMetricKeys(value)
+  if (metricKeys.length > 0) {
+    console.warn('[import-confirm] ignoring client-provided metric fields', metricKeys)
+  }
+}
+
+function normalizeImportedTrackData(value: unknown): NormalizeImportedTrackResult {
+  if (!value || typeof value !== 'object') return { ok: false, reason: 'invalid' }
   const record = value as Record<string, unknown>
   const format = record.format
   const fileName = record.fileName
   const rawPoints = record.trackPoints
 
-  if (format !== 'gpx' && format !== 'kml' && format !== 'fit') return null
-  if (typeof fileName !== 'string' || !Array.isArray(rawPoints)) return null
+  if (!Array.isArray(rawPoints) || rawPoints.length === 0) return { ok: false, reason: 'trackPointsRequired' }
+  if (format !== 'gpx' && format !== 'kml' && format !== 'fit') return { ok: false, reason: 'invalid' }
+  if (typeof fileName !== 'string') return { ok: false, reason: 'invalid' }
 
   const trackPoints = rawPoints.flatMap((point) => {
     const normalized = normalizeTrackPoint(point)
     return normalized ? [normalized] : []
   })
 
-  if (trackPoints.length === 0) return null
+  if (trackPoints.length === 0) return { ok: false, reason: 'trackPointsRequired' }
 
   const name = toSafeTrackName(record.name)
-  const startTime = toIsoTimestamp(record.startTime)
-  const endTime = toIsoTimestamp(record.endTime)
-  const durationSeconds = toFiniteInteger(record.durationSeconds)
-  const distanceMeters = toFiniteNumber(record.distanceMeters)
-  const elevationGainMeters = toFiniteNumber(record.elevationGainMeters)
-  const elevationLossMeters = toFiniteNumber(record.elevationLossMeters)
-  const maxElevation = toFiniteNumber(record.maxElevation)
-  const minElevation = toFiniteNumber(record.minElevation)
 
   return {
-    format,
-    fileName,
-    ...(name ? { name } : {}),
-    ...(startTime ? { startTime } : {}),
-    ...(endTime ? { endTime } : {}),
-    ...(typeof durationSeconds === 'number' ? { durationSeconds } : {}),
-    ...(typeof distanceMeters === 'number' ? { distanceMeters } : {}),
-    ...(typeof elevationGainMeters === 'number' ? { elevationGainMeters } : {}),
-    ...(typeof elevationLossMeters === 'number' ? { elevationLossMeters } : {}),
-    ...(typeof maxElevation === 'number' ? { maxElevation } : {}),
-    ...(typeof minElevation === 'number' ? { minElevation } : {}),
-    trackPoints,
+    ok: true,
+    data: {
+      format,
+      fileName,
+      ...(name ? { name } : {}),
+      trackPoints,
+    },
   }
 }
 
@@ -149,12 +152,19 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null)
-  const parsedData = normalizeImportedTrackData((body as { parsedData?: unknown } | null)?.parsedData)
+  const rawParsedData = (body as { parsedData?: unknown } | null)?.parsedData
+  const parsedDataResult = normalizeImportedTrackData(rawParsedData)
 
-  if (!parsedData) {
+  if (!parsedDataResult.ok) {
+    if (parsedDataResult.reason === 'trackPointsRequired') {
+      return trackPointsRequiredResponse()
+    }
     return NextResponse.json({ error: 'parsedData invalid' }, { status: 400 })
   }
 
+  warnIgnoredClientMetrics(rawParsedData)
+
+  const parsedData = parsedDataResult.data
   const mountainId = typeof (body as { mountainId?: unknown } | null)?.mountainId === 'string'
     ? ((body as { mountainId: string }).mountainId.trim() || null)
     : null
@@ -163,8 +173,10 @@ export async function POST(request: Request) {
   const anchorPoint = findHighestTrackPoint(parsedData.trackPoints)
 
   if (!anchorPoint) {
-    return NextResponse.json({ error: 'track points required' }, { status: 422 })
+    return trackPointsRequiredResponse()
   }
+
+  const computed = buildComputedTrackStats(parsedData.trackPoints)
 
   let mountain: ImportMountainRow | null = null
   let verificationDistanceM: number | null = null
@@ -208,14 +220,14 @@ export async function POST(request: Request) {
       verified_at: new Date().toISOString(),
       verification_distance_m: verificationDistanceM,
       ranking_weight: mountain ? rankingWeightByDifficulty(mountain.difficulty) : 0,
-      distance_meters: parsedData.distanceMeters ?? null,
-      duration_seconds: parsedData.durationSeconds ?? null,
-      elevation_gain_meters: parsedData.elevationGainMeters ?? null,
-      elevation_loss_meters: parsedData.elevationLossMeters ?? null,
-      max_elevation_meters: parsedData.maxElevation ?? null,
-      min_elevation_meters: parsedData.minElevation ?? null,
-      start_time: parsedData.startTime ?? null,
-      end_time: parsedData.endTime ?? null,
+      distance_meters: computed.distanceMeters ?? null,
+      duration_seconds: computed.durationSeconds ?? null,
+      elevation_gain_meters: computed.elevationGainMeters ?? null,
+      elevation_loss_meters: computed.elevationLossMeters ?? null,
+      max_elevation_meters: computed.maxElevation ?? null,
+      min_elevation_meters: computed.minElevation ?? null,
+      start_time: computed.startTime ?? null,
+      end_time: computed.endTime ?? null,
       track_name: parsedData.name ?? null,
       track_points: toPersistedTrackPoints(parsedData.trackPoints),
     })

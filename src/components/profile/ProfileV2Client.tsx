@@ -123,7 +123,7 @@ function SummaryTiles({ summary }: { summary: ProfileV2Summary }) {
             style={{
               fontFamily: 'var(--font-mono)',
               fontVariantNumeric: 'tabular-nums',
-              fontSize: 20,
+              fontSize: 'var(--font-title-l-size)',
               lineHeight: 'var(--font-title-l-line)',
               fontWeight: 700,
               color: item.accent ? 'var(--color-success)' : 'var(--color-on-surface)',

@@ -292,7 +292,7 @@ function SRNavBar({ title, onBack }: { title: string; onBack: () => void }) {
           textAlign: 'center',
           pointerEvents: 'none',
           color: 'var(--color-on-surface)',
-          fontSize: 16,
+          fontSize: 'var(--font-title-m-size)',
           lineHeight: 'var(--font-title-m-line)',
           fontWeight: 600,
         }}
@@ -485,7 +485,7 @@ function UploadScreen({
           <span
             style={{
               color: 'var(--color-on-surface)',
-              fontSize: 16,
+              fontSize: 'var(--font-title-m-size)',
               lineHeight: 'var(--font-title-m-line)',
               fontWeight: 600,
             }}
@@ -740,7 +740,7 @@ function ProcessingScreen({ onBack }: { onBack: () => void }) {
           <div
             style={{
               color: 'var(--color-on-surface)',
-              fontSize: 16,
+              fontSize: 'var(--font-title-m-size)',
               lineHeight: 'var(--font-title-m-line)',
               fontWeight: 600,
             }}
@@ -923,7 +923,7 @@ function FieldRow({
           </span>
           <span
             style={{
-              fontSize: 16,
+              fontSize: 'var(--font-title-m-size)',
               lineHeight: 'var(--font-title-m-line)',
               fontWeight: 600,
               color: missing ? 'var(--color-on-surface-variant)' : 'var(--color-on-surface)',
@@ -1080,7 +1080,7 @@ function ConfirmScreen({
           style={{
             margin: '22px 0 var(--space-2)',
             color: 'var(--color-on-surface)',
-            fontSize: 16,
+            fontSize: 'var(--font-title-m-size)',
             lineHeight: 'var(--font-title-m-line)',
             fontWeight: 600,
           }}
@@ -1372,7 +1372,7 @@ function SuccessScreen({
               style={{
                 color: 'var(--color-success)',
                 fontFamily: 'var(--font-mono)',
-                fontSize: 18,
+                fontSize: 'var(--font-title-l-size)',
                 lineHeight: 'var(--font-title-l-line)',
                 fontWeight: 700,
                 whiteSpace: 'nowrap',

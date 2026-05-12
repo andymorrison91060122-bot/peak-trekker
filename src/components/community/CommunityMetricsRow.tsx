@@ -37,7 +37,7 @@ export default function CommunityMetricsRow({
         {(title || description || badges.length > 0) && (
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 12 }}>
             <div style={{ minWidth: 0 }}>
-              {title && <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>{title}</div>}
+              {title && <div style={{ fontSize: 'var(--font-title-m-size)', fontWeight: 800, marginBottom: 4 }}>{title}</div>}
               {description && <div className="section-subtitle">{description}</div>}
             </div>
             {badges.length > 0 && (
@@ -63,7 +63,7 @@ export default function CommunityMetricsRow({
             <div key={item.label} className="metric-tile" style={{ padding: '13px 13px 12px' }}>
               <div
                 style={{
-                  fontSize: 12,
+                  fontSize: 'var(--font-label-s-size)',
                   lineHeight: 1.2,
                   color: 'var(--text-muted)',
                   letterSpacing: 0,
@@ -74,7 +74,7 @@ export default function CommunityMetricsRow({
               </div>
               <div
                 style={{
-                  fontSize: 21,
+                  fontSize: 'var(--font-headline-m-size)',
                   lineHeight: 1.08,
                   fontWeight: 800,
                   color: 'var(--text-primary)',

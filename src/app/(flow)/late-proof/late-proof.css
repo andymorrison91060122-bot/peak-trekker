@@ -278,7 +278,7 @@
 .lp-upload-title {
   margin: 0;
   color: var(--color-on-surface);
-  font-size: 18px;
+  font-size: var(--font-title-l-size);
   font-weight: 700;
   letter-spacing: -0.005em;
   line-height: 24px;
@@ -794,7 +794,7 @@
 .lp-activity-preview-name {
   overflow: hidden;
   color: var(--color-on-surface);
-  font-size: 16px;
+  font-size: var(--font-title-m-size);
   font-weight: 800;
   letter-spacing: -0.005em;
   line-height: 20px;

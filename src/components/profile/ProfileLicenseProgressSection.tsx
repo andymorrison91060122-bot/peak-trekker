@@ -98,7 +98,7 @@ export default function ProfileLicenseProgressSection({
           <div className="eyebrow-label">
             下一阶段
           </div>
-          <div className="profile-license-summary__value" style={{ fontSize: 18 }}>
+          <div className="profile-license-summary__value" style={{ fontSize: 'var(--font-title-l-size)' }}>
             {nextConfig ? `${getLicenseIcon(currentConfig.next)} ${getLicenseLevelLabel(currentConfig.next)}` : '★ 最高等级'}
           </div>
           <div className="profile-license-summary__meta">

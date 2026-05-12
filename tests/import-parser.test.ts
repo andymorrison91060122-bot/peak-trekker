@@ -31,6 +31,10 @@ async function loadMatcher() {
   return import(`../src/lib/import/mountain-matcher.${sourceExtension}`)
 }
 
+async function loadConfirmTimeFallback() {
+  return import(`../src/lib/import/confirm-time-fallback.${sourceExtension}`)
+}
+
 const mockGpx = `<?xml version="1.0"?>
 <gpx xmlns="http://www.topografix.com/GPX/1/1">
   <trk><name>Test Track</name><trkseg>
@@ -255,6 +259,67 @@ test('track stats provide import metrics when client sends only track points', a
   assert.equal(computed.minElevation, 3000)
   assert.equal(computed.startTime, '2026-01-01T08:00:00Z')
   assert.equal(computed.endTime, '2026-01-01T08:15:00Z')
+})
+
+test('import confirm accepts supplemental time only when computed track time is absent', async () => {
+  const { getSupplementalTimeFallback } = await loadConfirmTimeFallback()
+  const fallback = getSupplementalTimeFallback(
+    {},
+    {
+      startTime: '2026-05-02T01:00:00.000Z',
+      endTime: '2026-05-02T05:00:00.000Z',
+      durationSeconds: 14400,
+    }
+  )
+
+  assert.deepEqual(fallback, {
+    startTime: '2026-05-02T01:00:00.000Z',
+    endTime: '2026-05-02T05:00:00.000Z',
+    durationSeconds: 14400,
+  })
+})
+
+test('import confirm ignores supplemental time when track points already computed time', async () => {
+  const { getSupplementalTimeFallback } = await loadConfirmTimeFallback()
+  const fallback = getSupplementalTimeFallback(
+    {
+      startTime: '2026-05-02T01:00:00.000Z',
+      endTime: '2026-05-02T05:00:00.000Z',
+      durationSeconds: 14400,
+    },
+    {
+      startTime: '2026-05-02T02:00:00.000Z',
+      endTime: '2026-05-02T06:00:00.000Z',
+      durationSeconds: 14400,
+    }
+  )
+
+  assert.equal(fallback, null)
+})
+
+test('import confirm rejects invalid supplemental time payloads', async () => {
+  const { getSupplementalTimeFallback } = await loadConfirmTimeFallback()
+  const invalidPayloads = [
+    {
+      startTime: '2026-05-02T05:00:00.000Z',
+      endTime: '2026-05-02T01:00:00.000Z',
+      durationSeconds: 14400,
+    },
+    {
+      startTime: 'not-a-date',
+      endTime: '2026-05-02T01:00:00.000Z',
+      durationSeconds: 14400,
+    },
+    {
+      startTime: '2026-05-02T01:00:00.000Z',
+      endTime: '2026-05-02T05:00:00.000Z',
+      durationSeconds: 999,
+    },
+  ]
+
+  for (const payload of invalidPayloads) {
+    assert.equal(getSupplementalTimeFallback({}, payload), null)
+  }
 })
 
 test('parseTrackFile routes by extension and rejects unsupported files', async () => {

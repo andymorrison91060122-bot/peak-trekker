@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { ImportedTrackData } from '@/lib/import/types'
 import Card from '@/components/ui/Card'
 import PrimaryButton from '@/components/ui/PrimaryButton'
+import { useHelpSheet } from '@/components/help/useHelpSheet'
 import {
   ArchiveIcon,
   BackIcon,
@@ -20,6 +21,7 @@ import {
 const IMPORT_MAX_BYTES = 20 * 1024 * 1024
 const SUPPORTED_FORMATS = ['gpx', 'kml', 'fit'] as const
 const PARSING_MIN_DURATION_MS = 700
+const PACE_WARNING_KMH = 15
 
 type ImportStep =
   | 'entry'
@@ -92,6 +94,75 @@ function formatDateTime(isoString?: string) {
   const hh = String(date.getHours()).padStart(2, '0')
   const min = String(date.getMinutes()).padStart(2, '0')
   return `${mm}/${dd} ${hh}:${min}`
+}
+
+function formatDateInputValue(isoString?: string) {
+  if (!isoString) return ''
+  const date = new Date(isoString)
+  if (Number.isNaN(date.getTime())) return ''
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
+}
+
+function formatTimeInputValue(isoString?: string) {
+  if (!isoString) return ''
+  const date = new Date(isoString)
+  if (Number.isNaN(date.getTime())) return ''
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+function buildLocalIso(dateValue: string, timeValue: string) {
+  if (!dateValue || !timeValue) return null
+  const date = new Date(`${dateValue}T${timeValue}:00`)
+  if (!Number.isFinite(date.getTime())) return null
+  return date.toISOString()
+}
+
+function getDurationSeconds(startIso: string, endIso: string) {
+  const start = Date.parse(startIso)
+  const end = Date.parse(endIso)
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null
+  return Math.round((end - start) / 1000)
+}
+
+function getTimeAdvisories(startIso: string | null, endIso: string | null) {
+  const now = Date.now()
+  const fiveYearsAgo = new Date(now)
+  fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5)
+  const startMs = startIso ? Date.parse(startIso) : null
+  const endMs = endIso ? Date.parse(endIso) : null
+
+  return [
+    startMs !== null && startMs < fiveYearsAgo.getTime() ? '时间较早，确认无误？' : '',
+    ((startMs !== null && startMs > now) || (endMs !== null && endMs > now)) ? '时间在未来，确认无误？' : '',
+  ].filter(Boolean)
+}
+
+function getAverageSpeedKmh(result: ImportedTrackData) {
+  const distanceMeters = result.distanceMeters
+  const durationSeconds = result.durationSeconds
+  if (
+    typeof distanceMeters !== 'number'
+    || !Number.isFinite(distanceMeters)
+    || distanceMeters <= 0
+    || typeof durationSeconds !== 'number'
+    || !Number.isFinite(durationSeconds)
+    || durationSeconds <= 0
+  ) {
+    return null
+  }
+
+  return (distanceMeters / 1000) / (durationSeconds / 3600)
+}
+
+function needsTimeFallback(result: ImportedTrackData) {
+  return !result.startTime
+    || !result.endTime
+    || typeof result.durationSeconds !== 'number'
+    || !Number.isFinite(result.durationSeconds)
 }
 
 function formatActivityDate(isoString?: string) {
@@ -354,7 +425,13 @@ function ImportScreen({
   )
 }
 
-function FormatChip({ children }: { children: ReactNode }) {
+function FormatChip({
+  children,
+  tone = 'neutral',
+}: {
+  children: ReactNode
+  tone?: 'recommended' | 'neutral'
+}) {
   return (
     <span
       style={{
@@ -364,9 +441,13 @@ function FormatChip({ children }: { children: ReactNode }) {
         minHeight: 30,
         padding: '6px var(--space-3)',
         borderRadius: 'var(--radius-sm)',
-        background: 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
-        border: '1px solid var(--color-outline)',
-        color: 'var(--color-on-surface)',
+        background: tone === 'recommended'
+          ? 'color-mix(in srgb, var(--color-success) 12%, transparent)'
+          : 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
+        border: tone === 'recommended'
+          ? '1px solid color-mix(in srgb, var(--color-success) 28%, transparent)'
+          : '1px solid var(--color-outline)',
+        color: tone === 'recommended' ? 'var(--color-success)' : 'var(--color-on-surface-variant)',
         fontFamily: 'var(--font-mono)',
         fontSize: 12,
         lineHeight: 'var(--font-label-m-line)',
@@ -376,6 +457,53 @@ function FormatChip({ children }: { children: ReactNode }) {
     >
       {children}
     </span>
+  )
+}
+
+function FormatGuideRow({
+  badge,
+  format,
+  description,
+  recommended = false,
+}: {
+  badge: string
+  format: string
+  description: string
+  recommended?: boolean
+}) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '86px minmax(0, 1fr)',
+        gap: 'var(--space-3)',
+        alignItems: 'center',
+      }}
+    >
+      <FormatChip tone={recommended ? 'recommended' : 'neutral'}>{badge}</FormatChip>
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            color: recommended ? 'var(--color-on-surface)' : 'var(--color-on-surface-variant)',
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 'var(--font-label-m-line)',
+            fontWeight: 700,
+          }}
+        >
+          {format}
+        </div>
+        <div
+          style={{
+            marginTop: 2,
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+          }}
+        >
+          {description}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -830,10 +958,10 @@ function ImportEntry({
           >
             支持格式
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginTop: 10 }}>
-            {SUPPORTED_FORMATS.map((format) => (
-              <FormatChip key={format}>{format.toUpperCase()}</FormatChip>
-            ))}
+          <div style={{ display: 'grid', gap: 'var(--space-3)', marginTop: 12 }}>
+            <FormatGuideRow badge="推荐" format="GPX" description="数据最完整，优先从 App / 手表导出" recommended />
+            <FormatGuideRow badge="可用" format="KML" description="缺时间数据时，导入后可以补填" />
+            <FormatGuideRow badge="可用" format="FIT" description="Garmin / Coros 等手表常用格式" />
           </div>
           <div
             style={{
@@ -1391,15 +1519,276 @@ function ConfirmErrorNotice({
   )
 }
 
-function ImportPreview({
+function ImportWarningCard({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <div
+      style={{
+        marginTop: 14,
+        display: 'grid',
+        gridTemplateColumns: '22px minmax(0, 1fr)',
+        gap: 'var(--space-3)',
+        padding: 'var(--space-3) 14px',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--color-outline)',
+        borderLeft: '3px solid var(--color-warning)',
+        background: 'var(--color-surface-variant)',
+      }}
+    >
+      <div style={{ color: 'var(--color-warning)', display: 'grid', placeItems: 'start center', paddingTop: 2 }}>
+        <WarnIcon size={18} />
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            color: 'var(--color-on-surface)',
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 'var(--font-label-m-line)',
+            fontWeight: 700,
+          }}
+        >
+          {title}
+        </div>
+        <div
+          style={{
+            marginTop: 4,
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 1.65,
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TimeInputGroup({
+  label,
+  dateValue,
+  timeValue,
+  onDateChange,
+  onTimeChange,
+}: {
+  label: string
+  dateValue: string
+  timeValue: string
+  onDateChange: (value: string) => void
+  onTimeChange: (value: string) => void
+}) {
+  const inputStyle = {
+    width: '100%',
+    minWidth: 0,
+    height: 40,
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--color-outline)',
+    background: 'color-mix(in srgb, var(--color-on-surface) 3%, transparent)',
+    color: 'var(--color-on-surface)',
+    font: 'inherit',
+    fontFamily: 'var(--font-mono)',
+    fontSize: 13,
+    padding: '0 10px',
+  }
+
+  return (
+    <div>
+      <div
+        style={{
+          color: 'var(--color-on-surface-variant)',
+          fontSize: 10,
+          lineHeight: 'var(--font-label-s-line)',
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 0.85fr)',
+          gap: 'var(--space-2)',
+          marginTop: 6,
+        }}
+      >
+        <input
+          aria-label={`${label}日期`}
+          type="date"
+          value={dateValue}
+          onChange={(event) => onDateChange(event.currentTarget.value)}
+          style={inputStyle}
+        />
+        <input
+          aria-label={`${label}时间`}
+          type="time"
+          value={timeValue}
+          onChange={(event) => onTimeChange(event.currentTarget.value)}
+          style={inputStyle}
+        />
+      </div>
+    </div>
+  )
+}
+
+function TimeFallbackEditor({
   result,
-  onBack,
-  onContinue,
+  onApply,
+  onSkip,
 }: {
   result: ImportedTrackData
+  onApply: (nextResult: ImportedTrackData) => void
+  onSkip: () => void
+}) {
+  const [startDate, setStartDate] = useState(formatDateInputValue(result.startTime))
+  const [startTime, setStartTime] = useState(formatTimeInputValue(result.startTime))
+  const [endDate, setEndDate] = useState(formatDateInputValue(result.endTime))
+  const [endTime, setEndTime] = useState(formatTimeInputValue(result.endTime))
+  const [advisoryMessages, setAdvisoryMessages] = useState<string[]>([])
+
+  function refreshAdvisories(nextStartDate = startDate, nextStartTime = startTime, nextEndDate = endDate, nextEndTime = endTime) {
+    setAdvisoryMessages(getTimeAdvisories(
+      buildLocalIso(nextStartDate, nextStartTime),
+      buildLocalIso(nextEndDate, nextEndTime)
+    ))
+  }
+
+  const startIso = buildLocalIso(startDate, startTime)
+  const endIso = buildLocalIso(endDate, endTime)
+  const durationSeconds = startIso && endIso ? getDurationSeconds(startIso, endIso) : null
+  const hasAnyInput = !!(startDate || startTime || endDate || endTime)
+  const hasPartialInput = hasAnyInput && !(startDate && startTime && endDate && endTime)
+  const canApply = !!startIso && !!endIso && durationSeconds !== null
+
+  let validationMessage = ''
+  if (hasPartialInput) validationMessage = '需要同时填写出发和结束时间'
+  else if (startIso && endIso && durationSeconds === null) validationMessage = '结束时间必须晚于出发时间'
+
+  return (
+    <ImportWarningCard title="这个文件没有完整时间记录">
+      <div>想给这次山行补上时间吗？留空也可以，时长字段会保持空白。</div>
+      <div style={{ display: 'grid', gap: 'var(--space-3)', marginTop: 'var(--space-3)' }}>
+        <TimeInputGroup
+          label="出发时间"
+          dateValue={startDate}
+          timeValue={startTime}
+          onDateChange={(value) => {
+            setStartDate(value)
+            refreshAdvisories(value, startTime, endDate, endTime)
+          }}
+          onTimeChange={(value) => {
+            setStartTime(value)
+            refreshAdvisories(startDate, value, endDate, endTime)
+          }}
+        />
+        <TimeInputGroup
+          label="结束时间"
+          dateValue={endDate}
+          timeValue={endTime}
+          onDateChange={(value) => {
+            setEndDate(value)
+            refreshAdvisories(startDate, startTime, value, endTime)
+          }}
+          onTimeChange={(value) => {
+            setEndTime(value)
+            refreshAdvisories(startDate, startTime, endDate, value)
+          }}
+        />
+      </div>
+      {validationMessage ? (
+        <div style={{ marginTop: 'var(--space-2)', color: 'var(--color-warning)', fontWeight: 700 }}>
+          {validationMessage}
+        </div>
+      ) : null}
+      {advisoryMessages.map((message) => (
+        <div key={message} style={{ marginTop: 'var(--space-2)', color: 'var(--color-warning)' }}>
+          {message}
+        </div>
+      ))}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: 'var(--space-2)',
+          marginTop: 'var(--space-3)',
+        }}
+      >
+        <button
+          type="button"
+          onClick={onSkip}
+          style={{
+            height: 36,
+            padding: '0 var(--space-3)',
+            borderRadius: 'var(--radius-pill)',
+            border: '1px solid var(--color-outline)',
+            background: 'transparent',
+            color: 'var(--color-on-surface)',
+            font: 'inherit',
+            fontSize: 'var(--font-label-s-size)',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          跳过
+        </button>
+        <button
+          type="button"
+          disabled={!canApply}
+          onClick={() => {
+            if (!startIso || !endIso || durationSeconds === null) return
+            onApply({
+              ...result,
+              startTime: startIso,
+              endTime: endIso,
+              durationSeconds,
+            })
+          }}
+          style={{
+            height: 36,
+            padding: '0 var(--space-4)',
+            borderRadius: 'var(--radius-pill)',
+            border: '1px solid var(--color-primary)',
+            background: 'var(--color-primary)',
+            color: 'var(--color-on-primary)',
+            font: 'inherit',
+            fontSize: 'var(--font-label-s-size)',
+            fontWeight: 800,
+            cursor: canApply ? 'pointer' : 'not-allowed',
+            opacity: canApply ? 1 : 0.42,
+          }}
+        >
+          应用
+        </button>
+      </div>
+    </ImportWarningCard>
+  )
+}
+
+function ImportPreview({
+  result,
+  timeEditorSkipped,
+  onBack,
+  onContinue,
+  onApplyTime,
+  onSkipTime,
+}: {
+  result: ImportedTrackData
+  timeEditorSkipped: boolean
   onBack: () => void
   onContinue: () => void
+  onApplyTime: (nextResult: ImportedTrackData) => void
+  onSkipTime: () => void
 }) {
+  const averageSpeedKmh = getAverageSpeedKmh(result)
+  const shouldShowTimeEditor = needsTimeFallback(result) && !timeEditorSkipped
+  const shouldShowPaceWarning = typeof averageSpeedKmh === 'number' && averageSpeedKmh > PACE_WARNING_KMH
+
   return (
     <ImportScreen
       step="preview"
@@ -1473,6 +1862,16 @@ function ImportPreview({
         <PreviewStatTile label="最高点" value={formatElevation(result.maxElevation)} accent />
       </div>
 
+      {shouldShowPaceWarning ? (
+        <ImportWarningCard title="数据可能存在异常">
+          平均配速{' '}
+          <span style={{ color: 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontWeight: 800 }}>
+            {averageSpeedKmh.toFixed(1)} km/h
+          </span>{' '}
+          高于一般徒步范围（建议 ≤ 15 km/h）。你可以继续提交，但建议先确认时间 / 距离是否准确。
+        </ImportWarningCard>
+      ) : null}
+
       <div
         style={{
           marginTop: 14,
@@ -1512,6 +1911,10 @@ function ImportPreview({
           </div>
         </div>
       </div>
+
+      {shouldShowTimeEditor ? (
+        <TimeFallbackEditor result={result} onApply={onApplyTime} onSkip={onSkipTime} />
+      ) : null}
     </ImportScreen>
   )
 }
@@ -2125,10 +2528,12 @@ function ImportSuccess({
 
 export default function ImportClient() {
   const router = useRouter()
+  const { open: openHelpSheet } = useHelpSheet()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [step, setStep] = useState<ImportStep>('entry')
   const [file, setFile] = useState<File | null>(null)
   const [parseResult, setParseResult] = useState<ImportedTrackData | null>(null)
+  const [timeEditorSkipped, setTimeEditorSkipped] = useState(false)
   const [parseError, setParseError] = useState<string | null>(null)
   const [parseErrorKind, setParseErrorKind] = useState<ParseErrorKind | null>(null)
   const [parseProgress, setParseProgress] = useState(0)
@@ -2162,6 +2567,7 @@ export default function ImportClient() {
   function clearFileAndResult() {
     setFile(null)
     setParseResult(null)
+    setTimeEditorSkipped(false)
     setParseError(null)
     setParseErrorKind(null)
     setParseProgress(0)
@@ -2176,6 +2582,7 @@ export default function ImportClient() {
   function chooseFile(nextFile: File) {
     setFile(nextFile)
     setParseResult(null)
+    setTimeEditorSkipped(false)
     setParseError(null)
     setParseErrorKind(null)
     setParseProgress(0)
@@ -2253,7 +2660,12 @@ export default function ImportClient() {
       }
 
       if (!response.ok || !payload?.ok || !payload.parsedData) {
-        setParseError(payload?.error ?? '轨迹文件解析失败，请换一个文件重试。')
+        const errorMessage = payload?.error ?? '轨迹文件解析失败，请换一个文件重试。'
+        setParseError(
+          getFileExtension(file.name) === 'kml' && /KML 文件中没有可用轨迹点|没有可用轨迹点/.test(errorMessage)
+            ? '解析失败：这个 KML 文件中没有找到坐标数据。建议从原平台导出 GPX 格式重试。'
+            : errorMessage
+        )
         setParseErrorKind(getResponseErrorKind(response.status))
         setStep('upload_error')
         return
@@ -2261,6 +2673,7 @@ export default function ImportClient() {
 
       setParseProgress(100)
       setParseResult(payload.parsedData)
+      setTimeEditorSkipped(false)
       setSelectedMountainId(payload.parsedData.suggestedMountain?.id ?? null)
       setStep('preview')
     } catch {
@@ -2363,7 +2776,7 @@ export default function ImportClient() {
           onBack={handleBack}
           onUpload={() => setStep('upload_empty')}
           onHelp={() => {
-            console.log('Import help will be connected in a later batch.')
+            openHelpSheet('start.already-walked')
           }}
         />
       )
@@ -2414,6 +2827,7 @@ export default function ImportClient() {
       return (
         <ImportPreview
           result={parseResult}
+          timeEditorSkipped={timeEditorSkipped}
           onBack={handleBack}
           onContinue={() => {
             setConfirmError(null)
@@ -2425,6 +2839,11 @@ export default function ImportClient() {
             }
             setStep('no_match')
           }}
+          onApplyTime={(nextResult) => {
+            setParseResult(nextResult)
+            setTimeEditorSkipped(false)
+          }}
+          onSkipTime={() => setTimeEditorSkipped(true)}
         />
       )
     }

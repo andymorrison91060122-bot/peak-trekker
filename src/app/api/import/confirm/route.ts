@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getSupplementalTimeFallback } from '@/lib/import/confirm-time-fallback'
 import { buildComputedTrackStats, findHighestTrackPoint, haversineMeters } from '@/lib/import/track-stats'
 import type { ImportedTrackData, TrackPoint } from '@/lib/import/types'
 import { rankingWeightByDifficulty } from '@/lib/trek-utils'
@@ -23,6 +24,9 @@ type NormalizedImportedTrackData = Pick<ImportedTrackData, 'format' | 'fileName'
     Pick<
       ImportedTrackData,
       | 'name'
+      | 'startTime'
+      | 'endTime'
+      | 'durationSeconds'
     >
   >
 
@@ -30,7 +34,6 @@ type ImportConfirmSource = 'track_import' | 'screenshot_recognition'
 
 const CLIENT_METRIC_KEYS = [
   'distanceMeters',
-  'durationSeconds',
   'elevationGainMeters',
   'elevationLossMeters',
   'maxElevation',
@@ -56,6 +59,12 @@ function toIsoTimestamp(value: unknown) {
   if (typeof value !== 'string') return undefined
   const timestamp = Date.parse(value)
   return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : undefined
+}
+
+function toFinitePositiveInteger(value: unknown) {
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue) || numberValue <= 0) return undefined
+  return Math.round(numberValue)
 }
 
 function normalizeTrackPoint(value: unknown): TrackPoint | null {
@@ -124,6 +133,9 @@ function normalizeImportedTrackData(value: unknown): NormalizeImportedTrackResul
   if (trackPoints.length === 0) return { ok: false, reason: 'trackPointsRequired' }
 
   const name = toSafeTrackName(record.name)
+  const startTime = toIsoTimestamp(record.startTime)
+  const endTime = toIsoTimestamp(record.endTime)
+  const durationSeconds = toFinitePositiveInteger(record.durationSeconds)
 
   return {
     ok: true,
@@ -131,6 +143,9 @@ function normalizeImportedTrackData(value: unknown): NormalizeImportedTrackResul
       format,
       fileName,
       ...(name ? { name } : {}),
+      ...(startTime ? { startTime } : {}),
+      ...(endTime ? { endTime } : {}),
+      ...(durationSeconds ? { durationSeconds } : {}),
       trackPoints,
     },
   }
@@ -177,6 +192,7 @@ export async function POST(request: Request) {
   }
 
   const computed = buildComputedTrackStats(parsedData.trackPoints)
+  const supplementalTime = getSupplementalTimeFallback(computed, parsedData)
 
   let mountain: ImportMountainRow | null = null
   let verificationDistanceM: number | null = null
@@ -221,13 +237,13 @@ export async function POST(request: Request) {
       verification_distance_m: verificationDistanceM,
       ranking_weight: mountain ? rankingWeightByDifficulty(mountain.difficulty) : 0,
       distance_meters: computed.distanceMeters ?? null,
-      duration_seconds: computed.durationSeconds ?? null,
+      duration_seconds: computed.durationSeconds ?? supplementalTime?.durationSeconds ?? null,
       elevation_gain_meters: computed.elevationGainMeters ?? null,
       elevation_loss_meters: computed.elevationLossMeters ?? null,
       max_elevation_meters: computed.maxElevation ?? null,
       min_elevation_meters: computed.minElevation ?? null,
-      start_time: computed.startTime ?? null,
-      end_time: computed.endTime ?? null,
+      start_time: computed.startTime ?? supplementalTime?.startTime ?? null,
+      end_time: computed.endTime ?? supplementalTime?.endTime ?? null,
       track_name: parsedData.name ?? null,
       track_points: toPersistedTrackPoints(parsedData.trackPoints),
     })

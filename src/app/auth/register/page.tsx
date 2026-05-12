@@ -86,7 +86,11 @@ function RegisterPageContent() {
 
     // 会话已建立时优先整页回跳，避免客户端路由在 cookie 同步阶段卡住。
     if (activeSession) {
-      void syncProfile()
+      try {
+        await syncProfile()
+      } catch (err) {
+        console.error('Profile sync failed during register:', err)
+      }
       window.location.assign(returnTo)
       return
     }

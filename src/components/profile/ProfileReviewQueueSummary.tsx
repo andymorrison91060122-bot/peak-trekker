@@ -29,7 +29,7 @@ export default function ProfileReviewQueueSummary({
           data-testid="profile-review-queue-trigger"
           onClick={() => setIsReviewQueueOpen(true)}
         >
-          <div className="font-pixel" style={{ fontSize: 16 }}>{pendingCount}</div>
+          <div className="font-pixel" style={{ fontSize: 'var(--font-title-m-size)' }}>{pendingCount}</div>
           <div className="metric-label">待审核</div>
         </button>
 
@@ -39,7 +39,7 @@ export default function ProfileReviewQueueSummary({
           { label: 'GPS 记录', value: approvedRealtimeCount },
         ].map((item) => (
           <div key={item.label} className="metric-tile" style={{ padding: '12px 10px' }}>
-            <div className="font-pixel" style={{ fontSize: 16 }}>{item.value}</div>
+            <div className="font-pixel" style={{ fontSize: 'var(--font-title-m-size)' }}>{item.value}</div>
             <div className="metric-label">{item.label}</div>
           </div>
         ))}

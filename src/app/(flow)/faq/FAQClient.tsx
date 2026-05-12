@@ -363,7 +363,7 @@ function FAQGroupCard({
       >
         <span
           style={{
-            fontSize: 16,
+            fontSize: 'var(--font-title-m-size)',
             lineHeight: 'var(--font-title-l-line)',
             fontWeight: 700,
           }}
@@ -580,7 +580,7 @@ function FAQEmptySearch({ onFeedback }: { onFeedback: () => void }) {
         style={{
           marginTop: 18,
           color: 'var(--color-on-surface)',
-          fontSize: 16,
+          fontSize: 'var(--font-title-m-size)',
           lineHeight: 'var(--font-title-l-line)',
           fontWeight: 700,
         }}

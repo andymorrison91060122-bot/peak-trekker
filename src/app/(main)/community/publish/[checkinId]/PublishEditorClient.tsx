@@ -438,7 +438,7 @@ export default function PublishEditorClient({
         >
           {recordMetrics.map((item) => (
             <div key={item.label} className="metric-tile">
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>{item.value}</div>
+              <div style={{ fontSize: 'var(--font-title-m-size)', fontWeight: 800, color: 'var(--text-primary)' }}>{item.value}</div>
               <div className="metric-label">{item.label}</div>
             </div>
           ))}
@@ -454,7 +454,7 @@ export default function PublishEditorClient({
       </div>
 
       <div className="surface-card publish-editor__editor-shell" style={{ padding: 18, marginBottom: 18 }}>
-        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 14 }}>社区表达</div>
+        <div style={{ fontSize: 'var(--font-title-l-size)', fontWeight: 800, marginBottom: 14 }}>社区表达</div>
 
         <div style={{ display: 'grid', gap: 14 }}>
           <div>
@@ -566,7 +566,7 @@ export default function PublishEditorClient({
       <div className="surface-card publish-editor__assets-shell" style={{ padding: 18, marginBottom: 18 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>素材与封面</div>
+            <div style={{ fontSize: 'var(--font-title-l-size)', fontWeight: 800, marginBottom: 4 }}>素材与封面</div>
             <div className="section-subtitle">
               最多 9 张图片或 1 条视频。素材会绑定到当前登山记录，封面优先用于山友圈信息流展示。
             </div>

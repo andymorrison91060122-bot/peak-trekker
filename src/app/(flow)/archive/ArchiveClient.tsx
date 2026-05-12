@@ -271,7 +271,7 @@ function UserIdentityRow({
           style={{
             overflow: 'hidden',
             color: 'var(--color-on-surface)',
-            fontSize: 16,
+            fontSize: 'var(--font-title-l-size)',
             lineHeight: '22px',
             fontWeight: 700,
             textOverflow: 'ellipsis',
@@ -326,7 +326,7 @@ function SummaryStat({
         style={{
           ...monoStyle,
           color: accent ? 'var(--color-success)' : 'var(--color-on-surface)',
-          fontSize: 20,
+          fontSize: 'var(--font-title-l-size)',
           lineHeight: 1,
           fontWeight: 700,
         }}
@@ -594,7 +594,7 @@ function TripMedia({ trip }: { trip: ArchiveTripViewModel }) {
             style={{
               ...monoStyle,
               color: 'var(--color-success)',
-              fontSize: 19,
+              fontSize: 'var(--font-title-l-size)',
               lineHeight: 1,
               fontWeight: 800,
             }}
@@ -720,7 +720,7 @@ function ArchiveEmptyState({
             style={{
               marginTop: 'var(--space-3)',
               color: 'var(--color-on-surface)',
-              fontSize: 18,
+              fontSize: 'var(--font-title-l-size)',
               lineHeight: '24px',
               fontWeight: 700,
             }}

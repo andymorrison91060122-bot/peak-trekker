@@ -95,6 +95,49 @@
   --btn-radius: var(--radius-md);
 }
 
+/* Type class system - bridges design-system tokens to runtime DOM */
+.pt-display-l {
+  font-size: var(--font-display-l-size);
+  line-height: var(--font-display-l-line);
+  font-weight: var(--font-display-l-weight);
+  letter-spacing: -0.01em;
+}
+.pt-headline-m {
+  font-size: var(--font-headline-m-size);
+  line-height: var(--font-headline-m-line);
+  font-weight: var(--font-headline-m-weight);
+}
+.pt-title-l {
+  font-size: var(--font-title-l-size);
+  line-height: var(--font-title-l-line);
+  font-weight: var(--font-title-l-weight);
+}
+.pt-title-m {
+  font-size: var(--font-title-m-size);
+  line-height: var(--font-title-m-line);
+  font-weight: var(--font-title-m-weight);
+}
+.pt-body-l {
+  font-size: var(--font-body-l-size);
+  line-height: var(--font-body-l-line);
+  font-weight: var(--font-body-l-weight);
+}
+.pt-body-m {
+  font-size: var(--font-body-m-size);
+  line-height: var(--font-body-m-line);
+  font-weight: var(--font-body-m-weight);
+}
+.pt-label-m {
+  font-size: var(--font-label-m-size);
+  line-height: var(--font-label-m-line);
+  font-weight: var(--font-label-m-weight);
+}
+.pt-label-s {
+  font-size: var(--font-label-s-size);
+  line-height: var(--font-label-s-line);
+  font-weight: var(--font-label-s-weight);
+}
+
 @theme inline {
   --color-token-primary: var(--color-primary);
   --color-token-on-primary: var(--color-on-primary);

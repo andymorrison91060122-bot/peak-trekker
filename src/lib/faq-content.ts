@@ -39,6 +39,19 @@ export const FAQ_GROUPS: FaqGroup[] = [
     ],
   },
   {
+    id: 'import',
+    title: '导入轨迹',
+    questions: [
+      {
+        id: 'export-gpx',
+        anchor: 'import.export-gpx',
+        q: '怎么从手表或 App 导出 GPX 轨迹？',
+        a: '推荐导出 GPX 格式，数据最完整。各主流平台导出路径：\n\n· 高驰 COROS — App → 训练详情 → 右上角 ⋯ → 导出 → 选 GPX\n· 佳明 Garmin — Connect App → 活动 → ⋯ → 导出原始数据 / 导出 GPX\n· 两步路 — 详情页 → 分享 → 下载数据 → 选 GPX\n· 苹果健康 — 通过第三方 App 如 HealthFit 导出\n· Strava — 活动详情 → 右上角菜单 → 导出 GPX\n· 咕咚 / Keep — 详情 → 设置 / 分享 → 导出 GPX\n\nKML / FIT 也可上传，但部分平台导出的 KML 不包含时间数据，需要你在导入时补填。',
+        long: true,
+      },
+    ],
+  },
+  {
     id: 'record',
     title: '记录与留证',
     questions: [

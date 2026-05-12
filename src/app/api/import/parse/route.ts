@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { matchNearestMountain } from '@/lib/import/mountain-matcher'
+import { matchNearestMountainCandidatesForTrack } from '@/lib/import/mountain-matcher'
 import { parseTrackFile } from '@/lib/import'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
@@ -48,13 +48,15 @@ export async function POST(request: Request) {
 
   try {
     const parsedData = await parseTrackFile(file.name, Buffer.from(await file.arrayBuffer()))
-    const suggestedMountain = await matchNearestMountain(parsedData.trackPoints)
+    const suggestedCandidates = await matchNearestMountainCandidatesForTrack(parsedData.trackPoints)
+    const suggestedMountain = suggestedCandidates[0] ?? null
 
     return NextResponse.json({
       ok: true,
       parsedData: {
         ...parsedData,
         suggestedMountain,
+        suggestedCandidates,
       },
     })
   } catch (error) {

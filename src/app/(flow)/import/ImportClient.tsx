@@ -3,7 +3,7 @@
 import type { ChangeEvent, DragEvent, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { ImportedTrackData } from '@/lib/import/types'
+import type { ImportedTrackData, MountainMatch } from '@/lib/import/types'
 import Card from '@/components/ui/Card'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import { useHelpSheet } from '@/components/help/useHelpSheet'
@@ -31,6 +31,7 @@ type ImportStep =
   | 'upload_error'
   | 'preview'
   | 'match'
+  | 'select_mountain'
   | 'no_match'
   | 'confirming'
   | 'success'
@@ -52,6 +53,31 @@ type ConfirmResponse = {
 
 type ConfirmResult = {
   checkinId: string
+}
+
+type SelectableMountain = {
+  id: string
+  name: string
+  distanceMeters?: number
+  altitude?: number | null
+  province?: string | null
+}
+
+type MountainSelection =
+  | { kind: 'mountain'; mountain: SelectableMountain }
+  | { kind: 'unaffiliated' }
+
+type MountainSearchResponse = {
+  ok?: boolean
+  mountains?: Array<{
+    id: string
+    name: string
+    altitude: number | null
+    province: string | null
+    latitude: number | null
+    longitude: number | null
+  }>
+  error?: string
 }
 
 function getFileExtension(fileName: string) {
@@ -165,6 +191,29 @@ function needsTimeFallback(result: ImportedTrackData) {
     || !Number.isFinite(result.durationSeconds)
 }
 
+function getSuggestedCandidates(result: ImportedTrackData) {
+  const candidates = result.suggestedCandidates?.length
+    ? result.suggestedCandidates
+    : result.suggestedMountain
+      ? [result.suggestedMountain]
+      : []
+  const seen = new Set<string>()
+
+  return candidates.filter((candidate) => {
+    if (seen.has(candidate.id)) return false
+    seen.add(candidate.id)
+    return true
+  })
+}
+
+function toSelectableMountain(match: MountainMatch): SelectableMountain {
+  return {
+    id: match.id,
+    name: match.name,
+    distanceMeters: match.distanceMeters,
+  }
+}
+
 function formatActivityDate(isoString?: string) {
   if (!isoString) return '日期待补充'
   const date = new Date(isoString)
@@ -221,7 +270,7 @@ function formatStep(step: number) {
 function getVisualStep(step: ImportStep) {
   if (step === 'entry') return 1
   if (step === 'preview') return 3
-  if (step === 'match' || step === 'no_match') return 4
+  if (step === 'match' || step === 'select_mountain' || step === 'no_match') return 4
   return 2
 }
 
@@ -1922,6 +1971,7 @@ function ImportPreview({
 function ImportMatch({
   result,
   selectedMountainId,
+  selectedMountainName,
   confirmError,
   confirmAuthRequired,
   onSelect,
@@ -1932,16 +1982,19 @@ function ImportMatch({
 }: {
   result: ImportedTrackData
   selectedMountainId: string | null
+  selectedMountainName: string | null
   confirmError: string | null
   confirmAuthRequired: boolean
-  onSelect: (id: string) => void
+  onSelect: (mountain: SelectableMountain) => void
   onBack: () => void
   onManual: () => void
   onConfirm: () => void
   onLogin: () => void
 }) {
-  const mountain = result.suggestedMountain
+  const candidates = getSuggestedCandidates(result)
+  const mountain = candidates.find((candidate) => candidate.id === selectedMountainId) ?? candidates[0] ?? null
   const selected = !!mountain?.id && selectedMountainId === mountain.id
+  const extraCandidateCount = Math.max(0, candidates.length - 1)
 
   return (
     <ImportScreen
@@ -1990,7 +2043,7 @@ function ImportMatch({
       {mountain ? (
         <button
           type="button"
-          onClick={() => onSelect(mountain.id)}
+          onClick={() => onSelect(toSelectableMountain(mountain))}
           style={{
             marginTop: 14,
             width: '100%',
@@ -2039,7 +2092,7 @@ function ImportMatch({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {mountain.name}
+                {selectedMountainName ?? mountain.name}
               </div>
               <span
                 style={{
@@ -2097,8 +2150,371 @@ function ImportMatch({
         }}
       >
         <SearchIcon size={14} />
-        都不是，自己找
+        {extraCandidateCount > 0 ? `还有 ${extraCandidateCount} 个候选 · 换一座山` : '换一座山'}
       </button>
+    </ImportScreen>
+  )
+}
+
+function MountainChoiceRow({
+  selected,
+  title,
+  sub,
+  icon,
+  onClick,
+}: {
+  selected: boolean
+  title: string
+  sub: string
+  icon: ReactNode
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: '100%',
+        minHeight: 56,
+        textAlign: 'left',
+        padding: '10px var(--space-3)',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        background: selected
+          ? 'color-mix(in srgb, var(--color-success) 9%, transparent)'
+          : 'var(--color-surface-variant)',
+        border: selected
+          ? '1px solid color-mix(in srgb, var(--color-success) 36%, transparent)'
+          : '1px solid var(--color-outline)',
+        borderRadius: 'var(--radius-md)',
+        display: 'grid',
+        gridTemplateColumns: '20px 34px minmax(0, 1fr)',
+        gap: 'var(--space-3)',
+        alignItems: 'center',
+        color: 'inherit',
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: 18,
+          height: 18,
+          borderRadius: 'var(--radius-pill)',
+          border: selected ? '5px solid var(--color-success)' : '1.5px solid var(--color-on-surface-variant)',
+          background: selected ? 'var(--color-surface)' : 'transparent',
+        }}
+      />
+      <span
+        style={{
+          width: 34,
+          height: 34,
+          borderRadius: 'var(--radius-sm)',
+          display: 'grid',
+          placeItems: 'center',
+          color: selected ? 'var(--color-success)' : 'var(--color-on-surface)',
+          background: 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
+          border: '1px solid var(--color-outline)',
+        }}
+      >
+        {icon}
+      </span>
+      <span style={{ minWidth: 0 }}>
+        <span
+          style={{
+            display: 'block',
+            color: 'var(--color-on-surface)',
+            fontSize: 'var(--font-body-m-size)',
+            lineHeight: 'var(--font-body-m-line)',
+            fontWeight: 700,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {title}
+        </span>
+        <span
+          style={{
+            display: 'block',
+            marginTop: 2,
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+          }}
+        >
+          {sub}
+        </span>
+      </span>
+    </button>
+  )
+}
+
+function ImportMountainSelection({
+  result,
+  initialSelectedMountainId,
+  initialSearchOpen = false,
+  confirmError,
+  confirmAuthRequired,
+  onBack,
+  onCancel,
+  onConfirm,
+  onLogin,
+}: {
+  result: ImportedTrackData
+  initialSelectedMountainId: string | null
+  initialSearchOpen?: boolean
+  confirmError: string | null
+  confirmAuthRequired: boolean
+  onBack: () => void
+  onCancel: () => void
+  onConfirm: (selection: MountainSelection) => void
+  onLogin: () => void
+}) {
+  const candidates = getSuggestedCandidates(result).map(toSelectableMountain)
+  const initialMountain = candidates.find((candidate) => candidate.id === initialSelectedMountainId) ?? candidates[0] ?? null
+  const [selected, setSelected] = useState<MountainSelection | null>(
+    initialMountain ? { kind: 'mountain', mountain: initialMountain } : null
+  )
+  const [searchOpen, setSearchOpen] = useState(initialSearchOpen || candidates.length === 0)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<SelectableMountain[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!searchOpen) return
+
+    const query = searchQuery.trim()
+    if (query.length < 2) {
+      setSearchResults([])
+      setSearchLoading(false)
+      setSearchError(null)
+      return
+    }
+
+    const controller = new AbortController()
+    const timer = window.setTimeout(async () => {
+      setSearchLoading(true)
+      setSearchError(null)
+
+      try {
+        const response = await fetch(`/api/mountains/search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        })
+        const payload = (await response.json().catch(() => null)) as MountainSearchResponse | null
+
+        if (response.status === 401) {
+          setSearchResults([])
+          setSearchError('登录后可以搜索山峰。')
+          return
+        }
+
+        if (!response.ok || !payload?.ok) {
+          setSearchResults([])
+          setSearchError('山峰搜索暂时不可用，请稍后再试。')
+          return
+        }
+
+        setSearchResults((payload.mountains ?? []).map((mountain) => ({
+          id: mountain.id,
+          name: mountain.name,
+          altitude: mountain.altitude,
+          province: mountain.province,
+        })))
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return
+        setSearchResults([])
+        setSearchError('网络暂时不可用，请稍后再试。')
+      } finally {
+        if (!controller.signal.aborted) {
+          setSearchLoading(false)
+        }
+      }
+    }, 300)
+
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+    }
+  }, [searchOpen, searchQuery])
+
+  const selectedMountainId = selected?.kind === 'mountain' ? selected.mountain.id : null
+  const selectedUnaffiliated = selected?.kind === 'unaffiliated'
+
+  return (
+    <ImportScreen
+      step="select_mountain"
+      title={(
+        <>
+          选择关联的山
+        </>
+      )}
+      onBack={onBack}
+      footer={(
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              height: 44,
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-outline)',
+              background: 'var(--color-surface-variant)',
+              color: 'var(--color-on-surface)',
+              font: 'inherit',
+              fontSize: 'var(--font-label-m-size)',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            取消
+          </button>
+          <PrimaryButton
+            onClick={() => {
+              if (selected) onConfirm(selected)
+            }}
+            disabled={!selected}
+            style={{ width: '100%' }}
+          >
+            确认选择
+          </PrimaryButton>
+        </div>
+      )}
+    >
+      <p
+        style={{
+          margin: 0,
+          paddingInline: 'var(--space-1)',
+          color: 'var(--color-on-surface-variant)',
+          fontSize: 'var(--font-label-m-size)',
+          lineHeight: 1.7,
+        }}
+      >
+        可以选择系统候选，也可以搜索其他山峰。没有合适的山时，先保存为未关联山行。
+      </p>
+
+      <ConfirmErrorNotice error={confirmError} authRequired={confirmAuthRequired} onLogin={onLogin} />
+
+      {candidates.length > 0 ? (
+        <div style={{ display: 'grid', gap: 10, marginTop: 'var(--space-4)' }}>
+          {candidates.map((candidate) => (
+            <MountainChoiceRow
+              key={candidate.id}
+              selected={selectedMountainId === candidate.id}
+              title={candidate.name}
+              sub={`距轨迹最高点约 ${formatDistance(candidate.distanceMeters)}`}
+              icon={<MountainIcon size={17} />}
+              onClick={() => setSelected({ kind: 'mountain', mountain: candidate })}
+            />
+          ))}
+          {candidates.length >= 5 ? (
+            <div
+              style={{
+                color: 'var(--color-on-surface-variant)',
+                fontSize: 'var(--font-label-s-size)',
+                lineHeight: 'var(--font-label-s-line)',
+                textAlign: 'center',
+              }}
+            >
+              更多山峰请用搜索
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div
+        style={{
+          marginTop: candidates.length > 0 ? 'var(--space-4)' : 'var(--space-5)',
+          paddingTop: candidates.length > 0 ? 'var(--space-4)' : 0,
+          borderTop: candidates.length > 0 ? '1px solid var(--color-outline)' : 'none',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setSearchOpen((current) => !current)}
+          style={{
+            width: '100%',
+            minHeight: 48,
+            borderRadius: 'var(--radius-md)',
+            border: '1px dashed var(--color-outline)',
+            background: 'color-mix(in srgb, var(--color-on-surface) 2%, transparent)',
+            color: 'var(--color-on-surface)',
+            font: 'inherit',
+            fontSize: 'var(--font-label-m-size)',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 'var(--space-2)',
+          }}
+        >
+          <SearchIcon size={14} />
+          搜索其他山峰
+        </button>
+
+        {searchOpen ? (
+          <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.currentTarget.value)}
+              placeholder="输入山峰名称，至少 2 个字"
+              aria-label="搜索山峰"
+              style={{
+                width: '100%',
+                height: 44,
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-outline)',
+                background: 'var(--color-surface-variant)',
+                color: 'var(--color-on-surface)',
+                padding: '0 var(--space-3)',
+                font: 'inherit',
+                fontSize: 'var(--font-label-m-size)',
+                outline: 'none',
+              }}
+            />
+
+            {searchLoading ? (
+              <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 1.6 }}>
+                搜索中…
+              </div>
+            ) : null}
+            {searchError ? (
+              <div style={{ color: 'var(--color-warning)', fontSize: 'var(--font-label-s-size)', lineHeight: 1.6 }}>
+                {searchError}
+              </div>
+            ) : null}
+            {!searchLoading && !searchError && searchQuery.trim().length >= 2 && searchResults.length === 0 ? (
+              <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 1.6 }}>
+                没有找到匹配的山峰
+              </div>
+            ) : null}
+            {searchResults.map((mountain) => (
+              <MountainChoiceRow
+                key={mountain.id}
+                selected={selectedMountainId === mountain.id}
+                title={mountain.name}
+                sub={[
+                  mountain.province,
+                  typeof mountain.altitude === 'number' ? `${mountain.altitude.toLocaleString('en-US')} m` : null,
+                ].filter(Boolean).join(' · ') || '山峰资料'}
+                icon={<MountainIcon size={17} />}
+                onClick={() => setSelected({ kind: 'mountain', mountain })}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-outline)' }}>
+        <MountainChoiceRow
+          selected={selectedUnaffiliated}
+          title="保存为未关联山行"
+          sub="先进入档案，之后可以补充关联"
+          icon={<ArchiveIcon size={17} />}
+          onClick={() => setSelected({ kind: 'unaffiliated' })}
+        />
+      </div>
     </ImportScreen>
   )
 }
@@ -2406,6 +2822,7 @@ function NextAction({
 function ImportSuccess({
   result,
   confirmResult,
+  mountainName,
   onShare,
   onView,
   onAddPhoto,
@@ -2413,12 +2830,13 @@ function ImportSuccess({
 }: {
   result: ImportedTrackData | null
   confirmResult: ConfirmResult | null
+  mountainName: string | null
   onShare: () => void
   onView: () => void
   onAddPhoto: () => void
   onWriteNote: () => void
 }) {
-  const mountainName = result?.suggestedMountain?.name ?? '未关联山峰'
+  const displayMountainName = mountainName ?? result?.suggestedMountain?.name ?? '未关联山峰'
   const dateLabel = formatActivityDate(result?.startTime)
 
   return (
@@ -2469,7 +2887,7 @@ function ImportSuccess({
             lineHeight: 1.65,
           }}
         >
-          {mountainName} · {dateLabel}
+          {displayMountainName} · {dateLabel}
           <br />
           这次山行已成为你档案里的一条记录
         </div>
@@ -2487,7 +2905,7 @@ function ImportSuccess({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--space-3)' }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ color: 'var(--color-on-surface)', fontSize: 'var(--font-body-m-size)', lineHeight: 'var(--font-body-m-line)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {mountainName}
+              {displayMountainName}
             </div>
             <div style={{ marginTop: 3, color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>
               {confirmResult?.checkinId ? `活动 ${confirmResult.checkinId.slice(0, 8)}` : '活动已生成'}
@@ -2539,6 +2957,8 @@ export default function ImportClient() {
   const [parseProgress, setParseProgress] = useState(0)
   const [authRequired, setAuthRequired] = useState(false)
   const [selectedMountainId, setSelectedMountainId] = useState<string | null>(null)
+  const [selectedMountainName, setSelectedMountainName] = useState<string | null>(null)
+  const [selectionSearchInitiallyOpen, setSelectionSearchInitiallyOpen] = useState(false)
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null)
   const [confirmError, setConfirmError] = useState<string | null>(null)
   const [confirmAuthRequired, setConfirmAuthRequired] = useState(false)
@@ -2573,6 +2993,8 @@ export default function ImportClient() {
     setParseProgress(0)
     setAuthRequired(false)
     setSelectedMountainId(null)
+    setSelectedMountainName(null)
+    setSelectionSearchInitiallyOpen(false)
     setConfirmResult(null)
     setConfirmError(null)
     setConfirmAuthRequired(false)
@@ -2588,6 +3010,8 @@ export default function ImportClient() {
     setParseProgress(0)
     setAuthRequired(false)
     setSelectedMountainId(null)
+    setSelectedMountainName(null)
+    setSelectionSearchInitiallyOpen(false)
     setConfirmResult(null)
     setConfirmError(null)
     setConfirmAuthRequired(false)
@@ -2675,6 +3099,8 @@ export default function ImportClient() {
       setParseResult(payload.parsedData)
       setTimeEditorSkipped(false)
       setSelectedMountainId(payload.parsedData.suggestedMountain?.id ?? null)
+      setSelectedMountainName(payload.parsedData.suggestedMountain?.name ?? null)
+      setSelectionSearchInitiallyOpen(false)
       setStep('preview')
     } catch {
       setParseError('网络暂时不可用，请稍后重试。')
@@ -2683,10 +3109,11 @@ export default function ImportClient() {
     }
   }
 
-  async function handleConfirm(mountainId?: string) {
+  async function handleConfirm(mountainId?: string | null, returnStepOverride?: ImportStep, mountainName?: string | null) {
     if (!parseResult) return
 
-    const returnStep: ImportStep = mountainId ? 'match' : 'no_match'
+    const returnStep: ImportStep = returnStepOverride ?? (mountainId ? 'match' : 'no_match')
+    const confirmedMountainName = mountainId ? (mountainName ?? selectedMountainName) : null
     setConfirmError(null)
     setConfirmAuthRequired(false)
     setStep('confirming')
@@ -2716,6 +3143,8 @@ export default function ImportClient() {
         return
       }
 
+      setSelectedMountainId(mountainId ?? null)
+      setSelectedMountainName(confirmedMountainName)
       setConfirmResult({ checkinId: payload.checkinId })
       setStep('success')
     } catch {
@@ -2755,7 +3184,7 @@ export default function ImportClient() {
       return
     }
 
-    if (step === 'match' || step === 'no_match') {
+    if (step === 'match' || step === 'select_mountain' || step === 'no_match') {
       setConfirmError(null)
       setConfirmAuthRequired(false)
       setStep('preview')
@@ -2776,7 +3205,7 @@ export default function ImportClient() {
           onBack={handleBack}
           onUpload={() => setStep('upload_empty')}
           onHelp={() => {
-            openHelpSheet('start.already-walked')
+            openHelpSheet('import.export-gpx')
           }}
         />
       )
@@ -2832,8 +3261,12 @@ export default function ImportClient() {
           onContinue={() => {
             setConfirmError(null)
             setConfirmAuthRequired(false)
-            if (parseResult.suggestedMountain?.id) {
-              setSelectedMountainId(parseResult.suggestedMountain.id)
+            const candidates = getSuggestedCandidates(parseResult)
+            const firstCandidate = candidates[0] ?? null
+            if (firstCandidate?.id) {
+              setSelectedMountainId(firstCandidate.id)
+              setSelectedMountainName(firstCandidate.name)
+              setSelectionSearchInitiallyOpen(false)
               setStep('match')
               return
             }
@@ -2849,26 +3282,65 @@ export default function ImportClient() {
     }
 
     if (step === 'match' && parseResult) {
-      const suggestedMountainId = parseResult.suggestedMountain?.id ?? null
+      const candidates = getSuggestedCandidates(parseResult)
+      const suggestedMountain = candidates[0] ?? null
+      const suggestedMountainId = suggestedMountain?.id ?? null
       return (
         <ImportMatch
           result={parseResult}
           selectedMountainId={selectedMountainId}
+          selectedMountainName={selectedMountainName}
           confirmError={confirmError}
           confirmAuthRequired={confirmAuthRequired}
-          onSelect={setSelectedMountainId}
+          onSelect={(mountain) => {
+            setSelectedMountainId(mountain.id)
+            setSelectedMountainName(mountain.name)
+          }}
           onBack={handleBack}
           onManual={() => {
             setConfirmError(null)
             setConfirmAuthRequired(false)
-            setSelectedMountainId(null)
-            setStep('no_match')
+            setSelectionSearchInitiallyOpen(false)
+            setStep('select_mountain')
           }}
           onConfirm={() => {
             const mountainId = selectedMountainId ?? suggestedMountainId
             if (mountainId) {
-              void handleConfirm(mountainId)
+              const mountainName = selectedMountainName ?? candidates.find((candidate) => candidate.id === mountainId)?.name ?? suggestedMountain?.name ?? null
+              void handleConfirm(mountainId, 'match', mountainName)
             }
+          }}
+          onLogin={() => router.push(buildLoginHref())}
+        />
+      )
+    }
+
+    if (step === 'select_mountain' && parseResult) {
+      return (
+        <ImportMountainSelection
+          result={parseResult}
+          initialSelectedMountainId={selectedMountainId}
+          initialSearchOpen={selectionSearchInitiallyOpen}
+          confirmError={confirmError}
+          confirmAuthRequired={confirmAuthRequired}
+          onBack={handleBack}
+          onCancel={() => {
+            setConfirmError(null)
+            setConfirmAuthRequired(false)
+            if (getSuggestedCandidates(parseResult).length > 0) {
+              setStep('match')
+              return
+            }
+            setStep('no_match')
+          }}
+          onConfirm={(selection) => {
+            if (selection.kind === 'unaffiliated') {
+              void handleConfirm(null, 'select_mountain', null)
+              return
+            }
+            setSelectedMountainId(selection.mountain.id)
+            setSelectedMountainName(selection.mountain.name)
+            void handleConfirm(selection.mountain.id, 'select_mountain', selection.mountain.name)
           }}
           onLogin={() => router.push(buildLoginHref())}
         />
@@ -2881,10 +3353,14 @@ export default function ImportClient() {
           confirmError={confirmError}
           confirmAuthRequired={confirmAuthRequired}
           onBack={handleBack}
-          onStash={() => void handleConfirm()}
+          onStash={() => void handleConfirm(null, 'no_match', null)}
           onSearch={() => {
-            console.log('Manual mountain search will be connected in a later batch.')
-            void handleConfirm()
+            setConfirmError(null)
+            setConfirmAuthRequired(false)
+            setSelectedMountainId(null)
+            setSelectedMountainName(null)
+            setSelectionSearchInitiallyOpen(true)
+            setStep('select_mountain')
           }}
           onLogin={() => router.push(buildLoginHref())}
         />
@@ -2900,6 +3376,7 @@ export default function ImportClient() {
         <ImportSuccess
           result={parseResult}
           confirmResult={confirmResult}
+          mountainName={selectedMountainName}
           onShare={() => {
             console.log('Share editor will be connected in a later batch.')
           }}

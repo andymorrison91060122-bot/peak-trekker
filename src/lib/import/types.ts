@@ -7,6 +7,12 @@ export interface TrackPoint {
   timestamp?: string
 }
 
+export interface MountainMatch {
+  id: string
+  name: string
+  distanceMeters: number
+}
+
 export interface ImportedTrackData {
   format: ImportFormat
   fileName: string
@@ -20,9 +26,6 @@ export interface ImportedTrackData {
   maxElevation?: number
   minElevation?: number
   trackPoints: TrackPoint[]
-  suggestedMountain?: {
-    id: string
-    name: string
-    distanceMeters: number
-  } | null
+  suggestedMountain?: MountainMatch | null
+  suggestedCandidates?: MountainMatch[]
 }

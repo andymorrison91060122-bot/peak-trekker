@@ -351,3 +351,82 @@ test('mountain matcher returns null for empty mountain lists and nearest match u
     distanceMeters: 29,
   })
 })
+
+test('mountain matcher returns sorted top candidates within threshold', async () => {
+  const { matchNearestMountainCandidates } = await loadMatcher()
+  const points = [
+    { latitude: 30, longitude: 120, elevation: 100 },
+    { latitude: 30.001, longitude: 120.001, elevation: 200 },
+  ]
+
+  const candidates = matchNearestMountainCandidates(
+    points,
+    [
+      { id: 'far', name: '远山', latitude: 31, longitude: 121 },
+      { id: 'third', name: '第三近', latitude: 30.005, longitude: 120.005 },
+      { id: 'first', name: '最近', latitude: 30.0011, longitude: 120.0011 },
+      { id: 'second', name: '第二近', latitude: 30.002, longitude: 120.002 },
+    ],
+    { maxCandidates: 3, thresholdMeters: 5000 }
+  )
+
+  assert.deepEqual(candidates.map((candidate: { id: string }) => candidate.id), ['first', 'second', 'third'])
+  assert.ok(candidates[0].distanceMeters < candidates[1].distanceMeters)
+  assert.ok(candidates[1].distanceMeters < candidates[2].distanceMeters)
+})
+
+test('mountain matcher respects max candidate cap', async () => {
+  const { matchNearestMountainCandidates } = await loadMatcher()
+  const points = [{ latitude: 30, longitude: 120, elevation: 100 }]
+
+  const candidates = matchNearestMountainCandidates(
+    points,
+    [
+      { id: 'one', name: '一号', latitude: 30.0001, longitude: 120.0001 },
+      { id: 'two', name: '二号', latitude: 30.0002, longitude: 120.0002 },
+      { id: 'three', name: '三号', latitude: 30.0003, longitude: 120.0003 },
+    ],
+    { maxCandidates: 2 }
+  )
+
+  assert.deepEqual(candidates.map((candidate: { id: string }) => candidate.id), ['one', 'two'])
+})
+
+test('mountain matcher returns empty array when no mountains are within threshold', async () => {
+  const { matchNearestMountainCandidates } = await loadMatcher()
+  const points = [{ latitude: 30, longitude: 120, elevation: 100 }]
+
+  assert.deepEqual(matchNearestMountainCandidates(
+    points,
+    [{ id: 'outside', name: '阈值外', latitude: 30.01, longitude: 120.01 }],
+    { thresholdMeters: 100 }
+  ), [])
+})
+
+test('mountain matcher skips mountains without usable coordinates', async () => {
+  const { matchNearestMountainCandidates } = await loadMatcher()
+  const points = [{ latitude: 30, longitude: 120, elevation: 100 }]
+
+  const candidates = matchNearestMountainCandidates(points, [
+    { id: 'no-lat', name: '无纬度', latitude: null, longitude: 120 },
+    { id: 'no-lng', name: '无经度', latitude: 30, longitude: null },
+    { id: 'valid', name: '可用山峰', latitude: 30.0001, longitude: 120.0001 },
+  ])
+
+  assert.deepEqual(candidates.map((candidate: { id: string }) => candidate.id), ['valid'])
+})
+
+test('mountain matcher falls back to the last valid track point when elevation is missing', async () => {
+  const { matchNearestMountainCandidates } = await loadMatcher()
+  const points = [
+    { latitude: 30, longitude: 120 },
+    { latitude: 30.01, longitude: 120.01 },
+  ]
+
+  const candidates = matchNearestMountainCandidates(points, [
+    { id: 'first-point', name: '第一点附近', latitude: 30.0001, longitude: 120.0001 },
+    { id: 'last-point', name: '最后点附近', latitude: 30.0101, longitude: 120.0101 },
+  ])
+
+  assert.equal(candidates[0]?.id, 'last-point')
+})

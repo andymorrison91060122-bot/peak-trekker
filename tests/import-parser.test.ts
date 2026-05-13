@@ -27,6 +27,10 @@ async function loadStats() {
   return import(`../src/lib/import/track-stats.${sourceExtension}`)
 }
 
+async function loadDistanceCheck() {
+  return import(`../src/lib/import/mountain-distance-check.${sourceExtension}`)
+}
+
 async function loadMatcher() {
   return import(`../src/lib/import/mountain-matcher.${sourceExtension}`)
 }
@@ -334,6 +338,82 @@ test('parseTrackFile routes by extension and rejects unsupported files', async (
   )
 })
 
+test('haversine distance handles same point and city-scale distances', async () => {
+  const { haversineMeters } = await loadStats()
+
+  assert.equal(Math.round(haversineMeters(39.9042, 116.4074, 39.9042, 116.4074)), 0)
+
+  const beijingToShanghai = haversineMeters(39.9042, 116.4074, 31.2304, 121.4737)
+  assert.ok(beijingToShanghai > 1_060_000 && beijingToShanghai < 1_080_000)
+})
+
+test('mountain distance check uses median, highest, and center fallback references', async () => {
+  const { checkImportMountainDistance } = await loadDistanceCheck()
+  const points = [
+    { latitude: 30, longitude: 120, elevation: 100 },
+    { latitude: 30.2, longitude: 120.2, elevation: 120 },
+    { latitude: 30.4, longitude: 120.4, elevation: 130 },
+    { latitude: 30.6, longitude: 120.6, elevation: 900 },
+    { latitude: 30.8, longitude: 120.8, elevation: 140 },
+  ]
+
+  const medianResult = checkImportMountainDistance(points, { latitude: 30.4001, longitude: 120.4001 }, { thresholdMeters: 100 })
+  assert.equal(medianResult.valid, true)
+  assert.equal(medianResult.referencePoint?.source, 'median')
+
+  const highestResult = checkImportMountainDistance(points, { latitude: 30.6001, longitude: 120.6001 }, { thresholdMeters: 100 })
+  assert.equal(highestResult.valid, true)
+  assert.equal(highestResult.referencePoint?.source, 'highest')
+
+  const centerResult = checkImportMountainDistance([
+    { latitude: 30, longitude: 120 },
+    { latitude: 30, longitude: 122 },
+    { latitude: 32, longitude: 122 },
+    { latitude: 32, longitude: 120 },
+  ], { latitude: 31, longitude: 121 }, { thresholdMeters: 100 })
+  assert.equal(centerResult.valid, true)
+  assert.equal(centerResult.referencePoint?.source, 'center')
+})
+
+test('mountain distance check rejects out-of-range mountains and missing coordinates', async () => {
+  const { checkImportMountainDistance } = await loadDistanceCheck()
+  const points = [
+    { latitude: 91, longitude: 120 },
+    { latitude: 30, longitude: 120 },
+  ]
+
+  const farResult = checkImportMountainDistance(points, { latitude: 30.3, longitude: 120.3 }, { thresholdMeters: 20_000 })
+  assert.equal(farResult.valid, false)
+  assert.ok((farResult.distanceMeters ?? 0) > 20_000)
+
+  const missingMountain = checkImportMountainDistance(points, { latitude: null, longitude: 120 })
+  assert.equal(missingMountain.valid, false)
+  assert.equal(missingMountain.reason, 'missing_mountain_coordinates')
+
+  const missingTrack = checkImportMountainDistance([{ latitude: 120, longitude: 240 }], { latitude: 30, longitude: 120 })
+  assert.equal(missingTrack.valid, false)
+  assert.equal(missingTrack.reason, 'missing_track_reference')
+})
+
+test('import confirm distance guard rejects out-of-range mountain but allows unaffiliated save', async () => {
+  const { validateImportMountainSelectionDistance } = await loadDistanceCheck()
+  const guangdongTrack = [
+    { latitude: 23.1291, longitude: 113.2644, elevation: 100 },
+    { latitude: 23.1301, longitude: 113.2654, elevation: 180 },
+  ]
+  const taishan = { latitude: 36.2516, longitude: 117.1059 }
+
+  const unaffiliated = validateImportMountainSelectionDistance(guangdongTrack, null)
+  assert.equal(unaffiliated.ok, true)
+  assert.equal(unaffiliated.verificationDistanceM, null)
+
+  const rejected = validateImportMountainSelectionDistance(guangdongTrack, taishan)
+  assert.equal(rejected.ok, false)
+  assert.equal(rejected.code, 'mountain_out_of_range')
+  assert.ok((rejected.distanceMeters ?? 0) > 1_000_000)
+  assert.equal(rejected.thresholdMeters, 20_000)
+})
+
 test('mountain matcher returns null for empty mountain lists and nearest match under 5km', async () => {
   const { matchNearestMountainFromRows } = await loadMatcher()
   const points = [
@@ -342,14 +422,15 @@ test('mountain matcher returns null for empty mountain lists and nearest match u
   ]
 
   assert.equal(matchNearestMountainFromRows(points, []), null)
-  assert.deepEqual(matchNearestMountainFromRows(points, [
+  const match = matchNearestMountainFromRows(points, [
     { id: 'far', name: '远山', latitude: 31, longitude: 121 },
     { id: 'near', name: '近山', latitude: 30.0012, longitude: 120.0012 },
-  ]), {
-    id: 'near',
-    name: '近山',
-    distanceMeters: 29,
-  })
+  ])
+
+  assert.equal(match?.id, 'near')
+  assert.equal(match?.name, '近山')
+  assert.equal(match?.distanceMeters, 29)
+  assert.equal(match?.referencePointSource, 'highest')
 })
 
 test('mountain matcher returns sorted top candidates within threshold', async () => {
@@ -416,7 +497,20 @@ test('mountain matcher skips mountains without usable coordinates', async () => 
   assert.deepEqual(candidates.map((candidate: { id: string }) => candidate.id), ['valid'])
 })
 
-test('mountain matcher falls back to the last valid track point when elevation is missing', async () => {
+test('mountain matcher keeps automatic matching at 5km and allows wider manual candidate threshold', async () => {
+  const { matchNearestMountainCandidates } = await loadMatcher()
+  const points = [{ latitude: 30, longitude: 120, elevation: 100 }]
+  const tenKilometersAway = { id: 'manual-range', name: '手动范围内', latitude: 30.09, longitude: 120 }
+
+  assert.deepEqual(matchNearestMountainCandidates(points, [tenKilometersAway]), [])
+
+  const candidates = matchNearestMountainCandidates(points, [tenKilometersAway], { thresholdMeters: 20_000 })
+  assert.equal(candidates[0]?.id, 'manual-range')
+  assert.ok(candidates[0]?.distanceMeters > 5_000)
+  assert.ok(candidates[0]?.distanceMeters < 20_000)
+})
+
+test('mountain matcher considers multiple reference points when elevation is missing', async () => {
   const { matchNearestMountainCandidates } = await loadMatcher()
   const points = [
     { latitude: 30, longitude: 120 },
@@ -426,7 +520,7 @@ test('mountain matcher falls back to the last valid track point when elevation i
   const candidates = matchNearestMountainCandidates(points, [
     { id: 'first-point', name: '第一点附近', latitude: 30.0001, longitude: 120.0001 },
     { id: 'last-point', name: '最后点附近', latitude: 30.0101, longitude: 120.0101 },
-  ])
+  ], { maxCandidates: 2 })
 
-  assert.equal(candidates[0]?.id, 'last-point')
+  assert.deepEqual(new Set(candidates.map((candidate: { id: string }) => candidate.id)), new Set(['first-point', 'last-point']))
 })

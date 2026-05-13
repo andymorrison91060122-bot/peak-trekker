@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { matchNearestMountainCandidatesForTrack } from '@/lib/import/mountain-matcher'
+import { IMPORT_MOUNTAIN_DISTANCE_THRESHOLD_METERS } from '@/lib/import/mountain-distance-check'
+import { AUTO_MATCH_THRESHOLD_METERS, matchNearestMountainCandidatesForTrack } from '@/lib/import/mountain-matcher'
 import { parseTrackFile } from '@/lib/import'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
@@ -48,8 +49,10 @@ export async function POST(request: Request) {
 
   try {
     const parsedData = await parseTrackFile(file.name, Buffer.from(await file.arrayBuffer()))
-    const suggestedCandidates = await matchNearestMountainCandidatesForTrack(parsedData.trackPoints)
-    const suggestedMountain = suggestedCandidates[0] ?? null
+    const suggestedCandidates = await matchNearestMountainCandidatesForTrack(parsedData.trackPoints, {
+      thresholdMeters: IMPORT_MOUNTAIN_DISTANCE_THRESHOLD_METERS,
+    })
+    const suggestedMountain = suggestedCandidates.find((candidate) => candidate.distanceMeters <= AUTO_MATCH_THRESHOLD_METERS) ?? null
 
     return NextResponse.json({
       ok: true,

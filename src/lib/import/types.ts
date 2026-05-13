@@ -11,6 +11,7 @@ export interface MountainMatch {
   id: string
   name: string
   distanceMeters: number
+  referencePointSource?: 'median' | 'highest' | 'center'
 }
 
 export interface ImportedTrackData {

@@ -1,5 +1,5 @@
 import { createSupabaseAdminClient } from '../supabase-admin.ts'
-import { findHighestTrackPoint, haversineMeters } from './track-stats.ts'
+import { checkImportMountainDistance } from './mountain-distance-check.ts'
 import type { MountainMatch, TrackPoint } from './types.ts'
 
 type MountainMatchRow = {
@@ -9,46 +9,31 @@ type MountainMatchRow = {
   longitude: number | null
 }
 
-const DEFAULT_MATCH_THRESHOLD_METERS = 5000
+export const AUTO_MATCH_THRESHOLD_METERS = 5_000
 const DEFAULT_MAX_MATCH_CANDIDATES = 5
-
-function isFiniteCoordinate(latitude: unknown, longitude: unknown) {
-  return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))
-}
-
-function getMatchAnchor(trackPoints: TrackPoint[]) {
-  const anchor = findHighestTrackPoint(trackPoints)
-  if (anchor && isFiniteCoordinate(anchor.latitude, anchor.longitude)) return anchor
-
-  return [...trackPoints].reverse().find((point) => isFiniteCoordinate(point.latitude, point.longitude)) ?? null
-}
 
 export function matchNearestMountainCandidates(
   trackPoints: TrackPoint[],
   mountains: MountainMatchRow[],
   options: { maxCandidates?: number; thresholdMeters?: number } = {}
 ): MountainMatch[] {
-  const anchor = getMatchAnchor(trackPoints)
-  if (!anchor) return []
-
-  const thresholdMeters = options.thresholdMeters ?? DEFAULT_MATCH_THRESHOLD_METERS
+  const thresholdMeters = options.thresholdMeters ?? AUTO_MATCH_THRESHOLD_METERS
   const maxCandidates = Math.max(1, options.maxCandidates ?? DEFAULT_MAX_MATCH_CANDIDATES)
 
   return mountains
     .flatMap((mountain) => {
-      const latitude = Number(mountain.latitude)
-      const longitude = Number(mountain.longitude)
-      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return []
+      const distanceCheck = checkImportMountainDistance(trackPoints, mountain, { thresholdMeters })
+      if (!distanceCheck.valid || distanceCheck.distanceMeters === null) return []
 
       return [
         {
           id: mountain.id,
           name: mountain.name,
-          distanceMeters: Math.round(haversineMeters(anchor.latitude, anchor.longitude, latitude, longitude)),
+          distanceMeters: distanceCheck.distanceMeters,
+          ...(distanceCheck.referencePoint?.source ? { referencePointSource: distanceCheck.referencePoint.source } : {}),
         },
       ]
     })
-    .filter((match) => match.distanceMeters <= thresholdMeters)
     .sort((a, b) => a.distanceMeters - b.distanceMeters)
     .slice(0, maxCandidates)
 }

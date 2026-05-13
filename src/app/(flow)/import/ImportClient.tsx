@@ -3,6 +3,11 @@
 import type { ChangeEvent, DragEvent, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  checkImportMountainDistance,
+  IMPORT_MOUNTAIN_DISTANCE_THRESHOLD_METERS,
+  IMPORT_MOUNTAIN_OUT_OF_RANGE_MESSAGE,
+} from '@/lib/import/mountain-distance-check'
 import type { ImportedTrackData, MountainMatch } from '@/lib/import/types'
 import Card from '@/components/ui/Card'
 import PrimaryButton from '@/components/ui/PrimaryButton'
@@ -59,8 +64,11 @@ type SelectableMountain = {
   id: string
   name: string
   distanceMeters?: number
+  referencePointSource?: MountainMatch['referencePointSource']
   altitude?: number | null
   province?: string | null
+  latitude?: number | null
+  longitude?: number | null
 }
 
 type MountainSelection =
@@ -80,6 +88,10 @@ type MountainSearchResponse = {
   error?: string
 }
 
+type MountainDistanceNotice =
+  | { tone: 'success'; message: string }
+  | { tone: 'error'; message: string }
+
 function getFileExtension(fileName: string) {
   return fileName.split('.').pop()?.toLowerCase() ?? ''
 }
@@ -93,9 +105,42 @@ function formatFileSize(size: number) {
   return `${Math.max(1, Math.round(size / 1024))} KB`
 }
 
-function formatDistance(meters?: number) {
+function formatDistance(meters?: number | null) {
   if (typeof meters !== 'number' || !Number.isFinite(meters)) return '--'
   return `${(meters / 1000).toFixed(1)} km`
+}
+
+function formatMountainDistanceValidation(distanceMeters?: number | null) {
+  return `距离 ${formatDistance(distanceMeters)}`
+}
+
+function getMountainDistanceValidation(result: ImportedTrackData, mountain: SelectableMountain) {
+  if (typeof mountain.distanceMeters === 'number' && Number.isFinite(mountain.distanceMeters)) {
+    return {
+      valid: mountain.distanceMeters <= IMPORT_MOUNTAIN_DISTANCE_THRESHOLD_METERS,
+      distanceMeters: mountain.distanceMeters,
+      thresholdMeters: IMPORT_MOUNTAIN_DISTANCE_THRESHOLD_METERS,
+    }
+  }
+
+  const distanceCheck = checkImportMountainDistance(result.trackPoints, {
+    latitude: mountain.latitude ?? null,
+    longitude: mountain.longitude ?? null,
+  })
+
+  return {
+    valid: distanceCheck.valid,
+    distanceMeters: distanceCheck.distanceMeters,
+    thresholdMeters: distanceCheck.thresholdMeters,
+  }
+}
+
+function getOutOfRangeNotice(distanceMeters: number | null) {
+  const distanceLabel = typeof distanceMeters === 'number' && Number.isFinite(distanceMeters)
+    ? `${formatMountainDistanceValidation(distanceMeters)} > 20 公里，无法匹配此山峰。`
+    : '无法确认这座山与轨迹的距离，暂时不能匹配。'
+
+  return `${distanceLabel}${IMPORT_MOUNTAIN_OUT_OF_RANGE_MESSAGE}`
 }
 
 function formatDuration(seconds?: number) {
@@ -211,6 +256,7 @@ function toSelectableMountain(match: MountainMatch): SelectableMountain {
     id: match.id,
     name: match.name,
     distanceMeters: match.distanceMeters,
+    referencePointSource: match.referencePointSource,
   }
 }
 
@@ -1568,6 +1614,59 @@ function ConfirmErrorNotice({
   )
 }
 
+function DistanceValidationNotice({
+  notice,
+  onRequestMountain,
+}: {
+  notice: MountainDistanceNotice | null
+  onRequestMountain?: () => void
+}) {
+  if (!notice) return null
+
+  const isError = notice.tone === 'error'
+
+  return (
+    <div
+      style={{
+        marginTop: 'var(--space-3)',
+        padding: '10px var(--space-3)',
+        borderRadius: 'var(--radius-md)',
+        color: isError ? 'var(--color-error)' : 'var(--color-success)',
+        background: isError
+          ? 'color-mix(in srgb, var(--color-error) 7%, transparent)'
+          : 'color-mix(in srgb, var(--color-primary) 9%, transparent)',
+        border: isError
+          ? '1px solid color-mix(in srgb, var(--color-error) 26%, transparent)'
+          : '1px solid color-mix(in srgb, var(--color-primary) 28%, transparent)',
+        fontSize: 'var(--font-label-s-size)',
+        lineHeight: 1.6,
+      }}
+    >
+      <div>{notice.message}</div>
+      {isError && onRequestMountain ? (
+        <button
+          type="button"
+          onClick={onRequestMountain}
+          style={{
+            marginTop: 'var(--space-2)',
+            minHeight: 32,
+            padding: '0 var(--space-3)',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid currentColor',
+            background: 'transparent',
+            color: 'inherit',
+            font: 'inherit',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          申请收录山峰
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 function ImportWarningCard({
   title,
   children,
@@ -2037,7 +2136,7 @@ function ImportMatch({
           lineHeight: 1.7,
         }}
       >
-        根据轨迹的位置与最高点，系统找到了候选。请确认是哪一座。
+        根据轨迹的位置，系统找到了 5 公里内的高置信候选。请确认是哪一座。
       </p>
 
       {mountain ? (
@@ -2118,7 +2217,7 @@ function ImportMatch({
                 lineHeight: 'var(--font-label-s-line)',
               }}
             >
-              距轨迹最高点约 {formatDistance(mountain.distanceMeters)}
+              {formatMountainDistanceValidation(mountain.distanceMeters)}，自动匹配可信
             </div>
           </div>
           <div style={{ textAlign: 'right', color: 'var(--color-success)' }}>
@@ -2258,6 +2357,7 @@ function ImportMountainSelection({
   onBack,
   onCancel,
   onConfirm,
+  onRequestMountain,
   onLogin,
 }: {
   result: ImportedTrackData
@@ -2268,6 +2368,7 @@ function ImportMountainSelection({
   onBack: () => void
   onCancel: () => void
   onConfirm: (selection: MountainSelection) => void
+  onRequestMountain: () => void
   onLogin: () => void
 }) {
   const candidates = getSuggestedCandidates(result).map(toSelectableMountain)
@@ -2280,6 +2381,7 @@ function ImportMountainSelection({
   const [searchResults, setSearchResults] = useState<SelectableMountain[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
+  const [distanceNotice, setDistanceNotice] = useState<MountainDistanceNotice | null>(null)
 
   useEffect(() => {
     if (!searchOpen) return
@@ -2320,6 +2422,8 @@ function ImportMountainSelection({
           name: mountain.name,
           altitude: mountain.altitude,
           province: mountain.province,
+          latitude: mountain.latitude,
+          longitude: mountain.longitude,
         })))
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return
@@ -2340,6 +2444,33 @@ function ImportMountainSelection({
 
   const selectedMountainId = selected?.kind === 'mountain' ? selected.mountain.id : null
   const selectedUnaffiliated = selected?.kind === 'unaffiliated'
+
+  function selectMountain(mountain: SelectableMountain) {
+    const validation = getMountainDistanceValidation(result, mountain)
+    if (!validation.valid) {
+      setSelected(null)
+      setDistanceNotice({
+        tone: 'error',
+        message: getOutOfRangeNotice(validation.distanceMeters),
+      })
+      return
+    }
+
+    const nextMountain = {
+      ...mountain,
+      ...(typeof validation.distanceMeters === 'number' ? { distanceMeters: validation.distanceMeters } : {}),
+    }
+
+    setSelected({ kind: 'mountain', mountain: nextMountain })
+    if (typeof nextMountain.distanceMeters === 'number') {
+      setDistanceNotice({
+        tone: 'success',
+        message: `${formatMountainDistanceValidation(nextMountain.distanceMeters)}，匹配合理`,
+      })
+    } else {
+      setDistanceNotice(null)
+    }
+  }
 
   return (
     <ImportScreen
@@ -2394,6 +2525,7 @@ function ImportMountainSelection({
       </p>
 
       <ConfirmErrorNotice error={confirmError} authRequired={confirmAuthRequired} onLogin={onLogin} />
+      <DistanceValidationNotice notice={distanceNotice} onRequestMountain={onRequestMountain} />
 
       {candidates.length > 0 ? (
         <div style={{ display: 'grid', gap: 10, marginTop: 'var(--space-4)' }}>
@@ -2402,9 +2534,9 @@ function ImportMountainSelection({
               key={candidate.id}
               selected={selectedMountainId === candidate.id}
               title={candidate.name}
-              sub={`距轨迹最高点约 ${formatDistance(candidate.distanceMeters)}`}
+              sub={`${formatMountainDistanceValidation(candidate.distanceMeters)}，匹配合理`}
               icon={<MountainIcon size={17} />}
-              onClick={() => setSelected({ kind: 'mountain', mountain: candidate })}
+              onClick={() => selectMountain(candidate)}
             />
           ))}
           {candidates.length >= 5 ? (
@@ -2455,9 +2587,12 @@ function ImportMountainSelection({
 
         {searchOpen ? (
           <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
-            <input
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.currentTarget.value)}
+	            <input
+	              value={searchQuery}
+	              onChange={(event) => {
+	                setSearchQuery(event.currentTarget.value)
+	                setDistanceNotice(null)
+	              }}
               placeholder="输入山峰名称，至少 2 个字"
               aria-label="搜索山峰"
               style={{
@@ -2489,19 +2624,28 @@ function ImportMountainSelection({
                 没有找到匹配的山峰
               </div>
             ) : null}
-            {searchResults.map((mountain) => (
-              <MountainChoiceRow
-                key={mountain.id}
-                selected={selectedMountainId === mountain.id}
-                title={mountain.name}
-                sub={[
-                  mountain.province,
-                  typeof mountain.altitude === 'number' ? `${mountain.altitude.toLocaleString('en-US')} m` : null,
-                ].filter(Boolean).join(' · ') || '山峰资料'}
-                icon={<MountainIcon size={17} />}
-                onClick={() => setSelected({ kind: 'mountain', mountain })}
-              />
-            ))}
+            {searchResults.map((mountain) => {
+              const selectedDistance = selected?.kind === 'mountain' && selected.mountain.id === mountain.id
+                ? selected.mountain.distanceMeters
+                : undefined
+
+              return (
+                <MountainChoiceRow
+                  key={mountain.id}
+                  selected={selectedMountainId === mountain.id}
+                  title={mountain.name}
+                  sub={typeof selectedDistance === 'number'
+                    ? `${formatMountainDistanceValidation(selectedDistance)}，匹配合理`
+                    : [
+                        mountain.province,
+                        typeof mountain.altitude === 'number' ? `${mountain.altitude.toLocaleString('en-US')} m` : null,
+                        '点击校验距离',
+                      ].filter(Boolean).join(' · ') || '山峰资料'}
+                  icon={<MountainIcon size={17} />}
+                  onClick={() => selectMountain(mountain)}
+                />
+              )
+            })}
           </div>
         ) : null}
       </div>
@@ -2512,7 +2656,10 @@ function ImportMountainSelection({
           title="保存为未关联山行"
           sub="先进入档案，之后可以补充关联"
           icon={<ArchiveIcon size={17} />}
-          onClick={() => setSelected({ kind: 'unaffiliated' })}
+          onClick={() => {
+            setSelected({ kind: 'unaffiliated' })
+            setDistanceNotice(null)
+          }}
         />
       </div>
     </ImportScreen>
@@ -2626,6 +2773,7 @@ function ImportNoMatch({
   onBack,
   onStash,
   onSearch,
+  onRequestMountain,
   onLogin,
 }: {
   confirmError: string | null
@@ -2633,6 +2781,7 @@ function ImportNoMatch({
   onBack: () => void
   onStash: () => void
   onSearch: () => void
+  onRequestMountain: () => void
   onLogin: () => void
 }) {
   return (
@@ -2647,7 +2796,7 @@ function ImportNoMatch({
       >
         你的轨迹完整保存好了。
         <br />
-        只是暂时没匹配到收录的山峰 — 这没关系，后续也可以再补充关联。
+        附近 20 公里内没有收录的山峰，可以选择不关联山峰先生成记录。
       </div>
 
       <div style={{ padding: '18px var(--space-3) var(--space-1)', textAlign: 'center' }}>
@@ -2669,6 +2818,12 @@ function ImportNoMatch({
           title="手动搜索关联山峰"
           sub="你比系统更清楚自己去了哪"
           onClick={onSearch}
+        />
+        <NoMatchOption
+          icon={<MountainIcon size={18} />}
+          title="申请收录山峰"
+          sub="先查看说明 · 正式收录流程后续开放"
+          onClick={onRequestMountain}
         />
       </div>
     </ImportScreen>
@@ -3258,20 +3413,27 @@ export default function ImportClient() {
           result={parseResult}
           timeEditorSkipped={timeEditorSkipped}
           onBack={handleBack}
-          onContinue={() => {
-            setConfirmError(null)
-            setConfirmAuthRequired(false)
-            const candidates = getSuggestedCandidates(parseResult)
-            const firstCandidate = candidates[0] ?? null
-            if (firstCandidate?.id) {
-              setSelectedMountainId(firstCandidate.id)
-              setSelectedMountainName(firstCandidate.name)
-              setSelectionSearchInitiallyOpen(false)
-              setStep('match')
-              return
-            }
-            setStep('no_match')
-          }}
+	          onContinue={() => {
+	            setConfirmError(null)
+	            setConfirmAuthRequired(false)
+	            const candidates = getSuggestedCandidates(parseResult)
+	            const suggestedMountain = parseResult.suggestedMountain ?? null
+	            if (suggestedMountain?.id) {
+	              setSelectedMountainId(suggestedMountain.id)
+	              setSelectedMountainName(suggestedMountain.name)
+	              setSelectionSearchInitiallyOpen(false)
+	              setStep('match')
+	              return
+	            }
+	            if (candidates.length > 0) {
+	              setSelectedMountainId(candidates[0]?.id ?? null)
+	              setSelectedMountainName(candidates[0]?.name ?? null)
+	              setSelectionSearchInitiallyOpen(false)
+	              setStep('select_mountain')
+	              return
+	            }
+	            setStep('no_match')
+	          }}
           onApplyTime={(nextResult) => {
             setParseResult(nextResult)
             setTimeEditorSkipped(false)
@@ -3281,11 +3443,11 @@ export default function ImportClient() {
       )
     }
 
-    if (step === 'match' && parseResult) {
-      const candidates = getSuggestedCandidates(parseResult)
-      const suggestedMountain = candidates[0] ?? null
-      const suggestedMountainId = suggestedMountain?.id ?? null
-      return (
+	    if (step === 'match' && parseResult) {
+	      const candidates = getSuggestedCandidates(parseResult)
+	      const suggestedMountain = parseResult.suggestedMountain ?? null
+	      const suggestedMountainId = suggestedMountain?.id ?? null
+	      return (
         <ImportMatch
           result={parseResult}
           selectedMountainId={selectedMountainId}
@@ -3296,7 +3458,7 @@ export default function ImportClient() {
             setSelectedMountainId(mountain.id)
             setSelectedMountainName(mountain.name)
           }}
-          onBack={handleBack}
+	          onBack={handleBack}
           onManual={() => {
             setConfirmError(null)
             setConfirmAuthRequired(false)
@@ -3315,9 +3477,9 @@ export default function ImportClient() {
       )
     }
 
-    if (step === 'select_mountain' && parseResult) {
-      return (
-        <ImportMountainSelection
+	    if (step === 'select_mountain' && parseResult) {
+	      return (
+	        <ImportMountainSelection
           result={parseResult}
           initialSelectedMountainId={selectedMountainId}
           initialSearchOpen={selectionSearchInitiallyOpen}
@@ -3333,7 +3495,7 @@ export default function ImportClient() {
             }
             setStep('no_match')
           }}
-          onConfirm={(selection) => {
+	          onConfirm={(selection) => {
             if (selection.kind === 'unaffiliated') {
               void handleConfirm(null, 'select_mountain', null)
               return
@@ -3341,10 +3503,11 @@ export default function ImportClient() {
             setSelectedMountainId(selection.mountain.id)
             setSelectedMountainName(selection.mountain.name)
             void handleConfirm(selection.mountain.id, 'select_mountain', selection.mountain.name)
-          }}
-          onLogin={() => router.push(buildLoginHref())}
-        />
-      )
+	          }}
+	          onRequestMountain={() => openHelpSheet('start.mountain-not-listed')}
+	          onLogin={() => router.push(buildLoginHref())}
+	        />
+	      )
     }
 
     if (step === 'no_match') {
@@ -3354,16 +3517,17 @@ export default function ImportClient() {
           confirmAuthRequired={confirmAuthRequired}
           onBack={handleBack}
           onStash={() => void handleConfirm(null, 'no_match', null)}
-          onSearch={() => {
+	          onSearch={() => {
             setConfirmError(null)
             setConfirmAuthRequired(false)
             setSelectedMountainId(null)
             setSelectedMountainName(null)
             setSelectionSearchInitiallyOpen(true)
-            setStep('select_mountain')
-          }}
-          onLogin={() => router.push(buildLoginHref())}
-        />
+	            setStep('select_mountain')
+	          }}
+	          onRequestMountain={() => openHelpSheet('start.mountain-not-listed')}
+	          onLogin={() => router.push(buildLoginHref())}
+	        />
       )
     }
 

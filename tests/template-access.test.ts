@@ -55,7 +55,7 @@ test('premium templates are locked for free users when paywall flag is on', asyn
   const { checkTemplateAccess } = await loadTemplateAccess()
 
   await withPaywallFlag('true', () => {
-    assert.deepEqual(checkTemplateAccess('premium-split-view', 'free', null), {
+    assert.deepEqual(checkTemplateAccess('premium-bold-number', 'free', null), {
       allowed: false,
       watermark: true,
       reason: 'premium_template_locked',
@@ -67,7 +67,7 @@ test('premium templates are allowed for premium users when paywall flag is on', 
   const { checkTemplateAccess } = await loadTemplateAccess()
 
   await withPaywallFlag('true', () => {
-    assert.deepEqual(checkTemplateAccess('premium-big-number', 'premium', null), {
+    assert.deepEqual(checkTemplateAccess('premium-bold-number', 'premium', null), {
       allowed: true,
       watermark: false,
     })

@@ -7,6 +7,10 @@ async function loadPolicy() {
   return import(`../src/lib/share-render-policy.${sourceExtension}`)
 }
 
+async function loadShareTemplateTypes() {
+  return import(`../src/lib/share-templates/types.${sourceExtension}`)
+}
+
 function matchesPolicyError(
   error: unknown,
   errorClass: typeof import('../src/lib/share-render-policy.ts').ShareRenderPayloadPolicyError,
@@ -29,6 +33,32 @@ function matchesPolicyError(
 }
 
 describe('share render API field policy regression', () => {
+  test('registered share templates match the v0.4 ten-template pool', async () => {
+    const {
+      BASIC_SHARE_TEMPLATE_IDS,
+      PREMIUM_SHARE_TEMPLATE_IDS,
+      SHARE_RENDER_TEMPLATE_IDS,
+    } = await loadShareTemplateTypes()
+
+    assert.deepEqual([...BASIC_SHARE_TEMPLATE_IDS], ['base-classic', 'base-data'])
+    assert.deepEqual([...PREMIUM_SHARE_TEMPLATE_IDS], [
+      'premium-photo-composite',
+      'premium-photo-overlay',
+      'premium-bold-number',
+      'premium-data-scatter',
+      'premium-mono-film',
+      'premium-altitude-profile',
+      'premium-summit-certificate',
+      'premium-vertical-story',
+    ])
+    assert.equal(SHARE_RENDER_TEMPLATE_IDS.length, 10)
+    const registeredTemplates = [...SHARE_RENDER_TEMPLATE_IDS] as readonly string[]
+    const removedBasicTemplate = ['base', 'minimal'].join('-')
+    const removedPremiumTemplate = ['premium', 'split', 'view'].join('-')
+    assert.equal(registeredTemplates.includes(removedBasicTemplate), false)
+    assert.equal(registeredTemplates.includes(removedPremiumTemplate), false)
+  })
+
   test('rejects request without checkinId', async () => {
     const { ShareRenderPayloadPolicyError, assertShareRenderPayload } = await loadPolicy()
 

@@ -1,10 +1,14 @@
 export type TemplateId =
   | 'basic-classic'
-  | 'basic-minimal'
   | 'basic-data'
+  | 'premium-photo-composite'
   | 'premium-photo-overlay'
-  | 'premium-split-view'
-  | 'premium-big-number'
+  | 'premium-bold-number'
+  | 'premium-data-scatter'
+  | 'premium-mono-film'
+  | 'premium-altitude-profile'
+  | 'premium-summit-certificate'
+  | 'premium-vertical-story'
 
 export type SubscriptionTier = 'free' | 'premium' | 'premium_trial'
 

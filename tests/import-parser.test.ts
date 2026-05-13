@@ -27,6 +27,10 @@ async function loadStats() {
   return import(`../src/lib/import/track-stats.${sourceExtension}`)
 }
 
+async function loadDistanceCheck() {
+  return import(`../src/lib/import/mountain-distance-check.${sourceExtension}`)
+}
+
 async function loadMatcher() {
   return import(`../src/lib/import/mountain-matcher.${sourceExtension}`)
 }
@@ -332,6 +336,82 @@ test('parseTrackFile routes by extension and rejects unsupported files', async (
     () => parseTrackFile('route.txt', Buffer.from('nope')),
     /unsupported import format/i
   )
+})
+
+test('haversine distance handles same point and city-scale distances', async () => {
+  const { haversineMeters } = await loadStats()
+
+  assert.equal(Math.round(haversineMeters(39.9042, 116.4074, 39.9042, 116.4074)), 0)
+
+  const beijingToShanghai = haversineMeters(39.9042, 116.4074, 31.2304, 121.4737)
+  assert.ok(beijingToShanghai > 1_060_000 && beijingToShanghai < 1_080_000)
+})
+
+test('mountain distance check uses median, highest, and center fallback references', async () => {
+  const { checkImportMountainDistance } = await loadDistanceCheck()
+  const points = [
+    { latitude: 30, longitude: 120, elevation: 100 },
+    { latitude: 30.2, longitude: 120.2, elevation: 120 },
+    { latitude: 30.4, longitude: 120.4, elevation: 130 },
+    { latitude: 30.6, longitude: 120.6, elevation: 900 },
+    { latitude: 30.8, longitude: 120.8, elevation: 140 },
+  ]
+
+  const medianResult = checkImportMountainDistance(points, { latitude: 30.4001, longitude: 120.4001 }, { thresholdMeters: 100 })
+  assert.equal(medianResult.valid, true)
+  assert.equal(medianResult.referencePoint?.source, 'median')
+
+  const highestResult = checkImportMountainDistance(points, { latitude: 30.6001, longitude: 120.6001 }, { thresholdMeters: 100 })
+  assert.equal(highestResult.valid, true)
+  assert.equal(highestResult.referencePoint?.source, 'highest')
+
+  const centerResult = checkImportMountainDistance([
+    { latitude: 30, longitude: 120 },
+    { latitude: 30, longitude: 122 },
+    { latitude: 32, longitude: 122 },
+    { latitude: 32, longitude: 120 },
+  ], { latitude: 31, longitude: 121 }, { thresholdMeters: 100 })
+  assert.equal(centerResult.valid, true)
+  assert.equal(centerResult.referencePoint?.source, 'center')
+})
+
+test('mountain distance check rejects out-of-range mountains and missing coordinates', async () => {
+  const { checkImportMountainDistance } = await loadDistanceCheck()
+  const points = [
+    { latitude: 91, longitude: 120 },
+    { latitude: 30, longitude: 120 },
+  ]
+
+  const farResult = checkImportMountainDistance(points, { latitude: 30.3, longitude: 120.3 }, { thresholdMeters: 20_000 })
+  assert.equal(farResult.valid, false)
+  assert.ok((farResult.distanceMeters ?? 0) > 20_000)
+
+  const missingMountain = checkImportMountainDistance(points, { latitude: null, longitude: 120 })
+  assert.equal(missingMountain.valid, false)
+  assert.equal(missingMountain.reason, 'missing_mountain_coordinates')
+
+  const missingTrack = checkImportMountainDistance([{ latitude: 120, longitude: 240 }], { latitude: 30, longitude: 120 })
+  assert.equal(missingTrack.valid, false)
+  assert.equal(missingTrack.reason, 'missing_track_reference')
+})
+
+test('import confirm distance guard rejects out-of-range mountain but allows unaffiliated save', async () => {
+  const { validateImportMountainSelectionDistance } = await loadDistanceCheck()
+  const guangdongTrack = [
+    { latitude: 23.1291, longitude: 113.2644, elevation: 100 },
+    { latitude: 23.1301, longitude: 113.2654, elevation: 180 },
+  ]
+  const taishan = { latitude: 36.2516, longitude: 117.1059 }
+
+  const unaffiliated = validateImportMountainSelectionDistance(guangdongTrack, null)
+  assert.equal(unaffiliated.ok, true)
+  assert.equal(unaffiliated.verificationDistanceM, null)
+
+  const rejected = validateImportMountainSelectionDistance(guangdongTrack, taishan)
+  assert.equal(rejected.ok, false)
+  assert.equal(rejected.code, 'mountain_out_of_range')
+  assert.ok((rejected.distanceMeters ?? 0) > 1_000_000)
+  assert.equal(rejected.thresholdMeters, 20_000)
 })
 
 test('mountain matcher returns null for empty mountain lists and nearest match under 5km', async () => {

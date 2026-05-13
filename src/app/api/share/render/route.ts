@@ -337,7 +337,6 @@ function renderPayload(payload: ShareRenderRequest, photoDataUrl: string | null)
     return TransparentWatermarkTemplate({
       data: payload.data,
       template: payload.template,
-      photoDataUrl,
     })
   }
 
@@ -389,7 +388,7 @@ export async function POST(request: Request) {
     const [fonts, , photoDataUrl] = await Promise.all([
       loadShareFonts(fontText(payload.data)),
       ensureResvgWasm(),
-      photoDataUrlForTemplate(payload.template, payload.photoBase64),
+      payload.transparent ? null : photoDataUrlForTemplate(payload.template, payload.photoBase64),
     ])
     const access = paywallEnabled
       ? await checkTemplateAccess(payload.template, userId)

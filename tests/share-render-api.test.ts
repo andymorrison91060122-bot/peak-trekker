@@ -73,14 +73,18 @@ describe('share render API field policy regression', () => {
     )
   })
 
-  test('transparent watermark render follows selected template and photo data', () => {
+  test('transparent watermark render follows selected template and ignores photo data', () => {
     const routeSource = readSource('../src/app/api/share/render/route.ts')
     const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
 
     assert.match(
       routeSource,
-      /TransparentWatermarkTemplate\(\{\s*data: payload\.data,\s*template: payload\.template,\s*photoDataUrl,\s*\}\)/,
+      /TransparentWatermarkTemplate\(\{\s*data: payload\.data,\s*template: payload\.template,\s*\}\)/,
     )
+    assert.doesNotMatch(transparentSource, /photoDataUrl/)
+    assert.doesNotMatch(transparentSource, /PhotoLayer/)
+    assert.doesNotMatch(transparentSource, /PhotoShade/)
+    assert.doesNotMatch(transparentSource, /function WatermarkPhoto\(/)
 
     for (const template of [
       'base-data',
@@ -95,6 +99,15 @@ describe('share render API field policy regression', () => {
     ]) {
       assert.match(transparentSource, new RegExp(`template === '${template}'`), `${template} should have a transparent watermark branch`)
     }
+  })
+
+  test('transparent render skips photo decoding', () => {
+    const routeSource = readSource('../src/app/api/share/render/route.ts')
+
+    assert.match(
+      routeSource,
+      /payload\.transparent\s*\?\s*null\s*:\s*photoDataUrlForTemplate\(payload\.template,\s*payload\.photoBase64\)/,
+    )
   })
 
   test('rejects request without checkinId', async () => {

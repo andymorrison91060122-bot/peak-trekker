@@ -5,8 +5,6 @@ import {
   C,
   MiniTrailCircle,
   MountainRidgeSvg,
-  PhotoLayer,
-  PhotoShade,
   POSTER_HEIGHT,
   POSTER_WIDTH,
   SmallMetric,
@@ -42,24 +40,13 @@ function TransparentShell({ children }: { children: ReactNode }) {
   )
 }
 
-function WatermarkPhoto({
-  photoDataUrl,
-  direction = 'full',
-  strength = 0.72,
-  grayscale = false,
-}: {
-  photoDataUrl?: string | null
-  direction?: 'bottom' | 'left' | 'full'
-  strength?: number
-  grayscale?: boolean
-}) {
-  if (!photoDataUrl) return null
-
+function MonoFilmWatermarkTexture() {
   return (
-    <>
-      <PhotoLayer photoDataUrl={photoDataUrl} grayscale={grayscale} />
-      <PhotoShade direction={direction} strength={strength} />
-    </>
+    <svg width="1080" height="900" viewBox="0 0 1080 900" style={{ position: 'absolute', left: 0, top: 0, opacity: 0.3 }}>
+      <path d="M-80 700 L145 540 L280 610 L445 450 L635 680 L812 525 L1160 740" stroke={C.success} strokeWidth="4" fill="none" opacity=".18" />
+      <path d="M-80 800 L165 625 L326 715 L520 545 L718 807 L900 655 L1160 865" stroke={C.fg} strokeWidth="2" fill="none" opacity=".13" />
+      <path d="M0 58 H1080M0 842 H1080" stroke={C.fg} strokeWidth="2" opacity=".12" />
+    </svg>
   )
 }
 
@@ -162,10 +149,9 @@ function BottomClassicBlock({ data, compact = false }: { data: ShareTemplateProp
   )
 }
 
-function WatermarkClassic({ data, photoDataUrl }: ShareTemplateProps) {
+function WatermarkClassic({ data }: ShareTemplateProps) {
   return (
     <TransparentShell>
-      <WatermarkPhoto photoDataUrl={photoDataUrl} strength={0.64} />
       <TrailSvg glow={10} lineWidth={5} trackPreview={data.trackPreview} />
       <BottomClassicBlock data={data} />
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
@@ -175,13 +161,12 @@ function WatermarkClassic({ data, photoDataUrl }: ShareTemplateProps) {
   )
 }
 
-function WatermarkData({ data, photoDataUrl }: ShareTemplateProps) {
+function WatermarkData({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
 
   return (
     <TransparentShell>
-      <WatermarkPhoto photoDataUrl={photoDataUrl} strength={0.7} />
-      <MountainRidgeSvg opacity={photoDataUrl ? 0.2 : 0.14} />
+      <MountainRidgeSvg opacity={0.14} />
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'absolute', left: 72, right: 72, top: 520 }}>
         <span style={{ color: C.fg2, fontSize: 38, lineHeight: 1, fontWeight: 800, letterSpacing: '0.08em' }}>峰顶海拔</span>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 46 }}>
@@ -204,10 +189,9 @@ function WatermarkData({ data, photoDataUrl }: ShareTemplateProps) {
   )
 }
 
-function WatermarkPhotoComposite({ data, photoDataUrl }: ShareTemplateProps) {
+function WatermarkComposite({ data }: ShareTemplateProps) {
   return (
     <TransparentShell>
-      <WatermarkPhoto photoDataUrl={photoDataUrl} direction="bottom" strength={0.72} />
       <TrailSvg glow={14} lineWidth={7} trackPreview={data.trackPreview} />
       <BottomClassicBlock data={data} compact />
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
@@ -217,13 +201,12 @@ function WatermarkPhotoComposite({ data, photoDataUrl }: ShareTemplateProps) {
   )
 }
 
-function WatermarkPhotoOverlay({ data, photoDataUrl }: ShareTemplateProps) {
+function WatermarkOverlay({ data }: ShareTemplateProps) {
   const mountainName = data.visibleFields.mountainName ? data.mountainName : ''
   const location = data.visibleFields.location ? data.location : ''
 
   return (
     <TransparentShell>
-      <WatermarkPhoto photoDataUrl={photoDataUrl} direction="left" strength={0.72} />
       <div
         style={{
           display: 'flex',
@@ -252,12 +235,11 @@ function WatermarkPhotoOverlay({ data, photoDataUrl }: ShareTemplateProps) {
   )
 }
 
-function WatermarkBoldNumber({ data, photoDataUrl }: ShareTemplateProps) {
+function WatermarkBoldNumber({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
 
   return (
     <TransparentShell>
-      <WatermarkPhoto photoDataUrl={photoDataUrl} strength={0.66} />
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 64, right: 64, top: 180 }}>
         <span style={{ color: 'rgba(255, 255, 255, 0.32)', fontSize: 30, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>峰顶海拔</span>
         <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 32 }}>
@@ -283,13 +265,12 @@ function WatermarkBoldNumber({ data, photoDataUrl }: ShareTemplateProps) {
   )
 }
 
-function WatermarkDataScatter({ data, photoDataUrl }: ShareTemplateProps) {
+function WatermarkDataScatter({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
 
   return (
     <TransparentShell>
       <div style={{ display: 'flex', position: 'absolute', left: 432, top: 0, width: 648, height: 1920, overflow: 'hidden' }}>
-        {photoDataUrl ? <PhotoLayer photoDataUrl={photoDataUrl} width={648} height={1920} /> : null}
         <div style={{ display: 'flex', position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(18,20,22,.48), rgba(18,20,22,.04) 45%, rgba(18,20,22,.32))' }} />
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 0, top: 0, width: 470, height: 1920, background: 'linear-gradient(145deg, rgba(22, 26, 29, 0.82) 0%, rgba(13, 16, 18, 0.78) 100%)' }} />
@@ -312,27 +293,26 @@ function WatermarkDataScatter({ data, photoDataUrl }: ShareTemplateProps) {
   )
 }
 
-function WatermarkMonoFilm({ data, photoDataUrl }: ShareTemplateProps) {
+function WatermarkMonoFilm({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const stats = fourStats(data)
 
   return (
     <TransparentShell>
-      <div style={{ display: 'flex', position: 'absolute', left: 0, top: 0, width: 1080, height: 870, overflow: 'hidden' }}>
-        {photoDataUrl ? <PhotoLayer photoDataUrl={photoDataUrl} width={1080} height={870} /> : null}
-        <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 0, height: 348, background: 'linear-gradient(180deg, rgba(15,17,19,0) 0%, rgba(15,17,19,0.86) 100%)' }} />
+      <div style={{ display: 'flex', position: 'absolute', left: 0, top: 0, width: 1080, height: 900, overflow: 'hidden' }}>
+        <MonoFilmWatermarkTexture />
+        <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 0, height: 430, background: 'linear-gradient(180deg, rgba(10,12,14,0) 0%, rgba(10,12,14,0.36) 54%, rgba(10,12,14,0.78) 100%)' }} />
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', position: 'absolute', left: 78, right: 78, top: 810 }}>
-        {mountainLine ? <span style={{ color: C.fg, fontSize: 38, lineHeight: 1.2, fontWeight: 800, textAlign: 'left' }}>{mountainLine}</span> : null}
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 28 }}>
-          <span style={{ color: C.success, fontSize: 128, lineHeight: 0.92, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
-          <span style={{ color: C.success, fontSize: 50, fontWeight: 800, marginLeft: 10 }}>m</span>
+      <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, top: 1260, bottom: 0, background: 'rgba(10,12,14,0.78)' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', position: 'absolute', left: 78, right: 78, top: 770 }}>
+        {mountainLine ? <span style={{ color: C.fg, fontSize: 42, lineHeight: 1.18, fontWeight: 800, textAlign: 'left' }}>{mountainLine}</span> : null}
+        <span style={{ color: C.fg2, fontSize: 28, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em', marginTop: 52 }}>峰顶海拔</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 24 }}>
+          <span style={{ color: C.success, fontSize: 172, lineHeight: 0.9, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+          <span style={{ color: C.success, fontSize: 58, lineHeight: 1, fontWeight: 800, marginLeft: 12 }}>m</span>
         </div>
       </div>
-      <div style={{ display: 'flex', position: 'absolute', left: 72, right: 72, top: 1104, height: 430, overflow: 'hidden' }}>
-        <TrailSvg glow={10} lineWidth={6} trackPreview={data.trackPreview} />
-      </div>
-      <div style={{ display: 'flex', position: 'absolute', left: 58, right: 58, bottom: 232, alignItems: 'stretch', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', position: 'absolute', left: 58, right: 58, top: 1388, alignItems: 'stretch', justifyContent: 'center' }}>
         {stats.map((item, index) => (
           <div key={item.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: `${100 / Math.max(1, stats.length)}%`, borderLeft: index === 0 ? '0px solid transparent' : '2px solid rgba(245,247,248,.22)', padding: '0 12px' }}>
             <span style={{ color: C.fg2, fontSize: 19, lineHeight: 1, fontWeight: 800, letterSpacing: '0.12em' }}>{item.label}</span>
@@ -350,12 +330,11 @@ function WatermarkMonoFilm({ data, photoDataUrl }: ShareTemplateProps) {
   )
 }
 
-function WatermarkAltitudeProfile({ data, photoDataUrl }: ShareTemplateProps) {
+function WatermarkAltitudeProfile({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
 
   return (
     <TransparentShell>
-      <WatermarkPhoto photoDataUrl={photoDataUrl} strength={0.62} />
       <div style={{ display: 'flex', position: 'absolute', left: 72, top: 150 }}>
         <SmallMetric label="总距离" value={formatDistance(data.distance)} unit="km" accent />
       </div>
@@ -385,14 +364,13 @@ function WatermarkAltitudeProfile({ data, photoDataUrl }: ShareTemplateProps) {
   )
 }
 
-function WatermarkCertificate({ data, photoDataUrl }: ShareTemplateProps) {
+function WatermarkCertificate({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const startAltitude = Math.max(0, Math.round(data.altitude - data.elevationGain))
 
   return (
     <TransparentShell>
-      <WatermarkPhoto photoDataUrl={photoDataUrl} strength={0.58} />
-      <MountainRidgeSvg opacity={photoDataUrl ? 0.24 : 0.18} />
+      <MountainRidgeSvg opacity={0.18} />
       <CertificateElevationChart />
       <span style={{ position: 'absolute', left: 120, top: 870, color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800 }}>
         起点 {formatPlainNumber(startAltitude)}m
@@ -417,12 +395,11 @@ function WatermarkCertificate({ data, photoDataUrl }: ShareTemplateProps) {
   )
 }
 
-function WatermarkVerticalStory({ data, photoDataUrl }: ShareTemplateProps) {
+function WatermarkVerticalStory({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
 
   return (
     <TransparentShell>
-      {photoDataUrl ? <PhotoLayer photoDataUrl={photoDataUrl} grayscale /> : null}
       <div style={{ display: 'flex', position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,12,14,0.1), rgba(10,12,14,0.16) 62%, rgba(10,12,14,0))' }} />
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 0, height: 520, background: 'linear-gradient(180deg, rgba(10,12,14,0) 0%, rgba(10,12,14,0.42) 46%, rgba(10,12,14,0.82) 100%)' }} />
       <div style={{ display: 'flex', position: 'absolute', left: 58, right: 58, top: 66, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -512,16 +489,15 @@ function CertificateElevationChart() {
 export function TransparentWatermarkTemplate({
   data,
   template,
-  photoDataUrl,
 }: TransparentWatermarkProps) {
-  if (template === 'base-data') return <WatermarkData data={data} photoDataUrl={photoDataUrl} />
-  if (template === 'premium-photo-composite') return <WatermarkPhotoComposite data={data} photoDataUrl={photoDataUrl} />
-  if (template === 'premium-photo-overlay') return <WatermarkPhotoOverlay data={data} photoDataUrl={photoDataUrl} />
-  if (template === 'premium-bold-number') return <WatermarkBoldNumber data={data} photoDataUrl={photoDataUrl} />
-  if (template === 'premium-data-scatter') return <WatermarkDataScatter data={data} photoDataUrl={photoDataUrl} />
-  if (template === 'premium-mono-film') return <WatermarkMonoFilm data={data} photoDataUrl={photoDataUrl} />
-  if (template === 'premium-altitude-profile') return <WatermarkAltitudeProfile data={data} photoDataUrl={photoDataUrl} />
-  if (template === 'premium-summit-certificate') return <WatermarkCertificate data={data} photoDataUrl={photoDataUrl} />
-  if (template === 'premium-vertical-story') return <WatermarkVerticalStory data={data} photoDataUrl={photoDataUrl} />
-  return <WatermarkClassic data={data} photoDataUrl={photoDataUrl} />
+  if (template === 'base-data') return <WatermarkData data={data} />
+  if (template === 'premium-photo-composite') return <WatermarkComposite data={data} />
+  if (template === 'premium-photo-overlay') return <WatermarkOverlay data={data} />
+  if (template === 'premium-bold-number') return <WatermarkBoldNumber data={data} />
+  if (template === 'premium-data-scatter') return <WatermarkDataScatter data={data} />
+  if (template === 'premium-mono-film') return <WatermarkMonoFilm data={data} />
+  if (template === 'premium-altitude-profile') return <WatermarkAltitudeProfile data={data} />
+  if (template === 'premium-summit-certificate') return <WatermarkCertificate data={data} />
+  if (template === 'premium-vertical-story') return <WatermarkVerticalStory data={data} />
+  return <WatermarkClassic data={data} />
 }

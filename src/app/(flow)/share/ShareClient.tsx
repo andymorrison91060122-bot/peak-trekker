@@ -16,7 +16,6 @@ import { HelpTrigger } from '@/components/help/HelpTrigger'
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 import { buildShareTrackPath, type ShareTrackPreview } from '@/lib/share-track-preview'
 
-type ShareTab = 'basic' | 'advanced'
 type ShareViewMode = 'editor' | 'watermarkPreview'
 type ExportAction = 'save' | 'share' | 'transparent' | null
 type TemplateId = ShareRenderTemplate
@@ -110,6 +109,15 @@ const ADVANCED_TEMPLATES: AdvancedTemplate[] = [
   { id: 'premium-altitude-profile', label: 'Profile', kind: 'altitude-profile' },
   { id: 'premium-summit-certificate', label: 'Cert', kind: 'summit-certificate' },
   { id: 'premium-vertical-story', label: 'Story', kind: 'vertical-story' },
+]
+
+type ShareTemplateOption =
+  | { tier: 'basic'; template: BasicTemplate }
+  | { tier: 'advanced'; template: AdvancedTemplate }
+
+const SHARE_TEMPLATE_OPTIONS: ShareTemplateOption[] = [
+  ...BASIC_TEMPLATES.map((template) => ({ tier: 'basic' as const, template })),
+  ...ADVANCED_TEMPLATES.map((template) => ({ tier: 'advanced' as const, template })),
 ]
 
 const initialFieldToggles = FIELD_CONFIGS.reduce<Record<ShareFieldKey, boolean>>((next, field) => {
@@ -1639,82 +1647,16 @@ function AdvancedThumb({
   )
 }
 
-function Tabs({
-  activeTab,
-  onChange,
-}: {
-  activeTab: ShareTab
-  onChange: (tab: ShareTab) => void
-}) {
-  return (
-    <div
-      data-testid="share-template-tabs"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--space-6)',
-        padding: 'var(--space-3) var(--space-5) 0',
-      }}
-    >
-      {([
-        ['basic', '基础'],
-        ['advanced', '高级'],
-      ] as const).map(([tab, label]) => {
-        const active = activeTab === tab
-        return (
-          <button
-            type="button"
-            key={tab}
-            onClick={() => onChange(tab)}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              color: active ? 'var(--color-on-surface)' : 'var(--color-on-surface-variant)',
-              padding: '6px 0',
-              fontSize: 'var(--font-title-m-size)',
-              lineHeight: 'var(--font-title-m-line)',
-              fontWeight: 700,
-              position: 'relative',
-              cursor: 'pointer',
-            }}
-          >
-            {label}
-            {active ? (
-              <span
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  bottom: -2,
-                  height: 2,
-                  borderRadius: 'var(--radius-pill)',
-                  background: 'var(--color-success)',
-                }}
-              />
-            ) : null}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
 function ThumbnailRow({
-  activeTab,
-  selectedBasicTemplate,
-  selectedAdvancedTemplate,
+  selectedTemplate,
   data,
-  onSelectBasicTemplate,
-  onSelectAdvancedTemplate,
+  onSelectTemplate,
   paywallEnabled,
   premiumUnlocked,
 }: {
-  activeTab: ShareTab
-  selectedBasicTemplate: BasicTemplateId
-  selectedAdvancedTemplate: AdvancedTemplateId
+  selectedTemplate: TemplateId
   data: ShareActivityData
-  onSelectBasicTemplate: (template: BasicTemplateId) => void
-  onSelectAdvancedTemplate: (template: AdvancedTemplateId) => void
+  onSelectTemplate: (template: TemplateId) => void
   paywallEnabled: boolean
   premiumUnlocked: boolean
 }) {
@@ -1730,26 +1672,26 @@ function ThumbnailRow({
         padding: 'var(--space-3) var(--space-5) 0',
       }}
     >
-      {activeTab === 'basic'
-        ? BASIC_TEMPLATES.map((template) => (
-            <TemplateThumb
-              key={template.id}
-              template={template}
-              selected={selectedBasicTemplate === template.id}
-              data={data}
-              onSelect={onSelectBasicTemplate}
-            />
-          ))
-        : ADVANCED_TEMPLATES.map((template) => (
-            <AdvancedThumb
-              key={template.id}
-              template={template}
-              selected={selectedAdvancedTemplate === template.id}
-              onSelect={onSelectAdvancedTemplate}
-              locked={advancedLocked}
-              limitedFree={!paywallEnabled}
-            />
-          ))}
+      {SHARE_TEMPLATE_OPTIONS.map((option) => (
+        option.tier === 'basic' ? (
+          <TemplateThumb
+            key={option.template.id}
+            template={option.template}
+            selected={selectedTemplate === option.template.id}
+            data={data}
+            onSelect={onSelectTemplate}
+          />
+        ) : (
+          <AdvancedThumb
+            key={option.template.id}
+            template={option.template}
+            selected={selectedTemplate === option.template.id}
+            onSelect={onSelectTemplate}
+            locked={advancedLocked}
+            limitedFree={!paywallEnabled}
+          />
+        )
+      ))}
     </div>
   )
 }
@@ -2355,9 +2297,7 @@ export default function ShareClient({
 }) {
   const router = useRouter()
   const photoInputRef = useRef<HTMLInputElement | null>(null)
-  const [activeTab, setActiveTab] = useState<ShareTab>('basic')
-  const [selectedBasicTemplate, setSelectedBasicTemplate] = useState<BasicTemplateId>('base-classic')
-  const [selectedAdvancedTemplate, setSelectedAdvancedTemplate] = useState<AdvancedTemplateId>('premium-photo-composite')
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('base-classic')
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ShareViewMode>('editor')
   const [transparentBlob, setTransparentBlob] = useState<Blob | null>(null)
@@ -2367,7 +2307,6 @@ export default function ShareClient({
   const [exportError, setExportError] = useState<string | null>(null)
 
   const activityData = useMemo(() => initialData ?? MOCK_DATA, [initialData])
-  const selectedTemplate: TemplateId = activeTab === 'basic' ? selectedBasicTemplate : selectedAdvancedTemplate
   const premiumPreviewLocked = paywallEnabled && isAdvancedTemplateId(selectedTemplate) && !premiumUnlocked
 
   useEffect(() => () => {
@@ -2589,15 +2528,10 @@ export default function ShareClient({
         <UnlockHintBar onClick={() => window.alert('付费功能即将上线')} />
       ) : null}
 
-      <Tabs activeTab={activeTab} onChange={setActiveTab} />
-      <div style={{ height: 1, background: 'var(--color-outline)', opacity: 0.7, marginTop: 2 }} />
       <ThumbnailRow
-        activeTab={activeTab}
-        selectedBasicTemplate={selectedBasicTemplate}
-        selectedAdvancedTemplate={selectedAdvancedTemplate}
+        selectedTemplate={selectedTemplate}
         data={activityData}
-        onSelectBasicTemplate={setSelectedBasicTemplate}
-        onSelectAdvancedTemplate={setSelectedAdvancedTemplate}
+        onSelectTemplate={setSelectedTemplate}
         paywallEnabled={paywallEnabled}
         premiumUnlocked={premiumUnlocked}
       />

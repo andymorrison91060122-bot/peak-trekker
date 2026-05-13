@@ -10,6 +10,11 @@ export const SHARE_RENDER_REJECTED_FIELDS = [
   'max_altitude',
   'max_altitude_m',
   'max_elevation_meters',
+  'track',
+  'trackPoints',
+  'track_points',
+  'trackPreview',
+  'routePath',
   'data',
 ] as const
 

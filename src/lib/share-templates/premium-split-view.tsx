@@ -21,7 +21,7 @@ export function PremiumSplitViewTemplate({ data, photoDataUrl }: ShareTemplatePr
         <PhotoLayer photoDataUrl={photoDataUrl} width={1080} height={1330} />
         {!photoDataUrl ? <TopoSvg opacity={0.22} /> : null}
         <PhotoShade direction="full" strength={0.5} />
-        <TrailSvg glow={18} lineWidth={10} />
+        <TrailSvg glow={18} lineWidth={10} trackPreview={data.trackPreview} />
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 0, height: 650, background: 'linear-gradient(180deg, rgba(18,20,22,.72), #121416 32%, #121416 100%)' }} />

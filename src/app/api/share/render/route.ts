@@ -25,7 +25,9 @@ import type {
 } from '@/lib/share-templates/types'
 import { loadShareFonts } from '@/lib/fonts/load-share-fonts'
 import { checkTemplateAccess, isPremiumPaywallEnabled } from '@/lib/premium'
+import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import { ShareRenderPayloadPolicyError, assertShareRenderPayload } from '@/lib/share-render-policy'
+import { buildShareTrackPreview } from '@/lib/share-track-preview'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
@@ -85,6 +87,7 @@ type ShareCheckinRow = {
   elevation_gain_meters?: number | null
   max_elevation_meters?: number | null
   session_id?: string | null
+  track_points?: unknown
   mountains: MountainRelation | MountainRelation[] | null
 }
 
@@ -95,7 +98,42 @@ type TrekSessionRow = {
   distance_m: number | null
   ascent_m: number | null
   max_altitude_m: number | null
+  track_points?: unknown
 }
+
+const SHARE_CHECKIN_SELECT_FULL = `
+  id,
+  user_id,
+  source,
+  created_at,
+  start_time,
+  end_time,
+  distance_meters,
+  duration_seconds,
+  elevation_gain_meters,
+  max_elevation_meters,
+  session_id,
+  track_points,
+  mountains(id, name, altitude, province)
+`
+
+const SHARE_CHECKIN_SELECT_LEGACY = `
+  id,
+  user_id,
+  source,
+  created_at,
+  start_time,
+  end_time,
+  distance_meters,
+  duration_seconds,
+  elevation_gain_meters,
+  max_elevation_meters,
+  session_id,
+  mountains(id, name, altitude, province)
+`
+
+const TREK_SESSION_SELECT_FULL = 'id, started_at, ended_at, distance_m, ascent_m, max_altitude_m, track_points'
+const TREK_SESSION_SELECT_LEGACY = 'id, started_at, ended_at, distance_m, ascent_m, max_altitude_m'
 
 function asBoolean(value: unknown, fallback: boolean) {
   return typeof value === 'boolean' ? value : fallback
@@ -174,6 +212,45 @@ function parseRequestBody(body: unknown): ShareRenderApiRequest | Response {
   }
 }
 
+async function fetchShareCheckin(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  checkinId: string,
+) {
+  const fullResult = await supabase.from('checkins').select(SHARE_CHECKIN_SELECT_FULL).eq('id', checkinId).single()
+
+  if (!fullResult.error || !isSchemaCompatibilityErrorMessage(fullResult.error.message)) {
+    return fullResult as { data: ShareCheckinRow | null; error: typeof fullResult.error }
+  }
+
+  return (await supabase.from('checkins').select(SHARE_CHECKIN_SELECT_LEGACY).eq('id', checkinId).single()) as {
+    data: ShareCheckinRow | null
+    error: typeof fullResult.error
+  }
+}
+
+async function fetchTrekSession(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  sessionId: string,
+) {
+  const fullResult = await supabase
+    .from('trek_sessions')
+    .select(TREK_SESSION_SELECT_FULL)
+    .eq('id', sessionId)
+    .maybeSingle()
+
+  if (!fullResult.error || !isSchemaCompatibilityErrorMessage(fullResult.error.message)) {
+    return (fullResult.data ?? null) as TrekSessionRow | null
+  }
+
+  const legacyResult = await supabase
+    .from('trek_sessions')
+    .select(TREK_SESSION_SELECT_LEGACY)
+    .eq('id', sessionId)
+    .maybeSingle()
+
+  return (legacyResult.data ?? null) as TrekSessionRow | null
+}
+
 async function buildServerRenderPayload(apiRequest: ShareRenderApiRequest): Promise<{ payload: ShareRenderRequest; userId: string } | Response> {
   const supabase = await createSupabaseServerClient()
   const {
@@ -184,26 +261,7 @@ async function buildServerRenderPayload(apiRequest: ShareRenderApiRequest): Prom
     return Response.json({ error: 'forbidden' }, { status: 403 })
   }
 
-  const { data: checkin, error } = await supabase
-    .from('checkins')
-    .select(
-      `
-        id,
-        user_id,
-        source,
-        created_at,
-        start_time,
-        end_time,
-        distance_meters,
-        duration_seconds,
-        elevation_gain_meters,
-        max_elevation_meters,
-        session_id,
-        mountains(id, name, altitude, province)
-      `,
-    )
-    .eq('id', apiRequest.checkinId)
-    .single()
+  const { data: checkin, error } = await fetchShareCheckin(supabase, apiRequest.checkinId)
 
   if (error || !checkin) {
     return Response.json({ error: 'checkin not found' }, { status: 404 })
@@ -218,12 +276,7 @@ async function buildServerRenderPayload(apiRequest: ShareRenderApiRequest): Prom
   let session: TrekSessionRow | null = null
 
   if (row.session_id) {
-    const { data: sessionData } = await supabase
-      .from('trek_sessions')
-      .select('id, started_at, ended_at, distance_m, ascent_m, max_altitude_m')
-      .eq('id', row.session_id)
-      .maybeSingle()
-    session = (sessionData ?? null) as TrekSessionRow | null
+    session = await fetchTrekSession(supabase, row.session_id)
   }
 
   const distanceMeters = row.distance_meters ?? session?.distance_m ?? null
@@ -234,6 +287,7 @@ async function buildServerRenderPayload(apiRequest: ShareRenderApiRequest): Prom
       : null)
   const elevationGain = row.elevation_gain_meters ?? session?.ascent_m ?? null
   const altitude = row.max_elevation_meters ?? session?.max_altitude_m ?? mountain?.altitude ?? null
+  const trackPreview = buildShareTrackPreview(row.track_points) ?? buildShareTrackPreview(session?.track_points)
 
   const data: ShareTemplateData = {
     mountainName: mountain?.name ?? '未知山峰',
@@ -244,6 +298,7 @@ async function buildServerRenderPayload(apiRequest: ShareRenderApiRequest): Prom
     duration: formatShareDuration(durationSeconds),
     elevationGain: elevationGain ?? 0,
     source: sourceForRender(row.source),
+    trackPreview,
     visibleFields: {
       duration: apiRequest.fieldVisibility.duration !== false,
       elevationGain: apiRequest.fieldVisibility.elevationGain !== false,

@@ -1,4 +1,5 @@
 import type { ShareTemplateProps } from './types'
+import { buildShareTrackPath, type ShareTrackPreview } from '../share-track-preview'
 import {
   BrandFooter,
   C,
@@ -43,7 +44,7 @@ export function PremiumMonoFilmTemplate({ data, photoDataUrl }: ShareTemplatePro
 
       <div style={{ display: 'flex', position: 'absolute', left: 72, right: 72, top: 1104, height: 430, overflow: 'hidden' }}>
         <MonoFilmTopoTexture />
-        <MonoFilmTrailSvg />
+        <MonoFilmTrailSvg trackPreview={data.trackPreview} />
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 58, right: 58, bottom: 232, alignItems: 'stretch', justifyContent: 'center' }}>
@@ -103,7 +104,21 @@ function MonoFilmTopoTexture() {
   )
 }
 
-function MonoFilmTrailSvg() {
+const DEFAULT_MONO_FILM_TRAIL_PATH =
+  'M128 332 C 205 288 235 304 302 242 S 418 226 500 176 S 648 154 730 92 S 812 82 846 44'
+
+function MonoFilmTrailSvg({ trackPreview }: { trackPreview?: ShareTrackPreview | null }) {
+  const route = buildShareTrackPath(trackPreview, {
+    x: 96,
+    y: 38,
+    width: 780,
+    height: 310,
+    padding: 20,
+  })
+  const path = route?.d ?? DEFAULT_MONO_FILM_TRAIL_PATH
+  const start = route?.start ?? { x: 128, y: 332 }
+  const end = route?.end ?? { x: 846, y: 44 }
+
   return (
     <svg width="936" height="430" viewBox="0 0 936 430" style={{ position: 'absolute', left: 0, top: 0 }}>
       <defs>
@@ -112,7 +127,7 @@ function MonoFilmTrailSvg() {
         </filter>
       </defs>
       <path
-        d="M128 332 C 205 288 235 304 302 242 S 418 226 500 176 S 648 154 730 92 S 812 82 846 44"
+        d={path}
         stroke={C.success}
         strokeWidth="34"
         strokeLinecap="round"
@@ -122,15 +137,15 @@ function MonoFilmTrailSvg() {
         filter="url(#mono-film-trail-glow)"
       />
       <path
-        d="M128 332 C 205 288 235 304 302 242 S 418 226 500 176 S 648 154 730 92 S 812 82 846 44"
+        d={path}
         stroke={C.success}
         strokeWidth="9"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      <circle cx="128" cy="332" r="21" fill="#0a0c0e" stroke={C.success} strokeWidth="8" />
-      <circle cx="846" cy="44" r="27" fill={C.success} />
+      <circle cx={start.x} cy={start.y} r="21" fill="#0a0c0e" stroke={C.success} strokeWidth="8" />
+      <circle cx={end.x} cy={end.y} r="27" fill={C.success} />
     </svg>
   )
 }

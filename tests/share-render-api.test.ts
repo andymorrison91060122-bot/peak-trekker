@@ -103,6 +103,21 @@ describe('share render API field policy regression', () => {
     }
   })
 
+  test('rejects client-supplied track shapes and route paths', async () => {
+    const { ShareRenderPayloadPolicyError, assertShareRenderPayload } = await loadPolicy()
+
+    for (const field of ['track', 'trackPoints', 'track_points', 'trackPreview', 'routePath']) {
+      assert.throws(
+        () => assertShareRenderPayload({ template: 'base-classic', checkinId: 'fake-id', [field]: [] }),
+        (error) => matchesPolicyError(error, ShareRenderPayloadPolicyError, {
+          field,
+          message: /cannot be overridden/i,
+        }),
+        `${field} should be rejected`,
+      )
+    }
+  })
+
   test('rejects visibility attempts for locked altitude and distance fields', async () => {
     const { ShareRenderPayloadPolicyError, assertShareRenderPayload } = await loadPolicy()
 

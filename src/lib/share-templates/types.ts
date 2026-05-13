@@ -1,3 +1,5 @@
+import type { ShareTrackPreview } from '../share-track-preview'
+
 export type ShareRenderTemplate =
   | 'base-classic'
   | 'base-minimal'
@@ -33,6 +35,7 @@ export type ShareTemplateData = {
   elevationGain: number
   source: ShareRenderSource
   visibleFields: ShareVisibleFields
+  trackPreview?: ShareTrackPreview | null
 }
 
 export type ShareRenderRequest = {

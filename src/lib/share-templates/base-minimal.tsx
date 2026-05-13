@@ -32,7 +32,7 @@ export function BaseMinimalTemplate({ data, photoDataUrl }: ShareTemplateProps) 
           }}
         />
       )}
-      <TrailSvg glow={18} lineWidth={9} />
+      <TrailSvg glow={18} lineWidth={9} trackPreview={data.trackPreview} />
 
       <div
         style={{

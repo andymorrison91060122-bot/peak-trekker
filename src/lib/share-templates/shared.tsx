@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { ReactNode } from 'react'
+import { buildShareTrackPath, type ShareTrackPreview } from '../share-track-preview'
 import type { ShareTemplateData } from './types'
 
 export const POSTER_WIDTH = 1080
@@ -181,7 +182,20 @@ export function MountainRidgeSvg({ opacity = 0.2 }: { opacity?: number }) {
   )
 }
 
-export function MiniTrailCircle({ size = 156 }: { size?: number }) {
+const DEFAULT_MINI_TRAIL_PATH = 'M16 88 C 34 58 48 80 58 52 S 86 36 102 16'
+
+export function MiniTrailCircle({ size = 156, trackPreview }: { size?: number; trackPreview?: ShareTrackPreview | null }) {
+  const route = buildShareTrackPath(trackPreview, {
+    x: 14,
+    y: 14,
+    width: 92,
+    height: 92,
+    padding: 2,
+  })
+  const path = route?.d ?? DEFAULT_MINI_TRAIL_PATH
+  const start = route?.start ?? { x: 16, y: 88 }
+  const end = route?.end ?? { x: 102, y: 16 }
+
   return (
     <div
       style={{
@@ -196,9 +210,9 @@ export function MiniTrailCircle({ size = 156 }: { size?: number }) {
       }}
     >
       <svg width={size - 42} height={size - 42} viewBox="0 0 120 120">
-        <path d="M16 88 C 34 58 48 80 58 52 S 86 36 102 16" stroke={C.fg} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-        <circle cx="16" cy="88" r="7" fill={C.fg} />
-        <circle cx="102" cy="16" r="8" fill={C.success} />
+        <path d={path} stroke={C.fg} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <circle cx={start.x} cy={start.y} r="7" fill={C.fg} />
+        <circle cx={end.x} cy={end.y} r="8" fill={C.success} />
       </svg>
     </div>
   )
@@ -365,7 +379,29 @@ export function RenderRoot({
   )
 }
 
-export function TrailSvg({ glow = 10, lineWidth = 8 }: { glow?: number; lineWidth?: number }) {
+const DEFAULT_POSTER_TRAIL_PATH =
+  'M285 910 C 360 830 330 760 430 708 C 548 646 500 555 585 506 C 724 425 660 332 780 285 C 870 250 850 174 920 126'
+
+export function TrailSvg({
+  glow = 10,
+  lineWidth = 8,
+  trackPreview,
+}: {
+  glow?: number
+  lineWidth?: number
+  trackPreview?: ShareTrackPreview | null
+}) {
+  const route = buildShareTrackPath(trackPreview, {
+    x: 240,
+    y: 120,
+    width: 720,
+    height: 800,
+    padding: 40,
+  })
+  const path = route?.d ?? DEFAULT_POSTER_TRAIL_PATH
+  const start = route?.start ?? { x: 285, y: 910 }
+  const end = route?.end ?? { x: 920, y: 126 }
+
   return (
     <svg width={POSTER_WIDTH} height={POSTER_HEIGHT} viewBox={`0 0 ${POSTER_WIDTH} ${POSTER_HEIGHT}`} style={{ position: 'absolute', inset: 0 }}>
       <defs>
@@ -374,7 +410,7 @@ export function TrailSvg({ glow = 10, lineWidth = 8 }: { glow?: number; lineWidt
         </filter>
       </defs>
       <path
-        d="M285 910 C 360 830 330 760 430 708 C 548 646 500 555 585 506 C 724 425 660 332 780 285 C 870 250 850 174 920 126"
+        d={path}
         stroke={C.success}
         strokeWidth={lineWidth * 4}
         strokeLinecap="round"
@@ -384,15 +420,15 @@ export function TrailSvg({ glow = 10, lineWidth = 8 }: { glow?: number; lineWidt
         filter="url(#poster-trail-glow)"
       />
       <path
-        d="M285 910 C 360 830 330 760 430 708 C 548 646 500 555 585 506 C 724 425 660 332 780 285 C 870 250 850 174 920 126"
+        d={path}
         stroke={C.success}
         strokeWidth={lineWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      <circle cx="285" cy="910" r="19" fill={C.bg} stroke={C.success} strokeWidth="8" />
-      <circle cx="920" cy="126" r="26" fill={C.success} />
+      <circle cx={start.x} cy={start.y} r="19" fill={C.bg} stroke={C.success} strokeWidth="8" />
+      <circle cx={end.x} cy={end.y} r="26" fill={C.success} />
     </svg>
   )
 }

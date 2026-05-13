@@ -30,7 +30,7 @@ export function PremiumAltitudeProfileTemplate({ data, photoDataUrl }: ShareTemp
       ) : null}
 
       <div style={{ display: 'flex', position: 'absolute', left: 72, bottom: 430 }}>
-        <MiniTrailCircle size={160} />
+        <MiniTrailCircle size={160} trackPreview={data.trackPreview} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'absolute', left: 246, right: 246, bottom: 420 }}>

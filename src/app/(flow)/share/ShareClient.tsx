@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/Icons'
 import { HelpTrigger } from '@/components/help/HelpTrigger'
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
+import { buildShareTrackPath, type ShareTrackPreview } from '@/lib/share-track-preview'
 
 type ShareTab = 'basic' | 'advanced'
 type ShareViewMode = 'editor' | 'watermarkPreview'
@@ -43,6 +44,7 @@ export interface ShareActivityData {
   location?: string
   pace?: string
   source?: ShareActivitySource
+  trackPreview?: ShareTrackPreview | null
 }
 
 type FieldConfig = {
@@ -431,7 +433,21 @@ function HutGlyph() {
   )
 }
 
-function TrailPath() {
+const DEFAULT_PREVIEW_TRAIL_PATH =
+  'M66 328 C 94 306 82 278 112 260 C 146 239 132 202 157 186 C 198 160 172 126 209 110 C 235 98 228 70 250 48'
+
+function TrailPath({ trackPreview }: { trackPreview?: ShareTrackPreview | null }) {
+  const route = buildShareTrackPath(trackPreview, {
+    x: 32,
+    y: 44,
+    width: 216,
+    height: 290,
+    padding: 10,
+  })
+  const path = route?.d ?? DEFAULT_PREVIEW_TRAIL_PATH
+  const start = route?.start ?? { x: 66, y: 328 }
+  const end = route?.end ?? { x: 250, y: 48 }
+
   return (
     <svg
       width="100%"
@@ -447,7 +463,8 @@ function TrailPath() {
         </filter>
       </defs>
       <path
-        d="M66 328 C 94 306 82 278 112 260 C 146 239 132 202 157 186 C 198 160 172 126 209 110 C 235 98 228 70 250 48"
+        data-real-track={route ? 'true' : undefined}
+        d={path}
         stroke="var(--color-success)"
         strokeWidth="14"
         fill="none"
@@ -456,15 +473,16 @@ function TrailPath() {
         filter="url(#share-trail-glow)"
       />
       <path
-        d="M66 328 C 94 306 82 278 112 260 C 146 239 132 202 157 186 C 198 160 172 126 209 110 C 235 98 228 70 250 48"
+        data-real-track={route ? 'true' : undefined}
+        d={path}
         stroke="var(--color-success)"
         strokeWidth="4.2"
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="66" cy="328" r="7" fill="var(--color-surface)" stroke="var(--color-success)" strokeWidth="3" />
-      <circle cx="250" cy="48" r="8" fill="var(--color-success)" />
+      <circle cx={start.x} cy={start.y} r="7" fill="var(--color-surface)" stroke="var(--color-success)" strokeWidth="3" />
+      <circle cx={end.x} cy={end.y} r="8" fill="var(--color-success)" />
     </svg>
   )
 }
@@ -775,7 +793,7 @@ function BaseHeroPreview({
       ) : (
         <TopoBackground showMap={showMap} />
       )}
-      {isData ? null : <TrailPath />}
+      {isData ? null : <TrailPath trackPreview={data.trackPreview} />}
       <div
         style={{
           position: 'absolute',
@@ -1038,7 +1056,7 @@ function PremiumHeroPreview({
 
         <div style={{ position: 'absolute', left: 18, right: 18, top: '57%', height: '20%', overflow: 'hidden' }}>
           <TopoBackground showMap />
-          <MiniMonoTrail />
+          <MiniMonoTrail trackPreview={data.trackPreview} />
         </div>
 
         <PreviewStats stats={statItems} bottom={62} compact />
@@ -1221,7 +1239,7 @@ function PremiumHeroPreview({
         />
       ) : null}
 
-      {template === 'premium-photo-composite' || template === 'premium-split-view' || monoFilm ? <TrailPath /> : null}
+      {template === 'premium-photo-composite' || template === 'premium-split-view' || monoFilm ? <TrailPath trackPreview={data.trackPreview} /> : null}
 
       {bold ? (
         <div style={{ position: 'absolute', left: 14, right: 14, top: 46, color: 'color-mix(in srgb, var(--color-on-surface) 26%, transparent)', fontFamily: 'var(--font-mono)', fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
@@ -1307,7 +1325,20 @@ function HeroPreview({
   return <PremiumHeroPreview data={data} toggles={toggles} template={template} photoDataUrl={photoDataUrl} />
 }
 
-function MiniMonoTrail() {
+const DEFAULT_PREVIEW_MONO_TRAIL_PATH = 'M28 78 C 62 58 80 66 103 45 S 143 44 170 29 S 218 28 250 12'
+
+function MiniMonoTrail({ trackPreview }: { trackPreview?: ShareTrackPreview | null }) {
+  const route = buildShareTrackPath(trackPreview, {
+    x: 24,
+    y: 10,
+    width: 232,
+    height: 72,
+    padding: 4,
+  })
+  const path = route?.d ?? DEFAULT_PREVIEW_MONO_TRAIL_PATH
+  const start = route?.start ?? { x: 28, y: 78 }
+  const end = route?.end ?? { x: 250, y: 12 }
+
   return (
     <svg width="100%" height="100%" viewBox="0 0 280 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }} aria-hidden="true">
       <defs>
@@ -1316,7 +1347,8 @@ function MiniMonoTrail() {
         </filter>
       </defs>
       <path
-        d="M28 78 C 62 58 80 66 103 45 S 143 44 170 29 S 218 28 250 12"
+        data-real-track={route ? 'true' : undefined}
+        d={path}
         stroke="var(--color-success)"
         strokeWidth="14"
         strokeLinecap="round"
@@ -1326,15 +1358,16 @@ function MiniMonoTrail() {
         filter="url(#share-preview-mono-trail-glow)"
       />
       <path
-        d="M28 78 C 62 58 80 66 103 45 S 143 44 170 29 S 218 28 250 12"
+        data-real-track={route ? 'true' : undefined}
+        d={path}
         stroke="var(--color-success)"
         strokeWidth="2.6"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      <circle cx="28" cy="78" r="6" fill="var(--color-surface)" stroke="var(--color-success)" strokeWidth="2.4" />
-      <circle cx="250" cy="12" r="7" fill="var(--color-success)" />
+      <circle cx={start.x} cy={start.y} r="6" fill="var(--color-surface)" stroke="var(--color-success)" strokeWidth="2.4" />
+      <circle cx={end.x} cy={end.y} r="7" fill="var(--color-success)" />
     </svg>
   )
 }

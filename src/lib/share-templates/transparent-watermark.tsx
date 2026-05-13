@@ -72,7 +72,7 @@ export function TransparentWatermarkTemplate({ data }: ShareTemplateProps) {
         fontFamily: 'Noto Sans SC',
       }}
     >
-      <TrailSvg glow={10} lineWidth={5} />
+      <TrailSvg glow={10} lineWidth={5} trackPreview={data.trackPreview} />
 
       <div
         style={{

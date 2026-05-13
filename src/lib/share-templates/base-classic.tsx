@@ -35,7 +35,7 @@ export function BaseClassicTemplate({ data, photoDataUrl }: ShareTemplateProps) 
         />
       )}
       <TopoSvg opacity={photoDataUrl ? 0.22 : 0.45} />
-      <TrailSvg glow={12} lineWidth={8} />
+      <TrailSvg glow={12} lineWidth={8} trackPreview={data.trackPreview} />
 
       <div
         style={{

@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation'
 import {
   BackIcon,
   CameraIcon,
-  MoreIcon,
   MountainIcon,
   ShareIcon,
 } from '@/components/ui/Icons'
@@ -307,24 +306,6 @@ function NavBar({ onBack }: { onBack: () => void }) {
         分享编辑器
       </div>
       <div style={{ flex: 1 }} />
-      <button
-        type="button"
-        onClick={noop}
-        style={{
-          minWidth: 56,
-          height: 40,
-          border: 'none',
-          background: 'transparent',
-          color: 'var(--color-success)',
-          fontSize: 'var(--font-label-m-size)',
-          lineHeight: 'var(--font-label-m-line)',
-          fontWeight: 700,
-          cursor: 'pointer',
-          zIndex: 1,
-        }}
-      >
-        预览
-      </button>
     </div>
   )
 }
@@ -1996,7 +1977,7 @@ function ActionBar({
           maxWidth: 'var(--page-max-width)',
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: '0.78fr 1.35fr 0.5fr',
+          gridTemplateColumns: '1fr 1fr',
           gap: 'var(--space-2)',
           alignItems: 'center',
         }}
@@ -2050,24 +2031,6 @@ function ActionBar({
         >
           {exportingAction === 'share' ? '生成中' : '分享'}
           <ShareIcon size={16} />
-        </button>
-        <button
-          type="button"
-          aria-label="更多"
-          onClick={noop}
-          style={{
-            height: 50,
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--color-outline)',
-            background: 'var(--color-surface-variant)',
-            color: 'var(--color-on-surface-variant)',
-            display: 'grid',
-            placeItems: 'center',
-            cursor: 'pointer',
-            minWidth: 0,
-          }}
-        >
-          <MoreIcon size={18} />
         </button>
       </div>
     </div>

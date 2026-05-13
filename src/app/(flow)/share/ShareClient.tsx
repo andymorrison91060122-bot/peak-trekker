@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation'
 import {
   BackIcon,
   CameraIcon,
-  MoreIcon,
   MountainIcon,
   ShareIcon,
 } from '@/components/ui/Icons'
@@ -16,7 +15,6 @@ import { HelpTrigger } from '@/components/help/HelpTrigger'
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 import { buildShareTrackPath, type ShareTrackPreview } from '@/lib/share-track-preview'
 
-type ShareTab = 'basic' | 'advanced'
 type ShareViewMode = 'editor' | 'watermarkPreview'
 type ExportAction = 'save' | 'share' | 'transparent' | null
 type TemplateId = ShareRenderTemplate
@@ -110,6 +108,15 @@ const ADVANCED_TEMPLATES: AdvancedTemplate[] = [
   { id: 'premium-altitude-profile', label: 'Profile', kind: 'altitude-profile' },
   { id: 'premium-summit-certificate', label: 'Cert', kind: 'summit-certificate' },
   { id: 'premium-vertical-story', label: 'Story', kind: 'vertical-story' },
+]
+
+type ShareTemplateOption =
+  | { tier: 'basic'; template: BasicTemplate }
+  | { tier: 'advanced'; template: AdvancedTemplate }
+
+const SHARE_TEMPLATE_OPTIONS: ShareTemplateOption[] = [
+  ...BASIC_TEMPLATES.map((template) => ({ tier: 'basic' as const, template })),
+  ...ADVANCED_TEMPLATES.map((template) => ({ tier: 'advanced' as const, template })),
 ]
 
 const initialFieldToggles = FIELD_CONFIGS.reduce<Record<ShareFieldKey, boolean>>((next, field) => {
@@ -299,42 +306,11 @@ function NavBar({ onBack }: { onBack: () => void }) {
         分享编辑器
       </div>
       <div style={{ flex: 1 }} />
-      <button
-        type="button"
-        onClick={noop}
-        style={{
-          minWidth: 56,
-          height: 40,
-          border: 'none',
-          background: 'transparent',
-          color: 'var(--color-success)',
-          fontSize: 'var(--font-label-m-size)',
-          lineHeight: 'var(--font-label-m-line)',
-          fontWeight: 700,
-          cursor: 'pointer',
-          zIndex: 1,
-        }}
-      >
-        预览
-      </button>
     </div>
   )
 }
 
-function TopoBackground({ showMap }: { showMap: boolean }) {
-  if (!showMap) {
-    return (
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background:
-            'radial-gradient(circle at 58% 22%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 34%), linear-gradient(180deg, var(--color-surface-variant), var(--color-surface))',
-        }}
-      />
-    )
-  }
-
+function TopoBackground() {
   return (
     <>
       <div
@@ -370,63 +346,7 @@ function TopoBackground({ showMap }: { showMap: boolean }) {
         <path d="M-10 334 Q 62 318 128 326 T 290 300" stroke="var(--color-on-surface)" strokeWidth="0.8" fill="none" opacity="0.08" />
         <path d="M-10 96 Q 52 118 112 96 T 286 88" stroke="var(--color-on-surface)" strokeWidth="0.8" fill="none" opacity="0.07" />
       </svg>
-      <MapLabel x={50} y={135} title="玉山北峰" sub="3858m" />
-      <MapLabel x={176} y={260} title="圆峰山屋" sub="3030m" icon="hut" />
-      <MapLabel x={42} y={350} title="塔塔加" sub="" />
     </>
-  )
-}
-
-function MapLabel({
-  x,
-  y,
-  title,
-  sub,
-  icon = 'peak',
-}: {
-  x: number
-  y: number
-  title: string
-  sub: string
-  icon?: 'peak' | 'hut'
-}) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: x,
-        top: y,
-        color: 'color-mix(in srgb, var(--color-on-surface-variant) 58%, transparent)',
-        fontSize: 7,
-        lineHeight: 1.35,
-        fontWeight: 700,
-        textShadow: '0 1px 2px var(--color-surface)',
-      }}
-    >
-      <div>{title}</div>
-      {sub ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 1 }}>
-          {icon === 'hut' ? <HutGlyph /> : <PeakGlyph />}
-          <span>{sub}</span>
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-function PeakGlyph() {
-  return (
-    <svg width="8" height="8" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <path d="M6 2l5 8H1z" fill="currentColor" opacity=".7" />
-    </svg>
-  )
-}
-
-function HutGlyph() {
-  return (
-    <svg width="8" height="8" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <path d="M2 6l4-3 4 3v4H2z" fill="currentColor" opacity=".7" />
-    </svg>
   )
 }
 
@@ -1116,7 +1036,7 @@ function PremiumHeroPreview({
           boxShadow: '0 24px 56px color-mix(in srgb, var(--color-surface) 76%, transparent)',
         }}
       >
-        <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground showMap />}</PreviewPhotoBackground>
+        <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground />}</PreviewPhotoBackground>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, var(--color-surface), color-mix(in srgb, var(--color-surface) 80%, transparent) 44%, transparent)' }} />
         <div style={{ position: 'absolute', left: 18, top: 74, width: 104 }}>
           {overlayName ? <div style={{ color: 'var(--color-on-surface)', fontSize: 14, lineHeight: 1.18, fontWeight: 800 }}>{overlayName}</div> : null}
@@ -1155,7 +1075,7 @@ function PremiumHeroPreview({
           boxShadow: '0 24px 56px color-mix(in srgb, var(--color-surface) 76%, transparent)',
         }}
       >
-        <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground showMap />}</PreviewPhotoBackground>
+        <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground />}</PreviewPhotoBackground>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 12%, transparent), color-mix(in srgb, var(--color-surface) 86%, transparent) 78%, var(--color-surface))' }} />
         <div style={{ position: 'absolute', left: 16, top: 54, color: 'rgba(255,255,255,0.32)', fontSize: 13, fontWeight: 800, letterSpacing: '0.08em' }}>峰顶海拔</div>
         <div style={{ position: 'absolute', left: 14, right: 14, top: 78, color: 'rgba(255,255,255,0.25)', fontFamily: 'var(--font-mono)', fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
@@ -1214,12 +1134,12 @@ function PremiumHeroPreview({
         <>
           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '42%', background: 'linear-gradient(160deg, var(--color-surface-variant), var(--color-surface))' }} />
           <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '60%', overflow: 'hidden' }}>
-            <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground showMap />}</PreviewPhotoBackground>
+            <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground />}</PreviewPhotoBackground>
           </div>
         </>
       ) : (
         <PreviewPhotoBackground photoDataUrl={photoDataUrl} grayscale={verticalStory}>
-          {!photoDataUrl ? <TopoBackground showMap /> : null}
+          {!photoDataUrl ? <TopoBackground /> : null}
         </PreviewPhotoBackground>
       )}
 
@@ -1708,82 +1628,16 @@ function AdvancedThumb({
   )
 }
 
-function Tabs({
-  activeTab,
-  onChange,
-}: {
-  activeTab: ShareTab
-  onChange: (tab: ShareTab) => void
-}) {
-  return (
-    <div
-      data-testid="share-template-tabs"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--space-6)',
-        padding: 'var(--space-3) var(--space-5) 0',
-      }}
-    >
-      {([
-        ['basic', '基础'],
-        ['advanced', '高级'],
-      ] as const).map(([tab, label]) => {
-        const active = activeTab === tab
-        return (
-          <button
-            type="button"
-            key={tab}
-            onClick={() => onChange(tab)}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              color: active ? 'var(--color-on-surface)' : 'var(--color-on-surface-variant)',
-              padding: '6px 0',
-              fontSize: 'var(--font-title-m-size)',
-              lineHeight: 'var(--font-title-m-line)',
-              fontWeight: 700,
-              position: 'relative',
-              cursor: 'pointer',
-            }}
-          >
-            {label}
-            {active ? (
-              <span
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  bottom: -2,
-                  height: 2,
-                  borderRadius: 'var(--radius-pill)',
-                  background: 'var(--color-success)',
-                }}
-              />
-            ) : null}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
 function ThumbnailRow({
-  activeTab,
-  selectedBasicTemplate,
-  selectedAdvancedTemplate,
+  selectedTemplate,
   data,
-  onSelectBasicTemplate,
-  onSelectAdvancedTemplate,
+  onSelectTemplate,
   paywallEnabled,
   premiumUnlocked,
 }: {
-  activeTab: ShareTab
-  selectedBasicTemplate: BasicTemplateId
-  selectedAdvancedTemplate: AdvancedTemplateId
+  selectedTemplate: TemplateId
   data: ShareActivityData
-  onSelectBasicTemplate: (template: BasicTemplateId) => void
-  onSelectAdvancedTemplate: (template: AdvancedTemplateId) => void
+  onSelectTemplate: (template: TemplateId) => void
   paywallEnabled: boolean
   premiumUnlocked: boolean
 }) {
@@ -1799,26 +1653,26 @@ function ThumbnailRow({
         padding: 'var(--space-3) var(--space-5) 0',
       }}
     >
-      {activeTab === 'basic'
-        ? BASIC_TEMPLATES.map((template) => (
-            <TemplateThumb
-              key={template.id}
-              template={template}
-              selected={selectedBasicTemplate === template.id}
-              data={data}
-              onSelect={onSelectBasicTemplate}
-            />
-          ))
-        : ADVANCED_TEMPLATES.map((template) => (
-            <AdvancedThumb
-              key={template.id}
-              template={template}
-              selected={selectedAdvancedTemplate === template.id}
-              onSelect={onSelectAdvancedTemplate}
-              locked={advancedLocked}
-              limitedFree={!paywallEnabled}
-            />
-          ))}
+      {SHARE_TEMPLATE_OPTIONS.map((option) => (
+        option.tier === 'basic' ? (
+          <TemplateThumb
+            key={option.template.id}
+            template={option.template}
+            selected={selectedTemplate === option.template.id}
+            data={data}
+            onSelect={onSelectTemplate}
+          />
+        ) : (
+          <AdvancedThumb
+            key={option.template.id}
+            template={option.template}
+            selected={selectedTemplate === option.template.id}
+            onSelect={onSelectTemplate}
+            locked={advancedLocked}
+            limitedFree={!paywallEnabled}
+          />
+        )
+      ))}
     </div>
   )
 }
@@ -1839,55 +1693,13 @@ function DownloadIcon() {
   )
 }
 
-function MapIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M9 18l-5 2V6l5-2 6 2 5-2v14l-5 2zM9 4v14M15 6v14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function InlineSwitch({ on }: { on: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      style={{
-        width: 32,
-        height: 18,
-        borderRadius: 'var(--radius-pill)',
-        background: on ? 'var(--color-success)' : 'var(--color-outline)',
-        position: 'relative',
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{
-          position: 'absolute',
-          top: 2,
-          left: on ? 16 : 2,
-          width: 14,
-          height: 14,
-          borderRadius: 'var(--radius-pill)',
-          background: 'var(--color-on-surface)',
-          boxShadow: '0 1px 3px color-mix(in srgb, var(--color-surface) 65%, transparent)',
-          transition: 'left 160ms ease',
-        }}
-      />
-    </span>
-  )
-}
-
 function ControlRow({
-  showMap,
-  onToggleMap,
   onPickPhoto,
   onRemovePhoto,
   onExportTransparent,
   transparentExporting,
   hasPhoto,
 }: {
-  showMap: boolean
-  onToggleMap: () => void
   onPickPhoto: () => void
   onRemovePhoto: () => void
   onExportTransparent: () => void
@@ -1912,30 +1724,6 @@ function ControlRow({
       <IconButton label="移除照片" onClick={onRemovePhoto} disabled={!hasPhoto}>
         <TrashIcon />
       </IconButton>
-      <button
-        type="button"
-        onClick={onToggleMap}
-        aria-pressed={showMap}
-        style={{
-          height: 44,
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--color-outline)',
-          background: 'color-mix(in srgb, var(--color-surface-variant) 84%, transparent)',
-          color: 'var(--color-on-surface)',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '0 var(--space-3)',
-          flexShrink: 0,
-          cursor: 'pointer',
-          fontSize: 'var(--font-label-m-size)',
-          fontWeight: 700,
-        }}
-      >
-        <MapIcon />
-        地图
-        <InlineSwitch on={showMap} />
-      </button>
       <button
         type="button"
         onClick={onExportTransparent}
@@ -2189,7 +1977,7 @@ function ActionBar({
           maxWidth: 'var(--page-max-width)',
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: '0.78fr 1.35fr 0.5fr',
+          gridTemplateColumns: '1fr 1fr',
           gap: 'var(--space-2)',
           alignItems: 'center',
         }}
@@ -2243,24 +2031,6 @@ function ActionBar({
         >
           {exportingAction === 'share' ? '生成中' : '分享'}
           <ShareIcon size={16} />
-        </button>
-        <button
-          type="button"
-          aria-label="更多"
-          onClick={noop}
-          style={{
-            height: 50,
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--color-outline)',
-            background: 'var(--color-surface-variant)',
-            color: 'var(--color-on-surface-variant)',
-            display: 'grid',
-            placeItems: 'center',
-            cursor: 'pointer',
-            minWidth: 0,
-          }}
-        >
-          <MoreIcon size={18} />
         </button>
       </div>
     </div>
@@ -2490,20 +2260,16 @@ export default function ShareClient({
 }) {
   const router = useRouter()
   const photoInputRef = useRef<HTMLInputElement | null>(null)
-  const [activeTab, setActiveTab] = useState<ShareTab>('basic')
-  const [selectedBasicTemplate, setSelectedBasicTemplate] = useState<BasicTemplateId>('base-classic')
-  const [selectedAdvancedTemplate, setSelectedAdvancedTemplate] = useState<AdvancedTemplateId>('premium-photo-composite')
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('base-classic')
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ShareViewMode>('editor')
   const [transparentBlob, setTransparentBlob] = useState<Blob | null>(null)
   const [transparentBlobUrl, setTransparentBlobUrl] = useState<string | null>(null)
-  const [showMap, setShowMap] = useState(true)
   const [fieldToggles, setFieldToggles] = useState<Record<ShareFieldKey, boolean>>(initialFieldToggles)
   const [exportingAction, setExportingAction] = useState<ExportAction>(null)
   const [exportError, setExportError] = useState<string | null>(null)
 
   const activityData = useMemo(() => initialData ?? MOCK_DATA, [initialData])
-  const selectedTemplate: TemplateId = activeTab === 'basic' ? selectedBasicTemplate : selectedAdvancedTemplate
   const premiumPreviewLocked = paywallEnabled && isAdvancedTemplateId(selectedTemplate) && !premiumUnlocked
 
   useEffect(() => () => {
@@ -2725,21 +2491,14 @@ export default function ShareClient({
         <UnlockHintBar onClick={() => window.alert('付费功能即将上线')} />
       ) : null}
 
-      <Tabs activeTab={activeTab} onChange={setActiveTab} />
-      <div style={{ height: 1, background: 'var(--color-outline)', opacity: 0.7, marginTop: 2 }} />
       <ThumbnailRow
-        activeTab={activeTab}
-        selectedBasicTemplate={selectedBasicTemplate}
-        selectedAdvancedTemplate={selectedAdvancedTemplate}
+        selectedTemplate={selectedTemplate}
         data={activityData}
-        onSelectBasicTemplate={setSelectedBasicTemplate}
-        onSelectAdvancedTemplate={setSelectedAdvancedTemplate}
+        onSelectTemplate={setSelectedTemplate}
         paywallEnabled={paywallEnabled}
         premiumUnlocked={premiumUnlocked}
       />
       <ControlRow
-        showMap={showMap}
-        onToggleMap={() => setShowMap((current) => !current)}
         onPickPhoto={() => photoInputRef.current?.click()}
         onRemovePhoto={() => setPhotoDataUrl(null)}
         onExportTransparent={handleTransparentExport}

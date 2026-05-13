@@ -73,6 +73,30 @@ describe('share render API field policy regression', () => {
     )
   })
 
+  test('transparent watermark render follows selected template and photo data', () => {
+    const routeSource = readSource('../src/app/api/share/render/route.ts')
+    const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
+
+    assert.match(
+      routeSource,
+      /TransparentWatermarkTemplate\(\{\s*data: payload\.data,\s*template: payload\.template,\s*photoDataUrl,\s*\}\)/,
+    )
+
+    for (const template of [
+      'base-data',
+      'premium-photo-composite',
+      'premium-photo-overlay',
+      'premium-bold-number',
+      'premium-data-scatter',
+      'premium-mono-film',
+      'premium-altitude-profile',
+      'premium-summit-certificate',
+      'premium-vertical-story',
+    ]) {
+      assert.match(transparentSource, new RegExp(`template === '${template}'`), `${template} should have a transparent watermark branch`)
+    }
+  })
+
   test('rejects request without checkinId', async () => {
     const { ShareRenderPayloadPolicyError, assertShareRenderPayload } = await loadPolicy()
 

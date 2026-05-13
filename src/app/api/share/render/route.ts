@@ -334,7 +334,11 @@ function renderTemplate({ template, data }: ShareRenderRequest, photoDataUrl: st
 
 function renderPayload(payload: ShareRenderRequest, photoDataUrl: string | null) {
   if (payload.transparent) {
-    return TransparentWatermarkTemplate({ data: payload.data })
+    return TransparentWatermarkTemplate({
+      data: payload.data,
+      template: payload.template,
+      photoDataUrl,
+    })
   }
 
   return renderTemplate(payload, photoDataUrl)

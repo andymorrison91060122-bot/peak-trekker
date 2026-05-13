@@ -1,5 +1,6 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 
 const sourceExtension = 'ts'
 
@@ -32,6 +33,10 @@ function matchesPolicyError(
   return true
 }
 
+function readSource(path: string) {
+  return readFileSync(new URL(path, import.meta.url), 'utf8')
+}
+
 describe('share render API field policy regression', () => {
   test('registered share templates match the v0.4 ten-template pool', async () => {
     const {
@@ -57,6 +62,84 @@ describe('share render API field policy regression', () => {
     const removedPremiumTemplate = ['premium', 'split', 'view'].join('-')
     assert.equal(registeredTemplates.includes(removedBasicTemplate), false)
     assert.equal(registeredTemplates.includes(removedPremiumTemplate), false)
+  })
+
+  test('server render passes uploaded photos into summit certificate template', () => {
+    const routeSource = readSource('../src/app/api/share/render/route.ts')
+
+    assert.match(
+      routeSource,
+      /template === 'premium-summit-certificate'\) return PremiumSummitCertificateTemplate\(\{\s*data,\s*photoDataUrl\s*\}\)/,
+    )
+  })
+
+  test('transparent watermark render follows selected template and ignores photo data', () => {
+    const routeSource = readSource('../src/app/api/share/render/route.ts')
+    const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
+
+    assert.match(
+      routeSource,
+      /TransparentWatermarkTemplate\(\{\s*data: payload\.data,\s*template: payload\.template,\s*\}\)/,
+    )
+    assert.doesNotMatch(transparentSource, /photoDataUrl/)
+    assert.doesNotMatch(transparentSource, /PhotoLayer/)
+    assert.doesNotMatch(transparentSource, /PhotoShade/)
+    assert.doesNotMatch(transparentSource, /function WatermarkPhoto\(/)
+
+    for (const template of [
+      'base-data',
+      'premium-photo-composite',
+      'premium-photo-overlay',
+      'premium-bold-number',
+      'premium-data-scatter',
+      'premium-mono-film',
+      'premium-altitude-profile',
+      'premium-summit-certificate',
+      'premium-vertical-story',
+    ]) {
+      assert.match(transparentSource, new RegExp(`template === '${template}'`), `${template} should have a transparent watermark branch`)
+    }
+  })
+
+  test('transparent render skips photo decoding', () => {
+    const routeSource = readSource('../src/app/api/share/render/route.ts')
+
+    assert.match(
+      routeSource,
+      /payload\.transparent\s*\?\s*null\s*:\s*photoDataUrlForTemplate\(payload\.template,\s*payload\.photoBase64\)/,
+    )
+  })
+
+  test('premium mono-film template does not render trail', () => {
+    const monoFilmSource = readSource('../src/lib/share-templates/premium-mono-film.tsx')
+
+    assert.doesNotMatch(monoFilmSource, /buildShareTrackPath/)
+    assert.doesNotMatch(monoFilmSource, /ShareTrackPreview/)
+    assert.doesNotMatch(monoFilmSource, /MonoFilmTrailSvg/)
+    assert.doesNotMatch(monoFilmSource, /trackPreview/)
+    assert.doesNotMatch(monoFilmSource, /<TrailSvg/)
+  })
+
+  test('transparent watermark mono-film does not render trail', () => {
+    const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
+    const monoBranch = transparentSource.match(/function WatermarkMonoFilm[\s\S]*?function WatermarkAltitudeProfile/)?.[0]
+
+    assert.ok(monoBranch)
+    assert.doesNotMatch(monoBranch, /TrailSvg/)
+    assert.doesNotMatch(monoBranch, /MonoFilmTrailSvg/)
+    assert.doesNotMatch(monoBranch, /trackPreview/)
+    assert.doesNotMatch(monoBranch, /PhotoLayer/)
+    assert.doesNotMatch(monoBranch, /photoDataUrl/)
+  })
+
+  test('mono-film thumbnail uses photo altitude layout instead of trail', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const advancedThumb = clientSource.match(/function AdvancedThumb[\s\S]*?function Tabs/)?.[0]
+    const monoBranch = advancedThumb?.match(/template\.kind === 'mono-film'\s*\?\s*\([\s\S]*?\)\s*:\s*template\.kind === 'summit-certificate'/)?.[0]
+
+    assert.ok(monoBranch)
+    assert.match(monoBranch, /1265m/)
+    assert.doesNotMatch(monoBranch, /M12 94 Q 26 72 40 76/)
   })
 
   test('rejects request without checkinId', async () => {

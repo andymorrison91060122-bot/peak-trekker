@@ -327,14 +327,17 @@ function renderTemplate({ template, data }: ShareRenderRequest, photoDataUrl: st
   if (template === 'premium-data-scatter') return PremiumDataScatterTemplate({ data, photoDataUrl })
   if (template === 'premium-mono-film') return PremiumMonoFilmTemplate({ data, photoDataUrl })
   if (template === 'premium-altitude-profile') return PremiumAltitudeProfileTemplate({ data, photoDataUrl })
-  if (template === 'premium-summit-certificate') return PremiumSummitCertificateTemplate({ data })
+  if (template === 'premium-summit-certificate') return PremiumSummitCertificateTemplate({ data, photoDataUrl })
   if (template === 'premium-vertical-story') return PremiumVerticalStoryTemplate({ data, photoDataUrl })
   return BaseClassicTemplate({ data, photoDataUrl })
 }
 
 function renderPayload(payload: ShareRenderRequest, photoDataUrl: string | null) {
   if (payload.transparent) {
-    return TransparentWatermarkTemplate({ data: payload.data })
+    return TransparentWatermarkTemplate({
+      data: payload.data,
+      template: payload.template,
+    })
   }
 
   return renderTemplate(payload, photoDataUrl)
@@ -385,7 +388,7 @@ export async function POST(request: Request) {
     const [fonts, , photoDataUrl] = await Promise.all([
       loadShareFonts(fontText(payload.data)),
       ensureResvgWasm(),
-      photoDataUrlForTemplate(payload.template, payload.photoBase64),
+      payload.transparent ? null : photoDataUrlForTemplate(payload.template, payload.photoBase64),
     ])
     const access = paywallEnabled
       ? await checkTemplateAccess(payload.template, userId)

@@ -4,18 +4,26 @@ import {
   C,
   DataRow,
   MountainRidgeSvg,
+  PhotoLayer,
+  PhotoShade,
   PosterShell,
   buildMountainLine,
   formatPlainNumber,
 } from './shared'
 
-export function PremiumSummitCertificateTemplate({ data }: ShareTemplateProps) {
+export function PremiumSummitCertificateTemplate({ data, photoDataUrl }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const startAltitude = Math.max(0, Math.round(data.altitude - data.elevationGain))
 
   return (
     <PosterShell background="linear-gradient(180deg, #11171a 0%, #0a0c0e 100%)">
-      <MountainRidgeSvg opacity={0.18} />
+      {photoDataUrl ? (
+        <>
+          <PhotoLayer photoDataUrl={photoDataUrl} />
+          <PhotoShade direction="full" strength={0.58} />
+        </>
+      ) : null}
+      <MountainRidgeSvg opacity={photoDataUrl ? 0.24 : 0.18} />
       <ElevationChart />
       <span style={{ position: 'absolute', left: 120, top: 870, color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800 }}>
         起点 {formatPlainNumber(startAltitude)}m

@@ -327,7 +327,7 @@ function renderTemplate({ template, data }: ShareRenderRequest, photoDataUrl: st
   if (template === 'premium-data-scatter') return PremiumDataScatterTemplate({ data, photoDataUrl })
   if (template === 'premium-mono-film') return PremiumMonoFilmTemplate({ data, photoDataUrl })
   if (template === 'premium-altitude-profile') return PremiumAltitudeProfileTemplate({ data, photoDataUrl })
-  if (template === 'premium-summit-certificate') return PremiumSummitCertificateTemplate({ data })
+  if (template === 'premium-summit-certificate') return PremiumSummitCertificateTemplate({ data, photoDataUrl })
   if (template === 'premium-vertical-story') return PremiumVerticalStoryTemplate({ data, photoDataUrl })
   return BaseClassicTemplate({ data, photoDataUrl })
 }

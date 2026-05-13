@@ -1,5 +1,6 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 
 const sourceExtension = 'ts'
 
@@ -32,6 +33,10 @@ function matchesPolicyError(
   return true
 }
 
+function readSource(path: string) {
+  return readFileSync(new URL(path, import.meta.url), 'utf8')
+}
+
 describe('share render API field policy regression', () => {
   test('registered share templates match the v0.4 ten-template pool', async () => {
     const {
@@ -57,6 +62,15 @@ describe('share render API field policy regression', () => {
     const removedPremiumTemplate = ['premium', 'split', 'view'].join('-')
     assert.equal(registeredTemplates.includes(removedBasicTemplate), false)
     assert.equal(registeredTemplates.includes(removedPremiumTemplate), false)
+  })
+
+  test('server render passes uploaded photos into summit certificate template', () => {
+    const routeSource = readSource('../src/app/api/share/render/route.ts')
+
+    assert.match(
+      routeSource,
+      /template === 'premium-summit-certificate'\) return PremiumSummitCertificateTemplate\(\{\s*data,\s*photoDataUrl\s*\}\)/,
+    )
   })
 
   test('rejects request without checkinId', async () => {

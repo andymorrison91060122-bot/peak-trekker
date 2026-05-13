@@ -1198,7 +1198,14 @@ function PremiumHeroPreview({
     >
       {certificate ? (
         <>
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, var(--color-surface-variant), var(--color-surface))' }} />
+          {photoDataUrl ? (
+            <>
+              <PreviewPhotoBackground photoDataUrl={photoDataUrl} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 36%, transparent), color-mix(in srgb, var(--color-surface) 68%, transparent) 100%)' }} />
+            </>
+          ) : (
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, var(--color-surface-variant), var(--color-surface))' }} />
+          )}
           <MiniRidges />
           <svg width="100%" height="56%" viewBox="0 0 280 278" style={{ position: 'absolute', insetInline: 0, top: 22 }} aria-hidden="true">
             <path d="M26 210 H254M26 160 H254M26 110 H254" stroke="var(--color-on-surface)" strokeWidth=".6" strokeDasharray="3 5" opacity=".18" />

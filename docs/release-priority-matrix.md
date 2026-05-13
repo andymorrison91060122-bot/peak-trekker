@@ -1,4 +1,4 @@
-# Peak Trekker 发布优先级矩阵 v0.2
+# Peak Trekker 发布优先级矩阵 v0.3
 
 ## 1. 文档目标
 
@@ -56,11 +56,11 @@
 确保后续所有执行都基于同一套主线，不再出现旧口径与新方向混用。
 
 ### 必须完成
-* `product-mainline-alignment.md` v0.2
-* `target-prd.md` v0.3 回写
-* `ui-interaction-spec.md` 回写
-* `acceptance-checklist.md` 回写
-* `release-priority-matrix.md` v0.2
+* `product-mainline-alignment.md` v0.3
+* `target-prd.md` v0.4 回写
+* `ui-interaction-spec.md` v0.4 回写
+* `acceptance-checklist.md` 回写（待 Pre-2-extra 决定）
+* `release-priority-matrix.md` v0.3
 * `mountain-content-spec.md`
 * `map-weather-brief.md`
 * `regression-debt.md` 重排
@@ -154,16 +154,16 @@
 
 ### 必须完成
 * `profiles` 表增加 `subscription_tier`（默认 `free`）和 `premium_template_unlocked_until`（默认 `NULL`）字段
-* 分享生成链路预埋 `checkTemplateAccess()` gate 函数（flag 关闭时 3 个基础模板 / 9 个高级模板均免费）
-* 基础模板 3 个永久免费：`basic-classic` / `basic-minimal` / `basic-data`
-* 高级模板 9 个限免 → 付费：`premium-photo-composite` / `premium-photo-overlay` / `premium-split-view` / `premium-bold-number` / `premium-data-scatter` / `premium-mono-film` / `premium-altitude-profile` / `premium-summit-certificate` / `premium-vertical-story`
+* 分享生成链路预埋 `checkTemplateAccess()` gate 函数（flag 关闭时 2 个基础模板 / 8 个高级模板均免费）
+* 基础模板 2 个永久免费：`basic-classic` / `basic-data`
+* 高级模板 8 个限免 → 付费：`premium-photo-composite` / `premium-photo-overlay` / `premium-bold-number` / `premium-data-scatter` / `premium-mono-film` / `premium-altitude-profile` / `premium-summit-certificate` / `premium-vertical-story`
 * MVP 阶段（v0.8）所有模板免费，高级模板显示「限免」标签
 * 正式版（v1.0）feature flag 打开后，高级模板按月度会员或单次解锁判断权限
 * 高级模板锁定态为锁 icon + 40% 遮罩 + 斜置「Peak Trekker 预览版」付费水印
 * Peak Trekker logo + 文字永久存在于所有模板底部，是品牌标识，不是付费水印
-* 分享模板使用 satori（HTML-to-image）实现，每个模板为独立 HTML/CSS 组件，弃用旧 SVG 手动坐标系统
+* 分享模板 MVP 阶段在已有 SVG 模板系统上做调试 + 减法，Satori（HTML-to-image）重写作为 V1.1+ 长期演进方向；`regression-debt.md` 中的 SVG 模板冻结项等 V1.1+ Satori 迁移时一并解冻
 * 分享生成链路提供内联字段选择器，海拔 / 总距离必选，时长 / 爬升 / 日期 / 地点 / 配速 / 山峰名默认开启可关闭
-* 所有模板支持照片合成 / 默认背景 / 透明水印导出三种背景模式，透明水印导出是主要功能按钮
+* 所有 10 个模板（含 `premium-summit-certificate`）支持照片合成 / 默认背景 / 透明水印导出三种背景模式，透明水印导出是主要功能按钮，并跟随当前选中模板生成水印形态（FU-9 验收服务端 PNG 端到端真实轨迹）
 * feature flag 机制搭建（环境变量控制）
 
 ### 完成标准
@@ -275,7 +275,7 @@ FAQ 至少覆盖以下问题（v0.2 扩展）：
 ### 包含
 * feature flag 打开
 * 水印预览启用
-* 高级模板权限判断启用
+* 8 个高级模板权限判断启用
 * 付费引导 UI 上线
 * 单张购买流程
 * 月度订阅流程
@@ -413,3 +413,4 @@ FAQ 至少覆盖以下问题（v0.2 扩展）：
 
 * v0.1 — 2026-04-28：初版，确立 P0/P1/P2 三层优先级。
 * v0.2 — 2026-05-05：三条入口路径纳入 P0、商业化基础框架纳入 P0、商业化激活纳入 P1、截图识别高级能力和商业化精细运营纳入 P2、版本放行条件更新。
+* v0.3 — 2026-05-13：路径 B 决策回写，商业化模板池从 12 个收敛为 10 个，MVP 分享模板实施方式改为既有 SVG 系统调试 + 减法，Satori 重写顺延到 V1.1+。

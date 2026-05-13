@@ -1029,26 +1029,23 @@ function PremiumHeroPreview({
           boxShadow: '0 24px 56px color-mix(in srgb, var(--color-surface) 76%, transparent)',
         }}
       >
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '45%', overflow: 'hidden' }}>
-          <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <MiniRidges />}</PreviewPhotoBackground>
-          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '40%', background: 'linear-gradient(180deg, rgba(15,17,19,0) 0%, rgba(15,17,19,1) 100%)' }} />
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '50%', overflow: 'hidden' }}>
+          <PreviewPhotoBackground photoDataUrl={photoDataUrl} grayscale>{photoDataUrl ? null : <MiniRidges />}</PreviewPhotoBackground>
+          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '46%', background: 'linear-gradient(180deg, rgba(15,17,19,0) 0%, rgba(15,17,19,.56) 58%, rgba(15,17,19,1) 100%)' }} />
         </div>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: '56%', bottom: 0, background: 'linear-gradient(180deg, var(--color-surface), #0a0c0e)' }} />
 
-        <div style={{ position: 'absolute', left: 18, right: 18, top: '39%' }}>
+        <div style={{ position: 'absolute', left: 18, right: 18, top: '38%' }}>
           {mountainLine ? (
             <div style={{ color: 'var(--color-on-surface)', fontSize: 14, lineHeight: 1.2, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {mountainLine}
             </div>
           ) : null}
+          <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 8, fontWeight: 800, letterSpacing: '0.14em', marginTop: 16 }}>峰顶海拔</div>
           <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 10, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
-            <span style={{ fontSize: 54, lineHeight: 0.92, fontWeight: 800 }}>{formatNumber(data.altitude)}</span>
+            <span style={{ fontSize: 62, lineHeight: 0.9, fontWeight: 800 }}>{formatNumber(data.altitude)}</span>
             <span style={{ fontSize: 18, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
           </div>
-        </div>
-
-        <div style={{ position: 'absolute', left: 18, right: 18, top: '57%', height: '20%', overflow: 'hidden' }}>
-          <TopoBackground showMap />
-          <MiniMonoTrail trackPreview={data.trackPreview} />
         </div>
 
         <PreviewStats stats={statItems} bottom={62} compact />
@@ -1238,7 +1235,7 @@ function PremiumHeroPreview({
         />
       ) : null}
 
-      {template === 'premium-photo-composite' || monoFilm ? <TrailPath trackPreview={data.trackPreview} /> : null}
+      {template === 'premium-photo-composite' ? <TrailPath trackPreview={data.trackPreview} /> : null}
 
       {bold ? (
         <div style={{ position: 'absolute', left: 14, right: 14, top: 46, color: 'color-mix(in srgb, var(--color-on-surface) 26%, transparent)', fontFamily: 'var(--font-mono)', fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
@@ -1320,53 +1317,6 @@ function HeroPreview({
     return <BaseHeroPreview data={data} toggles={toggles} template={template} photoDataUrl={photoDataUrl} />
   }
   return <PremiumHeroPreview data={data} toggles={toggles} template={template} photoDataUrl={photoDataUrl} />
-}
-
-const DEFAULT_PREVIEW_MONO_TRAIL_PATH = 'M28 78 C 62 58 80 66 103 45 S 143 44 170 29 S 218 28 250 12'
-
-function MiniMonoTrail({ trackPreview }: { trackPreview?: ShareTrackPreview | null }) {
-  const route = buildShareTrackPath(trackPreview, {
-    x: 24,
-    y: 10,
-    width: 232,
-    height: 72,
-    padding: 4,
-  })
-  const path = route?.d ?? DEFAULT_PREVIEW_MONO_TRAIL_PATH
-  const start = route?.start ?? { x: 28, y: 78 }
-  const end = route?.end ?? { x: 250, y: 12 }
-
-  return (
-    <svg width="100%" height="100%" viewBox="0 0 280 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }} aria-hidden="true">
-      <defs>
-        <filter id="share-preview-mono-trail-glow" x="-20%" y="-45%" width="140%" height="190%">
-          <feGaussianBlur stdDeviation="3" />
-        </filter>
-      </defs>
-      <path
-        data-real-track={route ? 'true' : undefined}
-        d={path}
-        stroke="var(--color-success)"
-        strokeWidth="14"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-        opacity=".16"
-        filter="url(#share-preview-mono-trail-glow)"
-      />
-      <path
-        data-real-track={route ? 'true' : undefined}
-        d={path}
-        stroke="var(--color-success)"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <circle cx={start.x} cy={start.y} r="6" fill="var(--color-surface)" stroke="var(--color-success)" strokeWidth="2.4" />
-      <circle cx={end.x} cy={end.y} r="7" fill="var(--color-success)" />
-    </svg>
-  )
 }
 
 function StoryPreviewDataBar({
@@ -1671,7 +1621,24 @@ function AdvancedThumb({
       }}
     >
       <svg width="100%" height="100%" viewBox="0 0 82 122" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }} aria-hidden="true">
-        {template.kind === 'summit-certificate' ? (
+        {template.kind === 'mono-film' ? (
+          <>
+            <rect x="0" y="0" width="82" height="54" fill="color-mix(in srgb, var(--color-surface-elevated) 78%, var(--color-primary))" />
+            <polyline points="-5,48 16,34 30,42 48,27 62,40 88,22" fill="none" stroke="var(--color-success)" strokeWidth="1.2" opacity=".42" />
+            <rect x="0" y="50" width="82" height="22" fill="url(#share-thumb-mono-fade)" />
+            <text x="9" y="78" fill="var(--color-success)" fontSize="16" fontWeight="800">1265m</text>
+            <rect x="0" y="84" width="82" height="38" fill="#0a0c0e" opacity=".92" />
+            <rect x="12" y="96" width="12" height="2" rx="1" fill="currentColor" opacity=".45" />
+            <rect x="35" y="96" width="12" height="2" rx="1" fill="currentColor" opacity=".45" />
+            <rect x="58" y="96" width="12" height="2" rx="1" fill="currentColor" opacity=".45" />
+            <defs>
+              <linearGradient id="share-thumb-mono-fade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="rgba(10,12,14,0)" />
+                <stop offset="100%" stopColor="#0a0c0e" />
+              </linearGradient>
+            </defs>
+          </>
+        ) : template.kind === 'summit-certificate' ? (
           <>
             <path d="M7 74 H75M7 55 H75M7 36 H75" stroke="var(--color-on-surface)" strokeWidth=".45" opacity=".18" />
             <path d="M7 88 Q 22 67 34 72 T 57 42 T 75 24" stroke="var(--color-success)" strokeWidth="1.6" fill="none" strokeLinecap="round" />

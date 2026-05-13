@@ -110,6 +110,38 @@ describe('share render API field policy regression', () => {
     )
   })
 
+  test('premium mono-film template does not render trail', () => {
+    const monoFilmSource = readSource('../src/lib/share-templates/premium-mono-film.tsx')
+
+    assert.doesNotMatch(monoFilmSource, /buildShareTrackPath/)
+    assert.doesNotMatch(monoFilmSource, /ShareTrackPreview/)
+    assert.doesNotMatch(monoFilmSource, /MonoFilmTrailSvg/)
+    assert.doesNotMatch(monoFilmSource, /trackPreview/)
+    assert.doesNotMatch(monoFilmSource, /<TrailSvg/)
+  })
+
+  test('transparent watermark mono-film does not render trail', () => {
+    const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
+    const monoBranch = transparentSource.match(/function WatermarkMonoFilm[\s\S]*?function WatermarkAltitudeProfile/)?.[0]
+
+    assert.ok(monoBranch)
+    assert.doesNotMatch(monoBranch, /TrailSvg/)
+    assert.doesNotMatch(monoBranch, /MonoFilmTrailSvg/)
+    assert.doesNotMatch(monoBranch, /trackPreview/)
+    assert.doesNotMatch(monoBranch, /PhotoLayer/)
+    assert.doesNotMatch(monoBranch, /photoDataUrl/)
+  })
+
+  test('mono-film thumbnail uses photo altitude layout instead of trail', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const advancedThumb = clientSource.match(/function AdvancedThumb[\s\S]*?function Tabs/)?.[0]
+    const monoBranch = advancedThumb?.match(/template\.kind === 'mono-film'\s*\?\s*\([\s\S]*?\)\s*:\s*template\.kind === 'summit-certificate'/)?.[0]
+
+    assert.ok(monoBranch)
+    assert.match(monoBranch, /1265m/)
+    assert.doesNotMatch(monoBranch, /M12 94 Q 26 72 40 76/)
+  })
+
   test('rejects request without checkinId', async () => {
     const { ShareRenderPayloadPolicyError, assertShareRenderPayload } = await loadPolicy()
 

@@ -294,6 +294,18 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
+### Issue-3 · Trek 准备页流程缺失
+
+- **优先级**: P0
+- **归属阶段**: **Pre-3.a Trek 流程稳定性 Sprint**
+- **状态**: 🟡 in-progress
+
+**背景**: 用户确认目标山峰后应进入 Trek 准备页，完成 GPS 权限 / 信号 / 参考路线检查，再由用户点开始记录。当前流程存在绕过准备页、直接进入 live/gpsWeak 的残留问题。
+
+**涉及**: `src/app/(flow)/trek/TrekClient.tsx` confirm mountain → preStart → start tracking 状态流。
+
+---
+
 ### FU-18 · Trek 登顶"继续"按钮失效（N2 残留）
 
 - **优先级**: P1
@@ -353,7 +365,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 - **优先级**: P1
 - **归属阶段**: **Pre-3.a Trek 流程稳定性 Sprint**
-- **状态**: 🟢 active
+- **状态**: 🟡 in-progress
 
 **背景**: 用户位置在华山，选了武当山，系统仍允许进入 Trek 记录。需要启动校验。
 
@@ -372,7 +384,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 - **优先级**: P2
 - **归属阶段**: **Pre-3.a Trek 流程稳定性 Sprint**（修复后影响减小）
-- **状态**: 🟢 active
+- **状态**: 🟡 in-progress
 
 **背景**: 当前实现 GPS altitude 不可用时 fallback 到 mountain.altitude。用户反馈逻辑：海拔显示应优先用 GPS altitude。
 

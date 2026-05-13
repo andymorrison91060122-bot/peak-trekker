@@ -50,7 +50,7 @@ Peak Trekker 的字号分为三层：
 
 以下场景不套用运行时 UI 字号体系，由资产或渲染目标决定：
 
-- Share Templates（Satori 渲染）：`src/lib/share-templates/**`
+- Share Templates（MVP SVG 渲染，V1.1+ 迁移 Satori）：`src/lib/share-templates/**`
 - Onboarding 插图与装饰：`src/components/onboarding/`、`src/components/ui/OnboardingModal.tsx`
 
 这些字号可以被单独审视，但不应被普通 UI 字号收敛任务顺手修改。

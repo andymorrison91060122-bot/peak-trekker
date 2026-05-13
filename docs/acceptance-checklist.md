@@ -1,4 +1,4 @@
-# Peak Trekker 验收 Checklist v0.3
+# Peak Trekker 验收 Checklist v0.4
 
 ## 0. 使用规则
 
@@ -464,21 +464,25 @@
 
 ## 8.1 模板与入口
 
-* [ ] 模板总数为 12 个：3 个基础模板 + 9 个高级模板
-* [ ] 基础模板 3 个：`basic-classic` / `basic-minimal` / `basic-data`
-* [ ] `basic-classic` 与 `basic-minimal` 可通过地图开关切换
-* [ ] 高级模板 9 个：`premium-photo-composite` / `premium-photo-overlay` / `premium-split-view` / `premium-bold-number` / `premium-data-scatter` / `premium-mono-film` / `premium-altitude-profile` / `premium-summit-certificate` / `premium-vertical-story`
+* [ ] 模板总数为 10 个：2 个基础模板 + 8 个高级模板
+* [ ] 基础模板 2 个：`basic-classic` / `basic-data`
+* [ ] 高级模板 8 个：`premium-photo-composite` / `premium-photo-overlay` / `premium-bold-number` / `premium-data-scatter` / `premium-mono-film` / `premium-altitude-profile` / `premium-summit-certificate` / `premium-vertical-story`
 * [ ] 透明水印导出作为主要功能按钮可见，不是 toggle 开关
-* [ ] 所有模板支持照片合成 / 默认背景 / 透明水印导出三种背景模式
+* [ ] 所有 10 个模板支持照片合成 / 默认背景 / 透明水印导出三种背景模式
+* [ ] `premium-summit-certificate` 支持照片合成，MVP 不允许 cert 模板不支持图片的特例
 * [ ] 透明 PNG 导出有棋盘格预览，并支持保存到相册 + 系统分享
 * [ ] 模板命名统一
 * [ ] 模板切换逻辑清晰
-* [ ] 分享模板使用 satori（HTML-to-image）实现，不使用旧 SVG 手动坐标系统
-* [ ] 旧 `/api/poster/route.ts` 的 SVG 模板不作为新模板基础
+* [ ] MVP 阶段分享模板使用已有 SVG 模板系统完成调试 + 减法
+* [ ] Satori（HTML-to-image）模板重写不作为 MVP 验收项，顺延到 V1.1+
 * [ ] 分享编辑器预览区占屏 45-48%，完整展示当前模板
-* [ ] 模板选择器为基础 / 高级 Tab + 单行横滑缩略图
-* [ ] 控制行包含换照片、移除、地图开关、导出透明水印按钮，并在首屏底部露出约 20px
-* [ ] 底部操作栏包含保存 / 分享（主 CTA）/ 更多
+* [ ] 模板选择器为单行横滑缩略图，不再使用基础 / 高级 Tab 切换
+* [ ] 高级模板右上角带「限免」/「付费」角标，用于区分基础和高级
+* [ ] 控制行包含换照片、移除、导出透明水印按钮，并在首屏底部露出约 20px
+* [ ] 地图开关 MVP 不出现，V1.1+ MapLibre 真接入后再评估
+* [ ] 顶部右上「预览」按钮 MVP 不出现，编辑器本身作为实时预览
+* [ ] 底部操作栏只包含保存（次 CTA）/ 分享（主 CTA），两个按钮平分宽度
+* [ ] 「更多 ...」按钮 MVP 不出现
 * [ ] 模板缩略图只简化显示山峰名、海拔和 logo
 
 ## 8.2 字段选择
@@ -527,14 +531,14 @@
 
 * [ ] 分享系统没有演化成复杂模板编辑器
 * [ ] 没有出现专业训练图表化方向
-* [ ] 模板数量为 12 个（3 个基础模板 + 9 个高级模板）
+* [ ] 模板数量为 10 个（2 个基础模板 + 8 个高级模板）
 * [ ] 主路径模板稳定、快、可用
 
 ## 8.7 付费 Gate（v0.3 新增）
 
 * [ ] 用户可免费生成并预览分享素材
-* [ ] 3 个基础模板始终可无水印导出
-* [ ] MVP 阶段（v0.8）9 个高级模板也可无水印导出，并展示「限免」标签
+* [ ] 2 个基础模板始终可无水印导出
+* [ ] MVP 阶段（v0.8）8 个高级模板也可无水印导出，并展示「限免」标签
 * [ ] feature flag 打开时高级模板导出先经过模板权限检查
 * [ ] 高级模板未解锁时显示锁 icon + 40% 遮罩 + 斜置「Peak Trekker 预览版」付费水印
 * [ ] 付费后或限免期间不显示付费水印
@@ -806,7 +810,7 @@
 * [ ] feature flag 机制存在
 * [ ] feature flag 默认关闭
 * [ ] flag 关闭时用户体验与无付费逻辑完全一致
-* [ ] flag 关闭时 3 个基础模板和 9 个高级模板都可无水印导出，高级模板显示「限免」标签
+* [ ] flag 关闭时 2 个基础模板和 8 个高级模板都可无水印导出，高级模板显示「限免」标签
 
 ## 15.3 Gate 函数
 
@@ -950,3 +954,9 @@
 4. 最终只给“通过 / 不通过 / 不适用”
 
 如果某个改动无法明确映射到本清单，优先视为范围不清，需要先补文档而不是直接开发。
+
+---
+
+### 版本记录
+
+* v0.4 — 2026-05-13：路径 B 决策回写，分享模板验收项收敛为 10 个；`basic-minimal`、`premium-split-view` 验收项移除；Tab 切换、地图开关、顶部预览按钮、更多按钮 MVP 不验收；Satori 实现验收顺延到 V1.1+；cert 模板照片合成验收项补充。

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { listPublishableRecords, listUserCommunityPosts } from '@/lib/community-server'
+import { listUserCommunityPosts } from '@/lib/community-server'
+import { listProfileTrips } from '@/lib/profile-records-server'
 import { getUserMonthlyContribution } from '@/lib/province-ranking-queries'
 import { listReviewQueueRecords } from '@/lib/review-queue'
 import ProfileV2Client, {
@@ -58,11 +59,16 @@ function resolveIdentity({
 }
 
 function buildSummary(trips: ProfileV2TripPreview[]): ProfileV2Summary {
-  const visitedProvinces = new Set(trips.map((trip) => trip.province).filter(Boolean))
+  const approvedTrips = trips.filter((trip) => trip.status === 'approved')
+  const visitedProvinces = new Set(
+    approvedTrips
+      .map((trip) => trip.province)
+      .filter((province) => province && province !== '未留证' && province !== '未知地点')
+  )
 
   return {
-    tripCount: trips.length,
-    maxAltitudeM: Math.max(0, ...trips.map((trip) => trip.altitudeM)),
+    tripCount: approvedTrips.length,
+    maxAltitudeM: Math.max(0, ...approvedTrips.map((trip) => trip.altitudeM)),
     visitedProvinceCount: visitedProvinces.size,
   }
 }
@@ -78,8 +84,8 @@ export default async function ProfilePage() {
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
   const currentMonth = getShanghaiYearMonth()
 
-  const [publishableRecords, myPosts, reviewQueueRecords, provinceContribution] = await Promise.all([
-    listPublishableRecords({
+  const [trips, myPosts, reviewQueueRecords, provinceContribution] = await Promise.all([
+    listProfileTrips({
       supabase,
       userId: user.id,
     }),
@@ -93,15 +99,6 @@ export default async function ProfilePage() {
     }),
     getUserMonthlyContribution(user.id, currentMonth.year, currentMonth.month),
   ])
-
-  const trips: ProfileV2TripPreview[] = publishableRecords.map((record) => ({
-    checkinId: record.checkinId,
-    mountainName: record.mountain.name,
-    province: record.mountain.province,
-    createdAt: record.verifiedAt || record.createdAt,
-    altitudeM: record.metrics.altitudeM || record.mountain.altitude,
-    photoUrl: record.photoUrl ?? record.mountain.coverImage ?? record.posterUrl ?? null,
-  }))
 
   const shares: ProfileV2SharePreview[] = myPosts.map((post) => ({
     id: post.id,

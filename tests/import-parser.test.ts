@@ -422,14 +422,15 @@ test('mountain matcher returns null for empty mountain lists and nearest match u
   ]
 
   assert.equal(matchNearestMountainFromRows(points, []), null)
-  assert.deepEqual(matchNearestMountainFromRows(points, [
+  const match = matchNearestMountainFromRows(points, [
     { id: 'far', name: '远山', latitude: 31, longitude: 121 },
     { id: 'near', name: '近山', latitude: 30.0012, longitude: 120.0012 },
-  ]), {
-    id: 'near',
-    name: '近山',
-    distanceMeters: 29,
-  })
+  ])
+
+  assert.equal(match?.id, 'near')
+  assert.equal(match?.name, '近山')
+  assert.equal(match?.distanceMeters, 29)
+  assert.equal(match?.referencePointSource, 'highest')
 })
 
 test('mountain matcher returns sorted top candidates within threshold', async () => {
@@ -496,7 +497,20 @@ test('mountain matcher skips mountains without usable coordinates', async () => 
   assert.deepEqual(candidates.map((candidate: { id: string }) => candidate.id), ['valid'])
 })
 
-test('mountain matcher falls back to the last valid track point when elevation is missing', async () => {
+test('mountain matcher keeps automatic matching at 5km and allows wider manual candidate threshold', async () => {
+  const { matchNearestMountainCandidates } = await loadMatcher()
+  const points = [{ latitude: 30, longitude: 120, elevation: 100 }]
+  const tenKilometersAway = { id: 'manual-range', name: '手动范围内', latitude: 30.09, longitude: 120 }
+
+  assert.deepEqual(matchNearestMountainCandidates(points, [tenKilometersAway]), [])
+
+  const candidates = matchNearestMountainCandidates(points, [tenKilometersAway], { thresholdMeters: 20_000 })
+  assert.equal(candidates[0]?.id, 'manual-range')
+  assert.ok(candidates[0]?.distanceMeters > 5_000)
+  assert.ok(candidates[0]?.distanceMeters < 20_000)
+})
+
+test('mountain matcher considers multiple reference points when elevation is missing', async () => {
   const { matchNearestMountainCandidates } = await loadMatcher()
   const points = [
     { latitude: 30, longitude: 120 },
@@ -506,7 +520,7 @@ test('mountain matcher falls back to the last valid track point when elevation i
   const candidates = matchNearestMountainCandidates(points, [
     { id: 'first-point', name: '第一点附近', latitude: 30.0001, longitude: 120.0001 },
     { id: 'last-point', name: '最后点附近', latitude: 30.0101, longitude: 120.0101 },
-  ])
+  ], { maxCandidates: 2 })
 
-  assert.equal(candidates[0]?.id, 'last-point')
+  assert.deepEqual(new Set(candidates.map((candidate: { id: string }) => candidate.id)), new Set(['first-point', 'last-point']))
 })

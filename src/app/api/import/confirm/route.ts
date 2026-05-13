@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSupplementalTimeFallback } from '@/lib/import/confirm-time-fallback'
-import { buildComputedTrackStats, findHighestTrackPoint, haversineMeters } from '@/lib/import/track-stats'
+import { validateImportMountainSelectionDistance } from '@/lib/import/mountain-distance-check'
+import { buildComputedTrackStats, findHighestTrackPoint } from '@/lib/import/track-stats'
 import type { ImportedTrackData, TrackPoint } from '@/lib/import/types'
 import { rankingWeightByDifficulty } from '@/lib/trek-utils'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
@@ -213,13 +214,17 @@ export async function POST(request: Request) {
     }
 
     mountain = data as ImportMountainRow
-    const mountainLatitude = Number(mountain?.latitude)
-    const mountainLongitude = Number(mountain?.longitude)
-    if (Number.isFinite(mountainLatitude) && Number.isFinite(mountainLongitude)) {
-      verificationDistanceM = Math.round(
-        haversineMeters(anchorPoint.latitude, anchorPoint.longitude, mountainLatitude, mountainLongitude)
-      )
+    const distanceValidation = validateImportMountainSelectionDistance(parsedData.trackPoints, mountain)
+    if (!distanceValidation.ok) {
+      return NextResponse.json({
+        error: distanceValidation.error,
+        code: distanceValidation.code,
+        distanceMeters: distanceValidation.distanceMeters,
+        thresholdMeters: distanceValidation.thresholdMeters,
+      }, { status: 400 })
     }
+
+    verificationDistanceM = distanceValidation.verificationDistanceM
   }
 
   const { data: checkin, error } = await supabase

@@ -1080,7 +1080,7 @@ function PremiumHeroPreview({
           {!photoDataUrl ? <MiniRidges /> : null}
         </PreviewPhotoBackground>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 10%, transparent), color-mix(in srgb, var(--color-surface) 16%, transparent) 62%, transparent)' }} />
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '28%', background: 'linear-gradient(180deg, rgba(10,12,14,0) 0%, rgba(10,12,14,0.74) 46%, rgba(10,12,14,1) 100%)' }} />
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '28%', background: 'linear-gradient(180deg, rgba(10,12,14,0) 0%, rgba(10,12,14,0.42) 46%, rgba(10,12,14,0.84) 100%)' }} />
         <div style={{ position: 'absolute', left: 16, right: 16, top: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ color: 'var(--color-on-surface)', fontSize: 10, fontWeight: 800 }}>Peak Trekker</div>
           {data.date ? <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 10, fontWeight: 800 }}>{data.date}</div> : null}

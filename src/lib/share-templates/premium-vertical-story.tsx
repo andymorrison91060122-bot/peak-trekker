@@ -25,7 +25,7 @@ export function PremiumVerticalStoryTemplate({ data, photoDataUrl }: ShareTempla
           right: 0,
           bottom: 0,
           height: 520,
-          background: 'linear-gradient(180deg, rgba(10,12,14,0) 0%, rgba(10,12,14,0.74) 46%, rgba(10,12,14,0.99) 100%)',
+          background: 'linear-gradient(180deg, rgba(10,12,14,0) 0%, rgba(10,12,14,0.42) 46%, rgba(10,12,14,0.82) 100%)',
         }}
       />
 

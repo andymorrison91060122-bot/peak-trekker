@@ -5,23 +5,22 @@ import { Resvg, initWasm } from '@resvg/resvg-wasm'
 import sharp from 'sharp'
 import { BaseClassicTemplate } from '@/lib/share-templates/base-classic'
 import { BaseDataTemplate } from '@/lib/share-templates/base-data'
-import { BaseMinimalTemplate } from '@/lib/share-templates/base-minimal'
 import { PremiumAltitudeProfileTemplate } from '@/lib/share-templates/premium-altitude-profile'
 import { PremiumBoldNumberTemplate } from '@/lib/share-templates/premium-bold-number'
 import { PremiumDataScatterTemplate } from '@/lib/share-templates/premium-data-scatter'
 import { PremiumMonoFilmTemplate } from '@/lib/share-templates/premium-mono-film'
 import { PremiumPhotoCompositeTemplate } from '@/lib/share-templates/premium-photo-composite'
 import { PremiumPhotoOverlayTemplate } from '@/lib/share-templates/premium-photo-overlay'
-import { PremiumSplitViewTemplate } from '@/lib/share-templates/premium-split-view'
 import { PremiumSummitCertificateTemplate } from '@/lib/share-templates/premium-summit-certificate'
 import { PremiumVerticalStoryTemplate } from '@/lib/share-templates/premium-vertical-story'
 import { RenderRoot, POSTER_HEIGHT, POSTER_WIDTH } from '@/lib/share-templates/shared'
 import { TransparentWatermarkTemplate } from '@/lib/share-templates/transparent-watermark'
-import type {
-  ShareRenderRequest,
-  ShareRenderTemplate,
-  ShareTemplateData,
-  ShareVisibleFields,
+import {
+  SHARE_RENDER_TEMPLATE_IDS,
+  type ShareRenderRequest,
+  type ShareRenderTemplate,
+  type ShareTemplateData,
+  type ShareVisibleFields,
 } from '@/lib/share-templates/types'
 import { loadShareFonts } from '@/lib/fonts/load-share-fonts'
 import { checkTemplateAccess, isPremiumPaywallEnabled } from '@/lib/premium'
@@ -32,20 +31,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
 
-const VALID_TEMPLATES: ShareRenderTemplate[] = [
-  'base-classic',
-  'base-minimal',
-  'base-data',
-  'premium-photo-composite',
-  'premium-photo-overlay',
-  'premium-split-view',
-  'premium-bold-number',
-  'premium-data-scatter',
-  'premium-mono-film',
-  'premium-altitude-profile',
-  'premium-summit-certificate',
-  'premium-vertical-story',
-]
+const VALID_TEMPLATES: readonly ShareRenderTemplate[] = SHARE_RENDER_TEMPLATE_IDS
 
 let wasmReady = false
 
@@ -334,11 +320,9 @@ async function photoDataUrlForTemplate(template: ShareRenderTemplate, photoBase6
 }
 
 function renderTemplate({ template, data }: ShareRenderRequest, photoDataUrl: string | null) {
-  if (template === 'base-minimal') return BaseMinimalTemplate({ data, photoDataUrl })
   if (template === 'base-data') return BaseDataTemplate({ data, photoDataUrl })
   if (template === 'premium-photo-composite') return PremiumPhotoCompositeTemplate({ data, photoDataUrl })
   if (template === 'premium-photo-overlay') return PremiumPhotoOverlayTemplate({ data, photoDataUrl })
-  if (template === 'premium-split-view') return PremiumSplitViewTemplate({ data, photoDataUrl })
   if (template === 'premium-bold-number') return PremiumBoldNumberTemplate({ data, photoDataUrl })
   if (template === 'premium-data-scatter') return PremiumDataScatterTemplate({ data, photoDataUrl })
   if (template === 'premium-mono-film') return PremiumMonoFilmTemplate({ data, photoDataUrl })

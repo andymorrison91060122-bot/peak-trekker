@@ -20,7 +20,7 @@ type ShareTab = 'basic' | 'advanced'
 type ShareViewMode = 'editor' | 'watermarkPreview'
 type ExportAction = 'save' | 'share' | 'transparent' | null
 type TemplateId = ShareRenderTemplate
-type BasicTemplateId = Extract<TemplateId, 'base-classic' | 'base-minimal' | 'base-data'>
+type BasicTemplateId = Extract<TemplateId, 'base-classic' | 'base-data'>
 type AdvancedTemplateId = Exclude<TemplateId, BasicTemplateId>
 type ShareFieldKey =
   | 'altitude'
@@ -57,7 +57,7 @@ type FieldConfig = {
 type BasicTemplate = {
   id: BasicTemplateId
   label: string
-  variant: 'classic' | 'minimal' | 'data'
+  variant: 'classic' | 'data'
 }
 
 type AdvancedTemplate = {
@@ -66,7 +66,6 @@ type AdvancedTemplate = {
   kind:
     | 'photo-composite'
     | 'photo-overlay'
-    | 'split-view'
     | 'bold-number'
     | 'data-scatter'
     | 'mono-film'
@@ -99,14 +98,12 @@ const FIELD_CONFIGS: FieldConfig[] = [
 
 const BASIC_TEMPLATES: BasicTemplate[] = [
   { id: 'base-classic', label: 'Classic', variant: 'classic' },
-  { id: 'base-minimal', label: 'Minimal', variant: 'minimal' },
   { id: 'base-data', label: 'Data', variant: 'data' },
 ]
 
 const ADVANCED_TEMPLATES: AdvancedTemplate[] = [
   { id: 'premium-photo-composite', label: 'Photo', kind: 'photo-composite' },
   { id: 'premium-photo-overlay', label: 'Overlay', kind: 'photo-overlay' },
-  { id: 'premium-split-view', label: 'Split', kind: 'split-view' },
   { id: 'premium-bold-number', label: 'Number', kind: 'bold-number' },
   { id: 'premium-data-scatter', label: 'HUD', kind: 'data-scatter' },
   { id: 'premium-mono-film', label: 'Film', kind: 'mono-film' },
@@ -711,17 +708,14 @@ function UnlockHintBar({ onClick }: { onClick: () => void }) {
 function BaseHeroPreview({
   data,
   toggles,
-  showMap,
   template,
   photoDataUrl,
 }: {
   data: ShareActivityData
   toggles: Record<ShareFieldKey, boolean>
-  showMap: boolean
   template: BasicTemplateId
   photoDataUrl: string | null
 }) {
-  const isMinimal = template === 'base-minimal'
   const isData = template === 'base-data'
   const statItems = [
     isVisible('distance', toggles)
@@ -781,7 +775,7 @@ function BaseHeroPreview({
           />
           <MountainTexturePreview />
         </>
-      ) : isMinimal ? (
+      ) : !isData ? (
         <div
           style={{
             position: 'absolute',
@@ -790,9 +784,7 @@ function BaseHeroPreview({
               'radial-gradient(circle at 58% 24%, color-mix(in srgb, var(--color-success) 10%, transparent), transparent 22%), var(--color-surface)',
           }}
         />
-      ) : (
-        <TopoBackground showMap={showMap} />
-      )}
+      ) : null}
       {isData ? null : <TrailPath trackPreview={data.trackPreview} />}
       <div
         style={{
@@ -1239,7 +1231,7 @@ function PremiumHeroPreview({
         />
       ) : null}
 
-      {template === 'premium-photo-composite' || template === 'premium-split-view' || monoFilm ? <TrailPath trackPreview={data.trackPreview} /> : null}
+      {template === 'premium-photo-composite' || monoFilm ? <TrailPath trackPreview={data.trackPreview} /> : null}
 
       {bold ? (
         <div style={{ position: 'absolute', left: 14, right: 14, top: 46, color: 'color-mix(in srgb, var(--color-on-surface) 26%, transparent)', fontFamily: 'var(--font-mono)', fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
@@ -1309,18 +1301,16 @@ function PremiumHeroPreview({
 function HeroPreview({
   data,
   toggles,
-  showMap,
   template,
   photoDataUrl,
 }: {
   data: ShareActivityData
   toggles: Record<ShareFieldKey, boolean>
-  showMap: boolean
   template: TemplateId
   photoDataUrl: string | null
 }) {
-  if (template === 'base-classic' || template === 'base-minimal' || template === 'base-data') {
-    return <BaseHeroPreview data={data} toggles={toggles} showMap={showMap} template={template} photoDataUrl={photoDataUrl} />
+  if (template === 'base-classic' || template === 'base-data') {
+    return <BaseHeroPreview data={data} toggles={toggles} template={template} photoDataUrl={photoDataUrl} />
   }
   return <PremiumHeroPreview data={data} toggles={toggles} template={template} photoDataUrl={photoDataUrl} />
 }
@@ -1546,7 +1536,6 @@ function TemplateThumb({
   data: ShareActivityData
   onSelect: (template: BasicTemplateId) => void
 }) {
-  const showTopo = template.variant !== 'minimal'
   const isData = template.variant === 'data'
   return (
     <button
@@ -1570,7 +1559,7 @@ function TemplateThumb({
         boxShadow: selected ? '0 0 0 4px color-mix(in srgb, var(--color-primary) 14%, transparent)' : 'none',
       }}
     >
-      {showTopo ? (
+      {isData ? (
         <svg width="100%" height="100%" viewBox="0 0 82 122" style={{ position: 'absolute', inset: 0, opacity: 0.34 }} aria-hidden="true">
           <ellipse cx="48" cy="58" rx="36" ry="24" stroke="var(--color-on-surface)" strokeWidth=".5" fill="none" opacity=".35" />
           <ellipse cx="50" cy="56" rx="26" ry="18" stroke="var(--color-on-surface)" strokeWidth=".5" fill="none" opacity=".35" />
@@ -1648,7 +1637,7 @@ function AdvancedThumb({
   locked: boolean
   limitedFree: boolean
 }) {
-  const photoLike = template.kind.includes('photo') || template.kind === 'split-view' || template.kind === 'vertical-story' || template.kind === 'mono-film'
+  const photoLike = template.kind.includes('photo') || template.kind === 'vertical-story' || template.kind === 'mono-film'
   const dataLike = template.kind === 'data-scatter' || template.kind === 'altitude-profile' || template.kind === 'summit-certificate'
   return (
     <button
@@ -2752,7 +2741,6 @@ export default function ShareClient({
           <HeroPreview
             data={activityData}
             toggles={fieldToggles}
-            showMap={showMap}
             template={selectedTemplate}
             photoDataUrl={photoDataUrl}
           />

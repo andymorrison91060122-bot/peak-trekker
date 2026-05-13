@@ -1,4 +1,8 @@
-import type { ShareRenderTemplate } from '@/lib/share-templates/types'
+import {
+  BASIC_SHARE_TEMPLATE_IDS,
+  PREMIUM_SHARE_TEMPLATE_IDS,
+  type ShareRenderTemplate,
+} from '@/lib/share-templates/types'
 
 export type PremiumAccessReason =
   | 'free_template'
@@ -12,23 +16,9 @@ export interface TemplateAccessResult {
   reason: PremiumAccessReason
 }
 
-export const FREE_TEMPLATE_IDS = [
-  'base-classic',
-  'base-minimal',
-  'base-data',
-] as const
+export const FREE_TEMPLATE_IDS = BASIC_SHARE_TEMPLATE_IDS
 
-export const PREMIUM_TEMPLATE_IDS = [
-  'premium-photo-composite',
-  'premium-photo-overlay',
-  'premium-split-view',
-  'premium-bold-number',
-  'premium-data-scatter',
-  'premium-mono-film',
-  'premium-altitude-profile',
-  'premium-summit-certificate',
-  'premium-vertical-story',
-] as const
+export const PREMIUM_TEMPLATE_IDS = PREMIUM_SHARE_TEMPLATE_IDS
 
 export function isPremiumPaywallEnabled(): boolean {
   return process.env.ENABLE_PREMIUM_TEMPLATE_PAYWALL === 'true'

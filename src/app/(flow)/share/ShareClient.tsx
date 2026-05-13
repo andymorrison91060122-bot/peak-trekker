@@ -321,20 +321,7 @@ function NavBar({ onBack }: { onBack: () => void }) {
   )
 }
 
-function TopoBackground({ showMap }: { showMap: boolean }) {
-  if (!showMap) {
-    return (
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background:
-            'radial-gradient(circle at 58% 22%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 34%), linear-gradient(180deg, var(--color-surface-variant), var(--color-surface))',
-        }}
-      />
-    )
-  }
-
+function TopoBackground() {
   return (
     <>
       <div
@@ -370,63 +357,7 @@ function TopoBackground({ showMap }: { showMap: boolean }) {
         <path d="M-10 334 Q 62 318 128 326 T 290 300" stroke="var(--color-on-surface)" strokeWidth="0.8" fill="none" opacity="0.08" />
         <path d="M-10 96 Q 52 118 112 96 T 286 88" stroke="var(--color-on-surface)" strokeWidth="0.8" fill="none" opacity="0.07" />
       </svg>
-      <MapLabel x={50} y={135} title="玉山北峰" sub="3858m" />
-      <MapLabel x={176} y={260} title="圆峰山屋" sub="3030m" icon="hut" />
-      <MapLabel x={42} y={350} title="塔塔加" sub="" />
     </>
-  )
-}
-
-function MapLabel({
-  x,
-  y,
-  title,
-  sub,
-  icon = 'peak',
-}: {
-  x: number
-  y: number
-  title: string
-  sub: string
-  icon?: 'peak' | 'hut'
-}) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: x,
-        top: y,
-        color: 'color-mix(in srgb, var(--color-on-surface-variant) 58%, transparent)',
-        fontSize: 7,
-        lineHeight: 1.35,
-        fontWeight: 700,
-        textShadow: '0 1px 2px var(--color-surface)',
-      }}
-    >
-      <div>{title}</div>
-      {sub ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 1 }}>
-          {icon === 'hut' ? <HutGlyph /> : <PeakGlyph />}
-          <span>{sub}</span>
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-function PeakGlyph() {
-  return (
-    <svg width="8" height="8" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <path d="M6 2l5 8H1z" fill="currentColor" opacity=".7" />
-    </svg>
-  )
-}
-
-function HutGlyph() {
-  return (
-    <svg width="8" height="8" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <path d="M2 6l4-3 4 3v4H2z" fill="currentColor" opacity=".7" />
-    </svg>
   )
 }
 
@@ -1116,7 +1047,7 @@ function PremiumHeroPreview({
           boxShadow: '0 24px 56px color-mix(in srgb, var(--color-surface) 76%, transparent)',
         }}
       >
-        <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground showMap />}</PreviewPhotoBackground>
+        <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground />}</PreviewPhotoBackground>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, var(--color-surface), color-mix(in srgb, var(--color-surface) 80%, transparent) 44%, transparent)' }} />
         <div style={{ position: 'absolute', left: 18, top: 74, width: 104 }}>
           {overlayName ? <div style={{ color: 'var(--color-on-surface)', fontSize: 14, lineHeight: 1.18, fontWeight: 800 }}>{overlayName}</div> : null}
@@ -1155,7 +1086,7 @@ function PremiumHeroPreview({
           boxShadow: '0 24px 56px color-mix(in srgb, var(--color-surface) 76%, transparent)',
         }}
       >
-        <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground showMap />}</PreviewPhotoBackground>
+        <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground />}</PreviewPhotoBackground>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 12%, transparent), color-mix(in srgb, var(--color-surface) 86%, transparent) 78%, var(--color-surface))' }} />
         <div style={{ position: 'absolute', left: 16, top: 54, color: 'rgba(255,255,255,0.32)', fontSize: 13, fontWeight: 800, letterSpacing: '0.08em' }}>峰顶海拔</div>
         <div style={{ position: 'absolute', left: 14, right: 14, top: 78, color: 'rgba(255,255,255,0.25)', fontFamily: 'var(--font-mono)', fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
@@ -1214,12 +1145,12 @@ function PremiumHeroPreview({
         <>
           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '42%', background: 'linear-gradient(160deg, var(--color-surface-variant), var(--color-surface))' }} />
           <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '60%', overflow: 'hidden' }}>
-            <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground showMap />}</PreviewPhotoBackground>
+            <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground />}</PreviewPhotoBackground>
           </div>
         </>
       ) : (
         <PreviewPhotoBackground photoDataUrl={photoDataUrl} grayscale={verticalStory}>
-          {!photoDataUrl ? <TopoBackground showMap /> : null}
+          {!photoDataUrl ? <TopoBackground /> : null}
         </PreviewPhotoBackground>
       )}
 
@@ -1839,55 +1770,13 @@ function DownloadIcon() {
   )
 }
 
-function MapIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M9 18l-5 2V6l5-2 6 2 5-2v14l-5 2zM9 4v14M15 6v14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function InlineSwitch({ on }: { on: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      style={{
-        width: 32,
-        height: 18,
-        borderRadius: 'var(--radius-pill)',
-        background: on ? 'var(--color-success)' : 'var(--color-outline)',
-        position: 'relative',
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{
-          position: 'absolute',
-          top: 2,
-          left: on ? 16 : 2,
-          width: 14,
-          height: 14,
-          borderRadius: 'var(--radius-pill)',
-          background: 'var(--color-on-surface)',
-          boxShadow: '0 1px 3px color-mix(in srgb, var(--color-surface) 65%, transparent)',
-          transition: 'left 160ms ease',
-        }}
-      />
-    </span>
-  )
-}
-
 function ControlRow({
-  showMap,
-  onToggleMap,
   onPickPhoto,
   onRemovePhoto,
   onExportTransparent,
   transparentExporting,
   hasPhoto,
 }: {
-  showMap: boolean
-  onToggleMap: () => void
   onPickPhoto: () => void
   onRemovePhoto: () => void
   onExportTransparent: () => void
@@ -1912,30 +1801,6 @@ function ControlRow({
       <IconButton label="移除照片" onClick={onRemovePhoto} disabled={!hasPhoto}>
         <TrashIcon />
       </IconButton>
-      <button
-        type="button"
-        onClick={onToggleMap}
-        aria-pressed={showMap}
-        style={{
-          height: 44,
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--color-outline)',
-          background: 'color-mix(in srgb, var(--color-surface-variant) 84%, transparent)',
-          color: 'var(--color-on-surface)',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '0 var(--space-3)',
-          flexShrink: 0,
-          cursor: 'pointer',
-          fontSize: 'var(--font-label-m-size)',
-          fontWeight: 700,
-        }}
-      >
-        <MapIcon />
-        地图
-        <InlineSwitch on={showMap} />
-      </button>
       <button
         type="button"
         onClick={onExportTransparent}
@@ -2497,7 +2362,6 @@ export default function ShareClient({
   const [viewMode, setViewMode] = useState<ShareViewMode>('editor')
   const [transparentBlob, setTransparentBlob] = useState<Blob | null>(null)
   const [transparentBlobUrl, setTransparentBlobUrl] = useState<string | null>(null)
-  const [showMap, setShowMap] = useState(true)
   const [fieldToggles, setFieldToggles] = useState<Record<ShareFieldKey, boolean>>(initialFieldToggles)
   const [exportingAction, setExportingAction] = useState<ExportAction>(null)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -2738,8 +2602,6 @@ export default function ShareClient({
         premiumUnlocked={premiumUnlocked}
       />
       <ControlRow
-        showMap={showMap}
-        onToggleMap={() => setShowMap((current) => !current)}
         onPickPhoto={() => photoInputRef.current?.click()}
         onRemovePhoto={() => setPhotoDataUrl(null)}
         onExportTransparent={handleTransparentExport}

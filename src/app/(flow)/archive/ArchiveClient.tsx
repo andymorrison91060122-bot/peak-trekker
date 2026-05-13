@@ -402,6 +402,37 @@ function IdentityCardEmpty({ user }: { user: ArchiveUserViewModel }) {
   )
 }
 
+function getArchiveTabStyle(isActive: boolean): CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+    minHeight: 32,
+    padding: '7px 12px',
+    borderRadius: 'var(--radius-pill)',
+    border: isActive ? '1px solid transparent' : '1px solid var(--color-outline)',
+    color: isActive ? 'var(--color-surface)' : 'var(--color-on-surface-variant)',
+    background: isActive ? 'var(--color-on-surface)' : 'transparent',
+    font: 'inherit',
+    fontSize: 12,
+    lineHeight: '16px',
+    fontWeight: 600,
+    whiteSpace: 'nowrap',
+    cursor: 'pointer',
+  }
+}
+
+function getArchiveTabCountStyle(isActive: boolean): CSSProperties {
+  return {
+    ...monoStyle,
+    fontSize: 10,
+    lineHeight: '14px',
+    fontWeight: 700,
+    opacity: isActive ? 0.72 : 0.62,
+  }
+}
+
 function FilterTabs({
   active,
   onChange,
@@ -443,27 +474,10 @@ function FilterTabs({
               type="button"
               aria-pressed={isActive}
               onClick={() => onChange(tab.id)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                flexShrink: 0,
-                minHeight: 32,
-                padding: '7px 12px',
-                borderRadius: 'var(--radius-pill)',
-                border: isActive ? '1px solid transparent' : '1px solid var(--color-outline)',
-                color: isActive ? 'var(--color-surface)' : 'var(--color-on-surface-variant)',
-                background: isActive ? 'var(--color-on-surface)' : 'transparent',
-                font: 'inherit',
-                fontSize: 12,
-                lineHeight: '16px',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-              }}
+              style={getArchiveTabStyle(isActive)}
             >
               {tab.label}
-              <span style={{ ...monoStyle, fontSize: 10, lineHeight: '14px', fontWeight: 700, opacity: 0.68 }}>
+              <span style={getArchiveTabCountStyle(isActive)}>
                 {tab.count}
               </span>
             </button>

@@ -1,7 +1,3 @@
-import satori from 'satori'
-import { readFile } from 'fs/promises'
-import { join } from 'path'
-import { Resvg, initWasm } from '@resvg/resvg-wasm'
 import sharp from 'sharp'
 import { BaseClassicTemplate } from '@/lib/share-templates/base-classic'
 import { BaseDataTemplate } from '@/lib/share-templates/base-data'
@@ -13,7 +9,7 @@ import { PremiumPhotoCompositeTemplate } from '@/lib/share-templates/premium-pho
 import { PremiumPhotoOverlayTemplate } from '@/lib/share-templates/premium-photo-overlay'
 import { PremiumSummitCertificateTemplate } from '@/lib/share-templates/premium-summit-certificate'
 import { PremiumVerticalStoryTemplate } from '@/lib/share-templates/premium-vertical-story'
-import { RenderRoot, POSTER_HEIGHT, POSTER_WIDTH } from '@/lib/share-templates/shared'
+import { RenderRoot } from '@/lib/share-templates/shared'
 import { TransparentWatermarkTemplate } from '@/lib/share-templates/transparent-watermark'
 import {
   SHARE_RENDER_TEMPLATE_IDS,
@@ -25,6 +21,7 @@ import {
 import { loadShareFonts } from '@/lib/fonts/load-share-fonts'
 import { checkTemplateAccess, isPremiumPaywallEnabled } from '@/lib/premium'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
+import { renderSharePng } from '@/lib/share-render-png'
 import { ShareRenderPayloadPolicyError, assertShareRenderPayload } from '@/lib/share-render-policy'
 import { buildShareTrackPreview } from '@/lib/share-track-preview'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
@@ -32,15 +29,6 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 export const runtime = 'nodejs'
 
 const VALID_TEMPLATES: readonly ShareRenderTemplate[] = SHARE_RENDER_TEMPLATE_IDS
-
-let wasmReady = false
-
-async function ensureResvgWasm() {
-  if (wasmReady) return
-  const wasm = await readFile(join(process.cwd(), 'node_modules/@resvg/resvg-wasm/index_bg.wasm'))
-  await initWasm(wasm)
-  wasmReady = true
-}
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -385,9 +373,8 @@ export async function POST(request: Request) {
   try {
     const { payload, userId } = serverPayload
     const paywallEnabled = isPremiumPaywallEnabled()
-    const [fonts, , photoDataUrl] = await Promise.all([
+    const [fonts, photoDataUrl] = await Promise.all([
       loadShareFonts(fontText(payload.data)),
-      ensureResvgWasm(),
       payload.transparent ? null : photoDataUrlForTemplate(payload.template, payload.photoBase64),
     ])
     const access = paywallEnabled
@@ -395,30 +382,18 @@ export async function POST(request: Request) {
       : { allowed: true }
     const templateElement = renderPayload(payload, photoDataUrl)
 
-    const svg = await satori(
-      access.allowed
+    const png = await renderSharePng({
+      element: access.allowed
         ? templateElement
         : RenderRoot({
             paywallWatermark: true,
             children: templateElement,
           }),
-      {
-        width: POSTER_WIDTH,
-        height: POSTER_HEIGHT,
-        fonts,
-      },
-    )
-    const resvgOptions = payload.transparent
-      ? { fitTo: { mode: 'original' as const } }
-      : {
-          fitTo: { mode: 'original' as const },
-          background: '#121416',
-        }
-    const png = new Resvg(svg, resvgOptions).render().asPng()
-    const pngCopy = new Uint8Array(png.byteLength)
-    pngCopy.set(png)
+      fonts,
+      transparent: payload.transparent,
+    })
 
-    return new Response(new Blob([pngCopy.buffer], { type: 'image/png' }), {
+    return new Response(new Blob([png.buffer], { type: 'image/png' }), {
       headers: {
         'Content-Type': 'image/png',
         'Cache-Control': 'no-store',

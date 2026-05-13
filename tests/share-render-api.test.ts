@@ -134,12 +134,113 @@ describe('share render API field policy regression', () => {
 
   test('mono-film thumbnail uses photo altitude layout instead of trail', () => {
     const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
-    const advancedThumb = clientSource.match(/function AdvancedThumb[\s\S]*?function Tabs/)?.[0]
+    const advancedThumb = clientSource.match(/function AdvancedThumb[\s\S]*?function ThumbnailRow/)?.[0]
     const monoBranch = advancedThumb?.match(/template\.kind === 'mono-film'\s*\?\s*\([\s\S]*?\)\s*:\s*template\.kind === 'summit-certificate'/)?.[0]
 
     assert.ok(monoBranch)
     assert.match(monoBranch, /1265m/)
     assert.doesNotMatch(monoBranch, /M12 94 Q 26 72 40 76/)
+  })
+
+  test('share editor removes path B disabled controls and renders one template row', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+
+    assert.doesNotMatch(clientSource, /type ShareTab/)
+    assert.doesNotMatch(clientSource, /data-testid="share-template-tabs"/)
+    assert.doesNotMatch(clientSource, /function Tabs\(/)
+    assert.doesNotMatch(clientSource, /activeTab/)
+    assert.doesNotMatch(clientSource, /showMap|setShowMap|onToggleMap/)
+    assert.doesNotMatch(clientSource, /MapIcon|InlineSwitch|MapLabel|PeakGlyph|HutGlyph/)
+    assert.doesNotMatch(clientSource, /玉山北峰|3858m|圆峰山屋|塔塔加/)
+    assert.doesNotMatch(clientSource, /MoreIcon|aria-label="更多"/)
+    assert.match(clientSource, /SHARE_TEMPLATE_OPTIONS/)
+    assert.match(clientSource, /gridTemplateColumns:\s*'1fr 1fr'/)
+  })
+
+  test('archive filter tabs use one selected style helper for every tab', () => {
+    const archiveSource = readSource('../src/app/(flow)/archive/ArchiveClient.tsx')
+    const filterTabsSource = archiveSource.match(/function FilterTabs[\s\S]*?function YearDivider/)?.[0]
+
+    assert.ok(filterTabsSource)
+    assert.match(filterTabsSource, /getArchiveTabStyle\(isActive\)/)
+    assert.match(filterTabsSource, /getArchiveTabCountStyle\(isActive\)/)
+    assert.doesNotMatch(filterTabsSource, /color-warning|tone === 'warn'|tab\.id === 'unproof'|tab\.id === 'proof'/)
+  })
+
+  test('server-side PNG renderer outputs real-track raster data and transparent alpha', async () => {
+    const React = await import('react')
+    const { renderSharePng } = await import('../src/lib/share-render-png.ts')
+    const { buildShareTrackPreview, buildShareTrackPath } = await import('../src/lib/share-track-preview.ts')
+    const sharp = (await import('sharp')).default
+    const rawTrack = [
+      { lat: 22.9678, lng: 113.3911, ele: 84 },
+      { lat: 22.9712, lng: 113.3954, ele: 220 },
+      { lat: 22.9756, lng: 113.4018, ele: 438 },
+      { lat: 22.9798, lng: 113.4074, ele: 691 },
+      { lat: 22.9841, lng: 113.4112, ele: 915 },
+    ]
+    const preview = buildShareTrackPreview(rawTrack)
+    const route = buildShareTrackPath(preview, { x: 120, y: 240, width: 840, height: 980, padding: 72 })
+
+    assert.ok(route)
+
+    const element = React.createElement(
+      'div',
+      {
+        style: {
+          display: 'flex',
+          width: 1080,
+          height: 1920,
+          position: 'relative',
+          background: 'transparent',
+        },
+      },
+      React.createElement(
+        'svg',
+        { width: 1080, height: 1920, viewBox: '0 0 1080 1920', style: { position: 'absolute', inset: 0 } },
+        React.createElement('path', {
+          d: route.d,
+          fill: 'none',
+          stroke: '#6ee7a1',
+          strokeWidth: 34,
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+        }),
+      ),
+    )
+
+    const solidPng = await renderSharePng({ element, transparent: false })
+    const solidMeta = await sharp(solidPng).metadata()
+    assert.equal(solidMeta.width, 1080)
+    assert.equal(solidMeta.height, 1920)
+
+    const { data: solidPixels, info: solidInfo } = await sharp(solidPng).raw().toBuffer({ resolveWithObject: true })
+    let greenPixelCount = 0
+    for (let index = 0; index < solidPixels.length; index += solidInfo.channels) {
+      const red = solidPixels[index] ?? 0
+      const green = solidPixels[index + 1] ?? 0
+      const blue = solidPixels[index + 2] ?? 0
+      if (green > 180 && red > 70 && red < 150 && blue > 110 && blue < 190) greenPixelCount += 1
+    }
+    assert.ok(greenPixelCount > 500, `expected route accent pixels, found ${greenPixelCount}`)
+
+    const transparentPng = await renderSharePng({ element, transparent: true })
+    const transparentMeta = await sharp(transparentPng).metadata()
+    assert.equal(transparentMeta.hasAlpha, true)
+
+    const { data: transparentPixels, info: transparentInfo } = await sharp(transparentPng)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+    let transparentPixelCount = 0
+    let opaquePixelCount = 0
+    for (let index = 3; index < transparentPixels.length; index += transparentInfo.channels) {
+      const alpha = transparentPixels[index] ?? 0
+      if (alpha === 0) transparentPixelCount += 1
+      if (alpha > 0) opaquePixelCount += 1
+    }
+    assert.ok(transparentPixelCount > 500, `expected transparent background pixels, found ${transparentPixelCount}`)
+    assert.ok(opaquePixelCount > 500, `expected visible route pixels, found ${opaquePixelCount}`)
   })
 
   test('rejects request without checkinId', async () => {

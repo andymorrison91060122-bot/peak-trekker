@@ -47,7 +47,6 @@ type CheckinRow = {
   distance_meters?: number | string | null
   elevation_gain_meters?: number | string | null
   max_elevation_meters?: number | string | null
-  track_points?: unknown
   session_id?: string | null
   mountains: MountainRelation | MountainRelation[] | null
 }
@@ -59,7 +58,6 @@ type SessionRow = {
   distance_m: number | string | null
   ascent_m: number | string | null
   max_altitude_m: number | string | null
-  track_points?: unknown
 }
 
 type AssetRow = {
@@ -81,13 +79,13 @@ const CHECKIN_SELECT_VARIANTS = [
   `
     id, user_id, mountain_id, type, source, status, photo_url, verified_at, created_at,
     summit_verified, altitude, distance_km, ascent_m, duration_seconds,
-    distance_meters, elevation_gain_meters, max_elevation_meters, track_points, session_id,
+    distance_meters, elevation_gain_meters, max_elevation_meters, session_id,
     mountains(id, name, altitude, province, region, cover_image, gallery_images)
   `,
   `
     id, user_id, mountain_id, type, source, status, photo_url, verified_at, created_at,
     distance_meters, elevation_gain_meters, max_elevation_meters, duration_seconds,
-    track_points, session_id,
+    session_id,
     mountains(id, name, altitude, province, cover_image, gallery_images)
   `,
   `
@@ -108,10 +106,6 @@ function firstRelation<T>(value: T | T[] | null | undefined) {
 function toNumber(value: unknown): number | null {
   const numberValue = Number(value)
   return Number.isFinite(numberValue) ? numberValue : null
-}
-
-function parseTrackPointCount(value: unknown) {
-  return Array.isArray(value) ? value.length : 0
 }
 
 function durationFromRange(start: string | null | undefined, end: string | null | undefined) {
@@ -160,7 +154,7 @@ async function loadSessionMap(supabase: SupabaseServerClient, sessionIds: string
 
   const result = await supabase
     .from('trek_sessions')
-    .select('id, started_at, ended_at, distance_m, ascent_m, max_altitude_m, track_points')
+    .select('id, started_at, ended_at, distance_m, ascent_m, max_altitude_m')
     .in('id', sessionIds)
 
   if (result.error && isSchemaCompatibilityErrorMessage(result.error.message)) {
@@ -205,21 +199,6 @@ function resolveUser(profile: ProfileRow | null, fallbackName: string): ArchiveU
   }
 }
 
-function resolveProofStatus({
-  isSummit,
-  checkin,
-  session,
-}: {
-  isSummit: boolean
-  checkin: CheckinRow
-  session: SessionRow | null
-}): ArchiveTripViewModel['proofStatus'] {
-  if (!isSummit) return 'manual'
-
-  const trackPointCount = Math.max(parseTrackPointCount(checkin.track_points), parseTrackPointCount(session?.track_points))
-  return trackPointCount >= 8 ? 'confirmed' : 'partial'
-}
-
 function normalizeTrip({
   checkin,
   session,
@@ -228,16 +207,14 @@ function normalizeTrip({
   checkin: CheckinRow
   session: SessionRow | null
   assets: AssetRow[]
-}): ArchiveTripViewModel | null {
+}): ArchiveTripViewModel {
   const mountain = firstRelation(checkin.mountains)
-  if (!mountain) return null
 
-  const mountainAltitude = Math.round(toNumber(mountain.altitude) ?? 0)
+  const mountainAltitude = toNumber(mountain?.altitude)
+  const fallbackAltitude =
+    toNumber(checkin.max_elevation_meters) ?? toNumber(checkin.altitude) ?? toNumber(session?.max_altitude_m) ?? 0
   const maxAltitude =
-    toNumber(checkin.max_elevation_meters) ??
-    toNumber(checkin.altitude) ??
-    toNumber(session?.max_altitude_m) ??
-    mountainAltitude
+    toNumber(checkin.max_elevation_meters) ?? toNumber(checkin.altitude) ?? toNumber(session?.max_altitude_m) ?? mountainAltitude ?? 0
   const distanceKm =
     toNumber(checkin.distance_km) ??
     (toNumber(checkin.distance_meters) !== null ? Number(((toNumber(checkin.distance_meters) ?? 0) / 1000).toFixed(1)) : null) ??
@@ -257,19 +234,19 @@ function normalizeTrip({
     Boolean(checkin.verified_at) ||
     checkin.status === 'approved' ||
     checkin.status === 'verified'
-  const photoUrl = checkin.photo_url ?? assets[0]?.thumbnail_url ?? assets[0]?.url ?? mountain.cover_image ?? null
-  const proofStatus = resolveProofStatus({ isSummit, checkin, session })
+  const hasProof = Boolean(checkin.mountain_id)
+  const photoUrl = checkin.photo_url ?? assets[0]?.thumbnail_url ?? assets[0]?.url ?? mountain?.cover_image ?? null
 
   return {
     id: checkin.id,
     createdAt: checkin.created_at,
     mountain: {
-      id: mountain.id,
-      name: mountain.name,
-      province: mountain.province ?? '未知地点',
-      region: mountain.region ?? null,
-      altitude: mountainAltitude,
-      coverImage: mountain.cover_image ?? null,
+      id: mountain?.id ?? null,
+      name: mountain?.name ?? '未关联山行',
+      province: mountain?.province ?? (hasProof ? '未知地点' : '未留证'),
+      region: mountain?.region ?? null,
+      altitude: Math.round(mountainAltitude ?? fallbackAltitude),
+      coverImage: mountain?.cover_image ?? null,
     },
     metrics: {
       maxAltitudeM: Math.round(maxAltitude),
@@ -279,7 +256,7 @@ function normalizeTrip({
     },
     photoUrl,
     isSummit,
-    proofStatus,
+    hasProof,
   }
 }
 
@@ -312,14 +289,13 @@ export default async function ArchivePage() {
     loadSessionMap(supabase, sessionIds),
     loadAssetMap(supabase, checkinIds),
   ])
-  const trips = checkins.flatMap((checkin) => {
-    const trip = normalizeTrip({
+  const trips = checkins.map((checkin) =>
+    normalizeTrip({
       checkin,
       session: checkin.session_id ? sessionMap.get(checkin.session_id) ?? null : null,
       assets: assetMap.get(checkin.id) ?? [],
     })
-    return trip ? [trip] : []
-  })
+  )
 
   return (
     <ArchiveClient

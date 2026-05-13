@@ -26,7 +26,7 @@ export type ArchiveTripViewModel = {
   id: string
   createdAt: string
   mountain: {
-    id: string
+    id: string | null
     name: string
     province: string
     region: string | null
@@ -41,10 +41,10 @@ export type ArchiveTripViewModel = {
   }
   photoUrl: string | null
   isSummit: boolean
-  proofStatus: 'confirmed' | 'partial' | 'manual'
+  hasProof: boolean
 }
 
-type FilterId = 'all' | 'summit' | 'proof' | 'pending'
+type FilterId = 'all' | 'summit' | 'proof' | 'unproof'
 
 type YearGroup = {
   year: string
@@ -100,8 +100,8 @@ function buildTripLocation(trip: ArchiveTripViewModel) {
 
 function filterTrips(trips: ArchiveTripViewModel[], active: FilterId) {
   if (active === 'summit') return trips.filter((trip) => trip.isSummit)
-  if (active === 'proof') return trips.filter((trip) => trip.proofStatus === 'confirmed')
-  if (active === 'pending') return trips.filter((trip) => trip.proofStatus !== 'confirmed')
+  if (active === 'proof') return trips.filter((trip) => trip.hasProof)
+  if (active === 'unproof') return trips.filter((trip) => !trip.hasProof)
   return trips
 }
 
@@ -414,14 +414,14 @@ function FilterTabs({
   const counts = {
     all: trips.length,
     summit: trips.filter((trip) => trip.isSummit).length,
-    proof: trips.filter((trip) => trip.proofStatus === 'confirmed').length,
-    pending: trips.filter((trip) => trip.proofStatus !== 'confirmed').length,
+    proof: trips.filter((trip) => trip.hasProof).length,
+    unproof: trips.filter((trip) => !trip.hasProof).length,
   }
   const tabs: Array<{ id: FilterId; label: string; count: number }> = [
     { id: 'all', label: '全部', count: counts.all },
     { id: 'summit', label: '登顶', count: counts.summit },
     { id: 'proof', label: '已留证', count: counts.proof },
-    { id: 'pending', label: '未留证', count: counts.pending },
+    { id: 'unproof', label: '未留证', count: counts.unproof },
   ]
 
   return (
@@ -516,10 +516,8 @@ function YearDivider({ year, count }: { year: string; count: number }) {
   )
 }
 
-function ProofChip({ proofStatus }: { proofStatus: ArchiveTripViewModel['proofStatus'] }) {
-  if (proofStatus === 'confirmed') return <Chip tone="success">● 留证</Chip>
-  if (proofStatus === 'partial') return <Chip tone="warn">● 部分留证</Chip>
-  return <Chip>● 补签</Chip>
+function ProofChip({ hasProof }: { hasProof: boolean }) {
+  return hasProof ? <Chip tone="success">● 已留证</Chip> : <Chip>● 未留证</Chip>
 }
 
 function TripMedia({ trip }: { trip: ArchiveTripViewModel }) {
@@ -548,7 +546,7 @@ function TripMedia({ trip }: { trip: ArchiveTripViewModel }) {
         {trip.isSummit ? <Chip tone="success">● 已登顶</Chip> : <Chip tone="warn">● 未登顶</Chip>}
       </div>
       <div style={{ position: 'absolute', top: 10, right: 10 }}>
-        <ProofChip proofStatus={trip.proofStatus} />
+        <ProofChip hasProof={trip.hasProof} />
       </div>
       <div
         style={{

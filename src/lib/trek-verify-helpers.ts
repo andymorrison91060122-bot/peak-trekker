@@ -1,4 +1,5 @@
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
+import { isMissingOptionalCheckinColumnError } from '@/lib/checkin-fallback-utils'
 import { haversineMeters } from '@/lib/trek-utils'
 import type { createSupabaseServerClient } from '@/lib/supabase-server'
 import type { Mountain } from '@/types'
@@ -119,6 +120,7 @@ const OPTIONAL_CHECKIN_COLUMNS = [
   'session_id',
   'verified_at',
   'verification_distance_m',
+  'completion_status',
   'ranking_weight',
   'review_note',
   'admin_note',
@@ -147,7 +149,7 @@ export async function insertCheckinWithFallback(
     }
 
     const missingColumn = OPTIONAL_CHECKIN_COLUMNS.find((column) =>
-      result.error?.message.includes(`'${column}' column`)
+      isMissingOptionalCheckinColumnError(result.error?.message, column)
     )
 
     if (!missingColumn || !(missingColumn in currentPayload)) {

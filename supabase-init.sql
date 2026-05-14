@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS public.checkins (
   type TEXT NOT NULL CHECK (type IN ('gps','photo')),
   source TEXT CHECK (source IN ('realtime_gps','historical_photo')),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  completion_status TEXT DEFAULT 'complete' CHECK (completion_status IN ('complete','incomplete')),
   photo_url TEXT,
   latitude DECIMAL(10,7),
   longitude DECIMAL(10,7),
@@ -258,6 +259,7 @@ ALTER TABLE public.checkins ADD COLUMN IF NOT EXISTS poster_template TEXT;
 ALTER TABLE public.checkins ADD COLUMN IF NOT EXISTS poster_url TEXT;
 ALTER TABLE public.checkins ADD COLUMN IF NOT EXISTS ranking_weight INTEGER DEFAULT 0;
 ALTER TABLE public.checkins ADD COLUMN IF NOT EXISTS review_note TEXT;
+ALTER TABLE public.checkins ADD COLUMN IF NOT EXISTS completion_status TEXT DEFAULT 'complete';
 
 ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS title TEXT;
 ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS body TEXT;
@@ -293,9 +295,14 @@ ALTER TABLE public.checkins DROP CONSTRAINT IF EXISTS checkins_source_check;
 ALTER TABLE public.checkins
   ADD CONSTRAINT checkins_source_check CHECK (source IN ('realtime_gps','historical_photo'));
 
+ALTER TABLE public.checkins DROP CONSTRAINT IF EXISTS checkins_completion_status_check;
+ALTER TABLE public.checkins
+  ADD CONSTRAINT checkins_completion_status_check CHECK (completion_status IN ('complete','incomplete'));
+
 CREATE INDEX IF NOT EXISTS idx_checkins_source ON public.checkins(source);
 CREATE INDEX IF NOT EXISTS idx_checkins_session_id ON public.checkins(session_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_status_source ON public.checkins(status, source);
+CREATE INDEX IF NOT EXISTS idx_checkins_completion_status ON public.checkins(completion_status);
 
 ALTER TABLE public.trek_sessions ADD COLUMN IF NOT EXISTS verify_state TEXT DEFAULT 'pending';
 ALTER TABLE public.trek_sessions ADD COLUMN IF NOT EXISTS track_points JSONB DEFAULT '[]'::jsonb;

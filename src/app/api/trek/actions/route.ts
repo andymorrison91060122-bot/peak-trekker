@@ -3,6 +3,7 @@ import { assertActivityUpdatePolicy } from '@/lib/activity-field-policy'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import { TREK_RULES } from '@/lib/trek-rules-server'
+import { isTrekServerDevBypassAllowed, resolveTrekServerVerificationRules } from '@/lib/trek-verification-rules'
 import {
   ALLOW_LOCAL_TREK_SESSION,
   LOCAL_FALLBACK_SESSION_PREFIX,
@@ -27,6 +28,7 @@ type ActionName =
   | 'list_active_mountains'
   | 'start_trek_session'
   | 'finish_trek_session'
+  | 'finish_incomplete_trek'
   | 'append_trek_point'
   | 'verify_summit_checkin'
   | 'submit_historical_checkin'
@@ -35,10 +37,44 @@ type ActionName =
 const SHARE_TEMPLATES: ShareCardTemplate[] = ['trek_snapshot', 'summit_card', 'activity_summary']
 const SHARE_RENDER_MODES: ShareRenderMode[] = ['photo_composite', 'overlay_only', 'classic_card']
 const ENABLE_QA_TEST_HELPERS = process.env.ENABLE_QA_TEST_HELPERS === 'true'
+const MIN_INCOMPLETE_TREK_SECONDS = 60
+
+function isRequestedTrekTestMode(value: unknown) {
+  return value === true || value === '1'
+}
 
 function toSafeNote(value: unknown) {
   if (typeof value !== 'string') return ''
   return value.trim().slice(0, 240)
+}
+
+function toSafePhotoUrl(value: unknown) {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed ? trimmed.slice(0, 2048) : null
+}
+
+function finiteNumber(value: unknown) {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? numberValue : null
+}
+
+function durationFromStart(startedAt: unknown, endedAt: number) {
+  const startedAtMs = typeof startedAt === 'number' ? startedAt : new Date(String(startedAt ?? '')).getTime()
+  if (!Number.isFinite(startedAtMs)) return null
+  return Math.max(0, Math.floor((endedAt - startedAtMs) / 1000))
+}
+
+function summarizeTrackPoints(points: Array<{ altitude: number | null; ts: number }>) {
+  const altitudes = points.flatMap((point) => (typeof point.altitude === 'number' ? [point.altitude] : []))
+  const firstTs = points[0]?.ts ?? null
+  const lastTs = points.at(-1)?.ts ?? null
+  return {
+    minAltitudeM: altitudes.length ? Math.round(Math.min(...altitudes)) : null,
+    maxAltitudeM: altitudes.length ? Math.round(Math.max(...altitudes)) : null,
+    startTime: typeof firstTs === 'number' ? new Date(firstTs).toISOString() : null,
+    endTime: typeof lastTs === 'number' ? new Date(lastTs).toISOString() : null,
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -325,9 +361,185 @@ export async function POST(request: NextRequest) {
     })
   }
 
+  if (action === 'finish_incomplete_trek') {
+    const sessionId = typeof body?.sessionId === 'string' ? body.sessionId : ''
+    const note = toSafeNote(body?.note)
+    const mountainId = typeof body?.mountainId === 'string' ? body.mountainId : null
+    const endedAtMs = Date.now()
+
+    if (!sessionId) {
+      return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
+    }
+
+    const isFallbackSession = isLocalFallbackSessionId(sessionId)
+    const isTestLocalSession = isLocalTrekSessionId(sessionId)
+    if (isTestLocalSession && !ALLOW_LOCAL_TREK_SESSION) {
+      return NextResponse.json({ error: 'local_trek_session_disabled' }, { status: 403 })
+    }
+
+    const isLocalSession = isFallbackSession || isTestLocalSession
+    const verificationRules = resolveTrekServerVerificationRules({
+      requestedTestMode: isRequestedTrekTestMode(body?.testMode),
+      isLocalSession,
+    })
+    const minIncompleteSeconds = isRequestedTrekTestMode(body?.testMode)
+      ? Math.min(MIN_INCOMPLETE_TREK_SECONDS, verificationRules.minSessionSeconds)
+      : MIN_INCOMPLETE_TREK_SECONDS
+    const points = isLocalSession ? safeTrackPoints(body?.trackPoints) : []
+    const localStartedAt = finiteNumber(body?.startedAt)
+    const localElapsedSeconds = finiteNumber(body?.elapsedSeconds)
+
+    let session:
+      | (TrekVerifySessionRecord & {
+          ended_at?: string | null
+        })
+      | null = null
+
+    if (!isLocalSession) {
+      const { data, error } = await supabase
+        .from('trek_sessions')
+        .select(`${TREK_VERIFY_SESSION_SELECT}, ended_at`)
+        .eq('id', sessionId)
+        .single()
+
+      if (error || !data) {
+        return NextResponse.json({ error: 'session not found' }, { status: 404 })
+      }
+
+      session = data as TrekVerifySessionRecord & { ended_at?: string | null }
+      if (session.user_id !== user.id) {
+        return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+      }
+    }
+
+    const effectivePoints = isLocalSession ? points : safeTrackPoints(session?.track_points)
+    const startedAt = isLocalSession ? localStartedAt : new Date(session?.started_at ?? '').getTime()
+    const durationSeconds =
+      localElapsedSeconds !== null
+        ? Math.max(0, Math.floor(localElapsedSeconds))
+        : durationFromStart(startedAt, endedAtMs)
+
+    if (durationSeconds === null || durationSeconds < minIncompleteSeconds) {
+      if (!isLocalSession && session) {
+        await supabase
+          .from('trek_sessions')
+          .update({
+            status: 'aborted',
+            ended_at: new Date(endedAtMs).toISOString(),
+          })
+          .eq('id', session.id)
+          .eq('user_id', user.id)
+      }
+      return NextResponse.json(
+        {
+          error: 'record_too_short',
+          detail: `need at least ${minIncompleteSeconds}s`,
+        },
+        { status: 422 }
+      )
+    }
+
+    if (!effectivePoints.length) {
+      return NextResponse.json({ error: 'no_track_points' }, { status: 422 })
+    }
+
+    const effectiveMountainId = session?.mountain_id ?? mountainId
+    if (!effectiveMountainId) {
+      return NextResponse.json({ error: 'mountain_id_required' }, { status: 400 })
+    }
+
+    if (!isLocalSession) {
+      const { data: existingCheckin } = await supabase
+        .from('checkins')
+        .select('id')
+        .eq('session_id', sessionId)
+        .maybeSingle()
+
+      if (existingCheckin?.id) {
+        return NextResponse.json({
+          ok: true,
+          duplicated: true,
+          checkinId: existingCheckin.id,
+        })
+      }
+    }
+
+    const lastPoint = effectivePoints.at(-1)!
+    const trackSummary = summarizeTrackPoints(effectivePoints)
+    const distanceMeters =
+      finiteNumber(session?.distance_m) ??
+      finiteNumber(body?.distanceMeters) ??
+      0
+    const ascentMeters =
+      finiteNumber(session?.ascent_m) ??
+      finiteNumber(body?.ascentMeters) ??
+      0
+    const descentMeters = finiteNumber(session?.descent_m) ?? 0
+    const maxAltitudeMeters =
+      finiteNumber(session?.max_altitude_m) ??
+      trackSummary.maxAltitudeM
+
+    const { data: createdCheckin, error: createError } = await insertCheckinWithFallback(
+      supabase,
+      {
+        user_id: user.id,
+        mountain_id: effectiveMountainId,
+        type: 'gps',
+        source: 'realtime_gps',
+        status: 'pending',
+        completion_status: 'incomplete',
+        latitude: lastPoint.lat,
+        longitude: lastPoint.lng,
+        note,
+        ...(isLocalSession ? {} : { session_id: sessionId }),
+        ranking_weight: 0,
+        distance_meters: Math.round(distanceMeters),
+        duration_seconds: durationSeconds,
+        elevation_gain_meters: Math.round(ascentMeters),
+        elevation_loss_meters: Math.round(descentMeters),
+        max_elevation_meters: maxAltitudeMeters,
+        min_elevation_meters: trackSummary.minAltitudeM,
+        start_time: trackSummary.startTime ?? (startedAt ? new Date(startedAt).toISOString() : null),
+        end_time: trackSummary.endTime ?? new Date(endedAtMs).toISOString(),
+        track_name: '未完成 Trek 记录',
+        track_points: effectivePoints,
+      },
+      'id, status, completion_status'
+    )
+
+    if (createError || !createdCheckin) {
+      return NextResponse.json({ error: createError?.message ?? 'save incomplete trek failed' }, { status: 500 })
+    }
+
+    if (!isLocalSession && session) {
+      await supabase
+        .from('trek_sessions')
+        .update({
+          status: 'finished',
+          ended_at: new Date(endedAtMs).toISOString(),
+        })
+        .eq('id', session.id)
+        .eq('user_id', user.id)
+    }
+
+    const checkin = createdCheckin as unknown as {
+      id: string
+      status: string
+      completion_status?: string | null
+    }
+
+    return NextResponse.json({
+      ok: true,
+      checkinId: checkin.id,
+      status: checkin.status,
+      completionStatus: checkin.completion_status ?? 'incomplete',
+    })
+  }
+
   if (action === 'verify_summit_checkin') {
     const sessionId = typeof body?.sessionId === 'string' ? body.sessionId : ''
     const note = toSafeNote(body?.note)
+    const photoUrl = toSafePhotoUrl(body?.photoUrl)
 
     if (!sessionId) {
       return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
@@ -339,6 +551,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'local_trek_session_disabled' }, { status: 403 })
     }
     const isLocalSession = isFallbackSession || isTestLocalSession
+    const verificationRules = resolveTrekServerVerificationRules({
+      requestedTestMode: isRequestedTrekTestMode(body?.testMode),
+      isLocalSession,
+    })
     const sessionResult = isLocalSession
       ? {
           data: null,
@@ -375,15 +591,15 @@ export async function POST(request: NextRequest) {
     }
 
     const points = isLocalSession ? safeTrackPoints(body?.trackPoints) : safeTrackPoints(serverSession?.track_points)
-    if (points.length < TREK_RULES.minTrackPoints) {
+    if (points.length < verificationRules.minTrackPoints) {
       await recordServerVerifyFailure({
         supabase,
         session: serverSession,
         reason: 'insufficient_track_points',
-        detail: `need at least ${TREK_RULES.minTrackPoints} points`,
+        detail: `need at least ${verificationRules.minTrackPoints} points`,
       })
       return NextResponse.json(
-        { error: 'insufficient_track_points', detail: `need at least ${TREK_RULES.minTrackPoints} points` },
+        { error: 'insufficient_track_points', detail: `need at least ${verificationRules.minTrackPoints} points` },
         { status: 422 }
       )
     }
@@ -393,15 +609,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'invalid_session_start_time' }, { status: 400 })
     }
     const durationSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
-    if (durationSeconds < TREK_RULES.minSessionSeconds) {
+    if (durationSeconds < verificationRules.minSessionSeconds) {
       await recordServerVerifyFailure({
         supabase,
         session: serverSession,
         reason: 'session_too_short',
-        detail: `need at least ${TREK_RULES.minSessionSeconds}s`,
+        detail: `need at least ${verificationRules.minSessionSeconds}s`,
       })
       return NextResponse.json(
-        { error: 'session_too_short', detail: `need at least ${TREK_RULES.minSessionSeconds}s` },
+        { error: 'session_too_short', detail: `need at least ${verificationRules.minSessionSeconds}s` },
         { status: 422 }
       )
     }
@@ -418,7 +634,14 @@ export async function POST(request: NextRequest) {
 
     let mountain = targetMountain
     if (!mountain) {
-      if (!ALLOW_LOCAL_TREK_SESSION) {
+      const canUseNearestMountainFallback =
+        ALLOW_LOCAL_TREK_SESSION ||
+        isTrekServerDevBypassAllowed({
+          requestedTestMode: isRequestedTrekTestMode(body?.testMode),
+          isLocalSession,
+        })
+
+      if (!canUseNearestMountainFallback) {
         await recordServerVerifyFailure({
           supabase,
           session: serverSession,
@@ -529,6 +752,14 @@ export async function POST(request: NextRequest) {
         id: rpcRow.checkin_id,
         duplicated: Boolean(rpcRow.duplicated),
       }
+
+      if (photoUrl && verifiedCheckin.id) {
+        await supabase
+          .from('checkins')
+          .update({ photo_url: photoUrl })
+          .eq('id', verifiedCheckin.id)
+          .eq('user_id', user.id)
+      }
     } else {
       const { data: createdCheckin, error: createError } = await insertCheckinWithFallback(
         supabase,
@@ -541,9 +772,11 @@ export async function POST(request: NextRequest) {
           latitude: lastPoint.lat,
           longitude: lastPoint.lng,
           note,
+          photo_url: photoUrl,
           verified_at: now,
           verification_distance_m: Math.round(verifyDistance),
           ranking_weight: rankingWeight,
+          completion_status: 'complete',
         },
         'id'
       )

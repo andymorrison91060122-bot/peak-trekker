@@ -1,4 +1,4 @@
-# Peak Trekker Follow-up 清单 + 项目交接 v0.1
+# Peak Trekker Follow-up 清单 + 项目交接 v0.4
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
@@ -8,12 +8,12 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`db0934c`（Merge 7.8.c · 2026-05-14）  
+`25cb274`（Pre-3.a merge 前基线 · 2026-05-15）  
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**Pre-3.a · Trek 流程稳定性 Sprint** · 状态 🟡 in-progress  
-覆盖范围: FU-18 + FU-19 + FU-20 + FU-21 + FU-22 + N2 残留 + 原 3.a 追加修复（问题 3 准备页流程）
+**Pre-3.a 三轮+四轮已完成（2026-05-15），下一步 3.b** · 状态 ✅ completed  
+覆盖范围: Issue-3 + FU-18 + FU-19 + FU-20 + FU-21 + FU-22 + FU-23 + FU-25
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -49,6 +49,8 @@
 - 任何测试/build 失败立即停下报告，不绕过
 - destructive 操作走 plan 阶段先审 + 事务包裹 + archive 备份 + post-verify
 - 远程分支 push 后保留作为审计 trail，只清理本地分支
+- Codex 在 V1 plan 阶段必须包含 E2E 自测环节（Playwright 脚本 + 跑通报告 + 截图）；单元测试静态字符串 grep 不能替代运行时行为验证
+- 每次涉及 schema 改动的 sprint，V3 收尾必须包含"migration 已推送到远程 Supabase"的验证步骤（Codex 用 Supabase 插件主动推送 + service role 查 information_schema 验证）
 
 ### 新对话/接手指引
 新对话开始时只需读取以下三个来源即可 onboard：
@@ -73,7 +75,7 @@
 
 ---
 
-## Active Follow-ups（19 条）
+## Active Follow-ups（18 条）
 
 ### FU-1 · 同一份轨迹文件去重（防伪造）
 
@@ -294,99 +296,80 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-18 · Trek 登顶"继续"按钮失效（N2 残留）
+### FU-24 · Trek 刷新/重连恢复 elapsedSeconds
 
 - **优先级**: P1
-- **归属阶段**: **Pre-3.a Trek 流程稳定性 Sprint**
-- **状态**: 🟡 in-progress（Codex 调查 plan 中）
-
-**背景**: approach_alert 状态下用户点底部"继续"按钮无反应，UI 不切换到拍照留证流程。底部 toast 显示 "1 Issue"。
-
-**复现路径**:
-1. Trek 选华山 → 进入 live tracking
-2. Chrome DevTools 设置 GPS: 34.4869, 110.0877, accuracy 5
-3. 进入 approach_alert 状态（"临近峰顶"）
-4. 点底部"继续"按钮 → **无反应**
-
-**涉及**: `src/app/(flow)/trek/TrekClient.tsx` approach_alert → summit_verified 切换 + 拍照流程
-
----
-
-### FU-19 · Trek tracking 状态计时器失效
-
-- **优先级**: P1
-- **归属阶段**: **Pre-3.a Trek 流程稳定性 Sprint**
-- **状态**: 🟡 in-progress（与 FU-18 合并调查中）
-
-**背景**: 进入 tracking 状态后，已用时 00:00 / 距离 0.00 / 爬升 0 三个字段都不更新。
-
-**复现路径**: 进入 Trek 记录中状态后直接观察 tracking 卡片三个字段。
-
-**期望**: 点开始记录后计时器走，点暂停才停。
-
-**涉及**: `src/app/(flow)/trek/TrekClient.tsx` tracking 状态 init logic / useEffect / setInterval
-
----
-
-### FU-20 · "结束并保存"按钮实际未保存 + 缺 toast + 缺时长校验
-
-- **优先级**: P1
-- **归属阶段**: **Pre-3.a Trek 流程稳定性 Sprint**
-- **状态**: 🟡 in-progress（与 FU-18 合并调查中）
-
-**背景**: 用户在"已暂停"状态点"结束并保存"按钮：
-- 实际没有写入 checkin 数据库
-- "我的山行档案"/"我的记录"查不到这条记录
-- 无任何 toast 反馈
-
-**产品决策（已锁定）**:
-1. 保留按钮文案"结束并保存"
-2. 真实写入 checkin（含未登顶场景，标注 `verification_status = 'incomplete'` 或类似）
-3. Toast 提示成功 / 失败
-4. 时长门槛：duration < 60s → 不保存 + toast"记录时间过短（不足 1 分钟），不是有效记录"
-
-**涉及**: `src/app/(flow)/trek/TrekClient.tsx` + 可能新增 `/api/trek/end` API + checkins 表 schema
-
----
-
-### FU-21 · Trek 启动时缺位置校验（100km 阈值）
-
-- **优先级**: P1
-- **归属阶段**: **Pre-3.a Trek 流程稳定性 Sprint**
+- **归属阶段**: 下个 sprint / 独立稳定性任务
 - **状态**: 🟢 active
 
-**背景**: 用户位置在华山，选了武当山，系统仍允许进入 Trek 记录。需要启动校验。
-
-**产品决策（已锁定）**:
-- Trek 启动时校验当前 GPS 位置与目标山峰距离
-- **阈值 100km**（vs 轨迹上传的 20km，因为实时记录场景用户可能在登山口距离峰顶较远）
-- 超距处理：阻断 Trek 启动 + toast "经校验，您并不在这个山峰的附近，请到山峰附近再开始记录"
-
-**涉及**:
-- 复用 `src/lib/import/mountain-distance-check.ts` helper（A2 已有），但用 100km 阈值常量
-- `src/app/(flow)/trek/TrekClient.tsx` "确认这座山"按钮 onClick 加校验
-
----
-
-### FU-22 · 海拔显示应基于真实 GPS 坐标
-
-- **优先级**: P2
-- **归属阶段**: **Pre-3.a Trek 流程稳定性 Sprint**（修复后影响减小）
-- **状态**: 🟢 active
-
-**背景**: 当前实现 GPS altitude 不可用时 fallback 到 mountain.altitude。用户反馈逻辑：海拔显示应优先用 GPS altitude。
+**背景**: 用户在 Trek 过程中可能因网络不好刷新页面；真实徒步旅程应连续，elapsedSeconds 不应每次刷新后归零。
 
 **实施建议**:
-- 优先级：GPS altitude (if available & accuracy ok) → mountain.altitude (fallback with banner)
-- Fallback 状态应更显眼地提示用户
+- mount 时检测 in-progress `trek_sessions`
+- 从服务端 `started_at` 恢复 elapsedSeconds = now - started_at
+- 后续如需精确暂停恢复，服务端补 `paused_seconds` / pause intervals
 
-**涉及**: `src/app/(flow)/trek/TrekClient.tsx` 当前海拔渲染逻辑
-
-**注**: FU-21 (100km 校验) 落地后，用户不在山峰附近无法进入 Trek，FU-22 触发概率降低。但逻辑层面仍应优先 GPS altitude。
+**涉及**: `src/app/(flow)/trek/TrekClient.tsx` + `trek_sessions` schema / API。
 
 ---
 
-## Closed Follow-ups（3 条）
+### FU-27 · SummitConfirmedView "留下峰顶记录"按钮冗余
+
+- **优先级**: P2
+- **归属阶段**: 3.b Trek complete page simplification
+- **状态**: 🟢 active
+
+**背景**: 已拍照留证进入 summit confirmed 后，"留下峰顶记录"按钮在已完成拍照 case 下显得冗余。
+
+**实施建议**: 已有照片/已写入 checkin 的路径隐藏该按钮或改成更明确的二级动作。
+
+**涉及**: `src/app/(flow)/trek/TrekClient.tsx` SummitConfirmedView。
+
+---
+
+### FU-28 · "保存这次登顶"按钮文案改"查看登山档案"
+
+- **优先级**: P2
+- **归属阶段**: 3.b Trek complete page simplification
+- **状态**: 🟢 active
+
+**背景**: 登顶留证已经保存后，"保存这次登顶"容易让用户误以为还未保存。
+
+**实施建议**: summit confirmed 主 CTA 文案改为"查看登山档案"，动作跳转到对应 `/activity/{id}`。
+
+**涉及**: `src/app/(flow)/trek/TrekClient.tsx` SummitConfirmedView。
+
+---
+
+### FU-29 · 活动详情页照片联动 bug
+
+- **优先级**: P1
+- **归属阶段**: 阶段 3 后续
+- **状态**: 🟢 active
+
+**背景**: Summit photo 留证照片写入后，活动详情页未正确显示该照片，影响 Trek → Activity 闭环观感。
+
+**实施建议**: 核查 `checkins.photo_url` / `checkin_assets` 写入路径与 `ActivityDetailClient` 读取路径，统一活动详情主图来源。
+
+**涉及**: `src/app/(flow)/activity/[id]/ActivityDetailClient.tsx`、`src/app/api/trek/actions/route.ts`、`src/app/api/trek/photo-upload/route.ts`。
+
+---
+
+### FU-30 · 档案页 / Profile 页 "山行"字段语义统一
+
+- **优先级**: P2
+- **归属阶段**: 阶段 3 后续 / 阶段 6 文档对齐
+- **状态**: 🟢 active
+
+**背景**: 视觉验证中发现 Archive 档案页与 Profile 页 "山行"数量可能出现 9 vs 8 的语义差异；当前 Profile 明确不计入 `completion_status='incomplete'`。
+
+**实施建议**: 明确 "山行" 在 Profile / Archive 中是否都只计 complete，或 Archive 是否应分开展示 complete / incomplete，并同步 PRD/UI 文档。
+
+**涉及**: `src/app/(main)/profile/page.tsx`、`src/app/(flow)/archive/*`、`docs/ui-interaction-spec.md`。
+
+---
+
+## Closed Follow-ups（11 条）
 
 ### FU-3 ✅ Profile 最高海拔选项 B
 
@@ -409,6 +392,70 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 - **关闭原因**: 7.8.c 落地（抽出 share-render-png helper + 用 satori + Resvg 实际渲染 PNG + sharp 验证元数据/像素）
 - **关闭 commit**: `56e53ec`
 - **关闭时间**: 2026-05-14
+
+---
+
+### Issue-3 ✅ Trek 准备页流程缺失
+
+- **关闭原因**: Pre-3.a 落地（确认山峰后进入 PreStart 准备页；entry validation 不再污染 tracking 状态机）
+- **关闭 commit**: `63981e6`
+- **关闭时间**: 2026-05-15
+
+---
+
+### FU-18 ✅ Trek 登顶"继续"按钮失效（N2 残留）
+
+- **关闭原因**: Pre-3.a 落地（approach_alert 继续按钮接入 SummitPhotoView，photo-upload 端到端通过）
+- **关闭 commit**: `a52a88c`
+- **关闭时间**: 2026-05-15
+
+---
+
+### FU-19 ✅ Trek tracking 状态计时器失效
+
+- **关闭原因**: Pre-3.a 落地（tracking timer 改为状态驱动，并增加 activeSessionIdRef 防残留 callback 污染）
+- **关闭 commit**: `8499d18`
+- **关闭时间**: 2026-05-15
+
+---
+
+### FU-20 ✅ "结束并保存"实际未保存 + 缺 toast + 缺时长校验
+
+- **关闭原因**: Pre-3.a 落地（finish_incomplete_trek 写入 incomplete checkin，短记录动态门槛 toast，远程 Supabase schema 已部署验证）
+- **关闭 commit**: `27fba5a`
+- **关闭时间**: 2026-05-15
+
+---
+
+### FU-21 ✅ Trek 启动时缺位置校验（100km 阈值）
+
+- **关闭原因**: Pre-3.a 落地（入口 100km 校验失败 toast 后跳回 Explore，confirm/start 保留二次防御）
+- **关闭 commit**: `63981e6`
+- **关闭时间**: 2026-05-15
+
+---
+
+### FU-22 ✅ 海拔显示应基于真实 GPS 坐标
+
+- **关闭原因**: Pre-3.a 落地（当前海拔语义拆分为 GPS altitude → Open-Meteo elevation → 采集中，不再 fallback 山峰标称海拔）
+- **关闭 commit**: `ea853c6`
+- **关闭时间**: 2026-05-15
+
+---
+
+### FU-23 ✅ 海拔字段接入坐标查询 API
+
+- **关闭原因**: Pre-3.a 落地（新增 Open-Meteo Elevation API fallback，移动 50m 重查，AbortSignal 取消在途请求）
+- **关闭 commit**: `ea853c6`
+- **关闭时间**: 2026-05-15
+
+---
+
+### FU-25 ✅ 隐藏 Trek "暂时跳过 GPS"入口
+
+- **关闭原因**: Pre-3.a 落地（Trek GPS 失败流程不再暴露跳过 GPS 入口，late-proof 页面本身保留）
+- **关闭 commit**: `99a1c6d`
+- **关闭时间**: 2026-05-15
 ---
 
 ## 维护规范
@@ -445,5 +492,7 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.4 — 2026-05-15**：Pre-3.a 三轮+四轮全部完成；修复 entry validation 副作用 + watchPosition 残留 callback + photo-upload + schema 部署 + fallback 字符串硬化；新增 Open-Meteo 海拔接入；关闭 Issue-3 + FU-18/19/20/21/22/23/25；新增 FU-24/27/28/29/30 active；引入 E2E 自测和 schema migration 推送协作规范。
 
 **v0.1 — 2026-05-14**：首次创建。盘点 19 条活跃 follow-up + 3 条已关闭。引入 Pre-3.a Trek 流程稳定性 Sprint 范围。建立 V1/V2/V3 工作流 + 项目交接段 + 维护规范。

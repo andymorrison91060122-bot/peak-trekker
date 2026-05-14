@@ -28,7 +28,27 @@ export const TOAST_REGISTRY = {
   },
   trek_record_too_short: {
     tone: 'info',
-    message: '记录时间过短，本次不计为有效记录。',
+    message: '记录时间过短（不足 1 分钟），不是有效记录。',
+  },
+  trek_record_saved: {
+    tone: 'success',
+    message: '记录已保存到我的山行档案。',
+  },
+  trek_record_save_failure: {
+    tone: 'error',
+    message: '保存记录失败，请稍后重试。',
+  },
+  trek_start_too_far: {
+    tone: 'error',
+    message: '经校验，您并不在这个山峰的附近，请到山峰附近再开始记录。',
+  },
+  summit_evidence_insufficient: {
+    tone: 'info',
+    message: '登顶留证还缺少必要轨迹，请继续记录一小段再试。',
+  },
+  trek_gps_weak_retrying: {
+    tone: 'info',
+    message: 'GPS 信号较弱，正在重试...',
   },
   summit_verify_success: {
     tone: 'success',

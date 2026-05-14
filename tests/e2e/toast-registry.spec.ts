@@ -6,6 +6,11 @@ test('toast registry covers acceptance-critical states', () => {
     expect.arrayContaining([
       'trek_start_success',
       'trek_record_too_short',
+      'trek_record_saved',
+      'trek_record_save_failure',
+      'trek_start_too_far',
+      'trek_gps_weak_retrying',
+      'summit_evidence_insufficient',
       'summit_verify_success',
       'summit_verify_failure',
       'image_upload_success',

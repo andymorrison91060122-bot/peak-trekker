@@ -61,6 +61,7 @@ export type Checkin = {
   type: 'gps' | 'photo'
   source?: CheckinSource | null
   status: 'pending' | 'approved' | 'rejected'
+  completion_status?: 'complete' | 'incomplete'
   photo_url: string | null
   latitude: number | null
   longitude: number | null

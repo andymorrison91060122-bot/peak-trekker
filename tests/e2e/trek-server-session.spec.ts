@@ -86,17 +86,20 @@ async function verifySummit(
     mountainId,
     points,
     startedAt = Date.now() - 120_000,
+    testMode = false,
   }: {
     sessionId: string
     mountainId?: string
     points: ReturnType<typeof buildTrekTestTrackPoints>
     startedAt?: number
+    testMode?: boolean
   }
 ) {
   return postTrekAction(page, {
     action: 'verify_summit_checkin',
     sessionId,
     ...(mountainId ? { mountainId } : {}),
+    ...(testMode ? { testMode } : {}),
     note: `server-session-${Date.now()}`,
     startedAt,
     trackPoints: points,
@@ -243,7 +246,7 @@ test.describe('trek server session', () => {
       await appendPoints(page, sessionId, points)
       await backdateTrekSessionForTest(sessionId, 120_000)
 
-      const result = await verifySummit(page, { sessionId, points })
+      const result = await verifySummit(page, { sessionId, points, testMode: true })
       expect(result.status, JSON.stringify(result.body)).toBe(200)
       expect(String(result.body.checkinId ?? '')).toMatch(UUID_PATTERN)
       expect((result.body.mountain as { id?: string } | undefined)?.id).toBe(mountain.id)

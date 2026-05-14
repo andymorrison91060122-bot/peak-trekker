@@ -59,7 +59,7 @@ function resolveIdentity({
 }
 
 function buildSummary(trips: ProfileV2TripPreview[]): ProfileV2Summary {
-  const approvedTrips = trips.filter((trip) => trip.status === 'approved')
+  const approvedTrips = trips.filter((trip) => trip.status === 'approved' && (trip.completionStatus ?? 'complete') === 'complete')
   const visitedProvinces = new Set(
     approvedTrips
       .map((trip) => trip.province)

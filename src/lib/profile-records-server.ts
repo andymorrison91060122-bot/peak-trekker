@@ -16,6 +16,7 @@ type ProfileCheckinRow = {
   id: string
   mountain_id: string | null
   status: string | null
+  completion_status?: 'complete' | 'incomplete' | null
   created_at: string
   verified_at?: string | null
   photo_url: string | null
@@ -26,7 +27,7 @@ type ProfileCheckinRow = {
 
 const PROFILE_TRIP_SELECT_VARIANTS = [
   `
-    id, mountain_id, status, created_at, verified_at, photo_url, poster_url, max_elevation_meters,
+    id, mountain_id, status, completion_status, created_at, verified_at, photo_url, poster_url, max_elevation_meters,
     mountains(id, name, altitude, province, cover_image)
   `,
   `
@@ -91,6 +92,7 @@ export async function listProfileTrips({
     return {
       checkinId: checkin.id,
       status: checkin.status,
+      completionStatus: checkin.completion_status ?? 'complete',
       mountainName: mountain?.name?.trim() || (hasProof ? '已留证山行' : '未关联山行'),
       province: mountain?.province?.trim() || (hasProof ? '未知地点' : '未留证'),
       createdAt: checkin.verified_at || checkin.created_at,

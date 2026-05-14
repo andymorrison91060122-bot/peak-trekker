@@ -8,7 +8,7 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`25cb274`（Pre-3.a merge 前基线 · 2026-05-15）  
+`4c61e4e`（Merge Pre-3.a Trek stability · 2026-05-15）  
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint

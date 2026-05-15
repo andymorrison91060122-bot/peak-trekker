@@ -1,4 +1,4 @@
-# Peak Trekker Follow-up 清单 + 项目交接 v0.4
+# Peak Trekker Follow-up 清单 + 项目交接 v0.5
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
@@ -8,12 +8,12 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`4c61e4e`（Merge Pre-3.a Trek stability · 2026-05-15）  
+`PENDING_PRE_3B_MERGE`（Pre-3.b merge 后同步 · 2026-05-15）  
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**Pre-3.b · Trek 完成页简化 + 活动详情照片联动 Sprint** · 状态 🟡 in-progress  
-覆盖范围: C1 + FU-27 + FU-28 + FU-29
+**Pre-3.b 已完成（2026-05-15），下一步 3.c**  
+覆盖范围: C1 + FU-27 + FU-28 + FU-29（已关闭）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -75,7 +75,7 @@
 
 ---
 
-## Active Follow-ups（18 条）
+## Active Follow-ups（17 条）
 
 ### FU-1 · 同一份轨迹文件去重（防伪造）
 
@@ -313,48 +313,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-27 · SummitConfirmedView "留下峰顶记录"按钮冗余
-
-- **优先级**: P2
-- **归属阶段**: 3.b Trek complete page simplification
-- **状态**: 🟡 in-progress
-
-**背景**: 已拍照留证进入 summit confirmed 后，"留下峰顶记录"按钮在已完成拍照 case 下显得冗余。
-
-**实施建议**: 已有照片/已写入 checkin 的路径隐藏该按钮或改成更明确的二级动作。
-
-**涉及**: `src/app/(flow)/trek/TrekClient.tsx` SummitConfirmedView。
-
----
-
-### FU-28 · "保存这次登顶"按钮文案改"查看登山档案"
-
-- **优先级**: P2
-- **归属阶段**: 3.b Trek complete page simplification
-- **状态**: 🟡 in-progress
-
-**背景**: 登顶留证已经保存后，"保存这次登顶"容易让用户误以为还未保存。
-
-**实施建议**: summit confirmed 主 CTA 文案改为"查看登山档案"，动作跳转到对应 `/activity/{id}`。
-
-**涉及**: `src/app/(flow)/trek/TrekClient.tsx` SummitConfirmedView。
-
----
-
-### FU-29 · 活动详情页照片联动 bug
-
-- **优先级**: P1
-- **归属阶段**: 阶段 3 后续
-- **状态**: 🟡 in-progress
-
-**背景**: Summit photo 留证照片写入后，活动详情页未正确显示该照片，影响 Trek → Activity 闭环观感。
-
-**实施建议**: 核查 `checkins.photo_url` / `checkin_assets` 写入路径与 `ActivityDetailClient` 读取路径，统一活动详情主图来源。
-
-**涉及**: `src/app/(flow)/activity/[id]/ActivityDetailClient.tsx`、`src/app/api/trek/actions/route.ts`、`src/app/api/trek/photo-upload/route.ts`。
-
----
-
 ### FU-30 · 档案页 / Profile 页 "山行"字段语义统一
 
 - **优先级**: P2
@@ -369,7 +327,41 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（11 条）
+### FU-31 · 活动详情多图上传完整实装
+
+- **优先级**: P2
+- **归属阶段**: 与 FU-14 合并或独立 sprint
+- **状态**: 🟢 active
+
+**背景**: 用户希望活动详情最多支持 9 张图，首张为登顶留证，后续可补传。当前数据库 `checkin_assets` 与 loader 的 `uniquePhotos(checkin.photo_url, assets)` 已能合并多源，但前端 UI 只展示 `slice(0, 3)`，且"补一张照片"仍是占位。
+
+**实施建议**:
+- 活动详情照片 UI 升级到最多 9 张（例如 3×3 grid）
+- 实装补传入口，复用 Trek photo upload 到 Supabase Storage，并写入 `checkin_assets`
+- 首张始终保留为 `checkins.photo_url`（登顶留证）
+
+**涉及**: `src/app/(flow)/activity/[id]/ActivityDetailClient.tsx`、`checkin_assets`、`src/app/api/trek/photo-upload/route.ts` 或新 activity photo upload API。
+
+---
+
+### FU-32 · 分享编辑器兜底轨迹去除
+
+- **优先级**: P1
+- **归属阶段**: 独立小 sprint 或 7.8.d
+- **状态**: 🟢 active
+
+**背景**: testMode 单点或真实轨迹缺失/极少时，分享编辑器仍显示 hardcoded 假轨迹。当前 `share-track-preview.ts` 在少于 2 个有效点时返回 `null`，模板再用 `DEFAULT_*_PATH` 兜底，导致"假完整轨迹"。
+
+**实施建议**:
+- grep 10 个分享模板中的 `DEFAULT_*_PATH` / hardcoded route fallback
+- 删除模板默认假轨迹兜底
+- 真实轨迹缺失或单点时不渲染轨迹；单点可只显示中心起终点圆点
+
+**涉及**: `src/lib/share-templates/shared.tsx`、`src/lib/share-templates/*`、`src/lib/share-track-preview.ts`。
+
+---
+
+## Closed Follow-ups（14 条）
 
 ### FU-3 ✅ Profile 最高海拔选项 B
 
@@ -456,6 +448,31 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 - **关闭原因**: Pre-3.a 落地（Trek GPS 失败流程不再暴露跳过 GPS 入口，late-proof 页面本身保留）
 - **关闭 commit**: `99a1c6d`
 - **关闭时间**: 2026-05-15
+
+---
+
+### FU-27 ✅ SummitConfirmedView "留下峰顶记录"按钮冗余
+
+- **关闭原因**: Pre-3.b 落地（SummitConfirmedView 仅保留生成分享与查看登山档案，不再显示已拍照后的冗余记录按钮）
+- **关闭 commit**: `d25ebef`
+- **关闭时间**: 2026-05-15
+
+---
+
+### FU-28 ✅ "保存这次登顶"按钮文案改"查看登山档案"
+
+- **关闭原因**: Pre-3.b 落地（完成页次 CTA 改为查看登山档案，主 CTA 改为生成分享，避免误导用户以为尚未保存）
+- **关闭 commit**: `1074626`
+- **关闭时间**: 2026-05-15
+
+---
+
+### FU-29 ✅ 活动详情页照片联动 bug
+
+- **关闭原因**: Pre-3.b 落地（verify_summit_checkin 用 server/admin client 持久化 `checkins.photo_url`，活动详情 loader 自动合并显示留证照）
+- **关闭 commit**: `0c0afcd`
+- **关闭时间**: 2026-05-15
+
 ---
 
 ## 维护规范
@@ -492,6 +509,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.5 — 2026-05-15**：Pre-3.b 完成；Trek 完成页 C1 简化 + FU-27/28/29 关闭；活动详情照片联动打通；新增 FU-31（活动详情多图上传完整实装）与 FU-32（分享编辑器兜底轨迹去除）active。
 
 **v0.4 — 2026-05-15**：Pre-3.a 三轮+四轮全部完成；修复 entry validation 副作用 + watchPosition 残留 callback + photo-upload + schema 部署 + fallback 字符串硬化；新增 Open-Meteo 海拔接入；关闭 Issue-3 + FU-18/19/20/21/22/23/25；新增 FU-24/27/28/29/30 active；引入 E2E 自测和 schema migration 推送协作规范。
 

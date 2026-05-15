@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { assertActivityUpdatePolicy } from '@/lib/activity-field-policy'
+import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import { TREK_RULES } from '@/lib/trek-rules-server'
@@ -52,6 +53,46 @@ function toSafePhotoUrl(value: unknown) {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   return trimmed ? trimmed.slice(0, 2048) : null
+}
+
+async function persistSummitPhotoUrl({
+  checkinId,
+  userId,
+  photoUrl,
+}: {
+  checkinId: string
+  userId: string
+  photoUrl: string | null
+}) {
+  if (!photoUrl) return null
+
+  const update = { photo_url: photoUrl }
+  assertActivityUpdatePolicy(update, { allowedFields: ['photo_url'] })
+
+  const result = await (async () => {
+    try {
+      return await createSupabaseAdminClient()
+        .from('checkins')
+        .update(update)
+        .eq('id', checkinId)
+        .eq('user_id', userId)
+        .select('id')
+        .single()
+    } catch (error) {
+      return {
+        data: null,
+        error,
+      }
+    }
+  })()
+
+  if (result.error || !result.data) {
+    return {
+      error: result.error instanceof Error ? result.error.message : '登顶照保存失败',
+    }
+  }
+
+  return null
 }
 
 function finiteNumber(value: unknown) {
@@ -753,13 +794,6 @@ export async function POST(request: NextRequest) {
         duplicated: Boolean(rpcRow.duplicated),
       }
 
-      if (photoUrl && verifiedCheckin.id) {
-        await supabase
-          .from('checkins')
-          .update({ photo_url: photoUrl })
-          .eq('id', verifiedCheckin.id)
-          .eq('user_id', user.id)
-      }
     } else {
       const { data: createdCheckin, error: createError } = await insertCheckinWithFallback(
         supabase,
@@ -789,6 +823,18 @@ export async function POST(request: NextRequest) {
         id: (createdCheckin as unknown as { id: string }).id,
         duplicated: false,
       }
+    }
+
+    const photoPersistenceError = await persistSummitPhotoUrl({
+      checkinId: verifiedCheckin.id,
+      userId: user.id,
+      photoUrl,
+    })
+    if (photoPersistenceError) {
+      return NextResponse.json(
+        { error: 'photo_persistence_failed', detail: photoPersistenceError.error },
+        { status: 500 }
+      )
     }
 
     const statsWarning =

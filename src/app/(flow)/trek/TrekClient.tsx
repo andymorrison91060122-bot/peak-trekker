@@ -34,6 +34,7 @@ import {
   GpsIcon,
   MoreIcon,
   MountainIcon,
+  ShareIcon,
   WarnIcon,
 } from '@/components/ui/Icons'
 import type { Mountain, ReviewQueueRecord, User } from '@/types'
@@ -1218,7 +1219,6 @@ export default function TrekClient({
         : '海拔采集中...'
   const pausedAltitudeSub = currentAltitudeSub ? `记录已暂停 · 数据保留 · ${currentAltitudeSub}` : '记录已暂停 · 数据保留'
   const referenceMapVariant: ReferenceMapVariant = isOnline ? 'default' : 'offlineCache'
-  const summitStartAltitude = getFirstValidAltitude(trackRef.current)
   const trekMetrics = [
     { label: '已用时', value: formatElapsedCompact(elapsedSeconds) },
     { label: '距离 km', value: distanceKm.toFixed(2) },
@@ -1378,21 +1378,25 @@ export default function TrekClient({
 	        <SummitConfirmedView
 	          mountain={summitMountain}
 	          altitude={displayAltitude}
-          confirmedAt={summitConfirmedAt}
-          elapsedSeconds={elapsedSeconds}
-          distanceKm={distanceKm}
-          ascentM={ascentM}
-          startAltitude={summitStartAltitude}
-          onAddPhoto={handlePhotoFilePick}
-          onSave={() => {
-            if (createdCheckinId) {
-              router.push(`/activity/${createdCheckinId}`)
-              return
-            }
-            router.push('/profile')
-          }}
-          onLater={() => router.push('/profile')}
-        />
+	          confirmedAt={summitConfirmedAt}
+	          elapsedSeconds={elapsedSeconds}
+	          distanceKm={distanceKm}
+	          ascentM={ascentM}
+	          onShare={() => {
+	            if (createdCheckinId) {
+	              router.push(`/share?checkinId=${encodeURIComponent(createdCheckinId)}`)
+	              return
+	            }
+	            showToast({ key: 'action_blocked', message: '缺少活动记录，暂时无法生成分享。' })
+	          }}
+	          onViewActivity={() => {
+	            if (createdCheckinId) {
+	              router.push(`/activity/${createdCheckinId}`)
+	              return
+	            }
+	            showToast({ key: 'action_blocked', message: '缺少活动记录，暂时无法打开档案。' })
+	          }}
+	        />
       ) : viewState === 'nearSummit' ? (
 	        <NearSummitView
 	          distanceMeters={distanceToTarget}
@@ -3928,10 +3932,8 @@ function SummitConfirmedView({
   elapsedSeconds,
   distanceKm,
   ascentM,
-  startAltitude,
-  onAddPhoto,
-  onSave,
-  onLater,
+  onShare,
+  onViewActivity,
 }: {
   mountain: Mountain | null | undefined
   altitude: number
@@ -3939,10 +3941,8 @@ function SummitConfirmedView({
   elapsedSeconds: number
   distanceKm: number
   ascentM: number
-  startAltitude: number | null
-  onAddPhoto: () => void
-  onSave: () => void
-  onLater: () => void
+  onShare: () => void
+  onViewActivity: () => void
 }) {
   const altitudeLabel = formatGroupedMeters(altitude)
   const timeLabel = formatSummitTime(confirmedAt)
@@ -3951,7 +3951,6 @@ function SummitConfirmedView({
     { label: '总用时', value: formatSummitElapsed(elapsedSeconds) },
     { label: '距离', value: formatSummitDistance(distanceKm) },
     { label: '爬升', value: formatSummitAscent(ascentM) },
-    { label: '出发海拔', value: formatSummitAltitude(startAltitude) },
   ]
 
   return (
@@ -4120,7 +4119,7 @@ function SummitConfirmedView({
           data-testid="trek-summit-stats"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
             background: 'var(--color-surface-variant)',
             borderRadius: 16,
             padding: '16px 8px',
@@ -4136,59 +4135,33 @@ function SummitConfirmedView({
         <PrimaryButton
           data-testid="trek-summit-primary-cta"
           style={{ width: '100%', height: 52, minHeight: 52, borderRadius: 16 }}
-          onClick={onAddPhoto}
+          onClick={onShare}
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <CameraIcon size={18} />
-            <span>留下峰顶记录</span>
+            <ShareIcon size={18} />
+            <span>生成分享</span>
           </span>
         </PrimaryButton>
 
-        <div
+        <SecondaryButton
+          data-testid="trek-summit-activity-cta"
           style={{
             marginTop: 'var(--space-3)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-            gap: 'var(--space-3)',
+            width: '100%',
+            height: 52,
+            minHeight: 52,
+            borderRadius: 16,
+            background: 'var(--color-surface-variant)',
+            border: '1px solid color-mix(in oklch, var(--color-outline) 60%, transparent)',
+            color: 'var(--color-on-surface)',
+            fontSize: 'var(--font-title-m-size)',
+            fontWeight: 'var(--font-title-m-weight)',
+            paddingInline: 'var(--space-3)',
           }}
+          onClick={onViewActivity}
         >
-          <SecondaryButton
-            data-testid="trek-summit-save-cta"
-            style={{
-              width: '100%',
-              height: 52,
-              minHeight: 52,
-              borderRadius: 16,
-              background: 'var(--color-surface-variant)',
-              border: '1px solid color-mix(in oklch, var(--color-outline) 60%, transparent)',
-              color: 'var(--color-on-surface)',
-              fontSize: 'var(--font-title-m-size)',
-              fontWeight: 'var(--font-title-m-weight)',
-              paddingInline: 'var(--space-3)',
-            }}
-            onClick={onSave}
-          >
-            保存这次登顶
-          </SecondaryButton>
-          <SecondaryButton
-            data-testid="trek-summit-later-cta"
-            style={{
-              width: '100%',
-              height: 52,
-              minHeight: 52,
-              borderRadius: 16,
-              background: 'var(--color-surface-variant)',
-              border: '1px solid color-mix(in oklch, var(--color-outline) 60%, transparent)',
-              color: 'var(--color-on-surface)',
-              fontSize: 'var(--font-title-m-size)',
-              fontWeight: 'var(--font-title-m-weight)',
-              paddingInline: 'var(--space-3)',
-            }}
-            onClick={onLater}
-          >
-            稍后整理
-          </SecondaryButton>
-        </div>
+          查看登山档案
+        </SecondaryButton>
 
         <div
           style={{
@@ -4370,11 +4343,6 @@ function formatGroupedMeters(value: number | null | undefined) {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Math.max(0, Math.round(Number(value))))
 }
 
-function getFirstValidAltitude(points: Array<{ altitude?: number | null }>) {
-  const firstPoint = points.find((point) => typeof point.altitude === 'number' && Number.isFinite(point.altitude))
-  return typeof firstPoint?.altitude === 'number' ? Math.round(firstPoint.altitude) : null
-}
-
 function formatSummitTime(date: Date | null) {
   if (!date) return '--'
   const hours = String(date.getHours()).padStart(2, '0')
@@ -4404,11 +4372,6 @@ function formatSummitDistance(value: number) {
 
 function formatSummitAscent(value: number) {
   if (!Number.isFinite(value) || value <= 0) return '--'
-  return `${formatGroupedMeters(value)}m`
-}
-
-function formatSummitAltitude(value: number | null | undefined) {
-  if (!Number.isFinite(Number(value))) return '--'
   return `${formatGroupedMeters(value)}m`
 }
 

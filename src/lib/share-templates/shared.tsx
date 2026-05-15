@@ -409,26 +409,26 @@ export function TrailSvg({
         </filter>
       </defs>
       {route.d ? (
-        <>
-          <path
-            d={route.d}
-            stroke={C.success}
-            strokeWidth={lineWidth * 4}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-            opacity=".16"
-            filter="url(#poster-trail-glow)"
-          />
-          <path
-            d={route.d}
-            stroke={C.success}
-            strokeWidth={lineWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </>
+        <path
+          d={route.d}
+          stroke={C.success}
+          strokeWidth={lineWidth * 4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+          opacity=".16"
+          filter="url(#poster-trail-glow)"
+        />
+      ) : null}
+      {route.d ? (
+        <path
+          d={route.d}
+          stroke={C.success}
+          strokeWidth={lineWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
       ) : null}
       {route ? <circle cx={route.start.x} cy={route.start.y} r="19" fill={C.bg} stroke={C.success} strokeWidth="8" /> : null}
       {route?.d ? <circle cx={route.end.x} cy={route.end.y} r="26" fill={C.success} /> : null}

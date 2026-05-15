@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { mkdir } from 'node:fs/promises'
 import { expect, type Page } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import {
@@ -68,7 +69,7 @@ export async function fetchCheckinForE2E(checkinId: string) {
   const supabase = getSupabaseAdminClient()
   const { data, error } = await supabase
     .from('checkins')
-    .select('id, status, completion_status, session_id, mountain_id')
+    .select('id, status, completion_status, session_id, mountain_id, photo_url')
     .eq('id', checkinId)
     .single()
 
@@ -82,7 +83,51 @@ export async function fetchCheckinForE2E(checkinId: string) {
     completion_status: string | null
     session_id: string | null
     mountain_id: string | null
+    photo_url: string | null
   }
+}
+
+export async function completeSummitPhotoFlow(page: Page) {
+  const confirmButton = page.getByRole('button', { name: '确认这座山，开始记录准备' })
+  if (!(await confirmButton.isEnabled({ timeout: 20_000 }).catch(() => false))) {
+    await page.reload({ waitUntil: 'domcontentloaded' })
+  }
+  await expect(confirmButton).toBeEnabled({ timeout: 20_000 })
+  await confirmButton.click()
+  await expect(page.getByTestId('trek-dev-threshold-chip')).toContainText('1 点 / 10s')
+  await expect(page.getByRole('button', { name: '从这里开始' })).toBeEnabled({ timeout: 20_000 })
+  await page.getByRole('button', { name: '从这里开始' }).click()
+  await expect(page.getByRole('button', { name: '暂停' })).toBeVisible({ timeout: 20_000 })
+
+  await setMockGps(page, {
+    latitude: HUASHAN.latitude,
+    longitude: HUASHAN.longitude,
+    altitude: HUASHAN.altitude,
+    accuracy: 5,
+  })
+  await expect(page.getByTestId('trek-near-summit-view')).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByText('就绪')).toBeVisible({ timeout: 20_000 })
+  await page.getByTestId('trek-near-summit-cta').click()
+
+  await expect(page.getByTestId('trek-summit-photo-view')).toBeVisible({ timeout: 10_000 })
+  const photo = tinySummitPhoto()
+  await page.locator('input[type="file"]').setInputFiles(photo)
+  await expect(page.getByText(photo.name)).toBeVisible()
+
+  const verifyResponsePromise = page.waitForResponse((response) => {
+    if (!response.url().includes('/api/trek/actions') || response.request().method() !== 'POST') return false
+    return response.request().postData()?.includes('"action":"verify_summit_checkin"') ?? false
+  })
+
+  await page.getByRole('button', { name: '提交留证' }).click()
+  const verifyResponse = await verifyResponsePromise
+  const verifyBody = await verifyResponse.json().catch(() => ({}))
+  expect(verifyResponse.status(), JSON.stringify(verifyBody)).toBe(200)
+  const checkinId = String(verifyBody?.checkinId ?? '')
+  expect(checkinId).toMatch(/[0-9a-f-]{36}/i)
+
+  await expect(page.getByTestId('trek-summit-confirmed-view')).toBeVisible({ timeout: 20_000 })
+  return { checkinId, photoName: photo.name }
 }
 
 export async function installMutableGeolocation(page: Page, initial: MockGpsPoint) {
@@ -187,4 +232,15 @@ export function tinySummitPhoto() {
 
 export async function expectNoRuntimeIssueBadge(page: Page) {
   await expect(page.getByText('1 Issue')).toHaveCount(0)
+}
+
+export async function captureOptionalE2EScreenshot(page: Page, fileName: string) {
+  const screenshotDir = process.env.E2E_SCREENSHOT_DIR
+  if (!screenshotDir) return
+
+  await mkdir(screenshotDir, { recursive: true })
+  await page.screenshot({
+    path: `${screenshotDir.replace(/\/$/, '')}/${fileName}`,
+    fullPage: true,
+  })
 }

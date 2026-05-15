@@ -110,6 +110,22 @@ test('summit photo empty state centers icon and copy vertically', () => {
   assert.match(summitPhotoView, /justifyContent:\s*'center'/)
 })
 
+test('summit confirmed page uses share primary and activity secondary CTAs only', () => {
+  const summitConfirmedView = trekClient.match(/function SummitConfirmedView\([\s\S]*?function SummitRidgeDivider/)?.[0] ?? ''
+  assert.match(summitConfirmedView, /data-testid="trek-summit-primary-cta"[\s\S]{0,320}生成分享/)
+  assert.match(summitConfirmedView, /data-testid="trek-summit-activity-cta"/)
+  assert.match(summitConfirmedView, /查看登山档案/)
+  assert.match(summitConfirmedView, /gridTemplateColumns:\s*'repeat\(3, minmax\(0, 1fr\)\)'/)
+  assert.doesNotMatch(summitConfirmedView, /留下峰顶记录/)
+  assert.doesNotMatch(summitConfirmedView, /保存这次登顶/)
+  assert.doesNotMatch(summitConfirmedView, /稍后整理/)
+})
+
+test('summit confirmed CTA routes to share by checkinId and activity detail', () => {
+  assert.match(trekClient, /router\.push\(`\/share\?checkinId=\$\{encodeURIComponent\(createdCheckinId\)\}`\)/)
+  assert.match(trekClient, /router\.push\(`\/activity\/\$\{createdCheckinId\}`\)/)
+})
+
 test('trek photo upload route and client normalize thrown fetch failures', () => {
   assert.match(trekPhotoUpload, /try \{[\s\S]*uploadSupabase\.storage\.from\(CHECKIN_PHOTOS_BUCKET\)\.upload/)
   assert.match(trekPhotoUpload, /catch \(error\) \{[\s\S]*normalizeStorageUploadError/)
@@ -129,7 +145,9 @@ test('profile summary excludes incomplete completion_status records', () => {
 
 test('summit verification can persist uploaded summit photo url', () => {
   assert.match(trekActions, /const photoUrl = toSafePhotoUrl\(body\?\.photoUrl\)/)
-  assert.match(trekActions, /update\(\{\s*photo_url:\s*photoUrl\s*\}\)/)
+  assert.match(trekActions, /function persistSummitPhotoUrl/)
+  assert.match(trekActions, /createSupabaseAdminClient\(\)[\s\S]*\.from\('checkins'\)[\s\S]*\.update\(update\)[\s\S]*\.eq\('id', checkinId\)[\s\S]*\.eq\('user_id', userId\)[\s\S]*\.select\('id'\)[\s\S]*\.single\(\)/)
+  assert.match(trekActions, /photo_persistence_failed/)
   assert.match(trekClient, /action:\s*'verify_summit_checkin'[\s\S]{0,260}testMode:\s*trekTestMode/)
 })
 

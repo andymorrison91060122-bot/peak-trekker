@@ -350,9 +350,6 @@ function TopoBackground() {
   )
 }
 
-const DEFAULT_PREVIEW_TRAIL_PATH =
-  'M66 328 C 94 306 82 278 112 260 C 146 239 132 202 157 186 C 198 160 172 126 209 110 C 235 98 228 70 250 48'
-
 function TrailPath({ trackPreview }: { trackPreview?: ShareTrackPreview | null }) {
   const route = buildShareTrackPath(trackPreview, {
     x: 32,
@@ -361,9 +358,8 @@ function TrailPath({ trackPreview }: { trackPreview?: ShareTrackPreview | null }
     height: 290,
     padding: 10,
   })
-  const path = route?.d ?? DEFAULT_PREVIEW_TRAIL_PATH
-  const start = route?.start ?? { x: 66, y: 328 }
-  const end = route?.end ?? { x: 250, y: 48 }
+
+  if (!route) return null
 
   return (
     <svg
@@ -379,27 +375,41 @@ function TrailPath({ trackPreview }: { trackPreview?: ShareTrackPreview | null }
           <feGaussianBlur stdDeviation="4" />
         </filter>
       </defs>
-      <path
-        data-real-track={route ? 'true' : undefined}
-        d={path}
-        stroke="var(--color-success)"
-        strokeWidth="14"
-        fill="none"
-        strokeLinecap="round"
-        opacity="0.18"
-        filter="url(#share-trail-glow)"
-      />
-      <path
-        data-real-track={route ? 'true' : undefined}
-        d={path}
-        stroke="var(--color-success)"
-        strokeWidth="4.2"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx={start.x} cy={start.y} r="7" fill="var(--color-surface)" stroke="var(--color-success)" strokeWidth="3" />
-      <circle cx={end.x} cy={end.y} r="8" fill="var(--color-success)" />
+      {route?.d ? (
+        <>
+          <path
+            data-real-track="true"
+            d={route.d}
+            stroke="var(--color-success)"
+            strokeWidth="14"
+            fill="none"
+            strokeLinecap="round"
+            opacity="0.18"
+            filter="url(#share-trail-glow)"
+          />
+          <path
+            data-real-track="true"
+            d={route.d}
+            stroke="var(--color-success)"
+            strokeWidth="4.2"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </>
+      ) : null}
+      {route ? (
+        <circle
+          data-real-track={route.d ? undefined : 'single-point'}
+          cx={route.start.x}
+          cy={route.start.y}
+          r="7"
+          fill="var(--color-surface)"
+          stroke="var(--color-success)"
+          strokeWidth="3"
+        />
+      ) : null}
+      {route?.d ? <circle cx={route.end.x} cy={route.end.y} r="8" fill="var(--color-success)" /> : null}
     </svg>
   )
 }

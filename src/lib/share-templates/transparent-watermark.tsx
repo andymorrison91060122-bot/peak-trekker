@@ -13,6 +13,7 @@ import {
   formatDistance,
   formatPlainNumber,
   fourStats,
+  hasShareTrackPoint,
   visibleStats,
 } from './shared'
 
@@ -152,7 +153,9 @@ function BottomClassicBlock({ data, compact = false }: { data: ShareTemplateProp
 function WatermarkClassic({ data }: ShareTemplateProps) {
   return (
     <TransparentShell>
-      <TrailSvg glow={10} lineWidth={5} trackPreview={data.trackPreview} />
+      {hasShareTrackPoint(data.trackPreview) ? (
+        <TrailSvg glow={10} lineWidth={5} trackPreview={data.trackPreview} />
+      ) : null}
       <BottomClassicBlock data={data} />
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
         <BrandFooter source={data.source} />
@@ -192,7 +195,9 @@ function WatermarkData({ data }: ShareTemplateProps) {
 function WatermarkComposite({ data }: ShareTemplateProps) {
   return (
     <TransparentShell>
-      <TrailSvg glow={14} lineWidth={7} trackPreview={data.trackPreview} />
+      {hasShareTrackPoint(data.trackPreview) ? (
+        <TrailSvg glow={14} lineWidth={7} trackPreview={data.trackPreview} />
+      ) : null}
       <BottomClassicBlock data={data} compact />
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
         <BrandFooter source={data.source} />

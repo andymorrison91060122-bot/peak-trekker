@@ -8,7 +8,7 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`PENDING_PRE_3B_MERGE`（Pre-3.b merge 后同步 · 2026-05-15）  
+`1ecae28`（Merge Pre-3.b Trek complete page + activity photo linkage · 2026-05-15）  
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint

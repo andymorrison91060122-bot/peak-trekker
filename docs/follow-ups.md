@@ -12,8 +12,8 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**Pre-3.a 三轮+四轮已完成（2026-05-15），下一步 3.b** · 状态 ✅ completed  
-覆盖范围: Issue-3 + FU-18 + FU-19 + FU-20 + FU-21 + FU-22 + FU-23 + FU-25
+**Pre-3.b · Trek 完成页简化 + 活动详情照片联动 Sprint** · 状态 🟡 in-progress  
+覆盖范围: C1 + FU-27 + FU-28 + FU-29
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -317,7 +317,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 - **优先级**: P2
 - **归属阶段**: 3.b Trek complete page simplification
-- **状态**: 🟢 active
+- **状态**: 🟡 in-progress
 
 **背景**: 已拍照留证进入 summit confirmed 后，"留下峰顶记录"按钮在已完成拍照 case 下显得冗余。
 
@@ -331,7 +331,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 - **优先级**: P2
 - **归属阶段**: 3.b Trek complete page simplification
-- **状态**: 🟢 active
+- **状态**: 🟡 in-progress
 
 **背景**: 登顶留证已经保存后，"保存这次登顶"容易让用户误以为还未保存。
 
@@ -345,7 +345,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 - **优先级**: P1
 - **归属阶段**: 阶段 3 后续
-- **状态**: 🟢 active
+- **状态**: 🟡 in-progress
 
 **背景**: Summit photo 留证照片写入后，活动详情页未正确显示该照片，影响 Trek → Activity 闭环观感。
 

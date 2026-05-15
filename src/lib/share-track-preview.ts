@@ -18,7 +18,7 @@ export type ShareTrackFrame = {
 }
 
 export type ShareTrackPath = {
-  d: string
+  d: string | null
   start: ShareTrackPreviewPoint
   end: ShareTrackPreviewPoint
 }
@@ -79,9 +79,9 @@ export function buildShareTrackPreview(rawTrackPoints: unknown, maxPoints = DEFA
   })
   const deduped = parsed.filter((point, index) => index === 0 || !isSameCoordinate(point, parsed[index - 1]!))
 
-  if (deduped.length < 2) return null
+  if (deduped.length < 1) return null
 
-  const safeMaxPoints = Math.max(2, Math.floor(maxPoints))
+  const safeMaxPoints = Math.max(1, Math.floor(maxPoints))
   const sampled = sampleTrackPoints(deduped, safeMaxPoints)
   const lats = sampled.map((point) => point.lat)
   const lngs = sampled.map((point) => point.lng)
@@ -121,7 +121,7 @@ export function buildShareTrackPath(
   preview: ShareTrackPreview | null | undefined,
   frame: ShareTrackFrame,
 ): ShareTrackPath | null {
-  if (!preview || preview.points.length < 2) return null
+  if (!preview || preview.points.length < 1) return null
 
   const safePadding = Math.max(0, Math.min(frame.padding ?? Math.min(frame.width, frame.height) * 0.1, Math.min(frame.width, frame.height) / 2))
   const resolvedFrame = {
@@ -137,6 +137,14 @@ export function buildShareTrackPath(
   const points = preview.points.map((point) => projectPoint(point, resolvedFrame))
   const start = points[0]!
   const end = points.at(-1)!
+
+  if (points.length === 1) {
+    return {
+      d: null,
+      start,
+      end,
+    }
+  }
 
   if (points.length === 2) {
     const dx = end.x - start.x

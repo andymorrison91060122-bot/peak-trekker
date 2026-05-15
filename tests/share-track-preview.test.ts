@@ -67,12 +67,25 @@ describe('share track preview projection', () => {
     assert.equal(preview?.points.length, 2)
   })
 
-  test('returns null for empty or insufficient tracks', async () => {
+  test('returns null for empty tracks', async () => {
     const { buildShareTrackPreview } = await loadTrackPreview()
 
     assert.equal(buildShareTrackPreview([]), null)
-    assert.equal(buildShareTrackPreview([{ lat: 36, lng: 117 }]), null)
     assert.equal(buildShareTrackPreview([{ lat: 0, lng: 0 }, { lat: 0, lng: 0 }]), null)
+  })
+
+  test('keeps a single valid point as a marker-only preview', async () => {
+    const { buildShareTrackPreview, buildShareTrackPath } = await loadTrackPreview()
+
+    const preview = buildShareTrackPreview([{ lat: 36, lng: 117, ele: 1100 }])
+    const route = buildShareTrackPath(preview, { width: 120, height: 80, padding: 8 })
+
+    assert.equal(preview?.pointCount, 1)
+    assert.equal(preview?.hasAltitude, true)
+    assert.deepEqual(preview?.points, [{ x: 0.5, y: 0.5 }])
+    assert.equal(route?.d, null)
+    assert.deepEqual(route?.start, { x: 60, y: 40 })
+    assert.deepEqual(route?.end, { x: 60, y: 40 })
   })
 
   test('samples long tracks to the requested limit while preserving the end point', async () => {

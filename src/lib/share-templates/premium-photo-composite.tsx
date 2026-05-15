@@ -11,6 +11,7 @@ import {
   TrailSvg,
   buildMountainLine,
   formatPlainNumber,
+  hasShareTrackPoint,
 } from './shared'
 
 export function PremiumPhotoCompositeTemplate({ data, photoDataUrl }: ShareTemplateProps) {
@@ -21,7 +22,9 @@ export function PremiumPhotoCompositeTemplate({ data, photoDataUrl }: ShareTempl
       <PhotoLayer photoDataUrl={photoDataUrl} />
       {!photoDataUrl ? <TopoSvg opacity={0.28} /> : null}
       <PhotoShade direction="bottom" strength={0.86} />
-      <TrailSvg glow={16} lineWidth={9} trackPreview={data.trackPreview} />
+      {hasShareTrackPoint(data.trackPreview) ? (
+        <TrailSvg glow={16} lineWidth={9} trackPreview={data.trackPreview} />
+      ) : null}
 
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 72, right: 72, bottom: 390 }}>
         {mountainLine ? (

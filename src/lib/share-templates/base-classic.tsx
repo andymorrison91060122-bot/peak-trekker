@@ -10,6 +10,7 @@ import {
   TrailSvg,
   buildMountainLine,
   formatPlainNumber,
+  hasShareTrackPoint,
 } from './shared'
 
 export function BaseClassicTemplate({ data, photoDataUrl }: ShareTemplateProps) {
@@ -33,7 +34,9 @@ export function BaseClassicTemplate({ data, photoDataUrl }: ShareTemplateProps) 
           }}
         />
       )}
-      <TrailSvg glow={12} lineWidth={8} trackPreview={data.trackPreview} />
+      {hasShareTrackPoint(data.trackPreview) ? (
+        <TrailSvg glow={12} lineWidth={8} trackPreview={data.trackPreview} />
+      ) : null}
 
       <div
         style={{

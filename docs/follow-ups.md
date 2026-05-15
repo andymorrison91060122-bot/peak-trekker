@@ -1,4 +1,4 @@
-# Peak Trekker Follow-up 清单 + 项目交接 v0.5
+# Peak Trekker Follow-up 清单 + 项目交接 v0.6
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
@@ -12,8 +12,8 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**Pre-3.b 已完成（2026-05-15），下一步 3.c**  
-覆盖范围: C1 + FU-27 + FU-28 + FU-29（已关闭）
+**Pre-3.b.1 已完成（2026-05-15），下一步 3.c**  
+覆盖范围: FU-32 已关闭
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -75,7 +75,7 @@
 
 ---
 
-## Active Follow-ups（17 条）
+## Active Follow-ups（16 条）
 
 ### FU-1 · 同一份轨迹文件去重（防伪造）
 
@@ -344,24 +344,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-32 · 分享编辑器兜底轨迹去除
-
-- **优先级**: P1
-- **归属阶段**: 独立小 sprint 或 7.8.d
-- **状态**: 🟢 active
-
-**背景**: testMode 单点或真实轨迹缺失/极少时，分享编辑器仍显示 hardcoded 假轨迹。当前 `share-track-preview.ts` 在少于 2 个有效点时返回 `null`，模板再用 `DEFAULT_*_PATH` 兜底，导致"假完整轨迹"。
-
-**实施建议**:
-- grep 10 个分享模板中的 `DEFAULT_*_PATH` / hardcoded route fallback
-- 删除模板默认假轨迹兜底
-- 真实轨迹缺失或单点时不渲染轨迹；单点可只显示中心起终点圆点
-
-**涉及**: `src/lib/share-templates/shared.tsx`、`src/lib/share-templates/*`、`src/lib/share-track-preview.ts`。
-
----
-
-## Closed Follow-ups（14 条）
+## Closed Follow-ups（15 条）
 
 ### FU-3 ✅ Profile 最高海拔选项 B
 
@@ -475,6 +458,14 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
+### FU-32 ✅ 分享编辑器兜底轨迹去除
+
+- **关闭原因**: Pre-3.b.1 落地（删除分享模板 hardcoded fallback 轨迹；空轨迹不画假路线，单点显示真实 marker，多点显示真实路线；server PNG 与 client preview 一致）
+- **关闭 commit**: `52f4970`
+- **关闭时间**: 2026-05-15
+
+---
+
 ## 维护规范
 
 ### 每个 sprint 启动时（Phase 0）
@@ -509,6 +500,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.6 — 2026-05-15**：Pre-3.b.1 微 sprint 完成；FU-32 分享编辑器兜底轨迹去除关闭；顺带修 Satori 服务端 PNG 多点轨迹渲染边界。
 
 **v0.5 — 2026-05-15**：Pre-3.b 完成；Trek 完成页 C1 简化 + FU-27/28/29 关闭；活动详情照片联动打通；新增 FU-31（活动详情多图上传完整实装）与 FU-32（分享编辑器兜底轨迹去除）active。
 

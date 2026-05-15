@@ -110,6 +110,16 @@ describe('share render API field policy regression', () => {
     )
   })
 
+  test('share previews do not contain hardcoded fallback trail paths', () => {
+    const sharedSource = readSource('../src/lib/share-templates/shared.tsx')
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+
+    assert.doesNotMatch(sharedSource, /DEFAULT_MINI_TRAIL_PATH|DEFAULT_POSTER_TRAIL_PATH/)
+    assert.doesNotMatch(clientSource, /DEFAULT_PREVIEW_TRAIL_PATH/)
+    assert.doesNotMatch(sharedSource, /route\?\.d\s*\?\?/)
+    assert.doesNotMatch(clientSource, /route\?\.d\s*\?\?/)
+  })
+
   test('premium mono-film template does not render trail', () => {
     const monoFilmSource = readSource('../src/lib/share-templates/premium-mono-film.tsx')
 

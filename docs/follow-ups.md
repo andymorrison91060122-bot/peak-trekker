@@ -12,7 +12,8 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**待启动**（候选: FU-39 Trek e2e 修复 / FU-33 Pre-3.c.1 OCR 配额，V1 已下达）
+**FU-39 · Trek e2e 稳定性修复 sprint · 状态 🟡 in-progress**
+下个候选: FU-33 Pre-3.c.1 OCR 配额（待启动）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -449,7 +450,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 - 优先级: P1
 - 归属阶段: 紧跟 Pre-3.c 后的稳定性微 sprint（与 FU-33 并列候选）
-- 状态: 🟢 active
+- 状态: 🟡 in-progress
 
 背景: Pre-3.c V3 收尾跑 e2e gate 时发现 tests/e2e/activity-photo-linkage.spec.ts 在干净环境下不通过。该 spec 在 Pre-3.b commit 5331a18 加入，作者本机大概 .env.local 有特殊 env 当时通过，但 playwright.config.ts 没固化下来；Pre-3.b.1 / Pre-3.c 都没碰 trek 代码（diff 零交集），因此该失败与 Pre-3.c 无因果关系，本 sprint 不修，隔离到本 FU 单独跟进。
 

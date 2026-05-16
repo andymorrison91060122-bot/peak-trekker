@@ -195,6 +195,7 @@ export default async function ActivityDetailPage({
     source: checkin.source as CheckinSource | string | null | undefined,
     type: checkin.type === 'photo' ? 'photo' : 'gps',
   })
+  const isScreenshotRecognition = sourceType === 'screenshot_recognition'
   const sourceLabelType = deriveSourceLabelType(checkin, sourceType)
 
   const [assetResult, sessionResult, countResult] = await Promise.all([
@@ -231,14 +232,17 @@ export default async function ActivityDetailPage({
   const minSampleAltitude = elevationSamples.length ? Math.min(...elevationSamples) : null
   const maxAltitude =
     toNumber(checkin.max_elevation_meters) ??
-    toNumber(session?.max_altitude_m) ??
-    maxSampleAltitude ??
-    toNumber(mountain?.altitude) ??
+    (isScreenshotRecognition ? null : toNumber(session?.max_altitude_m)) ??
+    (isScreenshotRecognition ? null : maxSampleAltitude) ??
+    (isScreenshotRecognition ? null : toNumber(mountain?.altitude)) ??
     0
+  const explicitAscent =
+    toNumber(checkin.elevation_gain_meters) ??
+    (isScreenshotRecognition ? null : toNumber(session?.ascent_m))
   const minAltitude =
     toNumber(checkin.min_elevation_meters) ??
-    minSampleAltitude ??
-    Math.max(0, maxAltitude - Math.max(toNumber(checkin.elevation_gain_meters) ?? toNumber(session?.ascent_m) ?? 0, 180))
+    (isScreenshotRecognition ? null : minSampleAltitude) ??
+    (explicitAscent !== null ? Math.max(0, maxAltitude - explicitAscent) : 0)
   const distanceKm =
     toNumber(checkin.distance_meters) !== null
       ? Number(((toNumber(checkin.distance_meters) ?? 0) / 1000).toFixed(1))
@@ -246,13 +250,16 @@ export default async function ActivityDetailPage({
         ? Number((session.distance_m / 1000).toFixed(1))
         : 0
   const ascentM = Math.round(
-    toNumber(checkin.elevation_gain_meters) ?? toNumber(session?.ascent_m) ?? Math.max(0, maxAltitude - minAltitude)
+    explicitAscent ?? (isScreenshotRecognition ? 0 : Math.max(0, maxAltitude - minAltitude))
   )
-  const durationSeconds =
-    checkin.duration_seconds ??
+  const rawDurationSeconds =
+    toNumber(checkin.duration_seconds) ??
     durationFromRange(checkin.start_time, checkin.end_time) ??
     durationFromRange(session?.started_at, session?.ended_at) ??
     0
+  const durationSeconds = rawDurationSeconds > 0 && rawDurationSeconds <= 30 * 24 * 60 * 60
+    ? rawDurationSeconds
+    : 0
   const summitAt = checkin.verified_at ?? checkin.end_time ?? session?.ended_at ?? null
   const isSummit = checkin.status === 'approved'
   const proofStatus =

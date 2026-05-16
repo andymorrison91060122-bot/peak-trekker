@@ -1,0 +1,3364 @@
+{
+  "id": "liangbulu-631",
+  "app": "两步路",
+  "sourceFileName": "微信图片_20260515230737_631_2.jpg",
+  "recordedAt": "2026-05-16",
+  "tencentOcrRaw": {
+    "Angel": 359.99,
+    "Angle": 359.99,
+    "Language": "zh",
+    "PdfPageSize": 0,
+    "RequestId": "22189dbb-ae4f-4f11-8edd-329d03ad13ea",
+    "TextDetections": [
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":1}}",
+        "Confidence": 100,
+        "DetectedText": "坑尾田",
+        "ItemPolygon": {
+          "Height": 37,
+          "Width": 97,
+          "X": 91,
+          "Y": 20
+        },
+        "Polygon": [
+          {
+            "X": 91,
+            "Y": 20
+          },
+          {
+            "X": 188,
+            "Y": 20
+          },
+          {
+            "X": 188,
+            "Y": 57
+          },
+          {
+            "X": 91,
+            "Y": 57
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":2}}",
+        "Confidence": 100,
+        "DetectedText": "米筛田",
+        "ItemPolygon": {
+          "Height": 37,
+          "Width": 95,
+          "X": 37,
+          "Y": 110
+        },
+        "Polygon": [
+          {
+            "X": 37,
+            "Y": 110
+          },
+          {
+            "X": 132,
+            "Y": 110
+          },
+          {
+            "X": 132,
+            "Y": 147
+          },
+          {
+            "X": 37,
+            "Y": 147
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":3}}",
+        "Confidence": 100,
+        "DetectedText": "上水尾",
+        "ItemPolygon": {
+          "Height": 41,
+          "Width": 98,
+          "X": 97,
+          "Y": 209
+        },
+        "Polygon": [
+          {
+            "X": 97,
+            "Y": 209
+          },
+          {
+            "X": 195,
+            "Y": 207
+          },
+          {
+            "X": 195,
+            "Y": 248
+          },
+          {
+            "X": 98,
+            "Y": 250
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":4}}",
+        "Confidence": 100,
+        "DetectedText": "鸡笼7人草原",
+        "ItemPolygon": {
+          "Height": 44,
+          "Width": 222,
+          "X": 500,
+          "Y": 216
+        },
+        "Polygon": [
+          {
+            "X": 500,
+            "Y": 216
+          },
+          {
+            "X": 722,
+            "Y": 216
+          },
+          {
+            "X": 722,
+            "Y": 260
+          },
+          {
+            "X": 500,
+            "Y": 260
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":6}}",
+        "Confidence": 100,
+        "DetectedText": "10",
+        "ItemPolygon": {
+          "Height": 22,
+          "Width": 29,
+          "X": 375,
+          "Y": 425
+        },
+        "Polygon": [
+          {
+            "X": 375,
+            "Y": 425
+          },
+          {
+            "X": 404,
+            "Y": 425
+          },
+          {
+            "X": 404,
+            "Y": 447
+          },
+          {
+            "X": 375,
+            "Y": 447
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":5}}",
+        "Confidence": 100,
+        "DetectedText": "大壁顶",
+        "ItemPolygon": {
+          "Height": 40,
+          "Width": 115,
+          "X": 90,
+          "Y": 478
+        },
+        "Polygon": [
+          {
+            "X": 90,
+            "Y": 478
+          },
+          {
+            "X": 205,
+            "Y": 478
+          },
+          {
+            "X": 205,
+            "Y": 518
+          },
+          {
+            "X": 90,
+            "Y": 518
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":7}}",
+        "Confidence": 100,
+        "DetectedText": "楞顶",
+        "ItemPolygon": {
+          "Height": 39,
+          "Width": 86,
+          "X": 626,
+          "Y": 454
+        },
+        "Polygon": [
+          {
+            "X": 626,
+            "Y": 454
+          },
+          {
+            "X": 712,
+            "Y": 454
+          },
+          {
+            "X": 712,
+            "Y": 493
+          },
+          {
+            "X": 626,
+            "Y": 493
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":9}}",
+        "Confidence": 100,
+        "DetectedText": "9",
+        "ItemPolygon": {
+          "Height": 33,
+          "Width": 22,
+          "X": 260,
+          "Y": 610
+        },
+        "Polygon": [
+          {
+            "X": 260,
+            "Y": 610
+          },
+          {
+            "X": 282,
+            "Y": 610
+          },
+          {
+            "X": 282,
+            "Y": 643
+          },
+          {
+            "X": 260,
+            "Y": 643
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":9}}",
+        "Confidence": 100,
+        "DetectedText": "13",
+        "ItemPolygon": {
+          "Height": 29,
+          "Width": 33,
+          "X": 292,
+          "Y": 601
+        },
+        "Polygon": [
+          {
+            "X": 292,
+            "Y": 601
+          },
+          {
+            "X": 325,
+            "Y": 605
+          },
+          {
+            "X": 321,
+            "Y": 634
+          },
+          {
+            "X": 288,
+            "Y": 629
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":9}}",
+        "Confidence": 100,
+        "DetectedText": "各",
+        "ItemPolygon": {
+          "Height": 35,
+          "Width": 26,
+          "X": 336,
+          "Y": 606
+        },
+        "Polygon": [
+          {
+            "X": 336,
+            "Y": 606
+          },
+          {
+            "X": 362,
+            "Y": 610
+          },
+          {
+            "X": 356,
+            "Y": 645
+          },
+          {
+            "X": 330,
+            "Y": 641
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":8}}",
+        "Confidence": 100,
+        "DetectedText": "大路",
+        "ItemPolygon": {
+          "Height": 39,
+          "Width": 97,
+          "X": 81,
+          "Y": 675
+        },
+        "Polygon": [
+          {
+            "X": 81,
+            "Y": 675
+          },
+          {
+            "X": 178,
+            "Y": 675
+          },
+          {
+            "X": 178,
+            "Y": 714
+          },
+          {
+            "X": 81,
+            "Y": 714
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":10}}",
+        "Confidence": 100,
+        "DetectedText": "终",
+        "ItemPolygon": {
+          "Height": 34,
+          "Width": 34,
+          "X": 275,
+          "Y": 694
+        },
+        "Polygon": [
+          {
+            "X": 275,
+            "Y": 694
+          },
+          {
+            "X": 309,
+            "Y": 694
+          },
+          {
+            "X": 309,
+            "Y": 728
+          },
+          {
+            "X": 275,
+            "Y": 728
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":11}}",
+        "Confidence": 100,
+        "DetectedText": "羊屎埇",
+        "ItemPolygon": {
+          "Height": 37,
+          "Width": 95,
+          "X": 330,
+          "Y": 762
+        },
+        "Polygon": [
+          {
+            "X": 330,
+            "Y": 762
+          },
+          {
+            "X": 425,
+            "Y": 762
+          },
+          {
+            "X": 425,
+            "Y": 799
+          },
+          {
+            "X": 330,
+            "Y": 799
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":12}}",
+        "Confidence": 100,
+        "DetectedText": "梅子坪",
+        "ItemPolygon": {
+          "Height": 37,
+          "Width": 101,
+          "X": 599,
+          "Y": 789
+        },
+        "Polygon": [
+          {
+            "X": 599,
+            "Y": 789
+          },
+          {
+            "X": 700,
+            "Y": 784
+          },
+          {
+            "X": 702,
+            "Y": 821
+          },
+          {
+            "X": 601,
+            "Y": 825
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":13}}",
+        "Confidence": 100,
+        "DetectedText": "两步路.其它",
+        "ItemPolygon": {
+          "Height": 47,
+          "Width": 305,
+          "X": 41,
+          "Y": 899
+        },
+        "Polygon": [
+          {
+            "X": 41,
+            "Y": 899
+          },
+          {
+            "X": 346,
+            "Y": 890
+          },
+          {
+            "X": 347,
+            "Y": 937
+          },
+          {
+            "X": 43,
+            "Y": 946
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":14}}",
+        "Confidence": 100,
+        "DetectedText": "zs_0472469",
+        "ItemPolygon": {
+          "Height": 45,
+          "Width": 257,
+          "X": 595,
+          "Y": 928
+        },
+        "Polygon": [
+          {
+            "X": 595,
+            "Y": 928
+          },
+          {
+            "X": 852,
+            "Y": 926
+          },
+          {
+            "X": 852,
+            "Y": 971
+          },
+          {
+            "X": 595,
+            "Y": 973
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":13}}",
+        "Confidence": 100,
+        "DetectedText": "13.42公里",
+        "ItemPolygon": {
+          "Height": 94,
+          "Width": 319,
+          "X": 42,
+          "Y": 1001
+        },
+        "Polygon": [
+          {
+            "X": 42,
+            "Y": 1001
+          },
+          {
+            "X": 361,
+            "Y": 1003
+          },
+          {
+            "X": 360,
+            "Y": 1097
+          },
+          {
+            "X": 41,
+            "Y": 1095
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":14}}",
+        "Confidence": 100,
+        "DetectedText": "2026.05.02 07:44",
+        "ItemPolygon": {
+          "Height": 34,
+          "Width": 273,
+          "X": 580,
+          "Y": 990
+        },
+        "Polygon": [
+          {
+            "X": 580,
+            "Y": 990
+          },
+          {
+            "X": 853,
+            "Y": 990
+          },
+          {
+            "X": 853,
+            "Y": 1024
+          },
+          {
+            "X": 580,
+            "Y": 1024
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":14}}",
+        "Confidence": 100,
+        "DetectedText": "27℃  78%",
+        "ItemPolygon": {
+          "Height": 42,
+          "Width": 279,
+          "X": 574,
+          "Y": 1044
+        },
+        "Polygon": [
+          {
+            "X": 574,
+            "Y": 1044
+          },
+          {
+            "X": 853,
+            "Y": 1044
+          },
+          {
+            "X": 853,
+            "Y": 1086
+          },
+          {
+            "X": 574,
+            "Y": 1086
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":15}}",
+        "Confidence": 100,
+        "DetectedText": "05:30:20",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 206,
+          "X": 79,
+          "Y": 1175
+        },
+        "Polygon": [
+          {
+            "X": 79,
+            "Y": 1175
+          },
+          {
+            "X": 285,
+            "Y": 1175
+          },
+          {
+            "X": 285,
+            "Y": 1224
+          },
+          {
+            "X": 79,
+            "Y": 1224
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":16}}",
+        "Confidence": 100,
+        "DetectedText": "2.4",
+        "ItemPolygon": {
+          "Height": 50,
+          "Width": 70,
+          "X": 424,
+          "Y": 1173
+        },
+        "Polygon": [
+          {
+            "X": 424,
+            "Y": 1173
+          },
+          {
+            "X": 494,
+            "Y": 1175
+          },
+          {
+            "X": 493,
+            "Y": 1225
+          },
+          {
+            "X": 422,
+            "Y": 1223
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":17}}",
+        "Confidence": 100,
+        "DetectedText": "9.7",
+        "ItemPolygon": {
+          "Height": 51,
+          "Width": 65,
+          "X": 700,
+          "Y": 1173
+        },
+        "Polygon": [
+          {
+            "X": 700,
+            "Y": 1173
+          },
+          {
+            "X": 765,
+            "Y": 1173
+          },
+          {
+            "X": 765,
+            "Y": 1224
+          },
+          {
+            "X": 700,
+            "Y": 1224
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":15}}",
+        "Confidence": 100,
+        "DetectedText": "全程耗时",
+        "ItemPolygon": {
+          "Height": 34,
+          "Width": 137,
+          "X": 113,
+          "Y": 1245
+        },
+        "Polygon": [
+          {
+            "X": 113,
+            "Y": 1245
+          },
+          {
+            "X": 250,
+            "Y": 1245
+          },
+          {
+            "X": 250,
+            "Y": 1279
+          },
+          {
+            "X": 113,
+            "Y": 1279
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":18}}",
+        "Confidence": 100,
+        "DetectedText": "全程均速(公里/小时)最快速度(公里/小时)",
+        "ItemPolygon": {
+          "Height": 32,
+          "Width": 542,
+          "X": 323,
+          "Y": 1245
+        },
+        "Polygon": [
+          {
+            "X": 323,
+            "Y": 1245
+          },
+          {
+            "X": 865,
+            "Y": 1245
+          },
+          {
+            "X": 865,
+            "Y": 1277
+          },
+          {
+            "X": 323,
+            "Y": 1277
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":19}}",
+        "Confidence": 100,
+        "DetectedText": "897",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 85,
+          "X": 141,
+          "Y": 1342
+        },
+        "Polygon": [
+          {
+            "X": 141,
+            "Y": 1342
+          },
+          {
+            "X": 226,
+            "Y": 1342
+          },
+          {
+            "X": 226,
+            "Y": 1391
+          },
+          {
+            "X": 141,
+            "Y": 1391
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":20}}",
+        "Confidence": 100,
+        "DetectedText": "23'18\"",
+        "ItemPolygon": {
+          "Height": 53,
+          "Width": 146,
+          "X": 384,
+          "Y": 1340
+        },
+        "Polygon": [
+          {
+            "X": 384,
+            "Y": 1340
+          },
+          {
+            "X": 530,
+            "Y": 1340
+          },
+          {
+            "X": 530,
+            "Y": 1393
+          },
+          {
+            "X": 384,
+            "Y": 1393
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":21}}",
+        "Confidence": 100,
+        "DetectedText": "1265",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 114,
+          "X": 673,
+          "Y": 1342
+        },
+        "Polygon": [
+          {
+            "X": 673,
+            "Y": 1342
+          },
+          {
+            "X": 787,
+            "Y": 1342
+          },
+          {
+            "X": 787,
+            "Y": 1391
+          },
+          {
+            "X": 673,
+            "Y": 1391
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":19}}",
+        "Confidence": 100,
+        "DetectedText": "累计爬升(米",
+        "ItemPolygon": {
+          "Height": 36,
+          "Width": 187,
+          "X": 86,
+          "Y": 1411
+        },
+        "Polygon": [
+          {
+            "X": 86,
+            "Y": 1411
+          },
+          {
+            "X": 273,
+            "Y": 1411
+          },
+          {
+            "X": 273,
+            "Y": 1447
+          },
+          {
+            "X": 86,
+            "Y": 1447
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":20}}",
+        "Confidence": 100,
+        "DetectedText": "平均配速",
+        "ItemPolygon": {
+          "Height": 34,
+          "Width": 134,
+          "X": 391,
+          "Y": 1411
+        },
+        "Polygon": [
+          {
+            "X": 391,
+            "Y": 1411
+          },
+          {
+            "X": 525,
+            "Y": 1411
+          },
+          {
+            "X": 525,
+            "Y": 1445
+          },
+          {
+            "X": 391,
+            "Y": 1445
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":21}}",
+        "Confidence": 100,
+        "DetectedText": "最高海拔(米)",
+        "ItemPolygon": {
+          "Height": 36,
+          "Width": 189,
+          "X": 636,
+          "Y": 1411
+        },
+        "Polygon": [
+          {
+            "X": 636,
+            "Y": 1411
+          },
+          {
+            "X": 825,
+            "Y": 1411
+          },
+          {
+            "X": 825,
+            "Y": 1447
+          },
+          {
+            "X": 636,
+            "Y": 1447
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":22}}",
+        "Confidence": 100,
+        "DetectedText": "配速",
+        "ItemPolygon": {
+          "Height": 47,
+          "Width": 110,
+          "X": 32,
+          "Y": 1563
+        },
+        "Polygon": [
+          {
+            "X": 32,
+            "Y": 1563
+          },
+          {
+            "X": 142,
+            "Y": 1563
+          },
+          {
+            "X": 142,
+            "Y": 1610
+          },
+          {
+            "X": 32,
+            "Y": 1610
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":25}}",
+        "Confidence": 100,
+        "DetectedText": "23'18\"",
+        "ItemPolygon": {
+          "Height": 53,
+          "Width": 147,
+          "X": 171,
+          "Y": 1728
+        },
+        "Polygon": [
+          {
+            "X": 171,
+            "Y": 1728
+          },
+          {
+            "X": 318,
+            "Y": 1726
+          },
+          {
+            "X": 318,
+            "Y": 1779
+          },
+          {
+            "X": 171,
+            "Y": 1781
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":27}}",
+        "Confidence": 100,
+        "DetectedText": "14'54\"",
+        "ItemPolygon": {
+          "Height": 51,
+          "Width": 146,
+          "X": 597,
+          "Y": 1728
+        },
+        "Polygon": [
+          {
+            "X": 597,
+            "Y": 1728
+          },
+          {
+            "X": 743,
+            "Y": 1728
+          },
+          {
+            "X": 743,
+            "Y": 1779
+          },
+          {
+            "X": 597,
+            "Y": 1779
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":25}}",
+        "Confidence": 100,
+        "DetectedText": "平均配速",
+        "ItemPolygon": {
+          "Height": 35,
+          "Width": 135,
+          "X": 176,
+          "Y": 1798
+        },
+        "Polygon": [
+          {
+            "X": 176,
+            "Y": 1798
+          },
+          {
+            "X": 311,
+            "Y": 1798
+          },
+          {
+            "X": 311,
+            "Y": 1833
+          },
+          {
+            "X": 176,
+            "Y": 1833
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":27}}",
+        "Confidence": 100,
+        "DetectedText": "最快配速",
+        "ItemPolygon": {
+          "Height": 34,
+          "Width": 136,
+          "X": 602,
+          "Y": 1799
+        },
+        "Polygon": [
+          {
+            "X": 602,
+            "Y": 1799
+          },
+          {
+            "X": 738,
+            "Y": 1799
+          },
+          {
+            "X": 738,
+            "Y": 1833
+          },
+          {
+            "X": 602,
+            "Y": 1833
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":23}}",
+        "Confidence": 100,
+        "DetectedText": "公里",
+        "ItemPolygon": {
+          "Height": 27,
+          "Width": 53,
+          "X": 35,
+          "Y": 1869
+        },
+        "Polygon": [
+          {
+            "X": 35,
+            "Y": 1869
+          },
+          {
+            "X": 88,
+            "Y": 1869
+          },
+          {
+            "X": 88,
+            "Y": 1896
+          },
+          {
+            "X": 35,
+            "Y": 1896
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":25}}",
+        "Confidence": 100,
+        "DetectedText": "配速",
+        "ItemPolygon": {
+          "Height": 28,
+          "Width": 51,
+          "X": 125,
+          "Y": 1867
+        },
+        "Polygon": [
+          {
+            "X": 125,
+            "Y": 1867
+          },
+          {
+            "X": 176,
+            "Y": 1867
+          },
+          {
+            "X": 176,
+            "Y": 1895
+          },
+          {
+            "X": 125,
+            "Y": 1895
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":24}}",
+        "Confidence": 100,
+        "DetectedText": "1",
+        "ItemPolygon": {
+          "Height": 30,
+          "Width": 22,
+          "X": 64,
+          "Y": 1927
+        },
+        "Polygon": [
+          {
+            "X": 64,
+            "Y": 1927
+          },
+          {
+            "X": 86,
+            "Y": 1927
+          },
+          {
+            "X": 86,
+            "Y": 1957
+          },
+          {
+            "X": 64,
+            "Y": 1957
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":26}}",
+        "Confidence": 100,
+        "DetectedText": "1640'",
+        "ItemPolygon": {
+          "Height": 30,
+          "Width": 80,
+          "X": 134,
+          "Y": 1928
+        },
+        "Polygon": [
+          {
+            "X": 134,
+            "Y": 1928
+          },
+          {
+            "X": 214,
+            "Y": 1925
+          },
+          {
+            "X": 215,
+            "Y": 1955
+          },
+          {
+            "X": 135,
+            "Y": 1958
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":28}}",
+        "Confidence": 100,
+        "DetectedText": "2",
+        "ItemPolygon": {
+          "Height": 31,
+          "Width": 22,
+          "X": 64,
+          "Y": 2012
+        },
+        "Polygon": [
+          {
+            "X": 64,
+            "Y": 2012
+          },
+          {
+            "X": 86,
+            "Y": 2012
+          },
+          {
+            "X": 86,
+            "Y": 2043
+          },
+          {
+            "X": 64,
+            "Y": 2043
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":29}}",
+        "Confidence": 100,
+        "DetectedText": "2640\"(+10'00\")",
+        "ItemPolygon": {
+          "Height": 31,
+          "Width": 179,
+          "X": 134,
+          "Y": 2012
+        },
+        "Polygon": [
+          {
+            "X": 134,
+            "Y": 2012
+          },
+          {
+            "X": 313,
+            "Y": 2012
+          },
+          {
+            "X": 313,
+            "Y": 2043
+          },
+          {
+            "X": 134,
+            "Y": 2043
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":30}}",
+        "Confidence": 100,
+        "DetectedText": "3",
+        "ItemPolygon": {
+          "Height": 29,
+          "Width": 20,
+          "X": 66,
+          "Y": 2099
+        },
+        "Polygon": [
+          {
+            "X": 66,
+            "Y": 2099
+          },
+          {
+            "X": 86,
+            "Y": 2099
+          },
+          {
+            "X": 86,
+            "Y": 2128
+          },
+          {
+            "X": 66,
+            "Y": 2128
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":31}}",
+        "Confidence": 100,
+        "DetectedText": "24'50\"(-150\")",
+        "ItemPolygon": {
+          "Height": 32,
+          "Width": 167,
+          "X": 133,
+          "Y": 2097
+        },
+        "Polygon": [
+          {
+            "X": 133,
+            "Y": 2097
+          },
+          {
+            "X": 300,
+            "Y": 2093
+          },
+          {
+            "X": 301,
+            "Y": 2125
+          },
+          {
+            "X": 134,
+            "Y": 2129
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":32}}",
+        "Confidence": 100,
+        "DetectedText": "4",
+        "ItemPolygon": {
+          "Height": 29,
+          "Width": 24,
+          "X": 64,
+          "Y": 2184
+        },
+        "Polygon": [
+          {
+            "X": 64,
+            "Y": 2184
+          },
+          {
+            "X": 88,
+            "Y": 2184
+          },
+          {
+            "X": 88,
+            "Y": 2213
+          },
+          {
+            "X": 64,
+            "Y": 2213
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":33}}",
+        "Confidence": 100,
+        "DetectedText": "38'04\"",
+        "ItemPolygon": {
+          "Height": 30,
+          "Width": 96,
+          "X": 135,
+          "Y": 2183
+        },
+        "Polygon": [
+          {
+            "X": 135,
+            "Y": 2183
+          },
+          {
+            "X": 231,
+            "Y": 2180
+          },
+          {
+            "X": 232,
+            "Y": 2210
+          },
+          {
+            "X": 136,
+            "Y": 2213
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":33}}",
+        "Confidence": 100,
+        "DetectedText": "(+13'14)",
+        "ItemPolygon": {
+          "Height": 24,
+          "Width": 84,
+          "X": 229,
+          "Y": 2184
+        },
+        "Polygon": [
+          {
+            "X": 229,
+            "Y": 2184
+          },
+          {
+            "X": 313,
+            "Y": 2184
+          },
+          {
+            "X": 313,
+            "Y": 2208
+          },
+          {
+            "X": 229,
+            "Y": 2208
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":34}}",
+        "Confidence": 100,
+        "DetectedText": "5",
+        "ItemPolygon": {
+          "Height": 29,
+          "Width": 20,
+          "X": 66,
+          "Y": 2269
+        },
+        "Polygon": [
+          {
+            "X": 66,
+            "Y": 2269
+          },
+          {
+            "X": 86,
+            "Y": 2269
+          },
+          {
+            "X": 86,
+            "Y": 2298
+          },
+          {
+            "X": 66,
+            "Y": 2298
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":35}}",
+        "Confidence": 100,
+        "DetectedText": "24'14\"",
+        "ItemPolygon": {
+          "Height": 31,
+          "Width": 85,
+          "X": 134,
+          "Y": 2267
+        },
+        "Polygon": [
+          {
+            "X": 134,
+            "Y": 2267
+          },
+          {
+            "X": 219,
+            "Y": 2267
+          },
+          {
+            "X": 219,
+            "Y": 2298
+          },
+          {
+            "X": 134,
+            "Y": 2298
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":35}}",
+        "Confidence": 100,
+        "DetectedText": "(-13'50\")",
+        "ItemPolygon": {
+          "Height": 25,
+          "Width": 85,
+          "X": 221,
+          "Y": 2269
+        },
+        "Polygon": [
+          {
+            "X": 221,
+            "Y": 2269
+          },
+          {
+            "X": 306,
+            "Y": 2269
+          },
+          {
+            "X": 306,
+            "Y": 2294
+          },
+          {
+            "X": 221,
+            "Y": 2294
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":36}}",
+        "Confidence": 100,
+        "DetectedText": "6",
+        "ItemPolygon": {
+          "Height": 29,
+          "Width": 20,
+          "X": 66,
+          "Y": 2354
+        },
+        "Polygon": [
+          {
+            "X": 66,
+            "Y": 2354
+          },
+          {
+            "X": 86,
+            "Y": 2354
+          },
+          {
+            "X": 86,
+            "Y": 2383
+          },
+          {
+            "X": 66,
+            "Y": 2383
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":37}}",
+        "Confidence": 100,
+        "DetectedText": "26'03\"(+149\")",
+        "ItemPolygon": {
+          "Height": 31,
+          "Width": 165,
+          "X": 134,
+          "Y": 2352
+        },
+        "Polygon": [
+          {
+            "X": 134,
+            "Y": 2352
+          },
+          {
+            "X": 299,
+            "Y": 2352
+          },
+          {
+            "X": 299,
+            "Y": 2383
+          },
+          {
+            "X": 134,
+            "Y": 2383
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":38}}",
+        "Confidence": 100,
+        "DetectedText": "7",
+        "ItemPolygon": {
+          "Height": 33,
+          "Width": 24,
+          "X": 62,
+          "Y": 2435
+        },
+        "Polygon": [
+          {
+            "X": 62,
+            "Y": 2435
+          },
+          {
+            "X": 86,
+            "Y": 2435
+          },
+          {
+            "X": 86,
+            "Y": 2468
+          },
+          {
+            "X": 62,
+            "Y": 2468
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":39}}",
+        "Confidence": 100,
+        "DetectedText": "20'57\"(-5'06\"",
+        "ItemPolygon": {
+          "Height": 32,
+          "Width": 167,
+          "X": 133,
+          "Y": 2439
+        },
+        "Polygon": [
+          {
+            "X": 133,
+            "Y": 2439
+          },
+          {
+            "X": 300,
+            "Y": 2432
+          },
+          {
+            "X": 301,
+            "Y": 2464
+          },
+          {
+            "X": 134,
+            "Y": 2470
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":40}}",
+        "Confidence": 100,
+        "DetectedText": "8",
+        "ItemPolygon": {
+          "Height": 29,
+          "Width": 21,
+          "X": 64,
+          "Y": 2524
+        },
+        "Polygon": [
+          {
+            "X": 64,
+            "Y": 2524
+          },
+          {
+            "X": 85,
+            "Y": 2524
+          },
+          {
+            "X": 85,
+            "Y": 2553
+          },
+          {
+            "X": 64,
+            "Y": 2553
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":41}}",
+        "Confidence": 100,
+        "DetectedText": "1546\"(-511\")",
+        "ItemPolygon": {
+          "Height": 31,
+          "Width": 151,
+          "X": 134,
+          "Y": 2522
+        },
+        "Polygon": [
+          {
+            "X": 134,
+            "Y": 2522
+          },
+          {
+            "X": 285,
+            "Y": 2522
+          },
+          {
+            "X": 285,
+            "Y": 2553
+          },
+          {
+            "X": 134,
+            "Y": 2553
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":42}}",
+        "Confidence": 100,
+        "DetectedText": "9",
+        "ItemPolygon": {
+          "Height": 31,
+          "Width": 21,
+          "X": 64,
+          "Y": 2607
+        },
+        "Polygon": [
+          {
+            "X": 64,
+            "Y": 2607
+          },
+          {
+            "X": 85,
+            "Y": 2607
+          },
+          {
+            "X": 85,
+            "Y": 2638
+          },
+          {
+            "X": 64,
+            "Y": 2638
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":43}}",
+        "Confidence": 100,
+        "DetectedText": "14'54\"(-0'52\")",
+        "ItemPolygon": {
+          "Height": 30,
+          "Width": 165,
+          "X": 134,
+          "Y": 2609
+        },
+        "Polygon": [
+          {
+            "X": 134,
+            "Y": 2609
+          },
+          {
+            "X": 299,
+            "Y": 2605
+          },
+          {
+            "X": 299,
+            "Y": 2635
+          },
+          {
+            "X": 134,
+            "Y": 2639
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":44}}",
+        "Confidence": 100,
+        "DetectedText": "10",
+        "ItemPolygon": {
+          "Height": 29,
+          "Width": 33,
+          "X": 57,
+          "Y": 2694
+        },
+        "Polygon": [
+          {
+            "X": 57,
+            "Y": 2694
+          },
+          {
+            "X": 90,
+            "Y": 2694
+          },
+          {
+            "X": 90,
+            "Y": 2723
+          },
+          {
+            "X": 57,
+            "Y": 2723
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":45}}",
+        "Confidence": 100,
+        "DetectedText": "17'56\"(+3'02\")",
+        "ItemPolygon": {
+          "Height": 31,
+          "Width": 163,
+          "X": 134,
+          "Y": 2692
+        },
+        "Polygon": [
+          {
+            "X": 134,
+            "Y": 2692
+          },
+          {
+            "X": 297,
+            "Y": 2692
+          },
+          {
+            "X": 297,
+            "Y": 2723
+          },
+          {
+            "X": 134,
+            "Y": 2723
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":46}}",
+        "Confidence": 100,
+        "DetectedText": "11",
+        "ItemPolygon": {
+          "Height": 27,
+          "Width": 27,
+          "X": 61,
+          "Y": 2779
+        },
+        "Polygon": [
+          {
+            "X": 61,
+            "Y": 2779
+          },
+          {
+            "X": 88,
+            "Y": 2779
+          },
+          {
+            "X": 88,
+            "Y": 2806
+          },
+          {
+            "X": 61,
+            "Y": 2806
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":47}}",
+        "Confidence": 100,
+        "DetectedText": "15'39\"(-217\")",
+        "ItemPolygon": {
+          "Height": 31,
+          "Width": 159,
+          "X": 134,
+          "Y": 2779
+        },
+        "Polygon": [
+          {
+            "X": 134,
+            "Y": 2779
+          },
+          {
+            "X": 293,
+            "Y": 2772
+          },
+          {
+            "X": 294,
+            "Y": 2803
+          },
+          {
+            "X": 135,
+            "Y": 2810
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":48}}",
+        "Confidence": 100,
+        "DetectedText": "12",
+        "ItemPolygon": {
+          "Height": 29,
+          "Width": 32,
+          "X": 59,
+          "Y": 2862
+        },
+        "Polygon": [
+          {
+            "X": 59,
+            "Y": 2862
+          },
+          {
+            "X": 91,
+            "Y": 2862
+          },
+          {
+            "X": 91,
+            "Y": 2891
+          },
+          {
+            "X": 59,
+            "Y": 2891
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":49}}",
+        "Confidence": 100,
+        "DetectedText": "1613\"(+0'35\")",
+        "ItemPolygon": {
+          "Height": 32,
+          "Width": 161,
+          "X": 134,
+          "Y": 2863
+        },
+        "Polygon": [
+          {
+            "X": 134,
+            "Y": 2863
+          },
+          {
+            "X": 295,
+            "Y": 2858
+          },
+          {
+            "X": 296,
+            "Y": 2890
+          },
+          {
+            "X": 135,
+            "Y": 2894
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":50}}",
+        "Confidence": 100,
+        "DetectedText": "13",
+        "ItemPolygon": {
+          "Height": 29,
+          "Width": 32,
+          "X": 59,
+          "Y": 2947
+        },
+        "Polygon": [
+          {
+            "X": 59,
+            "Y": 2947
+          },
+          {
+            "X": 91,
+            "Y": 2947
+          },
+          {
+            "X": 91,
+            "Y": 2976
+          },
+          {
+            "X": 59,
+            "Y": 2976
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":51}}",
+        "Confidence": 100,
+        "DetectedText": "1650\"(+0'37\")",
+        "ItemPolygon": {
+          "Height": 32,
+          "Width": 166,
+          "X": 134,
+          "Y": 2948
+        },
+        "Polygon": [
+          {
+            "X": 134,
+            "Y": 2948
+          },
+          {
+            "X": 300,
+            "Y": 2943
+          },
+          {
+            "X": 301,
+            "Y": 2975
+          },
+          {
+            "X": 134,
+            "Y": 2979
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":52}}",
+        "Confidence": 100,
+        "DetectedText": "13.42不足1公里，耗时8'09\"",
+        "ItemPolygon": {
+          "Height": 34,
+          "Width": 408,
+          "X": 39,
+          "Y": 3031
+        },
+        "Polygon": [
+          {
+            "X": 39,
+            "Y": 3031
+          },
+          {
+            "X": 447,
+            "Y": 3031
+          },
+          {
+            "X": 447,
+            "Y": 3065
+          },
+          {
+            "X": 39,
+            "Y": 3065
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":53}}",
+        "Confidence": 100,
+        "DetectedText": "速度",
+        "ItemPolygon": {
+          "Height": 41,
+          "Width": 83,
+          "X": 59,
+          "Y": 3189
+        },
+        "Polygon": [
+          {
+            "X": 59,
+            "Y": 3189
+          },
+          {
+            "X": 142,
+            "Y": 3189
+          },
+          {
+            "X": 142,
+            "Y": 3230
+          },
+          {
+            "X": 59,
+            "Y": 3230
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":54}}",
+        "Confidence": 100,
+        "DetectedText": "9.7",
+        "ItemPolygon": {
+          "Height": 51,
+          "Width": 66,
+          "X": 212,
+          "Y": 3352
+        },
+        "Polygon": [
+          {
+            "X": 212,
+            "Y": 3352
+          },
+          {
+            "X": 278,
+            "Y": 3352
+          },
+          {
+            "X": 278,
+            "Y": 3403
+          },
+          {
+            "X": 212,
+            "Y": 3403
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":55}}",
+        "Confidence": 100,
+        "DetectedText": "2.4",
+        "ItemPolygon": {
+          "Height": 51,
+          "Width": 71,
+          "X": 636,
+          "Y": 3352
+        },
+        "Polygon": [
+          {
+            "X": 636,
+            "Y": 3352
+          },
+          {
+            "X": 707,
+            "Y": 3354
+          },
+          {
+            "X": 705,
+            "Y": 3405
+          },
+          {
+            "X": 634,
+            "Y": 3402
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":54}}",
+        "Confidence": 100,
+        "DetectedText": "最快速度",
+        "ItemPolygon": {
+          "Height": 36,
+          "Width": 138,
+          "X": 175,
+          "Y": 3424
+        },
+        "Polygon": [
+          {
+            "X": 175,
+            "Y": 3424
+          },
+          {
+            "X": 313,
+            "Y": 3424
+          },
+          {
+            "X": 313,
+            "Y": 3460
+          },
+          {
+            "X": 175,
+            "Y": 3460
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":56}}",
+        "Confidence": 100,
+        "DetectedText": "全程均速",
+        "ItemPolygon": {
+          "Height": 37,
+          "Width": 137,
+          "X": 601,
+          "Y": 3424
+        },
+        "Polygon": [
+          {
+            "X": 601,
+            "Y": 3424
+          },
+          {
+            "X": 738,
+            "Y": 3421
+          },
+          {
+            "X": 738,
+            "Y": 3458
+          },
+          {
+            "X": 602,
+            "Y": 3460
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":57}}",
+        "Confidence": 100,
+        "DetectedText": "11",
+        "ItemPolygon": {
+          "Height": 29,
+          "Width": 24,
+          "X": 37,
+          "Y": 3521
+        },
+        "Polygon": [
+          {
+            "X": 37,
+            "Y": 3521
+          },
+          {
+            "X": 61,
+            "Y": 3521
+          },
+          {
+            "X": 61,
+            "Y": 3550
+          },
+          {
+            "X": 37,
+            "Y": 3550
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":58}}",
+        "Confidence": 100,
+        "DetectedText": "5.5",
+        "ItemPolygon": {
+          "Height": 29,
+          "Width": 42,
+          "X": 37,
+          "Y": 3604
+        },
+        "Polygon": [
+          {
+            "X": 37,
+            "Y": 3604
+          },
+          {
+            "X": 79,
+            "Y": 3604
+          },
+          {
+            "X": 79,
+            "Y": 3633
+          },
+          {
+            "X": 37,
+            "Y": 3633
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":59}}",
+        "Confidence": 100,
+        "DetectedText": "c",
+        "ItemPolygon": {
+          "Height": 22,
+          "Width": 17,
+          "X": 37,
+          "Y": 3694
+        },
+        "Polygon": [
+          {
+            "X": 37,
+            "Y": 3694
+          },
+          {
+            "X": 54,
+            "Y": 3694
+          },
+          {
+            "X": 54,
+            "Y": 3716
+          },
+          {
+            "X": 37,
+            "Y": 3716
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":60}}",
+        "Confidence": 100,
+        "DetectedText": "00:00",
+        "ItemPolygon": {
+          "Height": 25,
+          "Width": 78,
+          "X": 132,
+          "Y": 3720
+        },
+        "Polygon": [
+          {
+            "X": 132,
+            "Y": 3720
+          },
+          {
+            "X": 210,
+            "Y": 3720
+          },
+          {
+            "X": 210,
+            "Y": 3745
+          },
+          {
+            "X": 132,
+            "Y": 3745
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":62}}",
+        "Confidence": 100,
+        "DetectedText": "02:45",
+        "ItemPolygon": {
+          "Height": 25,
+          "Width": 73,
+          "X": 471,
+          "Y": 3720
+        },
+        "Polygon": [
+          {
+            "X": 471,
+            "Y": 3720
+          },
+          {
+            "X": 544,
+            "Y": 3720
+          },
+          {
+            "X": 544,
+            "Y": 3745
+          },
+          {
+            "X": 471,
+            "Y": 3745
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":63}}",
+        "Confidence": 100,
+        "DetectedText": "05:30",
+        "ItemPolygon": {
+          "Height": 27,
+          "Width": 77,
+          "X": 802,
+          "Y": 3718
+        },
+        "Polygon": [
+          {
+            "X": 802,
+            "Y": 3718
+          },
+          {
+            "X": 879,
+            "Y": 3718
+          },
+          {
+            "X": 879,
+            "Y": 3745
+          },
+          {
+            "X": 802,
+            "Y": 3745
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":61}}",
+        "Confidence": 100,
+        "DetectedText": "速度(公里/小时)",
+        "ItemPolygon": {
+          "Height": 39,
+          "Width": 238,
+          "X": 32,
+          "Y": 3761
+        },
+        "Polygon": [
+          {
+            "X": 32,
+            "Y": 3761
+          },
+          {
+            "X": 270,
+            "Y": 3761
+          },
+          {
+            "X": 270,
+            "Y": 3800
+          },
+          {
+            "X": 32,
+            "Y": 3800
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":63}}",
+        "Confidence": 100,
+        "DetectedText": "时间(时:分)",
+        "ItemPolygon": {
+          "Height": 38,
+          "Width": 162,
+          "X": 717,
+          "Y": 3763
+        },
+        "Polygon": [
+          {
+            "X": 717,
+            "Y": 3763
+          },
+          {
+            "X": 879,
+            "Y": 3760
+          },
+          {
+            "X": 879,
+            "Y": 3798
+          },
+          {
+            "X": 717,
+            "Y": 3800
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":64}}",
+        "Confidence": 100,
+        "DetectedText": "海拔",
+        "ItemPolygon": {
+          "Height": 42,
+          "Width": 80,
+          "X": 62,
+          "Y": 3914
+        },
+        "Polygon": [
+          {
+            "X": 62,
+            "Y": 3914
+          },
+          {
+            "X": 142,
+            "Y": 3914
+          },
+          {
+            "X": 142,
+            "Y": 3956
+          },
+          {
+            "X": 62,
+            "Y": 3956
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":65}}",
+        "Confidence": 100,
+        "DetectedText": "1265",
+        "ItemPolygon": {
+          "Height": 52,
+          "Width": 116,
+          "X": 185,
+          "Y": 4081
+        },
+        "Polygon": [
+          {
+            "X": 185,
+            "Y": 4081
+          },
+          {
+            "X": 301,
+            "Y": 4078
+          },
+          {
+            "X": 303,
+            "Y": 4130
+          },
+          {
+            "X": 186,
+            "Y": 4133
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":67}}",
+        "Confidence": 100,
+        "DetectedText": "439",
+        "ItemPolygon": {
+          "Height": 50,
+          "Width": 92,
+          "X": 622,
+          "Y": 4080
+        },
+        "Polygon": [
+          {
+            "X": 622,
+            "Y": 4080
+          },
+          {
+            "X": 714,
+            "Y": 4080
+          },
+          {
+            "X": 714,
+            "Y": 4130
+          },
+          {
+            "X": 622,
+            "Y": 4130
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":66}}",
+        "Confidence": 100,
+        "DetectedText": "最高海拔",
+        "ItemPolygon": {
+          "Height": 38,
+          "Width": 138,
+          "X": 175,
+          "Y": 4148
+        },
+        "Polygon": [
+          {
+            "X": 175,
+            "Y": 4148
+          },
+          {
+            "X": 313,
+            "Y": 4148
+          },
+          {
+            "X": 313,
+            "Y": 4186
+          },
+          {
+            "X": 175,
+            "Y": 4186
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":67}}",
+        "Confidence": 100,
+        "DetectedText": "最低海拔",
+        "ItemPolygon": {
+          "Height": 38,
+          "Width": 138,
+          "X": 600,
+          "Y": 4148
+        },
+        "Polygon": [
+          {
+            "X": 600,
+            "Y": 4148
+          },
+          {
+            "X": 738,
+            "Y": 4148
+          },
+          {
+            "X": 738,
+            "Y": 4186
+          },
+          {
+            "X": 600,
+            "Y": 4186
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":68}}",
+        "Confidence": 100,
+        "DetectedText": "1268",
+        "ItemPolygon": {
+          "Height": 27,
+          "Width": 59,
+          "X": 39,
+          "Y": 4249
+        },
+        "Polygon": [
+          {
+            "X": 39,
+            "Y": 4249
+          },
+          {
+            "X": 98,
+            "Y": 4249
+          },
+          {
+            "X": 98,
+            "Y": 4276
+          },
+          {
+            "X": 39,
+            "Y": 4276
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":69}}",
+        "Confidence": 100,
+        "DetectedText": "632",
+        "ItemPolygon": {
+          "Height": 27,
+          "Width": 51,
+          "X": 37,
+          "Y": 4334
+        },
+        "Polygon": [
+          {
+            "X": 37,
+            "Y": 4334
+          },
+          {
+            "X": 88,
+            "Y": 4334
+          },
+          {
+            "X": 88,
+            "Y": 4361
+          },
+          {
+            "X": 37,
+            "Y": 4361
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":70}}",
+        "Confidence": 100,
+        "DetectedText": "-4",
+        "ItemPolygon": {
+          "Height": 27,
+          "Width": 32,
+          "X": 37,
+          "Y": 4417
+        },
+        "Polygon": [
+          {
+            "X": 37,
+            "Y": 4417
+          },
+          {
+            "X": 69,
+            "Y": 4417
+          },
+          {
+            "X": 69,
+            "Y": 4444
+          },
+          {
+            "X": 37,
+            "Y": 4444
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":71}}",
+        "Confidence": 94,
+        "DetectedText": "0",
+        "ItemPolygon": {
+          "Height": 15,
+          "Width": 24,
+          "X": 151,
+          "Y": 4448
+        },
+        "Polygon": [
+          {
+            "X": 151,
+            "Y": 4448
+          },
+          {
+            "X": 151,
+            "Y": 4472
+          },
+          {
+            "X": 136,
+            "Y": 4472
+          },
+          {
+            "X": 136,
+            "Y": 4448
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":73}}",
+        "Confidence": 100,
+        "DetectedText": "6.71",
+        "ItemPolygon": {
+          "Height": 27,
+          "Width": 51,
+          "X": 481,
+          "Y": 4446
+        },
+        "Polygon": [
+          {
+            "X": 481,
+            "Y": 4446
+          },
+          {
+            "X": 532,
+            "Y": 4446
+          },
+          {
+            "X": 532,
+            "Y": 4473
+          },
+          {
+            "X": 481,
+            "Y": 4473
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":74}}",
+        "Confidence": 100,
+        "DetectedText": "13.43",
+        "ItemPolygon": {
+          "Height": 27,
+          "Width": 66,
+          "X": 808,
+          "Y": 4446
+        },
+        "Polygon": [
+          {
+            "X": 808,
+            "Y": 4446
+          },
+          {
+            "X": 874,
+            "Y": 4446
+          },
+          {
+            "X": 874,
+            "Y": 4473
+          },
+          {
+            "X": 808,
+            "Y": 4473
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":72}}",
+        "Confidence": 100,
+        "DetectedText": "海拔(米)",
+        "ItemPolygon": {
+          "Height": 36,
+          "Width": 121,
+          "X": 32,
+          "Y": 4490
+        },
+        "Polygon": [
+          {
+            "X": 32,
+            "Y": 4490
+          },
+          {
+            "X": 153,
+            "Y": 4490
+          },
+          {
+            "X": 153,
+            "Y": 4526
+          },
+          {
+            "X": 32,
+            "Y": 4526
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":74}}",
+        "Confidence": 100,
+        "DetectedText": "里程(公里)",
+        "ItemPolygon": {
+          "Height": 36,
+          "Width": 157,
+          "X": 724,
+          "Y": 4491
+        },
+        "Polygon": [
+          {
+            "X": 724,
+            "Y": 4491
+          },
+          {
+            "X": 881,
+            "Y": 4488
+          },
+          {
+            "X": 881,
+            "Y": 4524
+          },
+          {
+            "X": 724,
+            "Y": 4527
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":75}}",
+        "Confidence": 100,
+        "DetectedText": "爬升下降(米)",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 254,
+          "X": 30,
+          "Y": 4642
+        },
+        "Polygon": [
+          {
+            "X": 30,
+            "Y": 4642
+          },
+          {
+            "X": 284,
+            "Y": 4642
+          },
+          {
+            "X": 284,
+            "Y": 4691
+          },
+          {
+            "X": 30,
+            "Y": 4691
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":76}}",
+        "Confidence": 100,
+        "DetectedText": "897",
+        "ItemPolygon": {
+          "Height": 53,
+          "Width": 89,
+          "X": 200,
+          "Y": 4805
+        },
+        "Polygon": [
+          {
+            "X": 200,
+            "Y": 4805
+          },
+          {
+            "X": 289,
+            "Y": 4805
+          },
+          {
+            "X": 289,
+            "Y": 4858
+          },
+          {
+            "X": 200,
+            "Y": 4858
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":77}}",
+        "Confidence": 100,
+        "DetectedText": "952",
+        "ItemPolygon": {
+          "Height": 51,
+          "Width": 90,
+          "X": 626,
+          "Y": 4807
+        },
+        "Polygon": [
+          {
+            "X": 626,
+            "Y": 4807
+          },
+          {
+            "X": 716,
+            "Y": 4807
+          },
+          {
+            "X": 716,
+            "Y": 4858
+          },
+          {
+            "X": 626,
+            "Y": 4858
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":76}}",
+        "Confidence": 100,
+        "DetectedText": "累计爬升",
+        "ItemPolygon": {
+          "Height": 35,
+          "Width": 135,
+          "X": 176,
+          "Y": 4877
+        },
+        "Polygon": [
+          {
+            "X": 176,
+            "Y": 4877
+          },
+          {
+            "X": 311,
+            "Y": 4877
+          },
+          {
+            "X": 311,
+            "Y": 4912
+          },
+          {
+            "X": 176,
+            "Y": 4912
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":77}}",
+        "Confidence": 100,
+        "DetectedText": "累计下降",
+        "ItemPolygon": {
+          "Height": 35,
+          "Width": 136,
+          "X": 602,
+          "Y": 4877
+        },
+        "Polygon": [
+          {
+            "X": 602,
+            "Y": 4877
+          },
+          {
+            "X": 738,
+            "Y": 4877
+          },
+          {
+            "X": 738,
+            "Y": 4912
+          },
+          {
+            "X": 602,
+            "Y": 4912
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":78}}",
+        "Confidence": 100,
+        "DetectedText": "爬升",
+        "ItemPolygon": {
+          "Height": 34,
+          "Width": 70,
+          "X": 326,
+          "Y": 4997
+        },
+        "Polygon": [
+          {
+            "X": 326,
+            "Y": 4997
+          },
+          {
+            "X": 396,
+            "Y": 4997
+          },
+          {
+            "X": 396,
+            "Y": 5031
+          },
+          {
+            "X": 326,
+            "Y": 5031
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":78}}",
+        "Confidence": 100,
+        "DetectedText": "35%",
+        "ItemPolygon": {
+          "Height": 31,
+          "Width": 83,
+          "X": 396,
+          "Y": 4999
+        },
+        "Polygon": [
+          {
+            "X": 396,
+            "Y": 4999
+          },
+          {
+            "X": 479,
+            "Y": 4999
+          },
+          {
+            "X": 479,
+            "Y": 5030
+          },
+          {
+            "X": 396,
+            "Y": 5030
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":79}}",
+        "Confidence": 100,
+        "DetectedText": "4.76公里",
+        "ItemPolygon": {
+          "Height": 32,
+          "Width": 130,
+          "X": 763,
+          "Y": 4999
+        },
+        "Polygon": [
+          {
+            "X": 763,
+            "Y": 4999
+          },
+          {
+            "X": 893,
+            "Y": 4999
+          },
+          {
+            "X": 893,
+            "Y": 5031
+          },
+          {
+            "X": 763,
+            "Y": 5031
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":78}}",
+        "Confidence": 100,
+        "DetectedText": "下降",
+        "ItemPolygon": {
+          "Height": 34,
+          "Width": 68,
+          "X": 328,
+          "Y": 5081
+        },
+        "Polygon": [
+          {
+            "X": 328,
+            "Y": 5081
+          },
+          {
+            "X": 396,
+            "Y": 5081
+          },
+          {
+            "X": 396,
+            "Y": 5115
+          },
+          {
+            "X": 328,
+            "Y": 5115
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":78}}",
+        "Confidence": 100,
+        "DetectedText": "43%",
+        "ItemPolygon": {
+          "Height": 31,
+          "Width": 69,
+          "X": 409,
+          "Y": 5082
+        },
+        "Polygon": [
+          {
+            "X": 409,
+            "Y": 5082
+          },
+          {
+            "X": 478,
+            "Y": 5082
+          },
+          {
+            "X": 478,
+            "Y": 5113
+          },
+          {
+            "X": 409,
+            "Y": 5113
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":79}}",
+        "Confidence": 100,
+        "DetectedText": "5.79公里",
+        "ItemPolygon": {
+          "Height": 32,
+          "Width": 131,
+          "X": 765,
+          "Y": 5081
+        },
+        "Polygon": [
+          {
+            "X": 765,
+            "Y": 5081
+          },
+          {
+            "X": 896,
+            "Y": 5081
+          },
+          {
+            "X": 896,
+            "Y": 5113
+          },
+          {
+            "X": 765,
+            "Y": 5113
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":78}}",
+        "Confidence": 100,
+        "DetectedText": "平路21%",
+        "ItemPolygon": {
+          "Height": 34,
+          "Width": 144,
+          "X": 328,
+          "Y": 5164
+        },
+        "Polygon": [
+          {
+            "X": 328,
+            "Y": 5164
+          },
+          {
+            "X": 472,
+            "Y": 5164
+          },
+          {
+            "X": 472,
+            "Y": 5198
+          },
+          {
+            "X": 328,
+            "Y": 5198
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":79}}",
+        "Confidence": 100,
+        "DetectedText": "2.86公里",
+        "ItemPolygon": {
+          "Height": 34,
+          "Width": 136,
+          "X": 763,
+          "Y": 5164
+        },
+        "Polygon": [
+          {
+            "X": 763,
+            "Y": 5164
+          },
+          {
+            "X": 899,
+            "Y": 5164
+          },
+          {
+            "X": 899,
+            "Y": 5198
+          },
+          {
+            "X": 763,
+            "Y": 5198
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":81}}",
+        "Confidence": 100,
+        "DetectedText": "长按识别二维码下载两步路",
+        "ItemPolygon": {
+          "Height": 36,
+          "Width": 407,
+          "X": 341,
+          "Y": 5387
+        },
+        "Polygon": [
+          {
+            "X": 341,
+            "Y": 5387
+          },
+          {
+            "X": 748,
+            "Y": 5387
+          },
+          {
+            "X": 748,
+            "Y": 5423
+          },
+          {
+            "X": 341,
+            "Y": 5423
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":80}}",
+        "Confidence": 100,
+        "DetectedText": "两步路",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 165,
+          "X": 93,
+          "Y": 5414
+        },
+        "Polygon": [
+          {
+            "X": 93,
+            "Y": 5414
+          },
+          {
+            "X": 258,
+            "Y": 5414
+          },
+          {
+            "X": 258,
+            "Y": 5463
+          },
+          {
+            "X": 93,
+            "Y": 5463
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":82}}",
+        "Confidence": 100,
+        "DetectedText": "和我一起玩户外",
+        "ItemPolygon": {
+          "Height": 36,
+          "Width": 238,
+          "X": 510,
+          "Y": 5458
+        },
+        "Polygon": [
+          {
+            "X": 510,
+            "Y": 5458
+          },
+          {
+            "X": 748,
+            "Y": 5458
+          },
+          {
+            "X": 748,
+            "Y": 5494
+          },
+          {
+            "X": 510,
+            "Y": 5494
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      }
+    ]
+  },
+  "rawText": "坑尾田\n米筛田\n上水尾\n鸡笼7人草原\n10\n大壁顶\n楞顶\n9\n13\n各\n大路\n终\n羊屎埇\n梅子坪\n两步路.其它\nzs_0472469\n13.42公里\n2026.05.02 07:44\n27℃  78%\n05:30:20\n2.4\n9.7\n全程耗时\n全程均速(公里/小时)最快速度(公里/小时)\n897\n23'18\"\n1265\n累计爬升(米\n平均配速\n最高海拔(米)\n配速\n23'18\"\n14'54\"\n平均配速\n最快配速\n公里\n配速\n1\n1640'\n2\n2640\"(+10'00\")\n3\n24'50\"(-150\")\n4\n38'04\"\n(+13'14)\n5\n24'14\"\n(-13'50\")\n6\n26'03\"(+149\")\n7\n20'57\"(-5'06\"\n8\n1546\"(-511\")\n9\n14'54\"(-0'52\")\n10\n17'56\"(+3'02\")\n11\n15'39\"(-217\")\n12\n1613\"(+0'35\")\n13\n1650\"(+0'37\")\n13.42不足1公里，耗时8'09\"\n速度\n9.7\n2.4\n最快速度\n全程均速\n11\n5.5\nc\n00:00\n02:45\n05:30\n速度(公里/小时)\n时间(时:分)\n海拔\n1265\n439\n最高海拔\n最低海拔\n1268\n632\n-4\n0\n6.71\n13.43\n海拔(米)\n里程(公里)\n爬升下降(米)\n897\n952\n累计爬升\n累计下降\n爬升\n35%\n4.76公里\n下降\n43%\n5.79公里\n平路21%\n2.86公里\n长按识别二维码下载两步路\n两步路\n和我一起玩户外"
+}

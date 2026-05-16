@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
 import { getSupplementalTimeFallback } from '@/lib/import/confirm-time-fallback'
 import { validateImportMountainSelectionDistance } from '@/lib/import/mountain-distance-check'
+import { normalizeScreenshotData } from '@/lib/import/screenshot-confirm-data'
+import type { NormalizedScreenshotData } from '@/lib/import/screenshot-confirm-data'
 import { buildComputedTrackStats, findHighestTrackPoint } from '@/lib/import/track-stats'
 import type { ImportedTrackData, TrackPoint } from '@/lib/import/types'
 import { rankingWeightByDifficulty } from '@/lib/trek-utils'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { insertCheckinWithFallback } from '@/lib/trek-verify-helpers'
 
 type ImportMountainRow = {
   id: string
@@ -156,6 +159,101 @@ function normalizeImportConfirmSource(value: unknown): ImportConfirmSource {
   return value === 'screenshot_recognition' ? 'screenshot_recognition' : 'track_import'
 }
 
+async function fetchImportMountain(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  mountainId: string | null
+) {
+  if (!mountainId) return { mountain: null as ImportMountainRow | null, response: null as NextResponse | null }
+
+  const { data, error } = await supabase
+    .from('mountains')
+    .select('id, latitude, longitude, difficulty')
+    .eq('id', mountainId)
+    .maybeSingle()
+
+  if (error) {
+    return { mountain: null, response: NextResponse.json({ error: error.message }, { status: 500 }) }
+  }
+
+  if (!data) {
+    return { mountain: null, response: NextResponse.json({ error: 'invalid mountainId' }, { status: 400 }) }
+  }
+
+  return { mountain: data as ImportMountainRow, response: null }
+}
+
+function screenshotTimeRange(data: NormalizedScreenshotData) {
+  const startTime = data.date ?? null
+  if (!startTime) return { startTime: null, endTime: null }
+  if (!data.durationSeconds) return { startTime, endTime: null }
+  return {
+    startTime,
+    endTime: new Date(new Date(startTime).getTime() + data.durationSeconds * 1000).toISOString(),
+  }
+}
+
+async function handleScreenshotRecognitionConfirm({
+  supabase,
+  userId,
+  body,
+}: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+  userId: string
+  body: Record<string, unknown>
+}) {
+  const parsedDataResult = normalizeScreenshotData(body.parsedData)
+  if (!parsedDataResult.ok) {
+    return NextResponse.json({ error: 'parsedData invalid' }, { status: 400 })
+  }
+
+  const mountainId = typeof body.mountainId === 'string' ? (body.mountainId.trim() || null) : null
+  const { mountain, response } = await fetchImportMountain(supabase, mountainId)
+  if (response) return response
+
+  const parsedData = parsedDataResult.data
+  const { startTime, endTime } = screenshotTimeRange(parsedData)
+  const note = toSafeNote(body.note)
+  const createdAt = new Date().toISOString()
+
+  const { data: checkin, error } = await insertCheckinWithFallback(
+    supabase,
+    {
+      user_id: userId,
+      mountain_id: mountain?.id ?? null,
+      type: 'gps',
+      source: 'screenshot_recognition',
+      status: 'approved',
+      completion_status: 'complete',
+      latitude: mountain?.latitude ?? null,
+      longitude: mountain?.longitude ?? null,
+      note,
+      verified_at: createdAt,
+      verification_distance_m: null,
+      ranking_weight: mountain ? rankingWeightByDifficulty(mountain.difficulty) : 0,
+      distance_meters: parsedData.distanceMeters,
+      duration_seconds: parsedData.durationSeconds ?? null,
+      elevation_gain_meters: parsedData.elevationGainMeters ?? null,
+      elevation_loss_meters: parsedData.elevationLossMeters ?? null,
+      max_elevation_meters: parsedData.maxElevation ?? null,
+      min_elevation_meters: null,
+      start_time: startTime,
+      end_time: endTime,
+      track_name: parsedData.name ?? parsedData.location ?? parsedData.fileName ?? '截图识别活动',
+      track_points: [],
+    },
+    'id'
+  )
+
+  if (error || !checkin) {
+    return NextResponse.json({ error: error?.message ?? 'create screenshot checkin failed' }, { status: 500 })
+  }
+
+  return NextResponse.json({
+    ok: true,
+    checkinId: (checkin as unknown as { id: string }).id,
+  })
+}
+
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient()
   const {
@@ -168,6 +266,20 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null)
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'parsedData invalid' }, { status: 400 })
+  }
+
+  const source = normalizeImportConfirmSource((body as { source?: unknown }).source)
+
+  if (source === 'screenshot_recognition') {
+    return handleScreenshotRecognitionConfirm({
+      supabase,
+      userId: user.id,
+      body: body as Record<string, unknown>,
+    })
+  }
+
   const rawParsedData = (body as { parsedData?: unknown } | null)?.parsedData
   const parsedDataResult = normalizeImportedTrackData(rawParsedData)
 
@@ -184,7 +296,6 @@ export async function POST(request: Request) {
   const mountainId = typeof (body as { mountainId?: unknown } | null)?.mountainId === 'string'
     ? ((body as { mountainId: string }).mountainId.trim() || null)
     : null
-  const source = normalizeImportConfirmSource((body as { source?: unknown } | null)?.source)
   const note = toSafeNote((body as { note?: unknown } | null)?.note)
   const anchorPoint = findHighestTrackPoint(parsedData.trackPoints)
 

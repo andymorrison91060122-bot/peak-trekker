@@ -60,3 +60,6 @@ design-system.zip
 
 # Local-only import test samples (personal GPS data, never commit)
 peak-trekker-import-samples/
+
+# Local-only screenshot OCR fixtures (personal activity screenshots, never commit raw images)
+爬山轨迹结果参考图片/

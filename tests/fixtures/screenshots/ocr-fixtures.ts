@@ -1,0 +1,367 @@
+export type ScreenshotOcrFixtureExpected = {
+  distanceKm?: number
+  durationSeconds?: number
+  speedKmh?: number
+  elevationGainM?: number
+  maxElevationM?: number
+  date?: string | null
+  location?: string | null
+}
+
+export type ScreenshotOcrFixture = {
+  id: string
+  app: string
+  sourceFileName: string
+  notes: string
+  expected: ScreenshotOcrFixtureExpected
+}
+
+export const SCREENSHOT_OCR_FIXTURES: ScreenshotOcrFixture[] = [
+  {
+    id: 'coros-629',
+    app: 'COROS',
+    sourceFileName: '微信图片_20260515230656_629_2.jpg',
+    notes: 'full COROS hiking record; ignore fastest kilometer, heart rate, calories, and training load',
+    expected: {
+      distanceKm: 10.32,
+      durationSeconds: 3 * 3600 + 34 * 60 + 19,
+      speedKmh: 2.9,
+      elevationGainM: 544,
+      date: '2026-05-02',
+      location: '阳江市',
+    },
+  },
+  {
+    id: 'coros-cropped-630',
+    app: 'COROS cropped',
+    sourceFileName: '微信图片_20260515230723_630_2.jpg',
+    notes: 'cropped COROS lower half; same metrics as full screenshot',
+    expected: {
+      distanceKm: 10.32,
+      durationSeconds: 3 * 3600 + 34 * 60 + 19,
+      speedKmh: 2.9,
+      elevationGainM: 544,
+      date: '2026-05-02',
+      location: '阳江市',
+    },
+  },
+  {
+    id: 'liangbulu-631',
+    app: '两步路',
+    sourceFileName: '微信图片_20260515230737_631_2.jpg',
+    notes: 'prefer average speed over fastest speed; ignore 35% ratio and lowest altitude',
+    expected: {
+      distanceKm: 13.42,
+      durationSeconds: 5 * 3600 + 30 * 60 + 20,
+      speedKmh: 2.4,
+      elevationGainM: 897,
+      maxElevationM: 1265,
+      date: '2026-05-02',
+      location: null,
+    },
+  },
+  {
+    id: 'two-bulu-15-53-actual',
+    app: '两步路 徒步 15.53',
+    sourceFileName: '信图片_20260516020317_658_2.jpg',
+    notes: 'actual Tencent OCR regression: steps must not become climb or speed; prefer average speed and cumulative climb',
+    expected: {
+      distanceKm: 15.53,
+      durationSeconds: 6 * 3600 + 52 * 60 + 55,
+      speedKmh: 1.9,
+      elevationGainM: 551,
+      maxElevationM: 3556,
+      date: '2025-05-31',
+      location: null,
+    },
+  },
+  {
+    id: 'coros-walking-6-81-actual',
+    app: 'COROS walking 6.81',
+    sourceFileName: '片_20260516020947_661_2.jpg',
+    notes: 'actual Tencent OCR regression: 48:44 is mm:ss, 11m is climb, pace must not fabricate speed',
+    expected: {
+      distanceKm: 6.81,
+      durationSeconds: 48 * 60 + 44,
+      elevationGainM: 11,
+      date: '2026-03-12',
+      location: '广州市',
+    },
+  },
+  {
+    id: 'zepp-trex3-632',
+    app: 'Zepp / T-Rex 3',
+    sourceFileName: '微信图片_20260516002641_632_2.jpg',
+    notes: 'Zepp stacked metric rows; ignore descent, heart rate, and calories',
+    expected: {
+      distanceKm: 11.58,
+      durationSeconds: 5 * 3600 + 21 * 60 + 18,
+      speedKmh: 2.16,
+      elevationGainM: 886,
+      date: '2025-06-21',
+    },
+  },
+  {
+    id: 'zepp-balance-633',
+    app: 'Zepp / Balance stitched',
+    sourceFileName: '微信图片_20260516002642_633_2.jpg',
+    notes: 'stitched comparison image; use the first/main side',
+    expected: {
+      distanceKm: 30.5,
+      durationSeconds: 9 * 3600 + 55 * 60 + 13,
+      speedKmh: 3.08,
+      elevationGainM: 1943,
+      date: '2026-03-22',
+    },
+  },
+  {
+    id: 'zepp-trex3pro-634',
+    app: 'Zepp / T-Rex 3 Pro',
+    sourceFileName: '微信图片_20260516002643_634_2.jpg',
+    notes: 'long duration over 24h; ignore descent and calories',
+    expected: {
+      distanceKm: 57.59,
+      durationSeconds: 33 * 3600 + 48 * 60 + 4,
+      speedKmh: 1.7,
+      elevationGainM: 4781,
+      date: '2026-09-29',
+    },
+  },
+  {
+    id: 'suunto-635',
+    app: 'Suunto 9 Peak Pro',
+    sourceFileName: '微信图片_20260516002643_635_2.jpg',
+    notes: "European DD.MM.YYYY date and Suunto 6:42'54 duration format",
+    expected: {
+      distanceKm: 19.33,
+      durationSeconds: 6 * 3600 + 42 * 60 + 54,
+      elevationGainM: 1242,
+      maxElevationM: 289,
+      date: '2026-03-12',
+      location: '长沙',
+    },
+  },
+  {
+    id: 'ovital-636',
+    app: '奥维互动地图',
+    sourceFileName: '微信图片_20260516002644_636_2.jpg',
+    notes: 'route planning style; no date expected',
+    expected: {
+      distanceKm: 16,
+      durationSeconds: 3 * 3600 + 12 * 60,
+      speedKmh: 5,
+      elevationGainM: 998,
+      date: null,
+      location: '4号线六山一圈',
+    },
+  },
+  {
+    id: 'suunto-coros-637',
+    app: 'Suunto Race2 + COROS stitched',
+    sourceFileName: '微信图片_20260516002644_637_2.jpg',
+    notes: 'stitched route planning comparison; use the first/main route summary',
+    expected: {
+      distanceKm: 156.56,
+      durationSeconds: 19 * 3600 + 34 * 60,
+      speedKmh: 3,
+      elevationGainM: 7963,
+      date: null,
+      location: '2026蜀道山160K',
+    },
+  },
+  {
+    id: 'oppo-watch-638',
+    app: 'OPPO Watch SE',
+    sourceFileName: '微信图片_20260516002645_638_2.jpg',
+    notes: 'ignore steps, cadence, calories, and heart rate',
+    expected: {
+      distanceKm: 12.17,
+      durationSeconds: 4 * 3600 + 30 * 60 + 24,
+      elevationGainM: 342,
+      date: '2024-06-01',
+    },
+  },
+  {
+    id: 'apple-watch-639',
+    app: 'Apple Watch',
+    sourceFileName: '微信图片_20260516002645_639_2.jpg',
+    notes: 'prefer workout time over elapsed time and convert average pace',
+    expected: {
+      distanceKm: 26.38,
+      durationSeconds: 6 * 3600 + 46 * 60 + 19,
+      speedKmh: 3.9,
+      elevationGainM: 509,
+      date: '2026-06-01',
+      location: '奥维耶多',
+    },
+  },
+  {
+    id: 'xiaomi-640',
+    app: '小米运动健康 重庆',
+    sourceFileName: '微信图片_20260516002646_640_2.jpg',
+    notes: 'no climb field on this page',
+    expected: {
+      distanceKm: 27.45,
+      durationSeconds: 6 * 3600 + 48 * 60 + 58,
+      speedKmh: 4,
+      date: '2024-02-24',
+      location: '重庆',
+    },
+  },
+  {
+    id: 'xiaomi-taishan-641',
+    app: '小米运动健康 泰山',
+    sourceFileName: '微信图片_20260516002647_641_2.jpg',
+    notes: 'no climb field on this page; location should be useful for mountain matching',
+    expected: {
+      distanceKm: 7.85,
+      durationSeconds: 4 * 3600 + 38 * 60 + 50,
+      speedKmh: 1.7,
+      date: '2025-06-14',
+      location: '泰山',
+    },
+  },
+  {
+    id: 'huawei-642',
+    app: '华为/荣耀健康',
+    sourceFileName: '微信图片_20260516002647_642_2.jpg',
+    notes: 'ignore slowest/fastest speed and calories',
+    expected: {
+      distanceKm: 20.53,
+      durationSeconds: 6 * 3600 + 24 * 60 + 56,
+      elevationGainM: 991.1,
+      date: '2025-09-24',
+    },
+  },
+  {
+    id: 'huawei-shenzhen-643',
+    app: '华为/荣耀健康 深圳',
+    sourceFileName: '微信图片_20260516002648_643_2.jpg',
+    notes: 'ignore slowest/fastest speed and calories',
+    expected: {
+      distanceKm: 23.56,
+      durationSeconds: 4 * 3600 + 38 * 60 + 48,
+      elevationGainM: 2143.8,
+      date: '2024-11-27',
+      location: '深圳',
+    },
+  },
+  {
+    id: 'strava-suzhou-644',
+    app: 'Strava 苏州',
+    sourceFileName: '微信图片_20260516002649_644_2.jpg',
+    notes: 'Strava Chinese hiking summary',
+    expected: {
+      distanceKm: 9,
+      durationSeconds: 1 * 3600 + 8 * 60 + 53,
+      speedKmh: 7.8,
+      elevationGainM: 322,
+      date: '2026-04-15',
+      location: '苏州市',
+    },
+  },
+  {
+    id: 'strava-huangshan-645',
+    app: 'Strava 黄山',
+    sourceFileName: '微信图片_20260516002650_645_2.jpg',
+    notes: 'Strava pace summary; convert average pace to speed',
+    expected: {
+      distanceKm: 11.56,
+      durationSeconds: 5 * 3600 + 58 * 60 + 13,
+      speedKmh: 1.94,
+      elevationGainM: 1455,
+      date: '2026-05-29',
+      location: '黄山市',
+    },
+  },
+  {
+    id: 'yuedongquan-646',
+    app: '悦动圈',
+    sourceFileName: '微信图片_20260516002650_646_2.jpg',
+    notes: 'running screenshot still extracts all available fields; no climb expected',
+    expected: {
+      distanceKm: 10.34,
+      durationSeconds: 1 * 3600 + 9 * 60 + 27,
+      speedKmh: 8.94,
+      date: '2026-01-10',
+      location: '杭州',
+    },
+  },
+  {
+    id: 'codoon-647',
+    app: '咕咚',
+    sourceFileName: '微信图片_20260516002651_647_2.jpg',
+    notes: 'prefer average speed over max speed and highest elevation over climb chart values',
+    expected: {
+      distanceKm: 13.03,
+      durationSeconds: 3 * 3600 + 49 * 60 + 44,
+      speedKmh: 3.4,
+      elevationGainM: 1120,
+      maxElevationM: 781,
+      date: '2026-10-17',
+    },
+  },
+  {
+    id: 'keep-648',
+    app: 'Keep',
+    sourceFileName: '微信图片_20260516002651_648_2.jpg',
+    notes: 'prefer training duration over total duration',
+    expected: {
+      distanceKm: 6.8,
+      durationSeconds: 3 * 3600 + 42 * 60 + 29,
+      elevationGainM: 342,
+    },
+  },
+  {
+    id: 'petal-maps-649',
+    app: 'Petal Maps',
+    sourceFileName: '微信图片_20260516002652_649_2.jpg',
+    notes: 'cycling/route screenshot still extracts available fields',
+    expected: {
+      distanceKm: 823.59,
+      durationSeconds: 44 * 3600 + 6 * 60 + 42,
+      speedKmh: 18.7,
+      elevationGainM: 5523,
+      date: '2022-01-12',
+      location: '海南',
+    },
+  },
+  {
+    id: 'foooooot-650',
+    app: '六只脚',
+    sourceFileName: '微信图片_20260516002652_650_2.jpg',
+    notes: 'prefer average speed over fastest speed and ascent over descent',
+    expected: {
+      distanceKm: 22.92,
+      durationSeconds: 8 * 3600 + 9 * 60 + 27,
+      speedKmh: 3.5,
+      elevationGainM: 1560,
+      maxElevationM: 1022,
+      date: '2026-02-18',
+      location: '浙江温州',
+    },
+  },
+  {
+    id: 'sigma-652',
+    app: 'Sigma',
+    sourceFileName: '微信图片_20260516002654_652_2.jpg',
+    notes: 'watermark/commentary interference; no climb expected',
+    expected: {
+      distanceKm: 13.01,
+      durationSeconds: 1 * 3600 + 34 * 60 + 9,
+      speedKmh: 8.29,
+      date: '2026-01-23',
+    },
+  },
+  {
+    id: 'keep-watermark-653',
+    app: 'Keep watermark',
+    sourceFileName: '微信图片_20260516002654_653_2.jpg',
+    notes: 'watermark/commentary interference; no climb expected',
+    expected: {
+      distanceKm: 10.3,
+      durationSeconds: 1 * 3600 + 4 * 60 + 2,
+      speedKmh: 9.65,
+    },
+  },
+]

@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // FU-7: 本地 artifact 与历史设计稿目录，非生产代码不做 lint
+    ".claude/**",
+    "design-system/**",
+    "Peak Trekker Design System/**",
+    "playwright-report/**",
+    "output/**",
   ]),
 ]);
 

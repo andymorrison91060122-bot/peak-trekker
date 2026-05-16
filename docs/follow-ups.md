@@ -8,12 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`a19a22900444da1b`（Merge Pre-3.c · 2026-05-16）  
+`63480125eff53b1b7ac7905873a3ee82a9948ba4`（Merge v0.8 docs audit · 2026-05-16）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**docs/follow-ups.md 治理 sprint（v0.8）· 状态 🟡 in-progress**
-并列待启动：FU-39 Trek e2e 修复（fix/trek-e2e-stability-fu39，V1 已下达）+ FU-33 Pre-3.c.1 OCR 配额（feat/screenshot-quota-pre-3c1，V1 已下达）
+**待启动**（候选: FU-39 Trek e2e 修复 / FU-33 Pre-3.c.1 OCR 配额，V1 已下达）
 
 ### 关键文档地图
 | 文档 | 用途 |

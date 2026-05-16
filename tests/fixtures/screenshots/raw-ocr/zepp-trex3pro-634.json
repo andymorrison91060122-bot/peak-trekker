@@ -1,0 +1,977 @@
+{
+  "id": "zepp-trex3pro-634",
+  "app": "Zepp T-Rex 3 Pro",
+  "sourceFileName": "微信图片_20260516002643_634_2.jpg",
+  "recordedAt": "2026-05-16",
+  "tencentOcrRaw": {
+    "Angel": 359.99,
+    "Angle": 359.99,
+    "Language": "zh",
+    "PdfPageSize": 0,
+    "RequestId": "891e0db4-ec69-4b6e-ba7d-997902bbff52",
+    "TextDetections": [
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":1}}",
+        "Confidence": 100,
+        "DetectedText": "11:25",
+        "ItemPolygon": {
+          "Height": 40,
+          "Width": 93,
+          "X": 77,
+          "Y": 43
+        },
+        "Polygon": [
+          {
+            "X": 77,
+            "Y": 43
+          },
+          {
+            "X": 170,
+            "Y": 43
+          },
+          {
+            "X": 170,
+            "Y": 83
+          },
+          {
+            "X": 77,
+            "Y": 83
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":2}}",
+        "Confidence": 100,
+        "DetectedText": "419",
+        "ItemPolygon": {
+          "Height": 20,
+          "Width": 37,
+          "X": 672,
+          "Y": 40
+        },
+        "Polygon": [
+          {
+            "X": 672,
+            "Y": 40
+          },
+          {
+            "X": 709,
+            "Y": 40
+          },
+          {
+            "X": 709,
+            "Y": 60
+          },
+          {
+            "X": 672,
+            "Y": 60
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":2}}",
+        "Confidence": 100,
+        "DetectedText": "5GA",
+        "ItemPolygon": {
+          "Height": 26,
+          "Width": 78,
+          "X": 732,
+          "Y": 37
+        },
+        "Polygon": [
+          {
+            "X": 732,
+            "Y": 37
+          },
+          {
+            "X": 810,
+            "Y": 37
+          },
+          {
+            "X": 810,
+            "Y": 63
+          },
+          {
+            "X": 732,
+            "Y": 63
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":3}}",
+        "Confidence": 84,
+        "DetectedText": "5GAI",
+        "ItemPolygon": {
+          "Height": 37,
+          "Width": 63,
+          "X": 770,
+          "Y": 43
+        },
+        "Polygon": [
+          {
+            "X": 770,
+            "Y": 43
+          },
+          {
+            "X": 833,
+            "Y": 43
+          },
+          {
+            "X": 833,
+            "Y": 80
+          },
+          {
+            "X": 770,
+            "Y": 80
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":2}}",
+        "Confidence": 100,
+        "DetectedText": "5G",
+        "ItemPolygon": {
+          "Height": 26,
+          "Width": 38,
+          "X": 833,
+          "Y": 40
+        },
+        "Polygon": [
+          {
+            "X": 833,
+            "Y": 40
+          },
+          {
+            "X": 871,
+            "Y": 40
+          },
+          {
+            "X": 871,
+            "Y": 66
+          },
+          {
+            "X": 833,
+            "Y": 66
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":3}}",
+        "Confidence": 100,
+        "DetectedText": "5G",
+        "ItemPolygon": {
+          "Height": 37,
+          "Width": 63,
+          "X": 842,
+          "Y": 43
+        },
+        "Polygon": [
+          {
+            "X": 842,
+            "Y": 43
+          },
+          {
+            "X": 905,
+            "Y": 43
+          },
+          {
+            "X": 905,
+            "Y": 80
+          },
+          {
+            "X": 842,
+            "Y": 80
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":3}}",
+        "Confidence": 100,
+        "DetectedText": "100",
+        "ItemPolygon": {
+          "Height": 34,
+          "Width": 67,
+          "X": 905,
+          "Y": 46
+        },
+        "Polygon": [
+          {
+            "X": 905,
+            "Y": 46
+          },
+          {
+            "X": 972,
+            "Y": 46
+          },
+          {
+            "X": 972,
+            "Y": 80
+          },
+          {
+            "X": 905,
+            "Y": 80
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":3}}",
+        "Confidence": 100,
+        "DetectedText": "KB/s",
+        "ItemPolygon": {
+          "Height": 23,
+          "Width": 81,
+          "X": 666,
+          "Y": 60
+        },
+        "Polygon": [
+          {
+            "X": 666,
+            "Y": 60
+          },
+          {
+            "X": 747,
+            "Y": 60
+          },
+          {
+            "X": 747,
+            "Y": 83
+          },
+          {
+            "X": 666,
+            "Y": 83
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":4}}",
+        "Confidence": 100,
+        "DetectedText": "户外徒步",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 184,
+          "X": 444,
+          "Y": 259
+        },
+        "Polygon": [
+          {
+            "X": 444,
+            "Y": 259
+          },
+          {
+            "X": 628,
+            "Y": 259
+          },
+          {
+            "X": 628,
+            "Y": 308
+          },
+          {
+            "X": 444,
+            "Y": 308
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":5}}",
+        "Confidence": 100,
+        "DetectedText": "26*0",
+        "ItemPolygon": {
+          "Height": 28,
+          "Width": 78,
+          "X": 100,
+          "Y": 1272
+        },
+        "Polygon": [
+          {
+            "X": 100,
+            "Y": 1272
+          },
+          {
+            "X": 178,
+            "Y": 1272
+          },
+          {
+            "X": 178,
+            "Y": 1300
+          },
+          {
+            "X": 100,
+            "Y": 1300
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":6}}",
+        "Confidence": 100,
+        "DetectedText": "76",
+        "ItemPolygon": {
+          "Height": 26,
+          "Width": 52,
+          "X": 245,
+          "Y": 1272
+        },
+        "Polygon": [
+          {
+            "X": 245,
+            "Y": 1272
+          },
+          {
+            "X": 297,
+            "Y": 1272
+          },
+          {
+            "X": 297,
+            "Y": 1298
+          },
+          {
+            "X": 245,
+            "Y": 1298
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":7}}",
+        "Confidence": 100,
+        "DetectedText": "东北风11公里/时",
+        "ItemPolygon": {
+          "Height": 37,
+          "Width": 332,
+          "X": 357,
+          "Y": 1269
+        },
+        "Polygon": [
+          {
+            "X": 357,
+            "Y": 1269
+          },
+          {
+            "X": 689,
+            "Y": 1269
+          },
+          {
+            "X": 689,
+            "Y": 1306
+          },
+          {
+            "X": 357,
+            "Y": 1306
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":8}}",
+        "Confidence": 100,
+        "DetectedText": "AmazfitT-Rex 3 Pro(48mm)",
+        "ItemPolygon": {
+          "Height": 44,
+          "Width": 508,
+          "X": 530,
+          "Y": 1453
+        },
+        "Polygon": [
+          {
+            "X": 530,
+            "Y": 1453
+          },
+          {
+            "X": 1038,
+            "Y": 1453
+          },
+          {
+            "X": 1038,
+            "Y": 1497
+          },
+          {
+            "X": 530,
+            "Y": 1497
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":9}}",
+        "Confidence": 100,
+        "DetectedText": "53036720",
+        "ItemPolygon": {
+          "Height": 40,
+          "Width": 208,
+          "X": 37,
+          "Y": 1569
+        },
+        "Polygon": [
+          {
+            "X": 37,
+            "Y": 1569
+          },
+          {
+            "X": 245,
+            "Y": 1569
+          },
+          {
+            "X": 245,
+            "Y": 1609
+          },
+          {
+            "X": 37,
+            "Y": 1609
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":9}}",
+        "Confidence": 100,
+        "DetectedText": "9月29日14:34",
+        "ItemPolygon": {
+          "Height": 38,
+          "Width": 228,
+          "X": 37,
+          "Y": 1632
+        },
+        "Polygon": [
+          {
+            "X": 37,
+            "Y": 1632
+          },
+          {
+            "X": 265,
+            "Y": 1632
+          },
+          {
+            "X": 265,
+            "Y": 1670
+          },
+          {
+            "X": 37,
+            "Y": 1670
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":10}}",
+        "Confidence": 100,
+        "DetectedText": "57.59",
+        "ItemPolygon": {
+          "Height": 98,
+          "Width": 306,
+          "X": 625,
+          "Y": 1566
+        },
+        "Polygon": [
+          {
+            "X": 625,
+            "Y": 1566
+          },
+          {
+            "X": 931,
+            "Y": 1566
+          },
+          {
+            "X": 931,
+            "Y": 1664
+          },
+          {
+            "X": 625,
+            "Y": 1664
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":10}}",
+        "Confidence": 100,
+        "DetectedText": "公里",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 104,
+          "X": 934,
+          "Y": 1618
+        },
+        "Polygon": [
+          {
+            "X": 934,
+            "Y": 1618
+          },
+          {
+            "X": 1038,
+            "Y": 1618
+          },
+          {
+            "X": 1038,
+            "Y": 1667
+          },
+          {
+            "X": 934,
+            "Y": 1667
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":15}}",
+        "Confidence": 100,
+        "DetectedText": "快",
+        "ItemPolygon": {
+          "Height": 31,
+          "Width": 41,
+          "X": 983,
+          "Y": 1725
+        },
+        "Polygon": [
+          {
+            "X": 983,
+            "Y": 1725
+          },
+          {
+            "X": 1024,
+            "Y": 1725
+          },
+          {
+            "X": 1024,
+            "Y": 1756
+          },
+          {
+            "X": 983,
+            "Y": 1756
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":11}}",
+        "Confidence": 100,
+        "DetectedText": "33:48:0413",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 262,
+          "X": 66,
+          "Y": 1785
+        },
+        "Polygon": [
+          {
+            "X": 66,
+            "Y": 1785
+          },
+          {
+            "X": 328,
+            "Y": 1785
+          },
+          {
+            "X": 328,
+            "Y": 1834
+          },
+          {
+            "X": 66,
+            "Y": 1834
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":13}}",
+        "Confidence": 100,
+        "DetectedText": "1.70",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 95,
+          "X": 490,
+          "Y": 1785
+        },
+        "Polygon": [
+          {
+            "X": 490,
+            "Y": 1785
+          },
+          {
+            "X": 585,
+            "Y": 1785
+          },
+          {
+            "X": 585,
+            "Y": 1834
+          },
+          {
+            "X": 490,
+            "Y": 1834
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":14}}",
+        "Confidence": 100,
+        "DetectedText": "113",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 78,
+          "X": 839,
+          "Y": 1785
+        },
+        "Polygon": [
+          {
+            "X": 839,
+            "Y": 1785
+          },
+          {
+            "X": 917,
+            "Y": 1785
+          },
+          {
+            "X": 917,
+            "Y": 1834
+          },
+          {
+            "X": 839,
+            "Y": 1834
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":12}}",
+        "Confidence": 100,
+        "DetectedText": "运动用时",
+        "ItemPolygon": {
+          "Height": 35,
+          "Width": 133,
+          "X": 129,
+          "Y": 1854
+        },
+        "Polygon": [
+          {
+            "X": 129,
+            "Y": 1854
+          },
+          {
+            "X": 262,
+            "Y": 1854
+          },
+          {
+            "X": 262,
+            "Y": 1889
+          },
+          {
+            "X": 129,
+            "Y": 1889
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":13}}",
+        "Confidence": 100,
+        "DetectedText": "平均速度",
+        "ItemPolygon": {
+          "Height": 35,
+          "Width": 129,
+          "X": 473,
+          "Y": 1854
+        },
+        "Polygon": [
+          {
+            "X": 473,
+            "Y": 1854
+          },
+          {
+            "X": 602,
+            "Y": 1854
+          },
+          {
+            "X": 602,
+            "Y": 1889
+          },
+          {
+            "X": 473,
+            "Y": 1889
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":14}}",
+        "Confidence": 100,
+        "DetectedText": "平均心率",
+        "ItemPolygon": {
+          "Height": 35,
+          "Width": 127,
+          "X": 816,
+          "Y": 1854
+        },
+        "Polygon": [
+          {
+            "X": 816,
+            "Y": 1854
+          },
+          {
+            "X": 943,
+            "Y": 1854
+          },
+          {
+            "X": 943,
+            "Y": 1889
+          },
+          {
+            "X": 816,
+            "Y": 1889
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":16}}",
+        "Confidence": 100,
+        "DetectedText": "4,781",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 130,
+          "X": 132,
+          "Y": 1952
+        },
+        "Polygon": [
+          {
+            "X": 132,
+            "Y": 1952
+          },
+          {
+            "X": 262,
+            "Y": 1952
+          },
+          {
+            "X": 262,
+            "Y": 2001
+          },
+          {
+            "X": 132,
+            "Y": 2001
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":17}}",
+        "Confidence": 100,
+        "DetectedText": "4,825",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 141,
+          "X": 467,
+          "Y": 1952
+        },
+        "Polygon": [
+          {
+            "X": 467,
+            "Y": 1952
+          },
+          {
+            "X": 608,
+            "Y": 1952
+          },
+          {
+            "X": 608,
+            "Y": 2001
+          },
+          {
+            "X": 467,
+            "Y": 2001
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":18}}",
+        "Confidence": 100,
+        "DetectedText": "9,811",
+        "ItemPolygon": {
+          "Height": 54,
+          "Width": 121,
+          "X": 819,
+          "Y": 1950
+        },
+        "Polygon": [
+          {
+            "X": 819,
+            "Y": 1950
+          },
+          {
+            "X": 940,
+            "Y": 1950
+          },
+          {
+            "X": 940,
+            "Y": 2004
+          },
+          {
+            "X": 819,
+            "Y": 2004
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":16}}",
+        "Confidence": 100,
+        "DetectedText": "累计上升",
+        "ItemPolygon": {
+          "Height": 37,
+          "Width": 130,
+          "X": 132,
+          "Y": 2019
+        },
+        "Polygon": [
+          {
+            "X": 132,
+            "Y": 2019
+          },
+          {
+            "X": 262,
+            "Y": 2019
+          },
+          {
+            "X": 262,
+            "Y": 2056
+          },
+          {
+            "X": 132,
+            "Y": 2056
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":17}}",
+        "Confidence": 100,
+        "DetectedText": "累计下降",
+        "ItemPolygon": {
+          "Height": 37,
+          "Width": 129,
+          "X": 473,
+          "Y": 2019
+        },
+        "Polygon": [
+          {
+            "X": 473,
+            "Y": 2019
+          },
+          {
+            "X": 602,
+            "Y": 2019
+          },
+          {
+            "X": 602,
+            "Y": 2056
+          },
+          {
+            "X": 473,
+            "Y": 2056
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":19}}",
+        "Confidence": 100,
+        "DetectedText": "消耗",
+        "ItemPolygon": {
+          "Height": 37,
+          "Width": 66,
+          "X": 845,
+          "Y": 2019
+        },
+        "Polygon": [
+          {
+            "X": 845,
+            "Y": 2019
+          },
+          {
+            "X": 911,
+            "Y": 2019
+          },
+          {
+            "X": 911,
+            "Y": 2056
+          },
+          {
+            "X": 845,
+            "Y": 2056
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      },
+      {
+        "AdvancedInfo": "{\"Parag\":{\"ParagNo\":20}}",
+        "Confidence": 100,
+        "DetectedText": "详细数据>",
+        "ItemPolygon": {
+          "Height": 49,
+          "Width": 223,
+          "X": 426,
+          "Y": 2140
+        },
+        "Polygon": [
+          {
+            "X": 426,
+            "Y": 2140
+          },
+          {
+            "X": 649,
+            "Y": 2140
+          },
+          {
+            "X": 649,
+            "Y": 2189
+          },
+          {
+            "X": 426,
+            "Y": 2189
+          }
+        ],
+        "WordCoordPoint": [],
+        "Words": []
+      }
+    ]
+  },
+  "rawText": "11:25\n419\n5GA\n5GAI\n5G\n5G\n100\nKB/s\n户外徒步\n26*0\n76\n东北风11公里/时\nAmazfitT-Rex 3 Pro(48mm)\n53036720\n9月29日14:34\n57.59\n公里\n快\n33:48:0413\n1.70\n113\n运动用时\n平均速度\n平均心率\n4,781\n4,825\n9,811\n累计上升\n累计下降\n消耗\n详细数据>"
+}

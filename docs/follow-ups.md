@@ -12,7 +12,8 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**待启动**（候选: FU-33 Pre-3.c.1 配额系统 / FU-39 Trek e2e 修复 / FU-13/14 活动详情手记+补传 / FU-31 多图 9 张 / FU-30 山行字段语义统一）
+**docs/follow-ups.md 治理 sprint（v0.8）· 状态 🟡 in-progress**
+并列待启动：FU-39 Trek e2e 修复（fix/trek-e2e-stability-fu39，V1 已下达）+ FU-33 Pre-3.c.1 OCR 配额（feat/screenshot-quota-pre-3c1，V1 已下达）
 
 ### 关键文档地图
 | 文档 | 用途 |

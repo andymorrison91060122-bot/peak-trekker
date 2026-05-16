@@ -1,4 +1,4 @@
-# Peak Trekker Follow-up 清单 + 项目交接 v0.7
+# Peak Trekker Follow-up 清单 + 项目交接 v0.8
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
@@ -12,7 +12,8 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**待启动**（候选: FU-33 Pre-3.c.1 配额系统 / FU-39 Trek e2e 修复 / FU-13/14 活动详情手记+补传 / FU-31 多图 9 张 / FU-30 山行字段语义统一）
+**docs/follow-ups.md 治理 sprint（v0.8）· 状态 🟡 in-progress**
+并列待启动：FU-39 Trek e2e 修复（fix/trek-e2e-stability-fu39，V1 已下达）+ FU-33 Pre-3.c.1 OCR 配额（feat/screenshot-quota-pre-3c1，V1 已下达）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -626,6 +627,10 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
+> **历史跳号编号**：FU-26 在 Pre-3.a sprint 中编号跳号未实际引入；未来新增 FU 不复用此编号，按当前最大编号 +1 顺序分配。
+
+---
+
 ## 维护规范
 
 ### 每个 sprint 启动时（Phase 0）
@@ -646,10 +651,40 @@ Codex 在视觉验证通过、merge 前必须执行：
    - 关闭 commit hash（merge commit 或主体 commit）
    - 关闭时间（YYYY-MM-DD）
 2. **加入新发现 FU**：sprint 过程中发现的新问题加 active 列表
-3. **更新 main HEAD**：merge 完成后把顶部"当前 main HEAD"改为最新 sha
+3. **更新 main HEAD**：merge 完成后把顶部"当前 main HEAD"改为本次 sprint 的 merge commit sha（**不是** docs 收尾 commit sha；docs commit 因 self-ref 限制无法引用自己的 sha，且 merge commit 语义上更准确代表 sprint 边界）
 4. **更新当前 Sprint**：下一个 sprint 启动前清空或标"待启动"
 5. **更新版本记录**：底部追加版本条目
 6. 这一组改动作为最后一个 commit: `docs(follow-ups): close FU-XX, add FU-YY, bump head <sha> (<Sprint>)`
+
+### V3 收尾机械化检查清单（强制执行）
+
+每次 sprint V3 收尾时，提交 follow-ups.md commit 前必须逐项确认：
+
+- [ ] Active FU 标题数字 = Active 列表实际条目数（grep -E "^### (FU-|Issue-)" 验证）
+- [ ] Closed FU 标题数字 = Closed 列表实际条目数
+- [ ] 顶部"当前 main HEAD"已更新为本次 sprint 的 merge commit sha
+- [ ] 顶部"当前 Sprint"已更新（标"待启动"或下个 sprint 名 + 并行情况）
+- [ ] 版本记录追加 v0.X 条目（含日期 + 关闭 FU 清单 + 新增 FU 清单 + sprint 范围）
+- [ ] 每条新关闭 FU 含 commit hash + 关闭日期 + 一句话原因
+- [ ] 新增 FU 编号严格连续（不复用跳号编号 FU-26）
+
+任一项不通过 → 修正后再提交 follow-ups.md commit。
+
+引入背景：Pre-3.c V3 收尾发现 v0.5 加 FU-31 时标题没同步（应 17 写 16），导致 v0.7 收尾算术错误（按过期 16 算出 22，实际 23）。本机械化清单防再发生。
+
+### 并行 sprint 处理规范（v0.8 起生效）
+
+当两个或多个 sprint 同时进行（从同一 main HEAD 分出独立分支）：
+
+1. 两 sprint 各自 V3 收尾时按相同 V3 流程
+2. 后 merge 的 sprint 在 V3 收尾前必须：
+   - git fetch origin main
+   - git rebase origin/main（或在 feature 分支 merge main into self）
+   - 解决 docs/follow-ups.md 冲突时保留先 sprint 的所有变更 + 追加自己 sprint 的变更
+3. 后 sprint 的"当前 main HEAD"字段在 rebase 后才能定值
+4. 两 sprint 引入的新 FU 编号必须互不重叠（先启动 sprint 占编号 X，后启动 sprint 用 X+N，N≥1）
+5. 协调建议：复杂度高 / 修复优先级高的 sprint 先 merge，给后者留缓冲
+6. 复制规范：发送给 Codex 的指令必须放单一 fenced code block（v0.6 起强制，v0.8 起写入本文件）
 
 ### 跨对话交接时
 
@@ -660,6 +695,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.8 — 2026-05-16**：docs/follow-ups.md 治理 sprint。FU-26 跳号正式标注；新增 V3 收尾机械化检查清单（防 Pre-3.c 发现的标题漂移再现）；新增并行 sprint 协调规范（形式化 FU-39 + FU-33 并行启动协议）；澄清"当前 main HEAD"字段指 sprint merge commit 而非自指 docs commit。驳回外部审查两项无效建议（不补已完整记账的 closed FU；不回填 intentional 跳号 v0.2/v0.3）。零 FU 变更（Active 23 / Closed 16 不动）。
 
 **v0.7 — 2026-05-16**：Pre-3.c 完成（截图识别端到端链路打通）。Parser 重构（+1191 行）+ 20 个真实 OCR fixture + 3-segment 时长 UI + Pre-3.c 自身 e2e (screenshot-recognition-flow) 通过。视觉验证 PASS（两步路 15.53 + COROS 健走 6.81 两张关键 fixture）。顺手关 FU-7 历史 lint debt + 补 e2e ALLOW_TREK_DEV_BYPASS infra 漏配。隔离 Pre-3.b activity-photo-linkage e2e latent 失败到 FU-39（trek 代码本 sprint 零接触，与 Pre-3.c 无因果关系）。新增 FU-33 ~ FU-39 active（OCR 配额系统 / fixture 库扩充 / 小米 v2-omni 兜底 / §13.2 轨迹色重绘 / 引擎对比测试 / 配速字段 / Trek e2e 修复）。同时修正历史标题漂移：原 "Active 16" 在 v0.5 加 FU-31 后未同步实际为 17，本版正式以 "Active 23 / Closed 16" 反映真实计数。下个候选 sprint：FU-33 Pre-3.c.1 或 FU-39 Trek e2e 稳定性。
 

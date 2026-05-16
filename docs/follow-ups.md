@@ -8,12 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`63480125eff53b1b7ac7905873a3ee82a9948ba4`（Merge v0.8 docs audit · 2026-05-16）
+`3799ce5cda4e6645`（Merge FU-39 · 2026-05-16）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**FU-39 · Trek e2e 稳定性修复 sprint · 状态 🟡 in-progress**
-下个候选: FU-33 Pre-3.c.1 OCR 配额（待启动）
+待启动（候选: FU-33 Pre-3.c.1 OCR 配额，V1 已下达）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -75,7 +74,7 @@
 
 ---
 
-## Active Follow-ups（23 条）
+## Active Follow-ups（22 条）
 
 ### FU-1 · 同一份轨迹文件去重（防伪造）
 
@@ -446,58 +445,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-39 · activity-photo-linkage E2E 在干净环境下失败
-
-- 优先级: P1
-- 归属阶段: 紧跟 Pre-3.c 后的稳定性微 sprint（与 FU-33 并列候选）
-- 状态: 🟡 in-progress
-
-背景: Pre-3.c V3 收尾跑 e2e gate 时发现 tests/e2e/activity-photo-linkage.spec.ts 在干净环境下不通过。该 spec 在 Pre-3.b commit 5331a18 加入，作者本机大概 .env.local 有特殊 env 当时通过，但 playwright.config.ts 没固化下来；Pre-3.b.1 / Pre-3.c 都没碰 trek 代码（diff 零交集），因此该失败与 Pre-3.c 无因果关系，本 sprint 不修，隔离到本 FU 单独跟进。
-
-复现:
-1. main HEAD = Pre-3.c merge commit
-2. playwright.config.ts webServer.command 已含 ALLOW_TREK_DEV_BYPASS=1（Pre-3.c commit 4d88b6d）
-3. 停掉所有现有 dev server 进程（playwright 会自己拉新 webServer）
-4. npx playwright test tests/e2e/activity-photo-linkage.spec.ts
-
-失败现象:
-- helper completeSummitPhotoFlow 走到点击 "从这里开始" 按钮后，
-  等待 "暂停" button visible 超时 20s
-- webServer 日志同时出现：
-  TypeError: __webpack_modules__[moduleId] is not a function
-  digest: '1510446086'
-- 已不是 insufficient_track_points（Pre-3.c commit 4d88b6d 已修该路径）
-
-可能假设（待验证，按假设强弱排序）:
-1. webServer.command 强制 --webpack 标志与某个模块导出形态冲突
-   → 验证：临时去掉 --webpack 改用 turbopack 默认，看 spec 是否通过
-2. tracking 状态机在 "从这里开始" handler 后没正确 setStatus('tracking')
-   → 验证：手动复现该步骤，看 React state 是否更新
-3. PreStart 页 click handler 在 mock GPS 场景下抛错被吞
-   → 验证：浏览器 devtools console 看是否有未捕获错误
-4. Pre-3.b 5331a18 commit 加 spec 时实际没在干净环境验证过
-   → 验证：git checkout 5331a18 跑 spec，看是否同样失败
-
-实施建议（候选 sprint）:
-- 用 1 假设的 turbopack vs webpack 对比快速排除 / 命中
-- 如确定是 trek state machine 问题，复用 trek-stability-static.ts 的静态断言模式
-- 修复后保留 spec gate 不再隔离
-
-涉及:
-- tests/e2e/activity-photo-linkage.spec.ts（不改）
-- tests/e2e/trek-regression.helpers.ts（可能小改）
-- src/app/(flow)/trek/TrekClient.tsx（如假设 2/3 命中）
-- playwright.config.ts（如假设 1 命中，去掉 --webpack）
-
-附件: test-results/activity-photo-linkage-act-2bbd7-ed-during-trek-verification/
-  - test-failed-1.png
-  - video.webm
-  - error-context.md
-  - trace.zip
-
----
-
-## Closed Follow-ups（16 条）
+## Closed Follow-ups（17 条）
 
 ### FU-3 ✅ Profile 最高海拔选项 B
 
@@ -627,6 +575,14 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
+### FU-39 ✅ activity-photo-linkage E2E 在干净环境下失败
+
+- **关闭原因**: H1 命中（Next dev --webpack 标志触发 __webpack_modules__ runtime 错误，PreStart → tracking 状态转换时页面崩溃）。最小修复 = playwright.config.ts 移除 --webpack。activity-photo-linkage / screenshot-recognition 两个 spec 双 PASS，无回归。
+- **关闭 commit**: `ff24596`
+- **关闭时间**: 2026-05-16
+
+---
+
 > **历史跳号编号**：FU-26 在 Pre-3.a sprint 中编号跳号未实际引入；未来新增 FU 不复用此编号，按当前最大编号 +1 顺序分配。
 
 ---
@@ -695,6 +651,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.9 — 2026-05-16**：FU-39 Trek e2e 稳定性修复完成。H1 命中：Next dev --webpack 标志触发 webpack runtime 错误，导致 activity-photo-linkage.spec 在 PreStart → tracking 状态转换时崩溃。最小修复 = playwright.config.ts 单行移除 --webpack，恢复 e2e gate 可信度。零 src / helper 改动（H2/H3/H4/H5 因 H1 一击即中而未触发）。Active 23 → 22；Closed 16 → 17。下个候选 sprint：FU-33 Pre-3.c.1 OCR 配额（V1 已下达）。
 
 **v0.8 — 2026-05-16**：docs/follow-ups.md 治理 sprint。FU-26 跳号正式标注；新增 V3 收尾机械化检查清单（防 Pre-3.c 发现的标题漂移再现）；新增并行 sprint 协调规范（形式化 FU-39 + FU-33 并行启动协议）；澄清"当前 main HEAD"字段指 sprint merge commit 而非自指 docs commit。驳回外部审查两项无效建议（不补已完整记账的 closed FU；不回填 intentional 跳号 v0.2/v0.3）。零 FU 变更（Active 23 / Closed 16 不动）。
 

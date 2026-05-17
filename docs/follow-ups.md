@@ -12,7 +12,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动（候选: FU-33 Pre-3.c.1 OCR 配额，V1 已下达）
+**FU-33 · Pre-3.c.1 OCR 配额系统 sprint · 状态 🟡 in-progress**
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -335,7 +335,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 - 优先级: P1
 - 归属阶段: Pre-3.c.1 微 sprint（紧跟 Pre-3.c 之后启动）
-- 状态: 🟢 active
+- 状态: 🟡 in-progress
 
 背景: Pre-3.c 已打通 OCR 识别主路（GeneralBasicOCR），但生产上线需要：
 1. 双接口路由：腾讯云 GeneralBasicOCR (1000/月免费) + GeneralAccurateOCR (1000/月免费) 共 2000 免费额度，按场景路由

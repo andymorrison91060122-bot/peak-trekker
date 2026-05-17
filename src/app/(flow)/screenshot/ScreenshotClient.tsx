@@ -3,9 +3,10 @@
 import type { ChangeEvent, CSSProperties, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { OcrResult, ParsedScreenshotFields } from '@/lib/screenshot/types'
+import type { OcrResult, ParsedScreenshotFields, ScreenshotQuotaState, TencentOcrSource } from '@/lib/screenshot/types'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
+import ModalShell from '@/components/ui/ModalShell'
 import { BackIcon, CameraIcon, CheckIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
@@ -13,19 +14,23 @@ const PROCESSING_MIN_DURATION_MS = 2000
 const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 type ScreenshotStep = 'upload' | 'processing' | 'confirm' | 'submitting' | 'success'
-type RecognizeErrorKind = 'auth' | 'too_large' | 'unsupported' | 'network' | 'file'
+type RecognizeErrorKind = 'auth' | 'too_large' | 'unsupported' | 'network' | 'file' | 'quota'
 type FieldKey = 'elevation' | 'distance' | 'duration' | 'elevationGain' | 'date' | 'location' | 'speed'
 
 type RecognizeResult = {
   ok: true
   ocrResult: OcrResult
   parsedFields: ParsedScreenshotFields
+  ocrSource?: TencentOcrSource
 }
 
 type RecognizeResponse = {
   ok?: boolean
   ocrResult?: OcrResult
   parsedFields?: ParsedScreenshotFields
+  ocrSource?: TencentOcrSource
+  quota?: ScreenshotQuotaState
+  code?: string
   error?: string
 }
 
@@ -132,6 +137,7 @@ function validateImageFile(file: File): { message: string; kind: RecognizeErrorK
 
 function responseKind(status: number): RecognizeErrorKind {
   if (status === 401) return 'auth'
+  if (status === 402) return 'quota'
   if (status === 413) return 'too_large'
   if (status === 415) return 'unsupported'
   if (status >= 500) return 'network'
@@ -140,6 +146,7 @@ function responseKind(status: number): RecognizeErrorKind {
 
 function readableError(message: string, kind: RecognizeErrorKind) {
   if (kind === 'auth') return '登录后才能识别截图。'
+  if (kind === 'quota') return '本月截图识别次数已用完。'
   if (/unauthorized/i.test(message)) return '登录后才能识别截图。'
   return message || '这张截图暂时无法识别，请换一张再试。'
 }
@@ -436,18 +443,142 @@ function BottomActions({ children }: { children: ReactNode }) {
   )
 }
 
+function QuotaBar({
+  quota,
+  loading,
+  onUpgrade,
+}: {
+  quota: ScreenshotQuotaState | null
+  loading: boolean
+  onUpgrade: () => void
+}) {
+  if (!loading && !quota) return null
+
+  const used = quota ? quota.freeUsed + quota.paidUsed : 0
+  const total = quota?.totalLimit ?? 1
+  const remaining = quota?.remaining ?? 0
+  const progress = quota ? Math.min(100, Math.max(0, (used / Math.max(1, total)) * 100)) : 12
+  const label = loading ? '正在读取本月识别额度' : `剩余 ${remaining} / ${total} 次`
+  const sub = loading ? '读取中' : quota?.subscriptionTier === 'free' ? '免费额度' : '会员额度'
+
+  return (
+    <section
+      aria-label="截图识别额度"
+      data-screenshot-quota-bar
+      style={{
+        margin: '0 var(--space-4) var(--space-2)',
+        padding: 'var(--space-3)',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--color-outline)',
+        background: 'var(--color-surface-variant)',
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr) auto',
+        gap: 'var(--space-3)',
+        alignItems: 'center',
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            justifyContent: 'space-between',
+            gap: 'var(--space-2)',
+          }}
+        >
+          <span
+            style={{
+              color: 'var(--color-on-surface)',
+              fontSize: 'var(--font-label-m-size)',
+              lineHeight: 'var(--font-label-m-line)',
+              fontWeight: 700,
+            }}
+          >
+            本月截图识别
+          </span>
+          <span
+            style={{
+              color: 'var(--color-on-surface-variant)',
+              fontSize: 'var(--font-label-s-size)',
+              lineHeight: 'var(--font-label-s-line)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {sub}
+          </span>
+        </div>
+        <div
+          style={{
+            marginTop: 6,
+            height: 6,
+            borderRadius: 'var(--radius-pill)',
+            background: 'var(--color-surface-elevated)',
+            overflow: 'hidden',
+          }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              display: 'block',
+              height: '100%',
+              width: `${progress}%`,
+              borderRadius: 'inherit',
+              background: loading ? 'var(--color-on-surface-variant)' : 'var(--color-success)',
+            }}
+          />
+        </div>
+        <div
+          style={{
+            marginTop: 6,
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+          }}
+        >
+          {label}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onUpgrade}
+        style={{
+          appearance: 'none',
+          border: '1px solid color-mix(in srgb, var(--color-success) 32%, transparent)',
+          background: 'transparent',
+          color: 'var(--color-success)',
+          borderRadius: 'var(--radius-pill)',
+          padding: '7px 12px',
+          fontSize: 'var(--font-label-m-size)',
+          lineHeight: 'var(--font-label-m-line)',
+          fontWeight: 700,
+          whiteSpace: 'nowrap',
+          cursor: 'pointer',
+        }}
+      >
+        升级
+      </button>
+    </section>
+  )
+}
+
 function ScreenshotShell({
   step,
   title = '识别截图',
   onBack,
   children,
   footer,
+  quota,
+  quotaLoading,
+  onUpgrade,
 }: {
   step: ScreenshotStep
   title?: string
   onBack: () => void
   children: ReactNode
   footer?: ReactNode
+  quota?: ScreenshotQuotaState | null
+  quotaLoading?: boolean
+  onUpgrade?: () => void
 }) {
   return (
     <div
@@ -464,6 +595,7 @@ function ScreenshotShell({
       }}
     >
       <SRNavBar title={title} onBack={onBack} />
+      <QuotaBar quota={quota ?? null} loading={quotaLoading ?? false} onUpgrade={onUpgrade ?? (() => {})} />
       {children}
       {footer ? <BottomActions>{footer}</BottomActions> : null}
     </div>
@@ -538,24 +670,33 @@ function ErrorNotice({
 function UploadScreen({
   error,
   authRequired,
+  quota,
+  quotaLoading,
   onBack,
   onChoose,
   onCamera,
   onHowTo,
   onLogin,
+  onUpgrade,
 }: {
   error: string | null
   authRequired: boolean
+  quota: ScreenshotQuotaState | null
+  quotaLoading: boolean
   onBack: () => void
   onChoose: () => void
   onCamera: () => void
   onHowTo: () => void
   onLogin: () => void
+  onUpgrade: () => void
 }) {
   return (
     <ScreenshotShell
       step="upload"
       onBack={onBack}
+      quota={quota}
+      quotaLoading={quotaLoading}
+      onUpgrade={onUpgrade}
       footer={
         <>
           <PrimaryButton onClick={onChoose}>选择照片</PrimaryButton>
@@ -848,9 +989,21 @@ function ScreenshotProcessingPreview({ imagePreview }: { imagePreview: string | 
   )
 }
 
-function ProcessingScreen({ imagePreview, onBack }: { imagePreview: string | null; onBack: () => void }) {
+function ProcessingScreen({
+  imagePreview,
+  quota,
+  quotaLoading,
+  onBack,
+  onUpgrade,
+}: {
+  imagePreview: string | null
+  quota: ScreenshotQuotaState | null
+  quotaLoading: boolean
+  onBack: () => void
+  onUpgrade: () => void
+}) {
   return (
-    <ScreenshotShell step="processing" onBack={onBack}>
+    <ScreenshotShell step="processing" onBack={onBack} quota={quota} quotaLoading={quotaLoading} onUpgrade={onUpgrade}>
       <style>{`
         @keyframes sr-scan {
           0%, 100% { top: 18%; }
@@ -1490,6 +1643,8 @@ function ConfirmScreen({
   result,
   editableFields,
   fieldToggles,
+  quota,
+  quotaLoading,
   mountainOptions,
   selectedMountainId,
   mountainSearchStatus,
@@ -1502,10 +1657,13 @@ function ConfirmScreen({
   onSearchMountain,
   onBack,
   onSubmit,
+  onUpgrade,
 }: {
   result: RecognizeResult
   editableFields: EditableFields
   fieldToggles: FieldToggles
+  quota: ScreenshotQuotaState | null
+  quotaLoading: boolean
   mountainOptions: MountainOption[]
   selectedMountainId: string | null
   mountainSearchStatus: MountainSearchStatus
@@ -1518,6 +1676,7 @@ function ConfirmScreen({
   onSearchMountain: () => void
   onBack: () => void
   onSubmit: () => void
+  onUpgrade: () => void
 }) {
   const fields = result.parsedFields
   const tone = validationTone(fields)
@@ -1527,6 +1686,9 @@ function ConfirmScreen({
       step="confirm"
       title="确认识别结果"
       onBack={onBack}
+      quota={quota}
+      quotaLoading={quotaLoading}
+      onUpgrade={onUpgrade}
       footer={
         <>
           {submitError ? <SubmitErrorNotice message={submitError} /> : null}
@@ -1977,6 +2139,44 @@ function SuccessScreen({
   )
 }
 
+function UpgradeSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null
+
+  return (
+    <ModalShell
+      title="本月识别次数已用完"
+      description="升级后可继续识别更多截图。"
+      mode="sheet"
+      closeControl="icon"
+      onClose={onClose}
+      footer={
+        <PrimaryButton
+          onClick={() => {
+            onClose()
+            window.alert('付费方案即将上线。')
+          }}
+        >
+          了解付费方案
+        </PrimaryButton>
+      }
+    >
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-3)',
+          color: 'var(--color-on-surface-variant)',
+          fontSize: 'var(--font-body-m-size)',
+          lineHeight: 'var(--font-body-m-line)',
+        }}
+      >
+        <p style={{ margin: 0 }}>免费用户首月可识别 5 次，之后每月 2 次。</p>
+        <p style={{ margin: 0 }}>付费方案会提供每月 30 次截图识别额度，支付入口将在后续版本开放。</p>
+      </div>
+    </ModalShell>
+  )
+}
+
 export default function ScreenshotClient() {
   const router = useRouter()
   const albumInputRef = useRef<HTMLInputElement | null>(null)
@@ -1997,10 +2197,34 @@ export default function ScreenshotClient() {
   const [mountainSearchError, setMountainSearchError] = useState<string | null>(null)
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [quotaState, setQuotaState] = useState<ScreenshotQuotaState | null>(null)
+  const [quotaLoading, setQuotaLoading] = useState(true)
+  const [upgradeSheetOpen, setUpgradeSheetOpen] = useState(false)
 
   useEffect(() => {
     return () => {
       abortRef.current?.abort()
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadQuota() {
+      setQuotaLoading(true)
+      try {
+        const response = await fetch('/api/screenshot/recognize', { method: 'GET' })
+        const payload = (await response.json().catch(() => ({}))) as RecognizeResponse
+        if (!cancelled && response.ok && payload.quota) {
+          setQuotaState(payload.quota)
+        }
+      } finally {
+        if (!cancelled) setQuotaLoading(false)
+      }
+    }
+
+    void loadQuota()
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -2051,8 +2275,14 @@ export default function ScreenshotClient() {
       ])
 
       const payload = (await response.json().catch(() => ({}))) as RecognizeResponse
+      if (payload.quota) {
+        setQuotaState(payload.quota)
+      }
       if (!response.ok) {
         const kind = responseKind(response.status)
+        if (kind === 'quota') {
+          setUpgradeSheetOpen(true)
+        }
         throw Object.assign(new Error(readableError(payload.error ?? '', kind)), { kind })
       }
 
@@ -2064,6 +2294,7 @@ export default function ScreenshotClient() {
         ok: true,
         ocrResult: payload.ocrResult,
         parsedFields: payload.parsedFields,
+        ocrSource: payload.ocrSource,
       })
       const nextEditableFields = buildEditableFields(payload.parsedFields)
       setEditableFields(nextEditableFields)
@@ -2111,6 +2342,7 @@ export default function ScreenshotClient() {
 
   async function handleFile(file: File | null) {
     if (!file) return
+    if (!canUseScreenshotQuota()) return
     const validation = validateImageFile(file)
     if (validation) {
       resetPreview()
@@ -2169,6 +2401,21 @@ export default function ScreenshotClient() {
 
   function openLogin() {
     router.push(buildLoginHref())
+  }
+
+  function openUpgradeSheet() {
+    setUpgradeSheetOpen(true)
+  }
+
+  function canUseScreenshotQuota() {
+    if (quotaState && quotaState.remaining <= 0) {
+      setRecognizeError('本月截图识别次数已用完。')
+      setAuthRequired(false)
+      openUpgradeSheet()
+      return false
+    }
+
+    return true
   }
 
   function toggleField(key: FieldKey) {
@@ -2261,21 +2508,38 @@ export default function ScreenshotClient() {
         <UploadScreen
           error={recognizeError}
           authRequired={authRequired}
+          quota={quotaState}
+          quotaLoading={quotaLoading}
           onBack={handleBack}
-          onChoose={() => albumInputRef.current?.click()}
-          onCamera={() => cameraInputRef.current?.click()}
+          onChoose={() => {
+            if (canUseScreenshotQuota()) albumInputRef.current?.click()
+          }}
+          onCamera={() => {
+            if (canUseScreenshotQuota()) cameraInputRef.current?.click()
+          }}
           onHowTo={() => console.log('Screenshot how-to will be added later')}
           onLogin={openLogin}
+          onUpgrade={openUpgradeSheet}
         />
       ) : null}
 
-      {step === 'processing' ? <ProcessingScreen imagePreview={imagePreview} onBack={handleBack} /> : null}
+      {step === 'processing' ? (
+        <ProcessingScreen
+          imagePreview={imagePreview}
+          quota={quotaState}
+          quotaLoading={quotaLoading}
+          onBack={handleBack}
+          onUpgrade={openUpgradeSheet}
+        />
+      ) : null}
 
       {step === 'confirm' && recognizeResult ? (
         <ConfirmScreen
           result={recognizeResult}
           editableFields={editableFields}
           fieldToggles={fieldToggles}
+          quota={quotaState}
+          quotaLoading={quotaLoading}
           mountainOptions={mountainOptions}
           selectedMountainId={selectedMountainId}
           mountainSearchStatus={mountainSearchStatus}
@@ -2288,6 +2552,7 @@ export default function ScreenshotClient() {
           onSearchMountain={searchCurrentLocation}
           onBack={handleBack}
           onSubmit={handleSubmit}
+          onUpgrade={openUpgradeSheet}
         />
       ) : null}
 
@@ -2297,7 +2562,14 @@ export default function ScreenshotClient() {
         <SuccessScreen result={recognizeResult} submitResult={submitResult} onViewActivity={handleViewActivity} />
       ) : null}
 
-      <span data-screenshot-file={imageFile?.name ?? ''} data-screenshot-preview-ready={imagePreview ? 'true' : 'false'} hidden />
+      <UpgradeSheet open={upgradeSheetOpen} onClose={() => setUpgradeSheetOpen(false)} />
+
+      <span
+        data-screenshot-file={imageFile?.name ?? ''}
+        data-screenshot-preview-ready={imagePreview ? 'true' : 'false'}
+        data-screenshot-ocr-source={recognizeResult?.ocrSource ?? ''}
+        hidden
+      />
     </>
   )
 }

@@ -12,6 +12,22 @@ export interface OcrResult {
   rawText: string
 }
 
+export type TencentOcrSource = 'basic' | 'accurate'
+
+export interface ScreenshotQuotaState {
+  monthKey: string
+  isFirstMonth: boolean
+  subscriptionTier: 'free' | 'premium' | 'premium_trial'
+  freeLimit: number
+  freeUsed: number
+  paidLimit: number
+  paidUsed: number
+  freeRemaining: number
+  paidRemaining: number
+  remaining: number
+  totalLimit: number
+}
+
 export interface ParsedScreenshotFields {
   distance?: { value: number; unit: 'km'; raw: string }
   duration?: { value: number; raw: string }

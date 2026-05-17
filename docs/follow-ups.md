@@ -8,11 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`3799ce5cda4e6645`（Merge FU-39 · 2026-05-16）
+`6dfb34694f25e0f4`（Merge FU-33 · 2026-05-17）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**FU-33 · Pre-3.c.1 OCR 配额系统 sprint · 状态 🟡 in-progress**
+待启动（候选: FU-13/14 活动详情手记+补传 / FU-31 多图 9 张 / FU-30 山行字段语义统一 / FU-1 轨迹去重 / FU-24 Trek 刷新恢复）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -74,7 +74,7 @@
 
 ---
 
-## Active Follow-ups（22 条）
+## Active Follow-ups（21 条）
 
 ### FU-1 · 同一份轨迹文件去重（防伪造）
 
@@ -331,31 +331,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-33 · Pre-3.c.1 微 sprint（OCR 配额系统 + 双接口路由）
-
-- 优先级: P1
-- 归属阶段: Pre-3.c.1 微 sprint（紧跟 Pre-3.c 之后启动）
-- 状态: 🟡 in-progress
-
-背景: Pre-3.c 已打通 OCR 识别主路（GeneralBasicOCR），但生产上线需要：
-1. 双接口路由：腾讯云 GeneralBasicOCR (1000/月免费) + GeneralAccurateOCR (1000/月免费) 共 2000 免费额度，按场景路由
-2. 用户配额：免费首月 5 次 / 后续每月 2 次 / 付费每月 30 次（产品决策已锁定）
-3. 付费转化入口：用完免费额度时引导付费
-
-实施建议:
-- 新表 screenshot_quota (user_id, month_key, free_used, paid_used) + RLS
-- 路由器：低复杂度截图走 BasicOCR，含小字 / 多语言走 AccurateOCR；超额降级到下一档
-- UI: ScreenshotClient 顶部显示剩余次数 + 超限引导付费 sheet
-- 后端 hook: /api/screenshot/recognize 增加配额扣减事务
-
-涉及:
-- src/app/api/screenshot/recognize/route.ts
-- 新建 src/lib/screenshot/quota.ts
-- 新建 schema migration for screenshot_quota
-- src/app/(flow)/screenshot/ScreenshotClient.tsx 顶部配额 UI
-
----
-
 ### FU-34 · 截图 fixture 库扩充 + CI 回归
 
 - 优先级: P2 ongoing
@@ -445,7 +420,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（17 条）
+## Closed Follow-ups（18 条）
 
 ### FU-3 ✅ Profile 最高海拔选项 B
 
@@ -575,6 +550,14 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
+### FU-33 ✅ Pre-3.c.1 微 sprint（OCR 配额系统 + 双接口路由）
+
+- **关闭原因**: Pre-3.c.1 落地（screenshot_quota 表 + service-role-only RPC + Basic→Accurate fallback + 顶部 QuotaBar + UpgradeSheet placeholder；首月 5 / 续月 2 / 付费 30 产品规则按 user_id × month_key 计数；含 1 个 in-sprint patch 修 RPC ambiguous column bug；mock 测试盲区候选未来独立 sprint 补 RPC 集成测试）
+- **关闭 commit**: `c01095d`
+- **关闭时间**: 2026-05-17
+
+---
+
 ### FU-39 ✅ activity-photo-linkage E2E 在干净环境下失败
 
 - **关闭原因**: H1 命中（Next dev --webpack 标志触发 __webpack_modules__ runtime 错误，PreStart → tracking 状态转换时页面崩溃）。最小修复 = playwright.config.ts 移除 --webpack。activity-photo-linkage / screenshot-recognition 两个 spec 双 PASS，无回归。
@@ -651,6 +634,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.10 — 2026-05-17**：FU-33 Pre-3.c.1 OCR 配额系统完成。3 个 migration（create + advisor harden + in-sprint patch fix RPC ambiguous column）+ 双接口 Basic→Accurate fallback + service-role-only RPC + QuotaBar UI + UpgradeSheet placeholder。视觉验收 PASS（5/5→0/5 配额递减 / 耗尽走 sheet / 文案完整）。记账 mock 测试盲区：单元/e2e 都未走真实 RPC 导致 ambiguous column 在视觉验收才暴露，候选未来独立 sprint 补 RPC 集成测试覆盖。Active 22 → 21；Closed 17 → 18。
 
 **v0.9 — 2026-05-16**：FU-39 Trek e2e 稳定性修复完成。H1 命中：Next dev --webpack 标志触发 webpack runtime 错误，导致 activity-photo-linkage.spec 在 PreStart → tracking 状态转换时崩溃。最小修复 = playwright.config.ts 单行移除 --webpack，恢复 e2e gate 可信度。零 src / helper 改动（H2/H3/H4/H5 因 H1 一击即中而未触发）。Active 23 → 22；Closed 16 → 17。下个候选 sprint：FU-33 Pre-3.c.1 OCR 配额（V1 已下达）。
 

@@ -7,6 +7,7 @@ const trekActions = readFileSync('src/app/api/trek/actions/route.ts', 'utf8')
 const trekPhotoUpload = readFileSync('src/app/api/trek/photo-upload/route.ts', 'utf8')
 const trekRules = readFileSync('src/lib/trek-verification-rules.ts', 'utf8')
 const profilePage = readFileSync('src/app/(main)/profile/page.tsx', 'utf8')
+const trekPauseMigration = readFileSync('supabase/migrations/20260517124359_trek_session_pause_state.sql', 'utf8')
 
 test('near summit continue CTA is wired to summit photo flow', () => {
   assert.match(trekClient, /status === 'summit_photo'/)
@@ -182,12 +183,14 @@ test('current altitude uses GPS or elevation API without mountain altitude fallb
 test('trek restore action uses 24h freshness gate and returns stale reason without mutation', () => {
   assert.match(trekActions, /'get_in_progress_trek_session'/)
   assert.match(trekActions, /TREK_RESTORE_WINDOW_MS\s*=\s*24\s*\*\s*60\s*\*\s*60\s*\*\s*1000/)
-  assert.match(trekActions, /\.from\('trek_sessions'\)[\s\S]{0,260}\.eq\('status', 'tracking'\)/)
+  assert.match(trekActions, /\.from\('trek_sessions'\)[\s\S]{0,300}\.in\('status', \['tracking', 'paused'\]\)/)
+  assert.match(trekActions, /const freshnessAnchorMs = isPausedSession \? pausedAtMs : startedAtMs/)
   assert.match(trekActions, /ignoredReason:\s*'stale'/)
+  assert.match(trekActions, /ignoredReason:\s*'invalid_paused_at'/)
   assert.match(trekActions, /session:\s*null/)
 })
 
-test('trek restore pauses entry validation only while checking and rehydrates active tracking runtime', () => {
+test('trek restore pauses entry validation only while checking and rehydrates tracking or paused runtime', () => {
   assert.match(trekClient, /type TrekRestoreStatus = 'idle' \| 'checking' \| 'restored' \| 'none'/)
   assert.match(trekClient, /const \[restoreStatus, setRestoreStatus\]/)
   assert.match(trekClient, /restoreCheckStartedRef/)
@@ -196,8 +199,27 @@ test('trek restore pauses entry validation only while checking and rehydrates ac
   assert.match(trekClient, /if \(sessionId\) return/)
   assert.match(trekClient, /const isEntryValidationPending =\s*!sessionId/)
   assert.match(trekClient, /function restoreActiveTrekSession/)
-  assert.match(trekClient, /startTrackingRuntime\(restoredSession\.sessionId/)
-  assert.match(trekClient, /setElapsedSeconds\(Math\.max\(0, Math\.floor\(\(Date\.now\(\) - startedAtMs\) \/ 1000\)\)\)/)
+  assert.match(trekClient, /restoredSession\.status === 'paused'/)
+  assert.match(trekClient, /setIsPaused\(restoredSession\.status === 'paused'\)/)
+  assert.match(trekClient, /trackingTickStartedAtRef\.current = restoredSession\.status === 'paused' \? null : Date\.now\(\)/)
+  assert.match(trekClient, /if \(restoredSession\.status === 'tracking'\) \{[\s\S]{0,120}startTrackingRuntime\(restoredSession\.sessionId\)/)
+  assert.match(trekClient, /已恢复暂停中的记录/)
+  assert.match(trekClient, /Math\.floor\(restoredSession\.pausedElapsedSeconds\)/)
+})
+
+test('trek elapsed timer is independent from GPS runtime cleanup', () => {
+  const clearTrackingRuntimeBlock =
+    trekClient.match(/const clearTrackingRuntime = useCallback\(\(\) => \{[\s\S]*?\}, \[\]\)/)?.[0] ?? ''
+  assert.match(trekClient, /const elapsedTimerRef = useRef/)
+  assert.doesNotMatch(clearTrackingRuntimeBlock, /elapsedTimerRef/)
+  assert.match(trekClient, /elapsedTimerRef\.current = setInterval\(tick, 1000\)/)
+  assert.match(trekClient, /clearInterval\(elapsedTimerRef\.current\)/)
+})
+
+test('trek elapsed displays use unambiguous H:MM:SS formatting', () => {
+  assert.match(trekClient, /formatElapsedHMS\(elapsedSeconds\)/)
+  assert.doesNotMatch(trekClient, /formatElapsedCompact/)
+  assert.doesNotMatch(trekClient, /formatElapsedForNearSummit/)
 })
 
 test('trek top bar exposes manual GPS refresh with spam guard and hanging GPS fallback', () => {
@@ -216,6 +238,70 @@ test('trek top bar exposes manual GPS refresh with spam guard and hanging GPS fa
   assert.match(trekClient, /使用最近一次定位/)
   assert.match(trekClient, /定位暂时无响应，请稍后再试。/)
   assert.match(trekClient, /checkNearby\(nextGps\.lat, nextGps\.lng\)/)
+})
+
+test('trek session pause migration persists paused audit fields and allows paused status', () => {
+  assert.match(trekPauseMigration, /ADD COLUMN IF NOT EXISTS paused_at TIMESTAMPTZ/)
+  assert.match(trekPauseMigration, /ADD COLUMN IF NOT EXISTS paused_elapsed_seconds INTEGER/)
+  assert.match(trekPauseMigration, /'paused'::text/)
+  assert.match(trekPauseMigration, /trek_sessions_paused_elapsed_seconds_check/)
+  assert.match(trekPauseMigration, /paused_elapsed_seconds IS NULL OR paused_elapsed_seconds >= 0/)
+})
+
+test('trek pause and resume actions are server-persistent and idempotent', () => {
+  assert.match(trekActions, /'pause_trek_session'/)
+  assert.match(trekActions, /'resume_trek_session'/)
+  assert.match(trekActions, /MAX_TREK_PAUSE_ELAPSED_SECONDS/)
+  assert.match(trekActions, /function clampTrekPauseElapsedSeconds/)
+  assert.match(trekActions, /if \(session\.status === 'paused'\)[\s\S]{0,260}ignored:\s*true/)
+  assert.match(trekActions, /status:\s*'paused'/)
+  assert.match(trekActions, /paused_at:\s*pausedAt/)
+  assert.match(trekActions, /paused_elapsed_seconds:\s*pausedElapsedSeconds/)
+  assert.match(trekActions, /if \(session\.status === 'tracking'\)[\s\S]{0,260}ignored:\s*true/)
+  assert.match(trekActions, /started_at:\s*nextStartedAt/)
+  assert.match(trekActions, /paused_at:\s*null/)
+  assert.match(trekActions, /paused_elapsed_seconds:\s*null/)
+})
+
+test('trek exit path auto-pauses before navigation and browser back is intercepted once', () => {
+  assert.match(trekClient, /function isAutoPauseEligibleStatus\(status: TrekStatus\)/)
+  assert.match(trekClient, /const persistPauseTrekSession = useCallback/)
+  assert.match(trekClient, /action:\s*'pause_trek_session'/)
+  assert.match(trekClient, /elapsedSeconds:\s*elapsedSecondsRef\.current/)
+  assert.match(trekClient, /const pauseAndNavigateAway = useCallback/)
+  assert.match(trekClient, /window\.history\.pushState\(\{ peakTrekkerPauseGuard: true \}/)
+  assert.match(trekClient, /window\.addEventListener\('popstate', handlePopState\)/)
+  assert.match(trekClient, /popstatePauseGuardRef\.current = false/)
+  assert.match(trekClient, /function handleBack\(\)[\s\S]{0,120}pauseAndNavigateAway\(false\)/)
+})
+
+test('trek incomplete finish is idempotent across duplicate submits', () => {
+  assert.match(trekActions, /function isCheckinSessionUniqueViolation\(error: unknown\)/)
+  assert.match(trekActions, /record\.code === '23505'/)
+  assert.match(trekActions, /idx_checkins_session_id_unique_not_null/)
+  assert.match(trekActions, /const findExistingCheckinForSession = async \(\)/)
+  assert.match(trekActions, /const buildAlreadyFinishedResponse = async/)
+  assert.match(trekActions, /alreadyFinished:\s*true/)
+  assert.match(trekActions, /isCheckinSessionUniqueViolation\(createError\)/)
+})
+
+test('trek incomplete finish button has in-flight guard and loading state', () => {
+  assert.match(trekClient, /const \[finishTrekLoading, setFinishTrekLoading\] = useState\(false\)/)
+  assert.match(trekClient, /const finishInFlightRef = useRef\(false\)/)
+  assert.match(trekClient, /if \(finishInFlightRef\.current\) return/)
+  assert.match(trekClient, /finishInFlightRef\.current = true/)
+  assert.match(trekClient, /finally \{[\s\S]{0,120}finishInFlightRef\.current = false/)
+  assert.match(trekClient, /loading=\{finishTrekLoading\}/)
+  assert.match(trekClient, /disabled=\{finishTrekLoading\}/)
+})
+
+test('trek resume button persists server resume before restarting GPS runtime', () => {
+  assert.match(trekClient, /async function resumeTrek\(\)/)
+  assert.match(trekClient, /action:\s*'resume_trek_session'/)
+  assert.match(trekClient, /startTimeRef\.current = resumedStartedAt/)
+  assert.match(trekClient, /isPausedRef\.current = false/)
+  assert.match(trekClient, /startTrackingRuntime\(sessionId\)/)
+  assert.match(trekClient, /trek_resume_failed/)
 })
 
 test('near summit CTA switches to summit-ready copy at 100m', () => {

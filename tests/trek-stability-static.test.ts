@@ -37,6 +37,7 @@ test('entry validation GPS snapshot cannot drive tracking state before a session
   const gpsNearbyEffect = trekClient.match(/useEffect\(\(\) => \{[\s\S]*?checkNearby\(gps\.lat, gps\.lng\)[\s\S]*?\}, \[checkNearby, gps, sessionId, status, targetMountain\]\)/)?.[0] ?? ''
   assert.match(gpsNearbyEffect, /if \(!gps\) return/)
   assert.match(gpsNearbyEffect, /if \(!sessionId\) return/)
+  assert.match(gpsNearbyEffect, /status !== 'locating' && status !== 'tracking'/)
   assert.match(gpsNearbyEffect, /checkNearby\(gps\.lat, gps\.lng\)/)
 })
 
@@ -70,11 +71,11 @@ test('paused watchPosition callback does not mutate active tracking data', () =>
 test('stale watchPosition callback cannot re-enter tracking after runtime cleanup', () => {
   assert.match(trekClient, /const activeSessionIdRef = useRef<string \| null>\(null\)/)
   assert.match(trekClient, /const clearTrackingRuntime = useCallback\(\(\) => \{[\s\S]{0,80}activeSessionIdRef\.current = null/)
-  assert.match(trekClient, /activeSessionIdRef\.current = nextSessionId/)
+  assert.match(trekClient, /activeSessionIdRef\.current = runtimeSessionId/)
   const watchSuccessBlock =
     trekClient.match(/watchIdRef\.current = navigator\.geolocation\.watchPosition\([\s\S]*?checkNearby\(latitude, longitude\)/)?.[0] ?? ''
   assert.match(watchSuccessBlock, /if \(isPausedRef\.current\) return/)
-  assert.match(watchSuccessBlock, /activeSessionIdRef\.current !== nextSessionId/)
+  assert.match(watchSuccessBlock, /activeSessionIdRef\.current !== runtimeSessionId/)
   assert.match(watchSuccessBlock, /watchIdRef\.current === null/)
   assert.match(watchSuccessBlock, /setStatus\('tracking'\)/)
 })
@@ -176,4 +177,59 @@ test('current altitude uses GPS or elevation API without mountain altitude fallb
   assert.match(trekClient, /<ElevationHero[\s\S]{0,220}value=\{currentAltitude\}/)
   assert.doesNotMatch(trekClient, /GPS 海拔暂不可用 · 当前显示目标山峰标称海拔/)
   assert.doesNotMatch(trekClient, /const currentAltitude =[\s\S]{0,120}mountain\.altitude/)
+})
+
+test('trek restore action uses 24h freshness gate and returns stale reason without mutation', () => {
+  assert.match(trekActions, /'get_in_progress_trek_session'/)
+  assert.match(trekActions, /TREK_RESTORE_WINDOW_MS\s*=\s*24\s*\*\s*60\s*\*\s*60\s*\*\s*1000/)
+  assert.match(trekActions, /\.from\('trek_sessions'\)[\s\S]{0,260}\.eq\('status', 'tracking'\)/)
+  assert.match(trekActions, /ignoredReason:\s*'stale'/)
+  assert.match(trekActions, /session:\s*null/)
+})
+
+test('trek restore pauses entry validation only while checking and rehydrates active tracking runtime', () => {
+  assert.match(trekClient, /type TrekRestoreStatus = 'idle' \| 'checking' \| 'restored' \| 'none'/)
+  assert.match(trekClient, /const \[restoreStatus, setRestoreStatus\]/)
+  assert.match(trekClient, /restoreCheckStartedRef/)
+  assert.match(trekClient, /TREK_RESTORE_REQUEST_TIMEOUT_MS\s*=\s*3500/)
+  assert.match(trekClient, /restoreStatus === 'idle' \|\| restoreStatus === 'checking'[\s\S]{0,120}!sessionId[\s\S]{0,120}return/)
+  assert.match(trekClient, /if \(sessionId\) return/)
+  assert.match(trekClient, /const isEntryValidationPending =\s*!sessionId/)
+  assert.match(trekClient, /function restoreActiveTrekSession/)
+  assert.match(trekClient, /startTrackingRuntime\(restoredSession\.sessionId/)
+  assert.match(trekClient, /setElapsedSeconds\(Math\.max\(0, Math\.floor\(\(Date\.now\(\) - startedAtMs\) \/ 1000\)\)\)/)
+})
+
+test('trek top bar exposes manual GPS refresh with spam guard and hanging GPS fallback', () => {
+  assert.match(trekClient, /RefreshIcon/)
+  assert.match(trekClient, /ariaLabel="刷新数据"/)
+  assert.match(trekClient, /manualGpsRefreshLastAtRef/)
+  assert.match(trekClient, /MANUAL_REFRESH_COOLDOWN_MS\s*=\s*5000/)
+  assert.match(trekClient, /MANUAL_REFRESH_TIMEOUT_MS\s*=\s*2500/)
+  assert.match(trekClient, /MANUAL_REFRESH_SNAPSHOT_FALLBACK_ACCURACY_M\s*=\s*100/)
+  assert.match(
+    trekClient,
+    /if \(now - manualGpsRefreshLastAtRef\.current < MANUAL_REFRESH_COOLDOWN_MS\)[\s\S]{0,260}if \(manualRefreshLoading\) return/
+  )
+  assert.match(trekClient, /requestCurrentGpsPosition\(\)/)
+  assert.match(trekClient, /Promise\.race\(\[[\s\S]{0,500}MANUAL_REFRESH_TIMEOUT_MS/)
+  assert.match(trekClient, /使用最近一次定位/)
+  assert.match(trekClient, /定位暂时无响应，请稍后再试。/)
+  assert.match(trekClient, /checkNearby\(nextGps\.lat, nextGps\.lng\)/)
+})
+
+test('near summit CTA switches to summit-ready copy at 100m', () => {
+  assert.match(trekClient, /SUMMIT_READY_RADIUS_M\s*=\s*100/)
+  assert.match(trekClient, /const isSummitReadyZone =[\s\S]{0,120}distanceToTarget <= SUMMIT_READY_RADIUS_M/)
+  assert.match(trekClient, /ctaLabel=\{isSummitReadyZone \? '我已登顶' : '继续靠近峰顶'\}/)
+  assert.match(trekClient, /canContinue=\{canConfirmSummit\}/)
+  assert.match(trekClient, /distanceToTarget !== null && distanceToTarget <= SUMMIT_READY_RADIUS_M/)
+})
+
+test('server summit verification uses 300m hard fallback and returns structured distance details', () => {
+  assert.match(trekActions, /SERVER_SUMMIT_VERIFY_RADIUS_M\s*=\s*300/)
+  assert.match(trekActions, /const maxVerifyDistance = Math\.max\(summitRadius, SERVER_SUMMIT_VERIFY_RADIUS_M\)/)
+  assert.match(trekActions, /verifyDistance > maxVerifyDistance/)
+  assert.match(trekActions, /distanceMeters:\s*Math\.round\(verifyDistance\)/)
+  assert.match(trekActions, /maxMeters:\s*maxVerifyDistance/)
 })

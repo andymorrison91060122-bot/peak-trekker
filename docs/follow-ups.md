@@ -12,7 +12,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**待启动**（候选: FU-40 Trek 退出自动暂停（已锁紧跟） / FU-13+FU-14 活动详情手记+补传 / FU-31 多图 9 张 / FU-30 山行字段语义统一）
+**FU-40 · Trek 退出自动暂停 + 服务端持久化 sprint · 状态 🟡 in-progress**
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -372,7 +372,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 - 优先级: P1
 - 归属阶段: 紧跟 FU-24+17 启动（已与用户确认）
-- 状态: 🟢 active
+- 状态: 🟡 in-progress
 
 背景: FU-24 落地后 elapsedSeconds 从 started_at 恢复，但用户退出 trek 页后 elapsed 继续累计；如用户真"忘了"几小时甚至过夜，恢复时显示的时长会失真。
 

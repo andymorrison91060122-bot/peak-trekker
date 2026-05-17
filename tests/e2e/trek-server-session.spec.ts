@@ -113,6 +113,27 @@ async function finishSession(page: Page, sessionId: string) {
   }).catch(() => undefined)
 }
 
+async function pauseSession(page: Page, sessionId: string, elapsedSeconds: number) {
+  return postTrekAction(page, {
+    action: 'pause_trek_session',
+    sessionId,
+    elapsedSeconds,
+  })
+}
+
+async function resumeSession(page: Page, sessionId: string) {
+  return postTrekAction(page, {
+    action: 'resume_trek_session',
+    sessionId,
+  })
+}
+
+async function getInProgressSession(page: Page) {
+  return postTrekAction(page, {
+    action: 'get_in_progress_trek_session',
+  })
+}
+
 test.describe('trek server session', () => {
   let mountain: TestMountain
   let cleanupMountainId: string | null
@@ -271,6 +292,80 @@ test.describe('trek server session', () => {
       expect(result.body.error).toBe('outside_summit_radius')
       expect(result.body.maxMeters).toBe(300)
       expect(Number(result.body.distanceMeters)).toBeGreaterThan(300)
+    } finally {
+      await finishSession(page, sessionId)
+    }
+  })
+
+  test('pause_trek_session persists clamped elapsed and restore returns paused session', async ({ page, baseURL }) => {
+    test.setTimeout(120_000)
+    const root = baseURL ?? 'http://127.0.0.1:3100'
+    await prepareAuthenticatedUser(page, root)
+    const sessionId = await startSession(page, mountain.id)
+    const points = buildTrekTestTrackPoints(mountain, { count: 1 })
+
+    try {
+      await appendPoints(page, sessionId, points)
+
+      const pause = await pauseSession(page, sessionId, 999_999_999)
+      expect(pause.status, JSON.stringify(pause.body)).toBe(200)
+      expect(pause.body.status).toBe('paused')
+      expect(pause.body.pausedElapsedSeconds).toBe(86_400)
+
+      const pausedAppend = await postTrekAction(page, {
+        action: 'append_trek_point',
+        sessionId,
+        point: buildTrekTestTrackPoints(mountain, { count: 1 })[0],
+      })
+      expect(pausedAppend.status).toBe(409)
+      expect(pausedAppend.body.error).toBe('session is not tracking')
+
+      const restore = await getInProgressSession(page)
+      expect(restore.status, JSON.stringify(restore.body)).toBe(200)
+      const restoredSession = restore.body.session as Record<string, unknown>
+      expect(restoredSession.status).toBe('paused')
+      expect(restoredSession.sessionId).toBe(sessionId)
+      expect(restoredSession.pausedElapsedSeconds).toBe(86_400)
+      expect(typeof restoredSession.pausedAt).toBe('string')
+    } finally {
+      await finishSession(page, sessionId)
+    }
+  })
+
+  test('resume_trek_session resumes paused sessions and supports multiple pause cycles', async ({ page, baseURL }) => {
+    test.setTimeout(120_000)
+    const root = baseURL ?? 'http://127.0.0.1:3100'
+    await prepareAuthenticatedUser(page, root)
+    const sessionId = await startSession(page, mountain.id)
+
+    try {
+      const firstPause = await pauseSession(page, sessionId, 120)
+      expect(firstPause.status, JSON.stringify(firstPause.body)).toBe(200)
+      expect(firstPause.body.status).toBe('paused')
+      expect(firstPause.body.pausedElapsedSeconds).toBe(120)
+
+      const firstResume = await resumeSession(page, sessionId)
+      expect(firstResume.status, JSON.stringify(firstResume.body)).toBe(200)
+      expect(firstResume.body.status).toBe('tracking')
+      expect(typeof firstResume.body.startedAt).toBe('string')
+
+      const trackingRestore = await getInProgressSession(page)
+      expect(trackingRestore.status, JSON.stringify(trackingRestore.body)).toBe(200)
+      expect((trackingRestore.body.session as Record<string, unknown>).status).toBe('tracking')
+
+      const secondPause = await pauseSession(page, sessionId, 145)
+      expect(secondPause.status, JSON.stringify(secondPause.body)).toBe(200)
+      expect(secondPause.body.status).toBe('paused')
+      expect(secondPause.body.pausedElapsedSeconds).toBe(145)
+
+      const pausedRestore = await getInProgressSession(page)
+      expect(pausedRestore.status, JSON.stringify(pausedRestore.body)).toBe(200)
+      expect((pausedRestore.body.session as Record<string, unknown>).status).toBe('paused')
+      expect((pausedRestore.body.session as Record<string, unknown>).pausedElapsedSeconds).toBe(145)
+
+      const secondResume = await resumeSession(page, sessionId)
+      expect(secondResume.status, JSON.stringify(secondResume.body)).toBe(200)
+      expect(secondResume.body.status).toBe('tracking')
     } finally {
       await finishSession(page, sessionId)
     }

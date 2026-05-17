@@ -29,6 +29,8 @@ type ActionName =
   | 'list_active_mountains'
   | 'start_trek_session'
   | 'get_in_progress_trek_session'
+  | 'pause_trek_session'
+  | 'resume_trek_session'
   | 'finish_trek_session'
   | 'finish_incomplete_trek'
   | 'append_trek_point'
@@ -41,6 +43,7 @@ const SHARE_RENDER_MODES: ShareRenderMode[] = ['photo_composite', 'overlay_only'
 const ENABLE_QA_TEST_HELPERS = process.env.ENABLE_QA_TEST_HELPERS === 'true'
 const MIN_INCOMPLETE_TREK_SECONDS = 60
 const TREK_RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
+const MAX_TREK_PAUSE_ELAPSED_SECONDS = Math.floor(TREK_RESTORE_WINDOW_MS / 1000)
 const SERVER_SUMMIT_VERIFY_RADIUS_M = 300
 
 function isRequestedTrekTestMode(value: unknown) {
@@ -109,6 +112,21 @@ function durationFromStart(startedAt: unknown, endedAt: number) {
   return Math.max(0, Math.floor((endedAt - startedAtMs) / 1000))
 }
 
+function clampTrekPauseElapsedSeconds(value: unknown) {
+  const numberValue = finiteNumber(value)
+  if (numberValue === null) return null
+  return Math.min(MAX_TREK_PAUSE_ELAPSED_SECONDS, Math.max(0, Math.floor(numberValue)))
+}
+
+function isCheckinSessionUniqueViolation(error: unknown) {
+  if (!error || typeof error !== 'object') return false
+  const record = error as { code?: unknown; message?: unknown }
+  return (
+    record.code === '23505' ||
+    (typeof record.message === 'string' && record.message.includes('idx_checkins_session_id_unique_not_null'))
+  )
+}
+
 function summarizeTrackPoints(points: Array<{ altitude: number | null; ts: number }>) {
   const altitudes = points.flatMap((point) => (typeof point.altitude === 'number' ? [point.altitude] : []))
   const firstTs = points[0]?.ts ?? null
@@ -159,10 +177,10 @@ export async function POST(request: NextRequest) {
   if (action === 'get_in_progress_trek_session') {
     const { data: session, error } = await supabase
       .from('trek_sessions')
-      .select('id, mountain_id, started_at, track_points, distance_m, ascent_m, max_altitude_m')
+      .select('id, mountain_id, status, started_at, paused_at, paused_elapsed_seconds, track_points, distance_m, ascent_m, max_altitude_m')
       .eq('user_id', user.id)
-      .eq('status', 'tracking')
-      .order('started_at', { ascending: false })
+      .in('status', ['tracking', 'paused'])
+      .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
@@ -174,6 +192,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, session: null })
     }
 
+    const isPausedSession = session.status === 'paused'
     const startedAtMs = new Date(String(session.started_at ?? '')).getTime()
     if (!Number.isFinite(startedAtMs)) {
       return NextResponse.json({
@@ -183,7 +202,17 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    if (Date.now() - startedAtMs > TREK_RESTORE_WINDOW_MS) {
+    const pausedAtMs = isPausedSession ? new Date(String(session.paused_at ?? '')).getTime() : null
+    if (isPausedSession && !Number.isFinite(pausedAtMs)) {
+      return NextResponse.json({
+        ok: true,
+        session: null,
+        ignoredReason: 'invalid_paused_at',
+      })
+    }
+
+    const freshnessAnchorMs = isPausedSession ? pausedAtMs : startedAtMs
+    if (Date.now() - Number(freshnessAnchorMs) > TREK_RESTORE_WINDOW_MS) {
       return NextResponse.json({
         ok: true,
         session: null,
@@ -196,7 +225,10 @@ export async function POST(request: NextRequest) {
       session: {
         sessionId: session.id,
         mountainId: session.mountain_id ?? null,
+        status: isPausedSession ? 'paused' : 'tracking',
         startedAt: session.started_at,
+        pausedAt: session.paused_at ?? null,
+        pausedElapsedSeconds: clampTrekPauseElapsedSeconds(session.paused_elapsed_seconds),
         trackPoints: safeTrackPoints(session.track_points),
         distanceM: Math.round(Number(session.distance_m ?? 0)),
         ascentM: Math.round(Number(session.ascent_m ?? 0)),
@@ -398,6 +430,160 @@ export async function POST(request: NextRequest) {
     })
   }
 
+  if (action === 'pause_trek_session') {
+    const sessionId = typeof body?.sessionId === 'string' ? body.sessionId : ''
+
+    if (!sessionId) {
+      return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
+    }
+
+    const isFallbackSession = isLocalFallbackSessionId(sessionId)
+    const isTestLocalSession = isLocalTrekSessionId(sessionId)
+
+    if (isFallbackSession || isTestLocalSession) {
+      if (isTestLocalSession && !ALLOW_LOCAL_TREK_SESSION) {
+        return NextResponse.json({ error: 'local_trek_session_disabled' }, { status: 403 })
+      }
+      return NextResponse.json({ ok: true, fallback: 'client', sessionId, status: 'paused' })
+    }
+
+    const { data: session, error: sessionError } = await supabase
+      .from('trek_sessions')
+      .select('id, user_id, status, started_at, paused_at, paused_elapsed_seconds')
+      .eq('id', sessionId)
+      .single()
+
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'session not found' }, { status: 404 })
+    }
+
+    if (session.user_id !== user.id) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    }
+
+    if (session.status === 'paused') {
+      return NextResponse.json({
+        ok: true,
+        sessionId,
+        status: 'paused',
+        pausedAt: session.paused_at ?? null,
+        pausedElapsedSeconds: clampTrekPauseElapsedSeconds(session.paused_elapsed_seconds) ?? 0,
+        ignored: true,
+      })
+    }
+
+    if (session.status !== 'tracking') {
+      return NextResponse.json({ error: 'session is not tracking' }, { status: 409 })
+    }
+
+    const now = Date.now()
+    const fallbackElapsedSeconds = durationFromStart(session.started_at, now) ?? 0
+    const pausedElapsedSeconds = clampTrekPauseElapsedSeconds(body?.elapsedSeconds) ?? clampTrekPauseElapsedSeconds(fallbackElapsedSeconds) ?? 0
+    const pausedAt = new Date(now).toISOString()
+
+    const { error: updateError } = await supabase
+      .from('trek_sessions')
+      .update({
+        status: 'paused',
+        paused_at: pausedAt,
+        paused_elapsed_seconds: pausedElapsedSeconds,
+      })
+      .eq('id', sessionId)
+      .eq('user_id', user.id)
+      .eq('status', 'tracking')
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      ok: true,
+      sessionId,
+      status: 'paused',
+      pausedAt,
+      pausedElapsedSeconds,
+    })
+  }
+
+  if (action === 'resume_trek_session') {
+    const sessionId = typeof body?.sessionId === 'string' ? body.sessionId : ''
+
+    if (!sessionId) {
+      return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
+    }
+
+    const isFallbackSession = isLocalFallbackSessionId(sessionId)
+    const isTestLocalSession = isLocalTrekSessionId(sessionId)
+
+    if (isFallbackSession || isTestLocalSession) {
+      if (isTestLocalSession && !ALLOW_LOCAL_TREK_SESSION) {
+        return NextResponse.json({ error: 'local_trek_session_disabled' }, { status: 403 })
+      }
+      return NextResponse.json({ ok: true, fallback: 'client', sessionId, status: 'tracking' })
+    }
+
+    const { data: session, error: sessionError } = await supabase
+      .from('trek_sessions')
+      .select('id, user_id, status, started_at, paused_at, paused_elapsed_seconds')
+      .eq('id', sessionId)
+      .single()
+
+    if (sessionError || !session) {
+      return NextResponse.json({ error: 'session not found' }, { status: 404 })
+    }
+
+    if (session.user_id !== user.id) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    }
+
+    if (session.status === 'tracking') {
+      return NextResponse.json({
+        ok: true,
+        sessionId,
+        status: 'tracking',
+        startedAt: session.started_at,
+        ignored: true,
+      })
+    }
+
+    if (session.status !== 'paused') {
+      return NextResponse.json({ error: 'session is not paused' }, { status: 409 })
+    }
+
+    const startedAtMs = new Date(String(session.started_at ?? '')).getTime()
+    if (!Number.isFinite(startedAtMs)) {
+      return NextResponse.json({ error: 'invalid_session_start_time' }, { status: 400 })
+    }
+
+    const pausedAtMs = new Date(String(session.paused_at ?? '')).getTime()
+    const now = Date.now()
+    const pausedDurationMs = Number.isFinite(pausedAtMs) ? Math.max(0, now - pausedAtMs) : 0
+    const nextStartedAt = new Date(startedAtMs + pausedDurationMs).toISOString()
+
+    const { error: updateError } = await supabase
+      .from('trek_sessions')
+      .update({
+        status: 'tracking',
+        started_at: nextStartedAt,
+        paused_at: null,
+        paused_elapsed_seconds: null,
+      })
+      .eq('id', sessionId)
+      .eq('user_id', user.id)
+      .eq('status', 'paused')
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      ok: true,
+      sessionId,
+      status: 'tracking',
+      startedAt: nextStartedAt,
+    })
+  }
+
   if (action === 'finish_trek_session') {
     const sessionId = typeof body?.sessionId === 'string' ? body.sessionId : ''
     const finalStatus = body?.finalStatus === 'aborted' ? 'aborted' : 'finished'
@@ -541,19 +727,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'mountain_id_required' }, { status: 400 })
     }
 
-    if (!isLocalSession) {
-      const { data: existingCheckin } = await supabase
+    const findExistingCheckinForSession = async () => {
+      if (isLocalSession) return null
+      const { data } = await supabase
         .from('checkins')
-        .select('id')
+        .select('id, status, completion_status')
         .eq('session_id', sessionId)
+        .order('created_at', { ascending: true })
+        .limit(1)
         .maybeSingle()
 
-      if (existingCheckin?.id) {
-        return NextResponse.json({
-          ok: true,
-          duplicated: true,
-          checkinId: existingCheckin.id,
+      return (data as { id?: string; status?: string | null; completion_status?: string | null } | null) ?? null
+    }
+
+    const markServerSessionFinished = async () => {
+      if (isLocalSession || !session) return
+      await supabase
+        .from('trek_sessions')
+        .update({
+          status: 'finished',
+          ended_at: new Date(endedAtMs).toISOString(),
         })
+        .eq('id', session.id)
+        .eq('user_id', user.id)
+    }
+
+    const buildAlreadyFinishedResponse = async (existingCheckin: {
+      id?: string
+      status?: string | null
+      completion_status?: string | null
+    }) => {
+      await markServerSessionFinished()
+      return NextResponse.json({
+        ok: true,
+        alreadyFinished: true,
+        duplicated: true,
+        checkinId: existingCheckin.id ?? null,
+        status: existingCheckin.status ?? 'pending',
+        completionStatus: existingCheckin.completion_status ?? 'incomplete',
+      })
+    }
+
+    if (!isLocalSession) {
+      const existingCheckin = await findExistingCheckinForSession()
+      if (existingCheckin?.id) {
+        return buildAlreadyFinishedResponse(existingCheckin)
       }
     }
 
@@ -601,19 +819,16 @@ export async function POST(request: NextRequest) {
     )
 
     if (createError || !createdCheckin) {
+      if (!isLocalSession && isCheckinSessionUniqueViolation(createError)) {
+        const existingCheckin = await findExistingCheckinForSession()
+        if (existingCheckin?.id) {
+          return buildAlreadyFinishedResponse(existingCheckin)
+        }
+      }
       return NextResponse.json({ error: createError?.message ?? 'save incomplete trek failed' }, { status: 500 })
     }
 
-    if (!isLocalSession && session) {
-      await supabase
-        .from('trek_sessions')
-        .update({
-          status: 'finished',
-          ended_at: new Date(endedAtMs).toISOString(),
-        })
-        .eq('id', session.id)
-        .eq('user_id', user.id)
-    }
+    await markServerSessionFinished()
 
     const checkin = createdCheckin as unknown as {
       id: string

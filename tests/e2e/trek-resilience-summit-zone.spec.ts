@@ -56,6 +56,17 @@ async function finishSession(page: Page, sessionId: string) {
   }).catch(() => undefined)
 }
 
+async function readElapsedSeconds(page: Page) {
+  const bodyText = await page.locator('body').innerText()
+  const matches = [...bodyText.matchAll(/\b(\d+):([0-5]\d):([0-5]\d)\b/g)]
+  if (matches.length === 0) {
+    throw new Error(`No H:MM:SS elapsed value found in page text: ${bodyText.slice(0, 500)}`)
+  }
+  return Math.max(
+    ...matches.map((match) => Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]))
+  )
+}
+
 test('refreshing during a live trek restores tracking state and elapsed time', async ({ page, baseURL }) => {
   test.setTimeout(180_000)
   const root = baseURL ?? 'http://127.0.0.1:3100'
@@ -78,7 +89,9 @@ test('refreshing during a live trek restores tracking state and elapsed time', a
 
     await expect(page.getByRole('button', { name: '暂停' })).toBeVisible({ timeout: 30_000 })
     await expect(page.getByTestId('trek-status-chip')).toContainText('记录中')
-    await expect(page.locator('body')).toContainText(/02:\d{2}/, { timeout: 20_000 })
+    await expect(page.locator('body')).toContainText(/0:02:\d{2}/, { timeout: 20_000 })
+    const restoredElapsed = await readElapsedSeconds(page)
+    await expect.poll(() => readElapsedSeconds(page), { timeout: 15_000 }).toBeGreaterThanOrEqual(restoredElapsed + 5)
     await captureOptionalE2EScreenshot(page, 'trek-refresh-resume.png')
     await expectNoRuntimeIssueBadge(page)
   } finally {

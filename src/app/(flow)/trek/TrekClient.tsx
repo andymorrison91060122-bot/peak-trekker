@@ -20,6 +20,7 @@ import {
   isTrekClientTestModeEnabled,
   resolveTrekClientVerificationRules,
 } from '@/lib/trek-verification-rules'
+import { formatElapsedHMS } from '@/lib/trek-time'
 import { haversineMeters, safeTrackPoints, type TrackPoint } from '@/lib/trek-utils'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import AltitudeBar from '@/components/ui/AltitudeBar'
@@ -144,7 +145,10 @@ function normalizeTrekActionError(error: unknown) {
 type RestoredTrekSession = {
   sessionId: string
   mountainId: string | null
+  status: 'tracking' | 'paused'
   startedAt: string
+  pausedAt: string | null
+  pausedElapsedSeconds: number | null
   trackPoints: TrackPoint[]
   distanceM: number
   ascentM: number
@@ -240,10 +244,11 @@ export default function TrekClient({
   const [summitConfirmedAt, setSummitConfirmedAt] = useState<Date | null>(null)
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine))
   const [manualRefreshLoading, setManualRefreshLoading] = useState(false)
+  const [finishTrekLoading, setFinishTrekLoading] = useState(false)
   const photoInputRef = useRef<HTMLInputElement | null>(null)
 
   const watchIdRef = useRef<number | null>(null)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastSyncRef = useRef<number>(0)
   const syncingPointRef = useRef(false)
   const startTimeRef = useRef<number>(0)
@@ -261,16 +266,15 @@ export default function TrekClient({
   const elevationLookupCoordinateRef = useRef<ElevationCoordinate | null>(null)
   const restoreCheckStartedRef = useRef(false)
   const manualGpsRefreshLastAtRef = useRef(0)
+  const exitPauseInFlightRef = useRef(false)
+  const popstatePauseGuardRef = useRef(false)
+  const finishInFlightRef = useRef(false)
 
   const clearTrackingRuntime = useCallback(() => {
     activeSessionIdRef.current = null
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current)
       watchIdRef.current = null
-    }
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
     }
   }, [])
 
@@ -759,6 +763,36 @@ export default function TrekClient({
     [callTrekAction]
   )
 
+  const persistPauseTrekSession = useCallback(
+    async (options: { silent?: boolean } = {}) => {
+      if (!sessionId) return true
+      if (!isAutoPauseEligibleStatus(status)) return true
+      if (exitPauseInFlightRef.current) return false
+
+      exitPauseInFlightRef.current = true
+      try {
+        await callTrekAction({
+          action: 'pause_trek_session',
+          sessionId,
+          elapsedSeconds: elapsedSecondsRef.current,
+        })
+        return true
+      } catch (error) {
+        if (!options.silent) {
+          showToast({
+            key: 'trek_pause_persist_failed',
+            message: error instanceof Error ? error.message : '暂停状态保存失败，请稍后重试。',
+            durationMs: 3200,
+          })
+        }
+        return false
+      } finally {
+        exitPauseInFlightRef.current = false
+      }
+    },
+    [callTrekAction, sessionId, showToast, status]
+  )
+
   const startTrackingRuntime = useCallback(
     (runtimeSessionId: string) => {
       if (!navigator.geolocation) {
@@ -840,13 +874,16 @@ export default function TrekClient({
     function restoreActiveTrekSession(restoredSession: RestoredTrekSession) {
       const restoredTrack = safeTrackPoints(restoredSession.trackPoints)
       const startedAtMs = new Date(restoredSession.startedAt).getTime()
-      const restoredElapsedSeconds = Number.isFinite(startedAtMs)
-        ? Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000))
-        : 0
+      const restoredElapsedSeconds = restoredSession.status === 'paused' && typeof restoredSession.pausedElapsedSeconds === 'number'
+        ? Math.max(0, Math.floor(restoredSession.pausedElapsedSeconds))
+        : Number.isFinite(startedAtMs)
+          ? Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000))
+          : 0
       const lastPoint = restoredTrack.at(-1)
 
       setStatus('tracking')
-      setIsPaused(false)
+      setIsPaused(restoredSession.status === 'paused')
+      isPausedRef.current = restoredSession.status === 'paused'
       setGpsError('')
       setGpsErrorCode(null)
       setCreatedCheckinId(null)
@@ -855,7 +892,7 @@ export default function TrekClient({
       setConfirmedMountainId(restoredSession.mountainId)
       setNearbyMountain(null)
       setDistanceToTarget(null)
-      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000)))
+      setElapsedSeconds(restoredElapsedSeconds)
       setDistanceKm(Number((Math.max(0, restoredSession.distanceM) / 1000).toFixed(2)))
       setAscentM(Math.max(0, Math.round(restoredSession.ascentM)))
       setPrepGpsStatus('ready')
@@ -867,7 +904,7 @@ export default function TrekClient({
       startTimeRef.current = Number.isFinite(startedAtMs) ? startedAtMs : Date.now() - restoredElapsedSeconds * 1000
       elapsedBeforePauseRef.current = restoredElapsedSeconds
       elapsedSecondsRef.current = restoredElapsedSeconds
-      trackingTickStartedAtRef.current = Date.now()
+      trackingTickStartedAtRef.current = restoredSession.status === 'paused' ? null : Date.now()
       lastSyncRef.current = Date.now()
       prepGpsRetryCountRef.current = 0
 
@@ -883,10 +920,12 @@ export default function TrekClient({
         setLastValidAltitudeM(Math.round(restoredSession.maxAltitudeM))
       }
 
-      startTrackingRuntime(restoredSession.sessionId)
+      if (restoredSession.status === 'tracking') {
+        startTrackingRuntime(restoredSession.sessionId)
+      }
       showToast({
         tone: 'info',
-        message: '已恢复进行中的记录。',
+        message: restoredSession.status === 'paused' ? '已恢复暂停中的记录。' : '已恢复进行中的记录。',
         durationMs: 2400,
       })
     },
@@ -928,7 +967,13 @@ export default function TrekClient({
         restoreActiveTrekSession({
           sessionId: restoredSession.sessionId,
           mountainId: typeof restoredSession.mountainId === 'string' ? restoredSession.mountainId : null,
+          status: restoredSession.status === 'paused' ? 'paused' : 'tracking',
           startedAt: restoredSession.startedAt,
+          pausedAt: typeof restoredSession.pausedAt === 'string' ? restoredSession.pausedAt : null,
+          pausedElapsedSeconds:
+            typeof restoredSession.pausedElapsedSeconds === 'number' && Number.isFinite(restoredSession.pausedElapsedSeconds)
+              ? restoredSession.pausedElapsedSeconds
+              : null,
           trackPoints: safeTrackPoints(restoredSession.trackPoints),
           distanceM: Number(restoredSession.distanceM ?? 0),
           ascentM: Number(restoredSession.ascentM ?? 0),
@@ -1023,38 +1068,43 @@ export default function TrekClient({
   }
 
   async function stopTrek() {
-    const activeSessionId = sessionId
-    const recordTooShort = elapsedSeconds < incompleteRecordMinSeconds && !createdCheckinId
-    const targetIdForRetry = targetMountain?.id ?? confirmedMountainId ?? targetMountainId ?? selectedMountainId
-    clearTrackingRuntime()
-    if (recordTooShort) {
-      resetLiveTrekState()
-      if (targetIdForRetry) {
-        setSelectedMountainId(targetIdForRetry)
-        setConfirmedMountainId(targetIdForRetry)
-      }
-      void finishSession(activeSessionId, 'aborted')
-      showToast({
-        key: 'trek_record_too_short',
-        message: `记录时间过短（不足 ${formatShortRecordThreshold(incompleteRecordMinSeconds)}），不是有效记录。`,
-      })
-      return
-    }
+    if (finishInFlightRef.current) return
 
-    if (createdCheckinId) {
-      resetLiveTrekState()
-      void finishSession(activeSessionId, 'finished')
-      router.push(`/activity/${createdCheckinId}`)
-      return
-    }
-
-    if (!activeSessionId || !targetMountain) {
-      resetLiveTrekState()
-      showToast({ key: 'trek_record_save_failure', message: '缺少记录会话或目标山峰，请重新开始。' })
-      return
-    }
+    finishInFlightRef.current = true
+    setFinishTrekLoading(true)
 
     try {
+      const activeSessionId = sessionId
+      const recordTooShort = elapsedSeconds < incompleteRecordMinSeconds && !createdCheckinId
+      const targetIdForRetry = targetMountain?.id ?? confirmedMountainId ?? targetMountainId ?? selectedMountainId
+      clearTrackingRuntime()
+      if (recordTooShort) {
+        resetLiveTrekState()
+        if (targetIdForRetry) {
+          setSelectedMountainId(targetIdForRetry)
+          setConfirmedMountainId(targetIdForRetry)
+        }
+        void finishSession(activeSessionId, 'aborted')
+        showToast({
+          key: 'trek_record_too_short',
+          message: `记录时间过短（不足 ${formatShortRecordThreshold(incompleteRecordMinSeconds)}），不是有效记录。`,
+        })
+        return
+      }
+
+      if (createdCheckinId) {
+        resetLiveTrekState()
+        void finishSession(activeSessionId, 'finished')
+        router.push(`/activity/${createdCheckinId}`)
+        return
+      }
+
+      if (!activeSessionId || !targetMountain) {
+        resetLiveTrekState()
+        showToast({ key: 'trek_record_save_failure', message: '缺少记录会话或目标山峰，请重新开始。' })
+        return
+      }
+
       const data = await callTrekAction({
         action: 'finish_incomplete_trek',
         sessionId: activeSessionId,
@@ -1085,6 +1135,9 @@ export default function TrekClient({
         key: 'trek_record_save_failure',
         message: error instanceof Error ? normalizeTrekActionError(error) : undefined,
       })
+    } finally {
+      finishInFlightRef.current = false
+      setFinishTrekLoading(false)
     }
   }
 
@@ -1247,9 +1300,9 @@ export default function TrekClient({
 
   useEffect(() => {
     if (!isTrackingActive || isPaused || isSummitFlow) {
-      if (timerRef.current) {
-        clearInterval(timerRef.current)
-        timerRef.current = null
+      if (elapsedTimerRef.current) {
+        clearInterval(elapsedTimerRef.current)
+        elapsedTimerRef.current = null
       }
       return
     }
@@ -1265,12 +1318,12 @@ export default function TrekClient({
     }
 
     tick()
-    timerRef.current = setInterval(tick, 1000)
+    elapsedTimerRef.current = setInterval(tick, 1000)
 
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current)
-        timerRef.current = null
+      if (elapsedTimerRef.current) {
+        clearInterval(elapsedTimerRef.current)
+        elapsedTimerRef.current = null
       }
     }
   }, [isPaused, isSummitFlow, isTrackingActive])
@@ -1389,7 +1442,7 @@ export default function TrekClient({
   const pausedAltitudeSub = currentAltitudeSub ? `记录已暂停 · 数据保留 · ${currentAltitudeSub}` : '记录已暂停 · 数据保留'
   const referenceMapVariant: ReferenceMapVariant = isOnline ? 'default' : 'offlineCache'
   const trekMetrics = [
-    { label: '已用时', value: formatElapsedCompact(elapsedSeconds) },
+    { label: '已用时', value: formatElapsedHMS(elapsedSeconds) },
     { label: '距离 km', value: distanceKm.toFixed(2) },
     { label: '爬升 m', value: String(ascentM) },
   ]
@@ -1442,7 +1495,63 @@ export default function TrekClient({
     return () => window.clearInterval(timer)
   }, [viewState])
 
+  const shouldPauseBeforeLeaving = Boolean(sessionId) && isAutoPauseEligibleStatus(status)
+
+  const navigateAwayFromTrek = useCallback(
+    (preferHistoryBack = true) => {
+      if (preferHistoryBack && window.history.length > 1) {
+        router.back()
+        return
+      }
+      router.push('/explore')
+    },
+    [router]
+  )
+
+  const pauseAndNavigateAway = useCallback(
+    async (preferHistoryBack = true) => {
+      if (!shouldPauseBeforeLeaving) {
+        navigateAwayFromTrek(preferHistoryBack)
+        return
+      }
+
+      const paused = await persistPauseTrekSession()
+      if (!paused) return
+      elapsedBeforePauseRef.current = elapsedSecondsRef.current
+      trackingTickStartedAtRef.current = null
+      isPausedRef.current = true
+      clearTrackingRuntime()
+      setIsPaused(true)
+      popstatePauseGuardRef.current = false
+      navigateAwayFromTrek(preferHistoryBack)
+    },
+    [clearTrackingRuntime, navigateAwayFromTrek, persistPauseTrekSession, shouldPauseBeforeLeaving]
+  )
+
+  useEffect(() => {
+    if (!shouldPauseBeforeLeaving || popstatePauseGuardRef.current) return
+
+    popstatePauseGuardRef.current = true
+    window.history.pushState({ peakTrekkerPauseGuard: true }, '', window.location.href)
+
+    const handlePopState = () => {
+      if (!popstatePauseGuardRef.current) return
+      popstatePauseGuardRef.current = false
+      void pauseAndNavigateAway(true)
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      popstatePauseGuardRef.current = false
+    }
+  }, [pauseAndNavigateAway, shouldPauseBeforeLeaving])
+
   function handleBack() {
+    if (shouldPauseBeforeLeaving) {
+      void pauseAndNavigateAway(false)
+      return
+    }
     if (window.history.length > 1) {
       router.back()
       return
@@ -1528,15 +1637,44 @@ export default function TrekClient({
     }
   }
 
-  function pauseTrek() {
+  async function pauseTrek() {
     elapsedBeforePauseRef.current = elapsedSeconds
     trackingTickStartedAtRef.current = null
+    isPausedRef.current = true
+    clearTrackingRuntime()
     setIsPaused(true)
+    await persistPauseTrekSession()
   }
 
-  function resumeTrek() {
+  async function resumeTrek() {
+    if (!sessionId) {
+      showToast({ key: 'action_blocked', message: '缺少记录会话，请重新开始。' })
+      return
+    }
+
+    try {
+      const data = await callTrekAction({
+        action: 'resume_trek_session',
+        sessionId,
+      })
+      const resumedStartedAt = typeof data.startedAt === 'string' ? new Date(data.startedAt).getTime() : null
+      if (typeof resumedStartedAt === 'number' && Number.isFinite(resumedStartedAt)) {
+        startTimeRef.current = resumedStartedAt
+      }
+    } catch (error) {
+      showToast({
+        key: 'trek_resume_failed',
+        message: error instanceof Error ? error.message : '继续记录失败，请稍后重试。',
+        durationMs: 3200,
+      })
+      return
+    }
+
+    elapsedBeforePauseRef.current = elapsedSecondsRef.current
     trackingTickStartedAtRef.current = Date.now()
+    isPausedRef.current = false
     setIsPaused(false)
+    startTrackingRuntime(sessionId)
   }
 
   function showManualPlaceholder() {
@@ -1679,10 +1817,15 @@ export default function TrekClient({
 
           {viewState === 'paused' ? (
             <BottomActionBar>
-              <SecondaryButton style={{ width: '100%' }} onClick={stopTrek}>
+              <SecondaryButton
+                style={{ width: '100%' }}
+                onClick={stopTrek}
+                loading={finishTrekLoading}
+                disabled={finishTrekLoading}
+              >
                 结束并保存
               </SecondaryButton>
-              <PrimaryButton style={{ width: '100%' }} onClick={resumeTrek}>
+              <PrimaryButton style={{ width: '100%' }} onClick={resumeTrek} disabled={finishTrekLoading}>
                 继续记录
               </PrimaryButton>
             </BottomActionBar>
@@ -2222,7 +2365,7 @@ function NearSummitView({
 }) {
   const distanceLabel = formatNearSummitDistance(distanceMeters)
   const altitudeLabel = formatGroupedMeters(altitude)
-  const elapsedLabel = formatElapsedForNearSummit(elapsedSeconds)
+  const elapsedLabel = formatElapsedHMS(elapsedSeconds)
 
   return (
     <div
@@ -2618,7 +2761,7 @@ function SummitPhotoView({
           >
             <TrekMetric label="距离峰顶" value={`${formatNearSummitDistance(distanceMeters)}m`} />
             <TrekMetric label="当前海拔" value={`${formatGroupedMeters(altitude)}m`} />
-            <TrekMetric label="已用时" value={formatElapsedForNearSummit(elapsedSeconds)} />
+            <TrekMetric label="已用时" value={formatElapsedHMS(elapsedSeconds)} />
           </div>
         </div>
       </section>
@@ -4573,16 +4716,6 @@ function SummitStat({
   )
 }
 
-function formatElapsedCompact(totalSeconds: number) {
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-  if (hours > 0) {
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-  }
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-}
-
 function formatPreStartClock(date: Date) {
   const hours = String(date.getHours()).padStart(2, '0')
   const minutes = String(date.getMinutes()).padStart(2, '0')
@@ -4619,11 +4752,7 @@ function formatSummitLocation(mountain: Mountain | null | undefined) {
 
 function formatSummitElapsed(totalSeconds: number) {
   if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return '--'
-  const safeSeconds = Math.max(0, Math.floor(totalSeconds))
-  const hours = Math.floor(safeSeconds / 3600)
-  const minutes = Math.floor((safeSeconds % 3600) / 60)
-  if (hours > 0) return `${hours}h ${minutes}m`
-  return `${minutes}m`
+  return formatElapsedHMS(totalSeconds)
 }
 
 function formatSummitDistance(value: number) {
@@ -4634,14 +4763,6 @@ function formatSummitDistance(value: number) {
 function formatSummitAscent(value: number) {
   if (!Number.isFinite(value) || value <= 0) return '--'
   return `${formatGroupedMeters(value)}m`
-}
-
-function formatElapsedForNearSummit(totalSeconds: number) {
-  const safeSeconds = Math.max(0, Math.floor(totalSeconds))
-  const hours = Math.floor(safeSeconds / 3600)
-  const minutes = Math.floor((safeSeconds % 3600) / 60)
-  if (hours > 0) return `${hours}h ${minutes}m`
-  return `${minutes}m`
 }
 
 function formatMeters(value: number | null | undefined) {
@@ -4671,5 +4792,9 @@ function licenseShortLabel(value: User['license_level'] | Mountain['min_license'
 }
 
 function isTrackingRuntimeActive(status: TrekStatus) {
+  return status === 'locating' || status === 'tracking' || status === 'approach_alert'
+}
+
+function isAutoPauseEligibleStatus(status: TrekStatus) {
   return status === 'locating' || status === 'tracking' || status === 'approach_alert'
 }

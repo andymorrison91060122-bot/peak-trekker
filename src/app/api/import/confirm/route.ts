@@ -3,6 +3,7 @@ import { getSupplementalTimeFallback } from '@/lib/import/confirm-time-fallback'
 import { validateImportMountainSelectionDistance } from '@/lib/import/mountain-distance-check'
 import { normalizeScreenshotData } from '@/lib/import/screenshot-confirm-data'
 import type { NormalizedScreenshotData } from '@/lib/import/screenshot-confirm-data'
+import { computeTrackContentHash } from '@/lib/import/track-hash'
 import { buildComputedTrackStats, findHighestTrackPoint } from '@/lib/import/track-stats'
 import type { ImportedTrackData, TrackPoint } from '@/lib/import/types'
 import { rankingWeightByDifficulty } from '@/lib/trek-utils'
@@ -21,6 +22,11 @@ type PersistedTrackPoint = {
   lng: number
   ele?: number
   time?: string
+}
+
+type DuplicateTrackRow = {
+  id: string
+  created_at: string | null
 }
 
 type NormalizedImportedTrackData = Pick<ImportedTrackData, 'format' | 'fileName' | 'trackPoints'> &
@@ -103,6 +109,53 @@ function trackPointsRequiredResponse() {
     error: 'trackPoints required',
     hint: 'Import confirm must include parsed track points for server-side metric calculation.',
   }, { status: 400 })
+}
+
+function trackDuplicateResponse(duplicateTrack: DuplicateTrackRow | null) {
+  return NextResponse.json({
+    ok: false,
+    code: 'track_duplicate',
+    error: '这份轨迹已经上传过。',
+    ...(duplicateTrack ? {
+      duplicateTrack: {
+        existingCheckinId: duplicateTrack.id,
+        existingCreatedAt: duplicateTrack.created_at,
+      },
+    } : {}),
+  }, { status: 409 })
+}
+
+function isUniqueViolation(error: unknown) {
+  return typeof error === 'object'
+    && error !== null
+    && (error as { code?: unknown }).code === '23505'
+}
+
+async function findDuplicateTrackImport(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+  trackContentHash: string
+) {
+  const { data, error } = await supabase
+    .from('checkins')
+    .select('id, created_at')
+    .eq('user_id', userId)
+    .eq('track_content_hash', trackContentHash)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    return {
+      duplicateTrack: null as DuplicateTrackRow | null,
+      response: NextResponse.json({ error: error.message }, { status: 500 }),
+    }
+  }
+
+  return {
+    duplicateTrack: data as DuplicateTrackRow | null,
+    response: null as NextResponse | null,
+  }
 }
 
 function getClientMetricKeys(value: unknown) {
@@ -293,6 +346,13 @@ export async function POST(request: Request) {
   warnIgnoredClientMetrics(rawParsedData)
 
   const parsedData = parsedDataResult.data
+  const trackContentHash = computeTrackContentHash(parsedData.trackPoints)
+  if (trackContentHash) {
+    const { duplicateTrack, response } = await findDuplicateTrackImport(supabase, user.id, trackContentHash)
+    if (response) return response
+    if (duplicateTrack) return trackDuplicateResponse(duplicateTrack)
+  }
+
   const mountainId = typeof (body as { mountainId?: unknown } | null)?.mountainId === 'string'
     ? ((body as { mountainId: string }).mountainId.trim() || null)
     : null
@@ -361,12 +421,18 @@ export async function POST(request: Request) {
       start_time: computed.startTime ?? supplementalTime?.startTime ?? null,
       end_time: computed.endTime ?? supplementalTime?.endTime ?? null,
       track_name: parsedData.name ?? null,
+      track_content_hash: trackContentHash,
       track_points: toPersistedTrackPoints(parsedData.trackPoints),
     })
     .select('id')
     .single()
 
   if (error || !checkin) {
+    if (trackContentHash && isUniqueViolation(error)) {
+      const { duplicateTrack, response } = await findDuplicateTrackImport(supabase, user.id, trackContentHash)
+      if (response) return response
+      return trackDuplicateResponse(duplicateTrack)
+    }
     return NextResponse.json({ error: error?.message ?? 'create imported checkin failed' }, { status: 500 })
   }
 

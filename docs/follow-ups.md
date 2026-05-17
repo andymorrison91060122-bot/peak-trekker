@@ -368,7 +368,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（22 条）
+## Closed Follow-ups（21 条）
 
 ### FU-1 ✅ 同一份轨迹文件去重（防伪造）
 
@@ -582,6 +582,7 @@ Codex 在视觉验证通过、merge 前必须执行：
 
 - [ ] Active FU 标题数字 = Active 列表实际条目数（grep -E "^### (FU-|Issue-)" 验证）
 - [ ] Closed FU 标题数字 = Closed 列表实际条目数
+- [ ] awk 自动统计实际 entry 数交叉验证（命令：见本文件末"机械化校验脚本"）
 - [ ] 顶部"当前 main HEAD"已更新为本次 sprint 的 merge commit sha
 - [ ] 顶部"当前 Sprint"已更新（标"待启动"或下个 sprint 名 + 并行情况）
 - [ ] 版本记录追加 v0.X 条目（含日期 + 关闭 FU 清单 + 新增 FU 清单 + sprint 范围）
@@ -616,7 +617,9 @@ Codex 在视觉验证通过、merge 前必须执行：
 
 ## 版本记录
 
-**v0.13 — 2026-05-18**：FU-40 Trek 退出自动暂停 + 服务端持久化完成。schema 加 paused_at + paused_elapsed_seconds + status CHECK 扩展；pause/resume 两个新 server action 含幂等 + 原子 UPDATE + 补偿 started_at 算法；client handleBack + popstate guard + restore paused 分支。含 2 个 in-sprint 补丁：(1) formatElapsedHMS H:MM:SS 3 段显示 + elapsedTimerRef 与 GPS runtime cleanup 解耦修 Bug 1+2（HH:MM 吞秒 + restore 后 tick 不走）；(2) finish_incomplete_trek 23505 catch + re-fetch idempotent + 客户端 finishInFlightRef guard + 按钮 loading/disabled 修 pause→finish→back duplicate INSERT 红框。已知 follow-up note：pause_elapsed_seconds 用 24h 硬 clamp 而非 LEAST(input, server-elapsed)，仅影响用户自身展示，未来 housekeeping 可收紧。Active 19 → 18；Closed 21 → 22。**里程碑：所有 P1 阻塞项全部清完**（Pre-3.a/FU-18/19/20/21/22/23/25 + FU-1/24/17/40 全闭，MVP 主路稳定，可以专注 P2 用户体验补齐节奏）。
+**v0.13 — 2026-05-18**：FU-40 Trek 退出自动暂停 + 服务端持久化完成。schema 加 paused_at + paused_elapsed_seconds + status CHECK 扩展；pause/resume 两个新 server action 含幂等 + 原子 UPDATE + 补偿 started_at 算法；client handleBack + popstate guard + restore paused 分支。含 2 个 in-sprint 补丁：(1) formatElapsedHMS H:MM:SS 3 段显示 + elapsedTimerRef 与 GPS runtime cleanup 解耦修 Bug 1+2（HH:MM 吞秒 + restore 后 tick 不走）；(2) finish_incomplete_trek 23505 catch + re-fetch idempotent + 客户端 finishInFlightRef guard + 按钮 loading/disabled 修 pause→finish→back duplicate INSERT 红框。已知 follow-up note：pause_elapsed_seconds 用 24h 硬 clamp 而非 LEAST(input, server-elapsed)，仅影响用户自身展示，未来 housekeeping 可收紧。Active 19 → 18；Closed 20 → 21。**里程碑：所有 P1 阻塞项全部清完**（Pre-3.a/FU-18/19/20/21/22/23/25 + FU-1/24/17/40 全闭，MVP 主路稳定，可以专注 P2 用户体验补齐节奏）。
+
+> 注：本版数字含历史漂移修正——v0.7 (Pre-3.c V3 commit 6ef50f8) 标题数从 15→16 但只补了 FU-7 一个 closed entry，缺 Pre-3.c 自身 closed heading。本版不回填 Pre-3.c entry（其落地物已由 FU-33..39 active 段 + commits 充分反映），仅校正数字与实际数 21 对齐。Active 数字本次同样为 18，与实际一致，不需修正。
 
 **v0.12 — 2026-05-17**：FU-24 + FU-17 合并 sprint 完成。Trek 韧性 + 登顶 UX 综合修复 ABCD 4 项：(A) elapsedSeconds 从 started_at 恢复 + 24h freshness gate；(B) 状态机直接进 tracking 不踢回选山 + entry validation gate 修正；(C) 手动刷新按钮 + 2500ms timeout + snapshot fallback 防 hang（含 1 个 in-sprint 补丁修 live 态 requestCurrentGpsPosition 与 watchPosition 并发竞争）；(D) 登顶范围 CTA ≤100m "我已登顶" + 服务端 300m 兜底。FU-17 原 3 段状态 plan 略调为 2 段 + CTA 文案升级（状态机不增复杂度，体验等价）。startTrackingRuntime 抽共享 helper 避免 stale callback 时序污染。测试基线 217 → 222 (+5)。新增 FU-40 Trek 退出自动暂停 active（已锁紧跟启动）。所有 P1 阻塞项接近清完（FU-24/1/Pre-3.a 全闭，FU-40 待启）。Active 20 → 19；Closed 19 → 21。
 
@@ -637,3 +640,11 @@ Codex 在视觉验证通过、merge 前必须执行：
 **v0.4 — 2026-05-15**：Pre-3.a 三轮+四轮全部完成；修复 entry validation 副作用 + watchPosition 残留 callback + photo-upload + schema 部署 + fallback 字符串硬化；新增 Open-Meteo 海拔接入；关闭 Issue-3 + FU-18/19/20/21/22/23/25；新增 FU-24/27/28/29/30 active；引入 E2E 自测和 schema migration 推送协作规范。
 
 **v0.1 — 2026-05-14**：首次创建。盘点 19 条活跃 follow-up + 3 条已关闭。引入 Pre-3.a Trek 流程稳定性 Sprint 范围。建立 V1/V2/V3 工作流 + 项目交接段 + 维护规范。
+
+### 机械化校验脚本
+
+每次 V3 收尾必须运行下面命令，并与 Active / Closed 标题数字对比：
+
+```bash
+awk '/^## Active Follow-ups/{a=1;b=0;ac=0;next} /^## Closed Follow-ups/{a=0;b=1;cc=0;next} /^## /{a=0;b=0;next} a==1 && /^### FU-/{ac++} b==1 && /^### FU-/{cc++} END{print "Active actual:", ac; print "Closed actual:", cc}' docs/follow-ups.md
+```

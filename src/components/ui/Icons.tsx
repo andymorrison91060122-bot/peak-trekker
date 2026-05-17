@@ -139,6 +139,17 @@ export function MoreIcon({
   )
 }
 
+export function RefreshIcon(props: IconProps) {
+  return renderIcon(props, (color) => (
+    <>
+      <path d="M20 6.5v5h-5" {...strokeProps(color)} />
+      <path d="M4 17.5v-5h5" {...strokeProps(color)} />
+      <path d="M18.2 10A6.2 6.2 0 0 0 7.4 6.8L4 10" {...strokeProps(color)} />
+      <path d="M5.8 14A6.2 6.2 0 0 0 16.6 17.2L20 14" {...strokeProps(color)} />
+    </>
+  ))
+}
+
 export function SearchIcon(props: IconProps) {
   return renderIcon(props, (color) => (
     <>
@@ -207,6 +218,7 @@ export const Icons = {
   Back: BackIcon,
   Share: ShareIcon,
   More: MoreIcon,
+  Refresh: RefreshIcon,
   Search: SearchIcon,
   Filter: FilterIcon,
   Pin: PinIcon,

@@ -1,6 +1,6 @@
 'use client'
 
-import type { ChangeEvent, DragEvent, ReactNode } from 'react'
+import type { CSSProperties, ChangeEvent, DragEvent, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -44,15 +44,23 @@ type ImportStep =
 type SupportedFormat = (typeof SUPPORTED_FORMATS)[number]
 type ParseErrorKind = 'unsupported' | 'too_large' | 'auth' | 'file' | 'network'
 
+type ImportDuplicateTrack = {
+  existingCheckinId: string
+  existingCreatedAt?: string | null
+}
+
 type ParseResponse = {
   ok?: boolean
   parsedData?: ImportedTrackData
+  duplicateTrack?: ImportDuplicateTrack
   error?: string
 }
 
 type ConfirmResponse = {
   ok?: boolean
   checkinId?: string
+  code?: string
+  duplicateTrack?: ImportDuplicateTrack
   error?: string
 }
 
@@ -165,6 +173,16 @@ function formatDateTime(isoString?: string) {
   const hh = String(date.getHours()).padStart(2, '0')
   const min = String(date.getMinutes()).padStart(2, '0')
   return `${mm}/${dd} ${hh}:${min}`
+}
+
+function formatDuplicateDate(isoString?: string | null) {
+  if (!isoString) return '之前'
+  const date = new Date(isoString)
+  if (Number.isNaN(date.getTime())) return '之前'
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yyyy}/${mm}/${dd}`
 }
 
 function formatDateInputValue(isoString?: string) {
@@ -1670,9 +1688,11 @@ function DistanceValidationNotice({
 function ImportWarningCard({
   title,
   children,
+  style,
 }: {
   title: string
   children: ReactNode
+  style?: CSSProperties
 }) {
   return (
     <div
@@ -1686,6 +1706,7 @@ function ImportWarningCard({
         border: '1px solid var(--color-outline)',
         borderLeft: '3px solid var(--color-warning)',
         background: 'var(--color-surface-variant)',
+        ...style,
       }}
     >
       <div style={{ color: 'var(--color-warning)', display: 'grid', placeItems: 'start center', paddingTop: 2 }}>
@@ -1920,22 +1941,29 @@ function TimeFallbackEditor({
 
 function ImportPreview({
   result,
+  duplicateTrack,
   timeEditorSkipped,
   onBack,
   onContinue,
+  onPickAnother,
+  onViewDuplicate,
   onApplyTime,
   onSkipTime,
 }: {
   result: ImportedTrackData
+  duplicateTrack: ImportDuplicateTrack | null
   timeEditorSkipped: boolean
   onBack: () => void
   onContinue: () => void
+  onPickAnother: () => void
+  onViewDuplicate: (checkinId: string) => void
   onApplyTime: (nextResult: ImportedTrackData) => void
   onSkipTime: () => void
 }) {
   const averageSpeedKmh = getAverageSpeedKmh(result)
-  const shouldShowTimeEditor = needsTimeFallback(result) && !timeEditorSkipped
+  const shouldShowTimeEditor = !duplicateTrack && needsTimeFallback(result) && !timeEditorSkipped
   const shouldShowPaceWarning = typeof averageSpeedKmh === 'number' && averageSpeedKmh > PACE_WARNING_KMH
+  const duplicateDateLabel = duplicateTrack ? formatDuplicateDate(duplicateTrack.existingCreatedAt) : ''
 
   return (
     <ImportScreen
@@ -1944,9 +1972,34 @@ function ImportPreview({
       onBack={onBack}
       footer={(
         <>
-          <PrimaryButton onClick={onContinue} style={{ width: '100%' }}>
-            继续
-          </PrimaryButton>
+          {duplicateTrack ? (
+            <>
+              <PrimaryButton onClick={() => onViewDuplicate(duplicateTrack.existingCheckinId)} style={{ width: '100%' }}>
+                查看已存在活动
+              </PrimaryButton>
+              <button
+                type="button"
+                onClick={onPickAnother}
+                style={{
+                  marginTop: 10,
+                  width: '100%',
+                  height: 44,
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--color-on-surface-variant)',
+                  font: 'inherit',
+                  fontSize: 'var(--font-label-m-size)',
+                  cursor: 'pointer',
+                }}
+              >
+                选择其他文件
+              </button>
+            </>
+          ) : (
+            <PrimaryButton onClick={onContinue} style={{ width: '100%' }}>
+              继续
+            </PrimaryButton>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -1969,6 +2022,18 @@ function ImportPreview({
         </>
       )}
     >
+      {duplicateTrack ? (
+        <ImportWarningCard
+          title="这份轨迹已经上传过"
+          style={{
+            marginTop: 'var(--space-2)',
+            marginBottom: 'var(--space-4)',
+          }}
+        >
+          该轨迹内容与 {duplicateDateLabel} 的一条活动记录一致。为防止重复留证，这里不会再生成新的活动。
+        </ImportWarningCard>
+      ) : null}
+
       <div
         style={{
           background: 'var(--color-surface-variant)',
@@ -3106,6 +3171,7 @@ export default function ImportClient() {
   const [step, setStep] = useState<ImportStep>('entry')
   const [file, setFile] = useState<File | null>(null)
   const [parseResult, setParseResult] = useState<ImportedTrackData | null>(null)
+  const [duplicateTrack, setDuplicateTrack] = useState<ImportDuplicateTrack | null>(null)
   const [timeEditorSkipped, setTimeEditorSkipped] = useState(false)
   const [parseError, setParseError] = useState<string | null>(null)
   const [parseErrorKind, setParseErrorKind] = useState<ParseErrorKind | null>(null)
@@ -3142,6 +3208,7 @@ export default function ImportClient() {
   function clearFileAndResult() {
     setFile(null)
     setParseResult(null)
+    setDuplicateTrack(null)
     setTimeEditorSkipped(false)
     setParseError(null)
     setParseErrorKind(null)
@@ -3159,6 +3226,7 @@ export default function ImportClient() {
   function chooseFile(nextFile: File) {
     setFile(nextFile)
     setParseResult(null)
+    setDuplicateTrack(null)
     setTimeEditorSkipped(false)
     setParseError(null)
     setParseErrorKind(null)
@@ -3209,6 +3277,7 @@ export default function ImportClient() {
     }
 
     setParseResult(null)
+    setDuplicateTrack(null)
     setParseError(null)
     setParseErrorKind(null)
     setAuthRequired(false)
@@ -3252,6 +3321,7 @@ export default function ImportClient() {
 
       setParseProgress(100)
       setParseResult(payload.parsedData)
+      setDuplicateTrack(payload.duplicateTrack ?? null)
       setTimeEditorSkipped(false)
       setSelectedMountainId(payload.parsedData.suggestedMountain?.id ?? null)
       setSelectedMountainName(payload.parsedData.suggestedMountain?.name ?? null)
@@ -3289,6 +3359,13 @@ export default function ImportClient() {
         setConfirmAuthRequired(true)
         setConfirmError('登录后即可生成活动记录。')
         setStep(returnStep)
+        return
+      }
+
+      if (response.status === 409 && payload?.code === 'track_duplicate' && payload.duplicateTrack) {
+        setDuplicateTrack(payload.duplicateTrack)
+        setConfirmError(null)
+        setStep('preview')
         return
       }
 
@@ -3411,6 +3488,7 @@ export default function ImportClient() {
       return (
         <ImportPreview
           result={parseResult}
+          duplicateTrack={duplicateTrack}
           timeEditorSkipped={timeEditorSkipped}
           onBack={handleBack}
 	          onContinue={() => {
@@ -3434,6 +3512,8 @@ export default function ImportClient() {
 	            }
 	            setStep('no_match')
 	          }}
+          onPickAnother={pickAnotherFile}
+          onViewDuplicate={(checkinId) => router.push(`/activity/${checkinId}`)}
           onApplyTime={(nextResult) => {
             setParseResult(nextResult)
             setTimeEditorSkipped(false)

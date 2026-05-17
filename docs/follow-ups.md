@@ -8,11 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`6dfb34694f25e0f4`（Merge FU-33 · 2026-05-17）
+`f29af4f64f385171`（Merge FU-1 · 2026-05-17）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**FU-1 · 同一份轨迹文件去重（防伪造）sprint · 状态 🟡 in-progress**
+**待启动**（候选: FU-24 Trek 刷新恢复 / FU-13+FU-14 活动详情手记+补传 / FU-31 多图 9 张 / FU-30 山行字段语义统一）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -74,27 +74,7 @@
 
 ---
 
-## Active Follow-ups（21 条）
-
-### FU-1 · 同一份轨迹文件去重（防伪造）
-
-- **优先级**: P1
-- **归属阶段**: 下个 sprint（阶段 3 之后）
-- **状态**: 🟡 in-progress
-
-**背景**: 当前同一份 GPX/FIT 文件可以被多次上传产生多条 checkin，存在伪造留证风险。
-
-**实施建议**:
-- 计算上传文件的内容 hash（SHA-256 of normalized track_points）
-- `checkins` 表加 `track_content_hash` 字段 + unique index per user
-- 上传时检测重复 hash，已存在则返回"该轨迹已上传过"
-
-**涉及**:
-- `src/app/api/import/parse/route.ts`
-- `src/app/api/import/confirm/route.ts`
-- schema migration
-
----
+## Active Follow-ups（20 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -420,7 +400,15 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（18 条）
+## Closed Follow-ups（19 条）
+
+### FU-1 ✅ 同一份轨迹文件去重（防伪造）
+
+- **关闭原因**: checkins 新增 track_content_hash + 用户级 partial unique index；parse 路由 200 + dup payload 早提示；confirm 路由服务端重算 hash + unique violation 兜底 race；ImportPreview dup banner + 查看已存在活动 CTA；跨用户允许 / 截图源 / Trek realtime 不在 scope（NULL 不触发约束）
+- **关闭 commit**: `665b0cc`
+- **关闭时间**: 2026-05-17
+
+---
 
 ### FU-3 ✅ Profile 最高海拔选项 B
 
@@ -634,6 +622,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.11 — 2026-05-17**：FU-1 同一份轨迹文件去重（防伪造）完成。checkins 新增 track_content_hash 列 + 用户级 partial unique index（NULL 不冲突）+ SHA-256 normalize hash helper（6 位经纬度 / 整数海拔 / ISO 时间，无效 / 缺失字段归一化空字符串）+ parse 路由 200 + dup payload 早提示 + confirm 路由服务端重算 hash + unique violation race-safe 兜底 + ImportPreview dup banner + 查看已存在活动 CTA + 4 unit / 静态 / e2e + GPX ele 变种 fixture。视觉验收 PASS（dup 触发正确 / 跳活动详情正确 / pre-commit 微调 banner 上下间距）。跨用户允许同一 hash（共享 gpx 团队场景）；截图源 / Trek realtime 不在 scope（NULL 不触发约束）。Active 21 → 20；Closed 18 → 19。
 
 **v0.10 — 2026-05-17**：FU-33 Pre-3.c.1 OCR 配额系统完成。3 个 migration（create + advisor harden + in-sprint patch fix RPC ambiguous column）+ 双接口 Basic→Accurate fallback + service-role-only RPC + QuotaBar UI + UpgradeSheet placeholder。视觉验收 PASS（5/5→0/5 配额递减 / 耗尽走 sheet / 文案完整）。记账 mock 测试盲区：单元/e2e 都未走真实 RPC 导致 ambiguous column 在视觉验收才暴露，候选未来独立 sprint 补 RPC 集成测试覆盖。Active 22 → 21；Closed 17 → 18。
 

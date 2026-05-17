@@ -1,10 +1,11 @@
 import { ocr } from 'tencentcloud-sdk-nodejs-ocr'
 import type {
   Coord,
+  GeneralAccurateOCRResponse,
   GeneralBasicOCRResponse,
   TextDetection,
 } from 'tencentcloud-sdk-nodejs-ocr/tencentcloud/services/ocr/v20181119/ocr_models'
-import type { OcrResult, OcrTextBlock } from './types'
+import type { OcrResult, OcrTextBlock, TencentOcrSource } from './types'
 
 const OCR_REGION = 'ap-guangzhou'
 
@@ -53,7 +54,7 @@ function normalizeTextDetection(detection: TextDetection): OcrTextBlock | null {
   }
 }
 
-function toOcrResult(response: GeneralBasicOCRResponse): OcrResult {
+function toOcrResult(response: GeneralBasicOCRResponse | GeneralAccurateOCRResponse): OcrResult {
   const textBlocks = (response.TextDetections ?? []).flatMap((detection) => {
     const normalized = normalizeTextDetection(detection)
     return normalized ? [normalized] : []
@@ -71,11 +72,11 @@ function normalizeOcrError(error: unknown) {
   return 'Tencent OCR request failed'
 }
 
-export async function recognizeScreenshot(imageBase64: string): Promise<OcrResult> {
+function createTencentOcrClient() {
   const secretId = requiredTencentCredential('TENCENT_CLOUD_SECRET_ID')
   const secretKey = requiredTencentCredential('TENCENT_CLOUD_SECRET_KEY')
   const OcrClient = ocr.v20181119.Client
-  const client = new OcrClient({
+  return new OcrClient({
     credential: { secretId, secretKey },
     region: OCR_REGION,
     profile: {
@@ -86,15 +87,65 @@ export async function recognizeScreenshot(imageBase64: string): Promise<OcrResul
       },
     },
   })
+}
 
+export async function recognizeScreenshotWithSource(
+  imageBase64: string,
+  source: TencentOcrSource
+): Promise<OcrResult> {
+  const client = createTencentOcrClient()
   try {
-    const response = (await client.GeneralBasicOCR({
-      ImageBase64: imageBase64,
-      LanguageType: 'zh',
-    })) as GeneralBasicOCRResponse
+    const response = source === 'accurate'
+      ? (await client.GeneralAccurateOCR({
+          ImageBase64: imageBase64,
+        })) as GeneralAccurateOCRResponse
+      : (await client.GeneralBasicOCR({
+          ImageBase64: imageBase64,
+          LanguageType: 'zh',
+        })) as GeneralBasicOCRResponse
 
     return toOcrResult(response)
   } catch (error) {
-    throw new Error(`Tencent OCR failed: ${normalizeOcrError(error)}`)
+    throw new Error(`Tencent ${source} OCR failed: ${normalizeOcrError(error)}`)
   }
+}
+
+function shouldFallbackToAccurate(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  if (/not configured/i.test(message)) return false
+  return /limit|quota|rate|timeout|timed out|socket|network|ECONN|failed/i.test(message)
+}
+
+export async function recognizeScreenshotWithFallback(
+  imageBase64: string,
+  invoker = recognizeScreenshotWithSource
+): Promise<{ source: TencentOcrSource; ocrResult: OcrResult; fallbackReason?: string }> {
+  try {
+    const basicResult = await invoker(imageBase64, 'basic')
+    if (basicResult.textBlocks.length > 0) {
+      return { source: 'basic', ocrResult: basicResult }
+    }
+
+    const accurateResult = await invoker(imageBase64, 'accurate')
+    return {
+      source: 'accurate',
+      ocrResult: accurateResult,
+      fallbackReason: 'basic_empty_result',
+    }
+  } catch (error) {
+    if (!shouldFallbackToAccurate(error)) {
+      throw error
+    }
+
+    const accurateResult = await invoker(imageBase64, 'accurate')
+    return {
+      source: 'accurate',
+      ocrResult: accurateResult,
+      fallbackReason: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+export async function recognizeScreenshot(imageBase64: string): Promise<OcrResult> {
+  return recognizeScreenshotWithSource(imageBase64, 'basic')
 }

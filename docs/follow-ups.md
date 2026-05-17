@@ -8,11 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`f13861d7345796a`（Merge FU-24+17 · 2026-05-17）
+`192c79c48173cb2a`（Merge FU-40 · 2026-05-18）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**FU-40 · Trek 退出自动暂停 + 服务端持久化 sprint · 状态 🟡 in-progress**
+待启动（候选: FU-13+FU-14 活动详情手记+补传 / FU-31 多图 9 张 / FU-30 山行字段语义统一 / FU-2+FU-15 UI 文案统一 / FU-11 活动详情底部按钮悬浮）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -74,7 +74,7 @@
 
 ---
 
-## Active Follow-ups（19 条）
+## Active Follow-ups（18 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -368,31 +368,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-40 · Trek 退出自动暂停 + 服务端持久化
-
-- 优先级: P1
-- 归属阶段: 紧跟 FU-24+17 启动（已与用户确认）
-- 状态: 🟡 in-progress
-
-背景: FU-24 落地后 elapsedSeconds 从 started_at 恢复，但用户退出 trek 页后 elapsed 继续累计；如用户真"忘了"几小时甚至过夜，恢复时显示的时长会失真。
-
-产品决策（已锁）: 用户点退出/返回时自动 pause（相当于帮按暂停）；重新进入时显示已暂停态，用户主动"继续记录"恢复。
-
-实施建议:
-- 前端 handleBack: 如 status 是 tracking/approach_alert，调 pause_trek_session 后再 navigate
-- 后端新 action pause_trek_session: 写 trek_sessions.status='paused' + 保存 elapsed_pause_seconds
-- 可能 schema 扩展: trek_sessions 加 paused_at 或 elapsed_pause_seconds 字段
-- Restore 路径: status='paused' 时还原为 isPaused=true + 冻结 elapsedSeconds
-- 配套 e2e: 退出 → 返回 → 看到已暂停态 → 点继续记录 → 时长正确继续
-
-涉及:
-- src/app/(flow)/trek/TrekClient.tsx (handleBack + restore 适配)
-- src/app/api/trek/actions/route.ts (新 pause_trek_session action + restore status 处理)
-- supabase/migrations/* (如需要 schema 扩展)
-
----
-
-## Closed Follow-ups（21 条）
+## Closed Follow-ups（22 条）
 
 ### FU-1 ✅ 同一份轨迹文件去重（防伪造）
 
@@ -562,6 +538,15 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
+### FU-40 ✅ Trek 退出自动暂停 + 服务端持久化
+
+- **关闭原因**: FU-40 sprint 落地（schema 加 paused_at + paused_elapsed_seconds + status CHECK 扩展 'paused'；pause/resume actions 含幂等 + 原子 UPDATE + 24h freshness；resume 时补偿 started_at；TrekClient handleBack + popstate guard + restore paused 分支；finish_incomplete_trek 23505 幂等防御。含 2 个 in-sprint 补丁：formatElapsedHMS + elapsedTimerRef 独立修 H:MM:SS 显示与 tick 不走；finishInFlightRef + 按钮 guard 修双发 duplicate INSERT）
+- **关闭 commit**: `428e2e5`
+- **关闭时间**: 2026-05-18
+- **已知 follow-up note（不开 FU，未来 housekeeping 时收紧）**: pause_elapsed_seconds 服务端 clamp 用 24h 硬上限而非 LEAST(input, server-elapsed)；理论上恶意客户端可传虚高值显示自己虚假 elapsed，但仅影响自身展示不污染他人数据
+
+---
+
 > **历史跳号编号**：FU-26 在 Pre-3.a sprint 中编号跳号未实际引入；未来新增 FU 不复用此编号，按当前最大编号 +1 顺序分配。
 
 ---
@@ -630,6 +615,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.13 — 2026-05-18**：FU-40 Trek 退出自动暂停 + 服务端持久化完成。schema 加 paused_at + paused_elapsed_seconds + status CHECK 扩展；pause/resume 两个新 server action 含幂等 + 原子 UPDATE + 补偿 started_at 算法；client handleBack + popstate guard + restore paused 分支。含 2 个 in-sprint 补丁：(1) formatElapsedHMS H:MM:SS 3 段显示 + elapsedTimerRef 与 GPS runtime cleanup 解耦修 Bug 1+2（HH:MM 吞秒 + restore 后 tick 不走）；(2) finish_incomplete_trek 23505 catch + re-fetch idempotent + 客户端 finishInFlightRef guard + 按钮 loading/disabled 修 pause→finish→back duplicate INSERT 红框。已知 follow-up note：pause_elapsed_seconds 用 24h 硬 clamp 而非 LEAST(input, server-elapsed)，仅影响用户自身展示，未来 housekeeping 可收紧。Active 19 → 18；Closed 21 → 22。**里程碑：所有 P1 阻塞项全部清完**（Pre-3.a/FU-18/19/20/21/22/23/25 + FU-1/24/17/40 全闭，MVP 主路稳定，可以专注 P2 用户体验补齐节奏）。
 
 **v0.12 — 2026-05-17**：FU-24 + FU-17 合并 sprint 完成。Trek 韧性 + 登顶 UX 综合修复 ABCD 4 项：(A) elapsedSeconds 从 started_at 恢复 + 24h freshness gate；(B) 状态机直接进 tracking 不踢回选山 + entry validation gate 修正；(C) 手动刷新按钮 + 2500ms timeout + snapshot fallback 防 hang（含 1 个 in-sprint 补丁修 live 态 requestCurrentGpsPosition 与 watchPosition 并发竞争）；(D) 登顶范围 CTA ≤100m "我已登顶" + 服务端 300m 兜底。FU-17 原 3 段状态 plan 略调为 2 段 + CTA 文案升级（状态机不增复杂度，体验等价）。startTrackingRuntime 抽共享 helper 避免 stale callback 时序污染。测试基线 217 → 222 (+5)。新增 FU-40 Trek 退出自动暂停 active（已锁紧跟启动）。所有 P1 阻塞项接近清完（FU-24/1/Pre-3.a 全闭，FU-40 待启）。Active 20 → 19；Closed 19 → 21。
 

@@ -269,6 +269,8 @@ test.describe('trek server session', () => {
       const result = await verifySummit(page, { sessionId, mountainId: mountain.id, points })
       expect(result.status).toBe(422)
       expect(result.body.error).toBe('outside_summit_radius')
+      expect(result.body.maxMeters).toBe(300)
+      expect(Number(result.body.distanceMeters)).toBeGreaterThan(300)
     } finally {
       await finishSession(page, sessionId)
     }

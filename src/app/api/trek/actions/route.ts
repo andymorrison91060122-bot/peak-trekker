@@ -28,6 +28,7 @@ import type { ShareAnchorPosition, ShareCardTemplate, ShareRenderMode } from '@/
 type ActionName =
   | 'list_active_mountains'
   | 'start_trek_session'
+  | 'get_in_progress_trek_session'
   | 'finish_trek_session'
   | 'finish_incomplete_trek'
   | 'append_trek_point'
@@ -39,6 +40,8 @@ const SHARE_TEMPLATES: ShareCardTemplate[] = ['trek_snapshot', 'summit_card', 'a
 const SHARE_RENDER_MODES: ShareRenderMode[] = ['photo_composite', 'overlay_only', 'classic_card']
 const ENABLE_QA_TEST_HELPERS = process.env.ENABLE_QA_TEST_HELPERS === 'true'
 const MIN_INCOMPLETE_TREK_SECONDS = 60
+const TREK_RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
+const SERVER_SUMMIT_VERIFY_RADIUS_M = 300
 
 function isRequestedTrekTestMode(value: unknown) {
   return value === true || value === '1'
@@ -150,6 +153,55 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       mountains: mountains ?? [],
+    })
+  }
+
+  if (action === 'get_in_progress_trek_session') {
+    const { data: session, error } = await supabase
+      .from('trek_sessions')
+      .select('id, mountain_id, started_at, track_points, distance_m, ascent_m, max_altitude_m')
+      .eq('user_id', user.id)
+      .eq('status', 'tracking')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    if (!session) {
+      return NextResponse.json({ ok: true, session: null })
+    }
+
+    const startedAtMs = new Date(String(session.started_at ?? '')).getTime()
+    if (!Number.isFinite(startedAtMs)) {
+      return NextResponse.json({
+        ok: true,
+        session: null,
+        ignoredReason: 'invalid_started_at',
+      })
+    }
+
+    if (Date.now() - startedAtMs > TREK_RESTORE_WINDOW_MS) {
+      return NextResponse.json({
+        ok: true,
+        session: null,
+        ignoredReason: 'stale',
+      })
+    }
+
+    return NextResponse.json({
+      ok: true,
+      session: {
+        sessionId: session.id,
+        mountainId: session.mountain_id ?? null,
+        startedAt: session.started_at,
+        trackPoints: safeTrackPoints(session.track_points),
+        distanceM: Math.round(Number(session.distance_m ?? 0)),
+        ascentM: Math.round(Number(session.ascent_m ?? 0)),
+        maxAltitudeM: finiteNumber(session.max_altitude_m),
+      },
     })
   }
 
@@ -730,18 +782,21 @@ export async function POST(request: NextRequest) {
     const lastPoint = points.at(-1)!
     const verifyDistance = haversineMeters(lastPoint.lat, lastPoint.lng, mountain.latitude, mountain.longitude)
     const summitRadius = mountain.summit_radius_m ?? TREK_RULES.defaultSummitRadiusM
+    const maxVerifyDistance = Math.max(summitRadius, SERVER_SUMMIT_VERIFY_RADIUS_M)
 
-    if (verifyDistance > summitRadius) {
+    if (verifyDistance > maxVerifyDistance) {
       await recordServerVerifyFailure({
         supabase,
         session: serverSession,
         reason: 'outside_summit_radius',
-        detail: `current distance ${Math.round(verifyDistance)}m > ${summitRadius}m`,
+        detail: `current distance ${Math.round(verifyDistance)}m > ${maxVerifyDistance}m`,
       })
       return NextResponse.json(
         {
           error: 'outside_summit_radius',
-          detail: `current distance ${Math.round(verifyDistance)}m > ${summitRadius}m`,
+          detail: `current distance ${Math.round(verifyDistance)}m > ${maxVerifyDistance}m`,
+          distanceMeters: Math.round(verifyDistance),
+          maxMeters: maxVerifyDistance,
         },
         { status: 422 }
       )

@@ -20,7 +20,7 @@ import {
   isTrekClientTestModeEnabled,
   resolveTrekClientVerificationRules,
 } from '@/lib/trek-verification-rules'
-import { haversineMeters } from '@/lib/trek-utils'
+import { haversineMeters, safeTrackPoints, type TrackPoint } from '@/lib/trek-utils'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import AltitudeBar from '@/components/ui/AltitudeBar'
 import IconButton from '@/components/ui/IconButton'
@@ -32,8 +32,8 @@ import {
   CameraIcon,
   CheckIcon,
   GpsIcon,
-  MoreIcon,
   MountainIcon,
+  RefreshIcon,
   ShareIcon,
   WarnIcon,
 } from '@/components/ui/Icons'
@@ -52,6 +52,7 @@ type GpsState = { lat: number; lng: number; accuracy: number; altitude?: number 
 type ReferenceMapVariant = 'default' | 'gpsWeak' | 'offlineCache'
 type PrepGpsStatus = 'idle' | 'checking' | 'ready' | 'weak' | 'denied' | 'unsupported' | 'error'
 type EntryValidationStatus = 'idle' | 'checking' | 'passed' | 'blocked'
+type TrekRestoreStatus = 'idle' | 'checking' | 'restored' | 'none'
 type TrekViewState =
   | 'loading'
   | 'permissionDenied'
@@ -74,7 +75,12 @@ const LICENSE_RANK: Record<User['license_level'], number> = {
 
 const APPROACH_RADIUS = TREK_RULES.defaultApproachRadiusM
 const SUMMIT_RADIUS = TREK_RULES.defaultSummitRadiusM
+const SUMMIT_READY_RADIUS_M = 100
 const MAX_DRIFT_SPEED_MPS = TREK_RULES.maxDriftSpeedMps
+const MANUAL_REFRESH_COOLDOWN_MS = 5000
+const MANUAL_REFRESH_TIMEOUT_MS = 2500
+const MANUAL_REFRESH_SNAPSHOT_FALLBACK_ACCURACY_M = 100
+const TREK_RESTORE_REQUEST_TIMEOUT_MS = 3500
 const LOCAL_TREK_SESSION_PREFIX = 'local-trek-session:'
 const LOCAL_FALLBACK_SESSION_PREFIX = 'local-fallback-session:'
 const INVALID_RECORD_SECONDS = 60
@@ -117,6 +123,12 @@ function isClientLocalSessionId(value: string) {
 function normalizeTrekActionError(error: unknown) {
   const message = error instanceof Error ? error.message : ''
   if (!message) return '确认登顶失败，请稍后重试。'
+  if (message.startsWith('outside_summit_radius:')) {
+    const distanceMeters = Number(message.split(':')[1])
+    if (Number.isFinite(distanceMeters)) {
+      return `需要更接近峰顶 · 当前距离 ${formatTrekStartDistanceKm(distanceMeters)}。`
+    }
+  }
   if (message.includes('local_trek_session_disabled')) return '本次记录会话已失效，请重新开始记录。'
   if (message.includes('insufficient_track_points')) return '轨迹点还不够，请继续记录一小段再确认登顶。'
   if (message.includes('session_too_short')) return '记录时间还太短，请继续记录后再确认登顶。'
@@ -127,6 +139,16 @@ function normalizeTrekActionError(error: unknown) {
   if (message.includes('no_active_mountains')) return '当前没有可核验的山峰，请稍后再试。'
   if (message.includes('session not found')) return '本次记录会话已失效，请重新开始记录。'
   return message
+}
+
+type RestoredTrekSession = {
+  sessionId: string
+  mountainId: string | null
+  startedAt: string
+  trackPoints: TrackPoint[]
+  distanceM: number
+  ascentM: number
+  maxAltitudeM: number | null
 }
 
 export default function TrekClient({
@@ -186,6 +208,7 @@ export default function TrekClient({
   const [gpsError, setGpsError] = useState('')
   const [gpsErrorCode, setGpsErrorCode] = useState<number | null>(null)
   const [entryValidationStatus, setEntryValidationStatus] = useState<EntryValidationStatus>('idle')
+  const [restoreStatus, setRestoreStatus] = useState<TrekRestoreStatus>('idle')
   const [prepGpsStatus, setPrepGpsStatus] = useState<PrepGpsStatus>('idle')
   const [prepGpsRetryCount, setPrepGpsRetryCount] = useState(0)
   const [allowWeakGpsStart, setAllowWeakGpsStart] = useState(false)
@@ -216,6 +239,7 @@ export default function TrekClient({
   const [elevationLoading, setElevationLoading] = useState(false)
   const [summitConfirmedAt, setSummitConfirmedAt] = useState<Date | null>(null)
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine))
+  const [manualRefreshLoading, setManualRefreshLoading] = useState(false)
   const photoInputRef = useRef<HTMLInputElement | null>(null)
 
   const watchIdRef = useRef<number | null>(null)
@@ -235,6 +259,8 @@ export default function TrekClient({
   const activeSessionIdRef = useRef<string | null>(null)
   const isPausedRef = useRef(false)
   const elevationLookupCoordinateRef = useRef<ElevationCoordinate | null>(null)
+  const restoreCheckStartedRef = useRef(false)
+  const manualGpsRefreshLastAtRef = useRef(0)
 
   const clearTrackingRuntime = useCallback(() => {
     activeSessionIdRef.current = null
@@ -523,14 +549,18 @@ export default function TrekClient({
     return () => controller.abort()
   }, [gps, hasGpsAltitude])
 
-  const callTrekAction = useCallback(async (payload: Record<string, unknown>) => {
+  const callTrekAction = useCallback(async (payload: Record<string, unknown>, options: { signal?: AbortSignal } = {}) => {
     const res = await fetch('/api/trek/actions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: options.signal,
     })
     const json = await res.json().catch(() => ({}))
     if (!res.ok || json?.error) {
+      if (json?.error === 'outside_summit_radius' && typeof json?.distanceMeters === 'number') {
+        throw new Error(`outside_summit_radius:${json.distanceMeters}`)
+      }
       throw new Error(json?.detail || json?.error || '服务端处理失败')
     }
     return json as Record<string, unknown>
@@ -564,6 +594,8 @@ export default function TrekClient({
   }, [applyGpsSnapshot, gps, showDistanceBlockedToast])
 
   useEffect(() => {
+    if ((restoreStatus === 'idle' || restoreStatus === 'checking') && !sessionId) return
+    if (sessionId) return
     if (!targetMountainId) {
       entryValidationKeyRef.current = null
       setEntryValidationStatus('passed')
@@ -626,7 +658,7 @@ export default function TrekClient({
     return () => {
       cancelled = true
     }
-  }, [mountainsLoading, router, suggestedMountain, targetMountainId, validateCurrentPositionForMountain])
+  }, [mountainsLoading, restoreStatus, router, sessionId, suggestedMountain, targetMountainId, validateCurrentPositionForMountain])
 
   useEffect(() => {
     if (entryValidationStatus !== 'blocked') return
@@ -683,7 +715,7 @@ export default function TrekClient({
   useEffect(() => {
     if (!gps) return
     if (!sessionId) return
-    if (status === 'summit_photo' || status === 'summit_verified' || status === 'card_preview' || status === 'shared') return
+    if (status !== 'locating' && status !== 'tracking') return
     checkNearby(gps.lat, gps.lng)
   }, [checkNearby, gps, sessionId, status, targetMountain])
 
@@ -726,6 +758,201 @@ export default function TrekClient({
     },
     [callTrekAction]
   )
+
+  const startTrackingRuntime = useCallback(
+    (runtimeSessionId: string) => {
+      if (!navigator.geolocation) {
+        setGpsError('当前设备不支持定位。')
+        setGpsErrorCode(null)
+        showToast({ key: 'device_location_unsupported' })
+        return
+      }
+
+      clearTrackingRuntime()
+      activeSessionIdRef.current = runtimeSessionId
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (position) => {
+          if (isPausedRef.current) return
+          if (activeSessionIdRef.current !== runtimeSessionId || watchIdRef.current === null) return
+
+          const { latitude, longitude, accuracy, altitude } = position.coords
+          const now = Date.now()
+          const nextPoint = { lat: latitude, lng: longitude, ts: now, altitude, accuracy }
+          const previousPoint = trackRef.current.at(-1)
+          if (typeof altitude === 'number' && Number.isFinite(altitude)) {
+            setLastValidAltitudeM(Math.round(altitude))
+          }
+
+          if (previousPoint) {
+            const segmentMeters = haversineMeters(previousPoint.lat, previousPoint.lng, latitude, longitude)
+            const elapsed = Math.max(1, (now - previousPoint.ts) / 1000)
+            const speed = segmentMeters / elapsed
+            if (speed > MAX_DRIFT_SPEED_MPS && accuracy > 25) {
+              setGpsError('检测到定位漂移，已过滤异常点。请继续移动到开阔区域。')
+              return
+            }
+
+            setDistanceKm((value) => Number((value + segmentMeters / 1000).toFixed(2)))
+            const previousAltitude = previousPoint.altitude
+            if (typeof altitude === 'number' && typeof previousAltitude === 'number' && altitude > previousAltitude) {
+              setAscentM((value) => value + Math.round(altitude - previousAltitude))
+            }
+          }
+
+          trackRef.current.push(nextPoint)
+          setGps({ lat: latitude, lng: longitude, accuracy, altitude })
+          setStatus('tracking')
+          setGpsError('')
+          setGpsErrorCode(null)
+          checkNearby(latitude, longitude)
+
+          if (lastSyncRef.current === 0 || now - lastSyncRef.current >= 4000) {
+            lastSyncRef.current = now
+            void appendPointToServer(runtimeSessionId, nextPoint, accuracy)
+          }
+        },
+        (error) => {
+          const messages: Record<number, string> = {
+            1: '请先允许浏览器访问位置信息。',
+            2: '定位失败，请移动到更开阔的位置。',
+            3: '定位超时，请重试。',
+          }
+          const message = messages[error.code] ?? error.message
+          clearTrackingRuntime()
+          elapsedBeforePauseRef.current = elapsedSecondsRef.current
+          trackingTickStartedAtRef.current = null
+          setIsPaused(true)
+          setGpsError(message)
+          setGpsErrorCode(error.code)
+          if (error.code === 1) {
+            clearToasts()
+            return
+          }
+          showToast({ key: 'location_error', message })
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
+      )
+    },
+    [appendPointToServer, checkNearby, clearToasts, clearTrackingRuntime, showToast]
+  )
+
+  const restoreActiveTrekSession = useCallback(
+    function restoreActiveTrekSession(restoredSession: RestoredTrekSession) {
+      const restoredTrack = safeTrackPoints(restoredSession.trackPoints)
+      const startedAtMs = new Date(restoredSession.startedAt).getTime()
+      const restoredElapsedSeconds = Number.isFinite(startedAtMs)
+        ? Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000))
+        : 0
+      const lastPoint = restoredTrack.at(-1)
+
+      setStatus('tracking')
+      setIsPaused(false)
+      setGpsError('')
+      setGpsErrorCode(null)
+      setCreatedCheckinId(null)
+      setSessionId(restoredSession.sessionId)
+      setSelectedMountainId(restoredSession.mountainId ?? '')
+      setConfirmedMountainId(restoredSession.mountainId)
+      setNearbyMountain(null)
+      setDistanceToTarget(null)
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000)))
+      setDistanceKm(Number((Math.max(0, restoredSession.distanceM) / 1000).toFixed(2)))
+      setAscentM(Math.max(0, Math.round(restoredSession.ascentM)))
+      setPrepGpsStatus('ready')
+      setPrepGpsRetryCount(0)
+      setAllowWeakGpsStart(false)
+      setGpsWeakStartedAt(null)
+
+      trackRef.current = restoredTrack
+      startTimeRef.current = Number.isFinite(startedAtMs) ? startedAtMs : Date.now() - restoredElapsedSeconds * 1000
+      elapsedBeforePauseRef.current = restoredElapsedSeconds
+      elapsedSecondsRef.current = restoredElapsedSeconds
+      trackingTickStartedAtRef.current = Date.now()
+      lastSyncRef.current = Date.now()
+      prepGpsRetryCountRef.current = 0
+
+      if (lastPoint) {
+        const nextGps = {
+          lat: lastPoint.lat,
+          lng: lastPoint.lng,
+          accuracy: lastPoint.accuracy,
+          altitude: lastPoint.altitude,
+        }
+        applyGpsSnapshot(nextGps)
+      } else if (typeof restoredSession.maxAltitudeM === 'number') {
+        setLastValidAltitudeM(Math.round(restoredSession.maxAltitudeM))
+      }
+
+      startTrackingRuntime(restoredSession.sessionId)
+      showToast({
+        tone: 'info',
+        message: '已恢复进行中的记录。',
+        durationMs: 2400,
+      })
+    },
+    [applyGpsSnapshot, showToast, startTrackingRuntime]
+  )
+
+  useEffect(() => {
+    if (restoreCheckStartedRef.current) return
+    if (mountainsLoading) return
+    if (sessionId) {
+      setRestoreStatus('none')
+      return
+    }
+
+    let cancelled = false
+    restoreCheckStartedRef.current = true
+    setRestoreStatus('checking')
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => {
+      controller.abort()
+    }, TREK_RESTORE_REQUEST_TIMEOUT_MS)
+
+    async function runRestoreCheck() {
+      try {
+        const data = await callTrekAction({ action: 'get_in_progress_trek_session' }, { signal: controller.signal })
+        if (cancelled) return
+        const rawSession = data.session
+        if (!rawSession || typeof rawSession !== 'object') {
+          setRestoreStatus('none')
+          return
+        }
+
+        const restoredSession = rawSession as Partial<RestoredTrekSession>
+        if (typeof restoredSession.sessionId !== 'string' || typeof restoredSession.startedAt !== 'string') {
+          setRestoreStatus('none')
+          return
+        }
+
+        restoreActiveTrekSession({
+          sessionId: restoredSession.sessionId,
+          mountainId: typeof restoredSession.mountainId === 'string' ? restoredSession.mountainId : null,
+          startedAt: restoredSession.startedAt,
+          trackPoints: safeTrackPoints(restoredSession.trackPoints),
+          distanceM: Number(restoredSession.distanceM ?? 0),
+          ascentM: Number(restoredSession.ascentM ?? 0),
+          maxAltitudeM:
+            typeof restoredSession.maxAltitudeM === 'number' && Number.isFinite(restoredSession.maxAltitudeM)
+              ? restoredSession.maxAltitudeM
+              : null,
+        })
+        setRestoreStatus('restored')
+      } catch {
+        if (!cancelled) setRestoreStatus('none')
+      } finally {
+        window.clearTimeout(timeout)
+      }
+    }
+
+    void runRestoreCheck()
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeout)
+      controller.abort()
+    }
+  }, [callTrekAction, mountainsLoading, restoreActiveTrekSession, sessionId])
 
   async function startTrek() {
     if (!targetMountain) {
@@ -792,69 +1019,7 @@ export default function TrekClient({
 	    trackingTickStartedAtRef.current = startedAt
     lastSyncRef.current = 0
     showToast({ key: 'trek_start_success', durationMs: 2500 })
-
-    activeSessionIdRef.current = nextSessionId
-	    watchIdRef.current = navigator.geolocation.watchPosition(
-	      (position) => {
-	        if (isPausedRef.current) return
-          if (!nextSessionId || activeSessionIdRef.current !== nextSessionId || watchIdRef.current === null) return
-	        const { latitude, longitude, accuracy, altitude } = position.coords
-        const now = Date.now()
-        const nextPoint = { lat: latitude, lng: longitude, ts: now, altitude, accuracy }
-        const previousPoint = trackRef.current.at(-1)
-        if (typeof altitude === 'number' && Number.isFinite(altitude)) {
-          setLastValidAltitudeM(Math.round(altitude))
-        }
-
-        if (previousPoint) {
-          const segmentMeters = haversineMeters(previousPoint.lat, previousPoint.lng, latitude, longitude)
-          const elapsed = Math.max(1, (now - previousPoint.ts) / 1000)
-          const speed = segmentMeters / elapsed
-          if (speed > MAX_DRIFT_SPEED_MPS && accuracy > 25) {
-            setGpsError('检测到定位漂移，已过滤异常点。请继续移动到开阔区域。')
-            return
-          }
-
-          setDistanceKm((value) => Number((value + segmentMeters / 1000).toFixed(2)))
-          const previousAltitude = previousPoint.altitude
-          if (typeof altitude === 'number' && typeof previousAltitude === 'number' && altitude > previousAltitude) {
-            setAscentM((value) => value + Math.round(altitude - previousAltitude))
-          }
-        }
-
-        trackRef.current.push(nextPoint)
-        setGps({ lat: latitude, lng: longitude, accuracy, altitude })
-        setStatus('tracking')
-        setGpsError('')
-        setGpsErrorCode(null)
-        checkNearby(latitude, longitude)
-
-        if (nextSessionId && (lastSyncRef.current === 0 || now - lastSyncRef.current >= 4000)) {
-          lastSyncRef.current = now
-          void appendPointToServer(nextSessionId, nextPoint, accuracy)
-        }
-      },
-	      (error) => {
-        const messages: Record<number, string> = {
-          1: '请先允许浏览器访问位置信息。',
-          2: '定位失败，请移动到更开阔的位置。',
-          3: '定位超时，请重试。',
-	        }
-	        const message = messages[error.code] ?? error.message
-	        clearTrackingRuntime()
-	        elapsedBeforePauseRef.current = elapsedSecondsRef.current
-	        trackingTickStartedAtRef.current = null
-	        setIsPaused(true)
-	        setGpsError(message)
-	        setGpsErrorCode(error.code)
-        if (error.code === 1) {
-          clearToasts()
-          return
-        }
-        showToast({ key: 'location_error', message })
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
-    )
+    startTrackingRuntime(nextSessionId)
   }
 
   async function stopTrek() {
@@ -1012,7 +1177,7 @@ export default function TrekClient({
   function handleApproachContinue() {
     if (!canConfirmSummit) {
       const missing: string[] = []
-      if (distanceToTarget === null || distanceToTarget > SUMMIT_RADIUS) missing.push('进入峰顶范围')
+      if (distanceToTarget === null || distanceToTarget > SUMMIT_READY_RADIUS_M) missing.push('进入 100m 登顶确认范围')
       if (trackRef.current.length < verificationRules.minTrackPoints) missing.push(`轨迹点至少 ${verificationRules.minTrackPoints} 个`)
       if (elapsedSeconds < verificationRules.minSessionSeconds) missing.push(`记录至少 ${verificationRules.minSessionSeconds} 秒`)
       showToast({
@@ -1057,8 +1222,10 @@ export default function TrekClient({
 
   const hasMinimumVerificationEvidence =
     trackRef.current.length >= verificationRules.minTrackPoints && elapsedSeconds >= verificationRules.minSessionSeconds
+  const isSummitReadyZone =
+    distanceToTarget !== null && distanceToTarget <= SUMMIT_READY_RADIUS_M
   const canConfirmSummit =
-    distanceToTarget !== null && distanceToTarget <= SUMMIT_RADIUS && hasMinimumVerificationEvidence
+    distanceToTarget !== null && distanceToTarget <= SUMMIT_READY_RADIUS_M && hasMinimumVerificationEvidence
   const isTrackingActive = status === 'locating' || status === 'tracking' || status === 'approach_alert'
   const isSummitPhotoFlow = status === 'summit_photo'
   const isSummitFlow = isSummitPhotoFlow || status === 'summit_verified' || status === 'card_preview' || status === 'shared'
@@ -1182,9 +1349,11 @@ export default function TrekClient({
     (gps.accuracy > 20 ||
       Boolean(gpsError && (gpsError.includes('漂移') || gpsError.includes('开阔') || gpsError.includes('信号'))))
   const isEntryValidationPending =
+    !sessionId &&
     Boolean(targetMountainId) &&
     (entryValidationStatus === 'idle' || entryValidationStatus === 'checking' || entryValidationStatus === 'blocked')
-  const viewState: TrekViewState = mountainsLoading || isEntryValidationPending
+  const isRestoreChecking = (restoreStatus === 'idle' || restoreStatus === 'checking') && !sessionId
+  const viewState: TrekViewState = mountainsLoading || isRestoreChecking || isEntryValidationPending
     ? 'loading'
     : gpsErrorCode === 1
       ? 'permissionDenied'
@@ -1224,6 +1393,8 @@ export default function TrekClient({
     { label: '距离 km', value: distanceKm.toFixed(2) },
     { label: '爬升 m', value: String(ascentM) },
   ]
+  const canUseManualRefresh =
+    Boolean(sessionId) && (viewState === 'live' || viewState === 'paused' || viewState === 'gpsWeak' || viewState === 'nearSummit')
 
   useEffect(() => {
     if (viewState !== 'preStart' || !targetMountain) {
@@ -1283,6 +1454,80 @@ export default function TrekClient({
     void runPrepGpsCheck({ manual: true })
   }
 
+  async function handleManualGpsRefresh() {
+    const now = Date.now()
+    if (now - manualGpsRefreshLastAtRef.current < MANUAL_REFRESH_COOLDOWN_MS) {
+      showToast({
+        key: 'trek_manual_refresh_cooldown',
+        message: '刷新太频繁，请稍等几秒。',
+        durationMs: 2200,
+      })
+      return
+    }
+    if (manualRefreshLoading) return
+
+    manualGpsRefreshLastAtRef.current = now
+    setManualRefreshLoading(true)
+    try {
+      let usedFallback = false
+      const nextGps = await Promise.race([
+        requestCurrentGpsPosition(),
+        new Promise<NonNullable<GpsState>>((resolve, reject) => {
+          window.setTimeout(() => {
+            if (gps && typeof gps.accuracy === 'number' && gps.accuracy <= MANUAL_REFRESH_SNAPSHOT_FALLBACK_ACCURACY_M) {
+              usedFallback = true
+              resolve(gps)
+              return
+            }
+
+            reject(new Error('refresh_timeout'))
+          }, MANUAL_REFRESH_TIMEOUT_MS)
+        }),
+      ])
+      applyGpsSnapshot(nextGps)
+      setGpsError('')
+      setGpsErrorCode(null)
+      setPrepGpsStatus('ready')
+      if (sessionId && status !== 'summit_photo' && status !== 'summit_verified' && status !== 'card_preview' && status !== 'shared') {
+        checkNearby(nextGps.lat, nextGps.lng)
+      }
+      if (usedFallback) {
+        showToast({
+          tone: 'success',
+          message: `数据已刷新 · 使用最近一次定位 ±${Math.round(nextGps.accuracy)}m`,
+          durationMs: 2200,
+        })
+      } else {
+        showToast({
+          tone: 'success',
+          message: `数据已刷新 · 水平精度 ±${Math.round(nextGps.accuracy)}m`,
+          durationMs: 2200,
+        })
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message === 'refresh_timeout') {
+        showToast({
+          key: 'location_error',
+          message: '定位暂时无响应，请稍后再试。',
+        })
+        return
+      }
+
+      const code = typeof (error as { code?: unknown })?.code === 'number' ? Number((error as { code: number }).code) : null
+      const message =
+        code === 1
+          ? '请先允许浏览器访问位置信息。'
+          : error instanceof Error && error.message
+            ? error.message
+            : '定位暂时异常，请稍后重试。'
+      setGpsError(message)
+      setGpsErrorCode(code)
+      showToast({ key: code === 1 ? 'action_blocked' : 'location_error', message })
+    } finally {
+      setManualRefreshLoading(false)
+    }
+  }
+
   function pauseTrek() {
     elapsedBeforePauseRef.current = elapsedSeconds
     trackingTickStartedAtRef.current = null
@@ -1308,7 +1553,13 @@ export default function TrekClient({
 
   return (
     <TrekShell>
-      <TrekTopBar state={viewState} onBack={handleBack} />
+      <TrekTopBar
+        state={viewState}
+        onBack={handleBack}
+        onRefresh={handleManualGpsRefresh}
+        refreshEnabled={canUseManualRefresh}
+        refreshLoading={manualRefreshLoading}
+      />
       {gpsError && viewState !== 'permissionDenied' && viewState !== 'gpsWeak' && viewState !== 'preStart' ? (
         <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-1)' }}>
           <InlineBanner tone="warn" title="定位状态需要注意" sub={gpsError} />
@@ -1403,6 +1654,7 @@ export default function TrekClient({
 	          altitude={displayAltitude}
           elapsedSeconds={elapsedSeconds}
           canContinue={canConfirmSummit}
+          ctaLabel={isSummitReadyZone ? '我已登顶' : '继续靠近峰顶'}
           loading={checkinLoading}
           onContinue={handleApproachContinue}
         />
@@ -1529,9 +1781,15 @@ function TrekShell({ children }: { children: ReactNode }) {
 function TrekTopBar({
   state,
   onBack,
+  onRefresh,
+  refreshEnabled = false,
+  refreshLoading = false,
 }: {
   state: TrekViewState
   onBack: () => void
+  onRefresh?: () => void
+  refreshEnabled?: boolean
+  refreshLoading?: boolean
 }) {
   const isRecording = state === 'live'
   const isGpsWeak = state === 'gpsWeak'
@@ -1646,11 +1904,12 @@ function TrekTopBar({
         {helpAnchor ? <HelpTrigger anchor={helpAnchor} size={15} /> : null}
       </div>
       <IconButton
-        icon={<MoreIcon size={20} />}
-        ariaLabel="更多"
+        icon={<RefreshIcon size={20} />}
+        ariaLabel="刷新数据"
         variant="filled"
         shape="circular"
-        onClick={() => {}}
+        disabled={!refreshEnabled || refreshLoading}
+        onClick={onRefresh ?? (() => {})}
       />
     </div>
   )
@@ -1949,6 +2208,7 @@ function NearSummitView({
   altitude,
   elapsedSeconds,
   canContinue,
+  ctaLabel,
   loading,
   onContinue,
 }: {
@@ -1956,6 +2216,7 @@ function NearSummitView({
   altitude: number
   elapsedSeconds: number
   canContinue: boolean
+  ctaLabel: string
   loading: boolean
   onContinue: () => void
 }) {
@@ -2199,7 +2460,7 @@ function NearSummitView({
           loading={loading}
           onClick={onContinue}
         >
-          继续
+          {ctaLabel}
         </PrimaryButton>
       </BottomActionBar>
     </div>

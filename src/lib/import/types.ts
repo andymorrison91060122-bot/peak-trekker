@@ -26,6 +26,7 @@ export interface ImportedTrackData {
   elevationLossMeters?: number
   maxElevation?: number
   minElevation?: number
+  trackContentHash?: string | null
   trackPoints: TrackPoint[]
   suggestedMountain?: MountainMatch | null
   suggestedCandidates?: MountainMatch[]

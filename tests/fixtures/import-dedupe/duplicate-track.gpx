@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Peak Trekker E2E" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>FU-1 Duplicate Track Fixture</name>
+    <trkseg>
+      <trkpt lat="30.000000" lon="120.000000">
+        <ele>100</ele>
+        <time>2026-05-17T00:00:00Z</time>
+      </trkpt>
+      <trkpt lat="30.001000" lon="120.001000">
+        <ele>120</ele>
+        <time>2026-05-17T00:10:00Z</time>
+      </trkpt>
+      <trkpt lat="30.002000" lon="120.002000">
+        <ele>140</ele>
+        <time>2026-05-17T00:20:00Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

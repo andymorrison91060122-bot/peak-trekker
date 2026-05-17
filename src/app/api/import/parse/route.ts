@@ -2,10 +2,16 @@ import { NextResponse } from 'next/server'
 import { IMPORT_MOUNTAIN_DISTANCE_THRESHOLD_METERS } from '@/lib/import/mountain-distance-check'
 import { AUTO_MATCH_THRESHOLD_METERS, matchNearestMountainCandidatesForTrack } from '@/lib/import/mountain-matcher'
 import { parseTrackFile } from '@/lib/import'
+import { computeTrackContentHash } from '@/lib/import/track-hash'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 const IMPORT_MAX_BYTES = 20 * 1024 * 1024
 const SUPPORTED_IMPORT_EXTENSIONS = ['gpx', 'kml', 'fit'] as const
+
+type DuplicateTrackRow = {
+  id: string
+  created_at: string | null
+}
 
 function getFileExtension(fileName: string) {
   return fileName.split('.').pop()?.toLowerCase() ?? ''
@@ -49,18 +55,42 @@ export async function POST(request: Request) {
 
   try {
     const parsedData = await parseTrackFile(file.name, Buffer.from(await file.arrayBuffer()))
+    const trackContentHash = computeTrackContentHash(parsedData.trackPoints)
+    const duplicateTrack = trackContentHash
+      ? await supabase
+        .from('checkins')
+        .select('id, created_at')
+        .eq('user_id', user.id)
+        .eq('track_content_hash', trackContentHash)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      : null
+
+    if (duplicateTrack?.error) {
+      return NextResponse.json({ error: duplicateTrack.error.message }, { status: 500 })
+    }
+
     const suggestedCandidates = await matchNearestMountainCandidatesForTrack(parsedData.trackPoints, {
       thresholdMeters: IMPORT_MOUNTAIN_DISTANCE_THRESHOLD_METERS,
     })
     const suggestedMountain = suggestedCandidates.find((candidate) => candidate.distanceMeters <= AUTO_MATCH_THRESHOLD_METERS) ?? null
+    const duplicateRow = duplicateTrack?.data as DuplicateTrackRow | null | undefined
 
     return NextResponse.json({
       ok: true,
       parsedData: {
         ...parsedData,
+        trackContentHash,
         suggestedMountain,
         suggestedCandidates,
       },
+      ...(duplicateRow ? {
+        duplicateTrack: {
+          existingCheckinId: duplicateRow.id,
+          existingCreatedAt: duplicateRow.created_at,
+        },
+      } : {}),
     })
   } catch (error) {
     return NextResponse.json(

@@ -8,12 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`f29af4f64f385171`（Merge FU-1 · 2026-05-17）
+`f13861d7345796a`（Merge FU-24+17 · 2026-05-17）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**FU-24 + FU-17 合并 sprint · Trek 韧性 + 登顶 UX · 状态 🟡 in-progress**
-覆盖 ABCD 4 项产品反馈整合
+**待启动**（候选: FU-40 Trek 退出自动暂停（已锁紧跟） / FU-13+FU-14 活动详情手记+补传 / FU-31 多图 9 张 / FU-30 山行字段语义统一）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -75,7 +74,7 @@
 
 ---
 
-## Active Follow-ups（20 条）
+## Active Follow-ups（19 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -249,38 +248,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-17 · approach_alert 距离 0m 时状态语义切换
-
-- **优先级**: P2
-- **归属阶段**: 阶段 3 后续
-- **状态**: 🟡 in-progress
-
-**背景**: 当前 GPS 距离 0m（已到数据库坐标点）时仍显示"临近峰顶 · 距离峰顶 0m"，体验割裂。
-
-**实施建议**: 三段式状态：
-- 距离 > 100m: approach_alert "临近峰顶"
-- 距离 ≤ 100m 但未确认: **"已到达峰顶 · 准备留证"** + 主 CTA 升级为"拍照留证"
-- 拍照完成: summit_verified "登顶成功"
-
----
-
-### FU-24 · Trek 刷新/重连恢复 elapsedSeconds
-
-- **优先级**: P1
-- **归属阶段**: 下个 sprint / 独立稳定性任务
-- **状态**: 🟡 in-progress
-
-**背景**: 用户在 Trek 过程中可能因网络不好刷新页面；真实徒步旅程应连续，elapsedSeconds 不应每次刷新后归零。
-
-**实施建议**:
-- mount 时检测 in-progress `trek_sessions`
-- 从服务端 `started_at` 恢复 elapsedSeconds = now - started_at
-- 后续如需精确暂停恢复，服务端补 `paused_seconds` / pause intervals
-
-**涉及**: `src/app/(flow)/trek/TrekClient.tsx` + `trek_sessions` schema / API。
-
----
-
 ### FU-30 · 档案页 / Profile 页 "山行"字段语义统一
 
 - **优先级**: P2
@@ -401,7 +368,31 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（19 条）
+### FU-40 · Trek 退出自动暂停 + 服务端持久化
+
+- 优先级: P1
+- 归属阶段: 紧跟 FU-24+17 启动（已与用户确认）
+- 状态: 🟢 active
+
+背景: FU-24 落地后 elapsedSeconds 从 started_at 恢复，但用户退出 trek 页后 elapsed 继续累计；如用户真"忘了"几小时甚至过夜，恢复时显示的时长会失真。
+
+产品决策（已锁）: 用户点退出/返回时自动 pause（相当于帮按暂停）；重新进入时显示已暂停态，用户主动"继续记录"恢复。
+
+实施建议:
+- 前端 handleBack: 如 status 是 tracking/approach_alert，调 pause_trek_session 后再 navigate
+- 后端新 action pause_trek_session: 写 trek_sessions.status='paused' + 保存 elapsed_pause_seconds
+- 可能 schema 扩展: trek_sessions 加 paused_at 或 elapsed_pause_seconds 字段
+- Restore 路径: status='paused' 时还原为 isPaused=true + 冻结 elapsedSeconds
+- 配套 e2e: 退出 → 返回 → 看到已暂停态 → 点继续记录 → 时长正确继续
+
+涉及:
+- src/app/(flow)/trek/TrekClient.tsx (handleBack + restore 适配)
+- src/app/api/trek/actions/route.ts (新 pause_trek_session action + restore status 处理)
+- supabase/migrations/* (如需要 schema 扩展)
+
+---
+
+## Closed Follow-ups（21 条）
 
 ### FU-1 ✅ 同一份轨迹文件去重（防伪造）
 
@@ -451,6 +442,14 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
+### FU-17 ✅ approach_alert 距离 0m 时状态语义切换
+
+- **关闭原因**: FU-24+17 合并 sprint 落地（SUMMIT_READY_RADIUS_M=100 + CTA 文案 ≤100m "我已登顶" / >100m "继续靠近峰顶" disabled + 服务端 verify_summit_checkin max(existing, 300m) 兜底）。原 3 段状态 plan 略调为 2 段 + CTA 文案升级，体验等价且状态机不增复杂度
+- **关闭 commit**: `395d16a`
+- **关闭时间**: 2026-05-17
+
+---
+
 ### FU-18 ✅ Trek 登顶"继续"按钮失效（N2 残留）
 
 - **关闭原因**: Pre-3.a 落地（approach_alert 继续按钮接入 SummitPhotoView，photo-upload 端到端通过）
@@ -496,6 +495,14 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 - **关闭原因**: Pre-3.a 落地（新增 Open-Meteo Elevation API fallback，移动 50m 重查，AbortSignal 取消在途请求）
 - **关闭 commit**: `ea853c6`
 - **关闭时间**: 2026-05-15
+
+---
+
+### FU-24 ✅ Trek 刷新/重连恢复 elapsedSeconds
+
+- **关闭原因**: FU-24+17 合并 sprint 落地（get_in_progress_trek_session 24h freshness gate + restoreActiveTrekSession 还原 sessionId/mountainId/elapsed/distance/ascent/trackRef/lastGps；entry validation gate 修正；startTrackingRuntime 共享 helper；含 1 个 in-sprint 补丁修 C 手动刷新 hang）
+- **关闭 commit**: `f65d1b4`
+- **关闭时间**: 2026-05-17
 
 ---
 
@@ -623,6 +630,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.12 — 2026-05-17**：FU-24 + FU-17 合并 sprint 完成。Trek 韧性 + 登顶 UX 综合修复 ABCD 4 项：(A) elapsedSeconds 从 started_at 恢复 + 24h freshness gate；(B) 状态机直接进 tracking 不踢回选山 + entry validation gate 修正；(C) 手动刷新按钮 + 2500ms timeout + snapshot fallback 防 hang（含 1 个 in-sprint 补丁修 live 态 requestCurrentGpsPosition 与 watchPosition 并发竞争）；(D) 登顶范围 CTA ≤100m "我已登顶" + 服务端 300m 兜底。FU-17 原 3 段状态 plan 略调为 2 段 + CTA 文案升级（状态机不增复杂度，体验等价）。startTrackingRuntime 抽共享 helper 避免 stale callback 时序污染。测试基线 217 → 222 (+5)。新增 FU-40 Trek 退出自动暂停 active（已锁紧跟启动）。所有 P1 阻塞项接近清完（FU-24/1/Pre-3.a 全闭，FU-40 待启）。Active 20 → 19；Closed 19 → 21。
 
 **v0.11 — 2026-05-17**：FU-1 同一份轨迹文件去重（防伪造）完成。checkins 新增 track_content_hash 列 + 用户级 partial unique index（NULL 不冲突）+ SHA-256 normalize hash helper（6 位经纬度 / 整数海拔 / ISO 时间，无效 / 缺失字段归一化空字符串）+ parse 路由 200 + dup payload 早提示 + confirm 路由服务端重算 hash + unique violation race-safe 兜底 + ImportPreview dup banner + 查看已存在活动 CTA + 4 unit / 静态 / e2e + GPX ele 变种 fixture。视觉验收 PASS（dup 触发正确 / 跳活动详情正确 / pre-commit 微调 banner 上下间距）。跨用户允许同一 hash（共享 gpx 团队场景）；截图源 / Trek realtime 不在 scope（NULL 不触发约束）。Active 21 → 20；Closed 18 → 19。
 

@@ -4,6 +4,7 @@ import {
   ACTIVITY_NOTE_MAX_LENGTH,
   ACTIVITY_PHOTO_MAX_COUNT,
   getActivityNoteValidation,
+  getActivityPhotoDeleteValidation,
   getActivityPhotoUploadValidation,
 } from '../../src/lib/activity-detail-validation.ts'
 
@@ -99,6 +100,37 @@ test('activity photo upload validation enforces approved status, in-flight guard
       status: 'approved',
       isUploading: true,
     }).canUpload,
+    false
+  )
+})
+
+test('activity photo delete validation enforces approved status and in-flight guard', () => {
+  assert.equal(
+    getActivityPhotoDeleteValidation({
+      status: 'approved',
+    }).canDelete,
+    true
+  )
+
+  assert.equal(
+    getActivityPhotoDeleteValidation({
+      status: 'pending',
+    }).canDelete,
+    false
+  )
+
+  assert.equal(
+    getActivityPhotoDeleteValidation({
+      status: 'rejected',
+    }).canDelete,
+    false
+  )
+
+  assert.equal(
+    getActivityPhotoDeleteValidation({
+      status: 'approved',
+      isDeleting: true,
+    }).canDelete,
     false
   )
 })

@@ -12,7 +12,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动（候选: FU-46 e2e baseline rot 清理 [P2 高优] / FU-31 多图 9 张 [P2] / FU-43 archive 卡片标签可读性 [P2] / FU-44 activity-hero URL 路由偏差 [P2] / FU-45 admin-mountain-edit rich text [P2] / FU-30 山行字段语义统一 / FU-2+FU-15 UI 文案统一 / FU-11 活动详情底部按钮悬浮 / FU-42 审核机制语义澄清）
+**FU-46 子 sprint 1 · debug routes baseline rot · 状态 🟡 in-progress**
 
 ### 关键文档地图
 | 文档 | 用途 |

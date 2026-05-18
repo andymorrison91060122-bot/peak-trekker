@@ -12,7 +12,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**待启动（候选: FU-46 [P2 高优] 仍在首 / FU-31 [P2] / FU-43 [P2] / FU-44 [P2] / FU-45 [P2] / FU-30 / FU-2+FU-15 / FU-11 / FU-42）**
+**FU-46 子 sprint 2 · mountain-waypoints-display · 状态 🟡 in-progress**
 
 ### 关键文档地图
 | 文档 | 用途 |

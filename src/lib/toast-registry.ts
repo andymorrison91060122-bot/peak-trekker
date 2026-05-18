@@ -38,6 +38,18 @@ export const TOAST_REGISTRY = {
     tone: 'error',
     message: '保存记录失败，请稍后重试。',
   },
+  trek_pause_persist_failed: {
+    tone: 'error',
+    message: '暂停状态保存失败，请稍后重试。',
+  },
+  trek_manual_refresh_cooldown: {
+    tone: 'info',
+    message: '刷新太频繁，请稍等几秒。',
+  },
+  trek_resume_failed: {
+    tone: 'error',
+    message: '继续记录失败，请稍后重试。',
+  },
   trek_start_too_far: {
     tone: 'error',
     message: '经校验，您并不在这个山峰的附近，请到山峰附近再开始记录。',

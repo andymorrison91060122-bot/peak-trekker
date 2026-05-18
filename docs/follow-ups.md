@@ -8,11 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`56555f8e28e2dec4`（Merge FU-13 + FU-14 · 2026-05-18）
+`57ff50973d08e38d`（Merge FU-41 · 2026-05-18）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**FU-41 · checkins RLS write-gap 系统审计 + 剩余 path 修复 sprint · 状态 🟡 in-progress**
+待启动（候选: FU-46 e2e baseline rot 清理 [P2 高优] / FU-31 多图 9 张 [P2] / FU-43 archive 卡片标签可读性 [P2] / FU-44 activity-hero URL 路由偏差 [P2] / FU-45 admin-mountain-edit rich text [P2] / FU-30 山行字段语义统一 / FU-2+FU-15 UI 文案统一 / FU-11 活动详情底部按钮悬浮 / FU-42 审核机制语义澄清）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -51,6 +51,14 @@
 - Codex 在 V1 plan 阶段必须包含 E2E 自测环节（Playwright 脚本 + 跑通报告 + 截图）；单元测试静态字符串 grep 不能替代运行时行为验证
 - 每次涉及 schema 改动的 sprint，V3 收尾必须包含"migration 已推送到远程 Supabase"的验证步骤（Codex 用 Supabase 插件主动推送 + service role 查 information_schema 验证）
 
+#### V3 收尾 preflight 协议增强（v0.15 引入 / 当前 grandfather 豁免）
+
+- Phase 3 / V3 preflight **应**执行 `npx playwright test` 全量跑，而非相关子集。
+- 全量 e2e 内出现 pre-existing baseline failure 时按 FU-39 quarantine 范式: (1) main 独立复现验证 pre-existing; (2) 失败 case 加 test.fixme + reason 标记目标 FU; (3) 开新 FU（根因清晰单独 / 多 case umbrella）入 Active 段跟踪; (4) 整套 quarantine 后全量 e2e 通过 0 failure 才进 V3。
+- **触发来源**: FU-13/14 sprint 漏跑全量致 FU-41 Phase 3 才暴露 64+ 项 baseline rot 累积。
+- **Grandfather 豁免**: FU-46 closed 前此协议**暂不强制**。FU-41 P1 数据完整性 bug 不应被 baseline rot 拖延，acceptance gate 改为 "守卫单测 + lint + 强关联 spec"。
+- **后续 sprint**: FU-46 高优先候选。FU-46 closed 后此协议正式 enforce。
+
 ### 新对话/接手指引
 新对话开始时只需读取以下三个来源即可 onboard：
 1. 最近 transcript（`/mnt/transcripts/` 下最新文件）
@@ -74,7 +82,7 @@
 
 ---
 
-## Active Follow-ups（19 条）
+## Active Follow-ups（21 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -343,31 +351,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-41 · checkins RLS write-gap 系统审计 + 剩余 path 修复
-
-- **优先级**: P1（安全 / 数据完整性盲点）
-- **归属阶段**: 阶段 3 / 阶段 5
-- **状态**: 🟡 in-progress
-
-**背景**: FU-13/14 sprint 实战发现 `checkins.UPDATE` RLS policy admin-only，普通 owner 走 user client 写 0 行但无 error，造成 silent no-op。本 sprint 修了 activity/actions 两条直接相关 path（service-role 兜底），但 audit 暴露至少 2 处其他 callsite 仍受影响。
-
-**已知待修 callsite**:
-- src/app/api/admin/checkin-review/route.ts:78 / 87 admin update status / review_note / admin_note — 若 admin 通过 ADMIN_EMAILS allowlist 进入但 profiles.is_admin=false，会被 RLS 拦截（silent no-op）
-- src/app/api/trek/actions/route.ts:1258 owner update poster_template / poster_url — silent no-op，share card 字段未持久化
-
-**实施建议**:
-- audit ADMIN_EMAILS allowlist 与 profiles.is_admin 一致性。要么补 profiles.is_admin 同步机制，要么 admin review route 也切 service-role
-- trek/actions:1258 poster update 切 service-role（与 activity/actions 同范式）
-- 顺便补静态守卫：grep "from('checkins').update(" 仅允许 admin client / service-role 调用点 + 显式注释豁免
-- 不改 RLS（defense-in-depth 保持）
-
-**涉及**:
-- src/app/api/admin/checkin-review/route.ts
-- src/app/api/trek/actions/route.ts
-- 可能 src/lib/* admin helper
-
----
-
 ### FU-42 · checkins 审核机制语义澄清 + status gate 存废决策
 
 - **优先级**: P2（业务方向 / 不阻塞）
@@ -425,7 +408,71 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
-## Closed Follow-ups（23 条）
+### FU-44 · activity-hero e2e baseline 失败：explore vs mountain 路由偏差
+
+- **优先级**: P2
+- **状态**: 🟢 active
+
+**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 tests/e2e/activity-hero.spec.ts 5 个 case 全部失败：spec 期望 a[href^="/explore/"]，页面渲染 /mountain/... 链接。main 独立复现 = pre-existing baseline。
+
+**失败 case 5 个**: 全部位于 tests/e2e/activity-hero.spec.ts，根因相同。
+
+**根因 Hypothesis**: 业务路由从 /explore/<id> 改到 /mountain/<id>，spec 未同步。
+
+**修复建议**: 跑实际页确认 canonical 路径，spec 改 selector 或路由层做 redirect。
+
+**涉及**: tests/e2e/activity-hero.spec.ts; 可能 src/app/(main)/explore/* 与 src/app/(flow)/mountain/* 二选一对齐。
+
+---
+
+### FU-45 · admin-mountain-edit e2e baseline 失败：rich text 重复渲染
+
+- **优先级**: P2
+- **状态**: 🟢 active
+
+**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 admin-mountain-edit.spec.ts:111 失败：getByText('新的列表项 1', exact) strict-mode 命中 2 元素。main 独立复现 = pre-existing。
+
+**失败 case 1 个**: admin can edit mountain description with rich text and it renders on mountain detail
+
+**根因 Hypothesis**: rich text 编辑器双写 / preview + view 同时 render / React strict mode 双渲染 / 序列化 round-trip 重复。
+
+**修复建议**: dev server 实测 DOM，是否真重复决定改 selector 还是修编辑器。
+
+**涉及**: tests/e2e/admin-mountain-edit.spec.ts; 可能 src/app/admin/mountains/* 或 rich text 组件。
+
+---
+
+### FU-46 · e2e baseline rot 系统性清理（umbrella）
+
+- **优先级**: P2（**高优** — 阻塞全量 e2e gate 启用）
+- **状态**: 🟢 active
+
+**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 58 个 pre-existing failure（除 FU-44 / FU-45 之外），跨 8 个 spec 文件。main 独立复现确认全部 pre-existing，与 FU-41 commit 无因果。所有 case 已 test.fixme quarantine（commit 2e6a923），feature 分支 e2e 数学上 0 failure（除 Step 4 未跑完）。
+
+**元层级 finding**: FU-13/14 / FU-40 / FU-33 / FU-1 等 sprint 仅跑相关子集 e2e 未全量，导致 baseline rot 多周期无感累积。v0.15 引入"V3 preflight 全量 e2e gate"协议但 FU-41 grandfather 豁免直到本 FU 修完。
+
+**Inventory**（58 cases / 8 spec 文件）:
+- tests/e2e/app.spec.ts: 18 cases（含 trek/onboarding 流程偏差等）
+- tests/e2e/button-token-migration.spec.ts: 6 cases
+- tests/e2e/community-acceptance.spec.ts: 16 cases
+- tests/e2e/community-final-polish.spec.ts: 5 cases
+- tests/e2e/debug-access.spec.ts: 2 cases
+- tests/e2e/debug-tokens.spec.ts: 1 case
+- tests/e2e/mountain-featured-posts.spec.ts: 5 cases
+- tests/e2e/mountain-waypoints-display.spec.ts: 5 cases
+
+**额外 note**: main 上还有 1 个 tests/e2e/import-dedupe-flow.spec.ts case main-fail / feature-pass，疑似环境波动，不入 inventory。
+
+**修复策略**:
+- 按 spec 文件分组单 sprint 修（根因相似度组合）或全套独立 sprint
+- 修一项移一项 quarantine（test.fixme → test）
+- 全部 case 修完后关闭本 FU + 启用全量 e2e gate
+
+**涉及**: 上述 8 个 spec 文件 + 对应业务代码（每个 case 根因决定）。
+
+---
+
+## Closed Follow-ups（24 条）
 
 ### FU-1 ✅ 同一份轨迹文件去重（防伪造）
 
@@ -620,6 +667,14 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
+### FU-41 ✅ checkins RLS write-gap 系统审计 + 剩余 path 修复
+
+- **关闭原因**: FU-41 sprint 落地。修 3 处 user client checkins.update silent no-op（admin review 主 update 第 78 行 + fallback admin_note update 第 87 行 + trek poster persistence 第 1257 行），service-role 兜底范式延续（与 FU-13/14 fix 19dde9a 同范式）。新增静态守卫单测防再发（grep .from('checkins').update( 全树扫描 + admin client 邻近检测 + 豁免 marker syntax）。不改 RLS（defense-in-depth 保持）。canAccessAdminTools allowlist-only admin（profiles.is_admin=false）之前 silent no-op，本 sprint 后已正常持久化。Sprint 副产物：实战发现 e2e baseline rot 累积 → 入 FU-44/45/46 跟踪 + v0.15 引入全量 e2e gate 协议（grandfather 豁免到 FU-46 修完）。
+- **关闭 commit**: `e178f91`
+- **关闭时间**: 2026-05-18
+
+---
+
 > **历史跳号编号**：FU-26 在 Pre-3.a sprint 中编号跳号未实际引入；未来新增 FU 不复用此编号，按当前最大编号 +1 顺序分配。
 
 ---
@@ -689,6 +744,18 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.15 — 2026-05-18**: FU-41 RLS write-gap 系统审计 + 剩余 path 修复完成。修 3 处 user client checkins.update silent no-op（admin review 主 update + fallback admin_note update + trek poster persistence），service-role 兜底范式延续（与 FU-13/14 fix 19dde9a 同范式）。新增静态守卫单测防再发。不改 RLS。canAccessAdminTools allowlist-only admin（profiles.is_admin=false）之前 silent no-op 改不动审批状态 / trek poster 永不持久化，本 sprint 后已修。
+
+**Sprint 副产物 — baseline rot 暴露**: Phase 3 全量 e2e 暴露 64 个 pre-existing baseline failure（main 64 / feature 58 + FU-44 5 + FU-45 1 = 64 + 1 main-only 环境波动），全部 main 独立复现验证与 FU-41 commit 无因果。按 FU-39 quarantine 范式逐项隔离: FU-44 (activity-hero URL 路由偏差) 5 cases / FU-45 (admin-mountain-edit rich text 重复 strict-mode) 1 case / FU-46 (umbrella, 8 spec 文件 / 58 cases)。
+
+**元层级 finding**: FU-13/14 / FU-40 / FU-33 等 sprint 仅跑相关子集 e2e，rot 多周期累积无感。v0.15 引入"V3 preflight 全量 e2e gate"协议但 grandfather 豁免直到 FU-46 修完。**用户路径决策（路 A）**: FU-41 acceptance gate 改为守卫单测 + lint + 强关联 spec (admin/trek/checkins) 通过，跳过全量 0-failure 验证（数学上 quarantine 完整可信，Step 4 未重跑）。
+
+**P1 status**: FU-41 关闭后 P1 维持全清（FU-13 之后 P1 唯一新增即 FU-41，本 sprint 关闭后再次全清）。
+
+**测试基线**: +1（守卫单测）。Active 19 → 21（+3 -1）；Closed 23 → 24（+1）。
+
+**注**: v0.8 机械化清单第八次实战。首次"sprint 内连续 STOP + 策略调整 + 收尾 grandfather 豁免"案例。
 
 **v0.14 — 2026-05-18**：FU-13 + FU-14 合并 sprint 完成。活动详情手记 + 照片补传功能接入。**重大 finding：hidden RLS write-gap** —— checkins.UPDATE RLS policy 早已 admin-only（推测早期 RLS hardening sprint 锁死），普通 owner 走 user client 写 0 行但无 error，route 假装成功。原 finding "后端 update_activity_note / add_activity_images 已上线" 误判：route.ts 代码层确实写完，但生产 RLS 让所有 owner 写入静默失败，bug 一直潜伏（早期使用方仅孤儿文件 src/components/activity/ActivityDetailClient.tsx，无人 import）到 FU-13/14 接入 UI 才被 e2e 实测暴露。修复策略：service-role 兜底（与 FU-33 OCR quota Server-only 范式一致），gate 通过后切 admin client；不改 RLS（defense-in-depth 保持）。配套 audit 暴露剩余 callsite（admin review allowlist gap + trek poster silent no-op）入 FU-41 跟踪。2 个 in-sprint 补丁：(1) 删除 PhotoStrip 硬编码 mock label "13:24·山顶/08:48·C1/06:12·出发后"（与照片内容无关的假数据，沿用历史 mock 残留）；(2) 已 9/9 张点按钮的 toast feedback（aria-disabled + onClick 分支替代真 disabled，与"待审核通过后"toast 同范式）。视觉验收用户反馈促成 3 个新 FU：FU-41 RLS write-gap 系统审计（P1，源自 sprint 内 audit）；FU-42 审核机制语义澄清（P2，源自用户质疑业务必要性）；FU-43 archive 卡片标签可读性（P2，源自验收发现）。FU-31 描述补强 3 项（4+ 张展示 + 大图查看 + 单张删除）。测试基线 +4（活动 validation 3 单元 + 1 e2e）。Active 18 → 19；Closed 21 → 23。**注：v0.8 机械化清单第七次实战 + 首次"后端已实现"假设被实战推翻 + 单 sprint 开 3 个新 FU 的高净增量记录。**
 

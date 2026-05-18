@@ -69,6 +69,20 @@ async function bestEffortRemoveCheckinPhotoObjects(
   await supabase.storage.from(CHECKIN_PHOTOS_BUCKET).remove(paths).catch(() => undefined)
 }
 
+function getCheckinPhotoObjectPath(url: string, userId: string) {
+  try {
+    const parsedUrl = new URL(url)
+    const marker = `/storage/v1/object/public/${CHECKIN_PHOTOS_BUCKET}/`
+    const markerIndex = parsedUrl.pathname.indexOf(marker)
+    if (markerIndex === -1) return null
+
+    const objectPath = decodeURIComponent(parsedUrl.pathname.slice(markerIndex + marker.length))
+    return objectPath.startsWith(`checkins/${userId}/`) ? objectPath : null
+  } catch {
+    return null
+  }
+}
+
 async function loadCheckinById(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   checkinId: string
@@ -283,6 +297,120 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}))
   const action = body?.action as string | undefined
+
+  if (action === 'delete_activity_image') {
+    try {
+      assertActivityUpdatePolicy(body as Record<string, unknown>, {
+        ignoredFields: ['action', 'checkinId', 'photoId', 'photoUrl'],
+        allowedFields: [],
+      })
+    } catch (error) {
+      return policyErrorResponse(error) ?? NextResponse.json({ error: 'invalid update payload' }, { status: 400 })
+    }
+
+    const checkinId = typeof body?.checkinId === 'string' ? body.checkinId : ''
+    const photoId = typeof body?.photoId === 'string' ? body.photoId : ''
+    const photoUrl = typeof body?.photoUrl === 'string' ? body.photoUrl : ''
+
+    if (!checkinId) {
+      return NextResponse.json({ error: 'checkinId required' }, { status: 400 })
+    }
+
+    if (!photoId && !photoUrl) {
+      return NextResponse.json({ error: 'photo target required' }, { status: 400 })
+    }
+
+    const checkin = await loadCheckinById(supabase, checkinId)
+    if (!checkin) {
+      return NextResponse.json({ error: 'record not found' }, { status: 404 })
+    }
+    if (checkin.user_id !== user.id) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    }
+    if (checkin.status !== 'approved') {
+      return NextResponse.json({ error: '只有已通过的攀登记录才能删除现场照片。' }, { status: 422 })
+    }
+
+    try {
+      const existingAssets = await loadExistingImageAssets(supabase, checkinId)
+      const matchedById =
+        photoId && photoId !== 'legacy-photo'
+          ? existingAssets.find((asset) => asset.id === photoId) ?? null
+          : null
+      const targetUrl = matchedById?.url ?? (photoUrl || (photoId === 'legacy-photo' ? checkin.photo_url ?? '' : ''))
+      const matchedByCoverUrl =
+        targetUrl && checkin.photo_url === targetUrl
+          ? existingAssets.find((asset) => asset.url === targetUrl) ?? null
+          : null
+      const targetAsset = matchedById ?? matchedByCoverUrl
+      const deletesLegacyCover = Boolean(targetUrl && checkin.photo_url === targetUrl)
+
+      if (!targetUrl || (!targetAsset && !deletesLegacyCover)) {
+        return NextResponse.json({ error: 'photo not found' }, { status: 404 })
+      }
+
+      const remainingAssets = targetAsset
+        ? existingAssets.filter((asset) => asset.id !== targetAsset.id)
+        : existingAssets
+      const nextCoverUrl = deletesLegacyCover ? remainingAssets[0]?.url ?? null : checkin.photo_url
+
+      if (deletesLegacyCover) {
+        const coverUpdate = { photo_url: nextCoverUrl }
+        assertActivityUpdatePolicy(coverUpdate, { allowedFields: ['photo_url'] })
+        const adminSupabase = createSupabaseAdminClient()
+        const { error: updatePhotoError } = await adminSupabase
+          .from('checkins')
+          .update(coverUpdate)
+          .eq('id', checkinId)
+          .eq('user_id', user.id)
+
+        if (updatePhotoError) {
+          return NextResponse.json({ error: updatePhotoError.message || '现场照片封面更新失败，请稍后重试。' }, { status: 500 })
+        }
+      }
+
+      if (targetAsset) {
+        const { data: deletedAsset, error: deleteError } = await supabase
+          .from('checkin_assets')
+          .delete()
+          .eq('id', targetAsset.id)
+          .eq('checkin_id', checkinId)
+          .select('id')
+          .maybeSingle()
+
+        if (deleteError) {
+          return NextResponse.json({ error: deleteError.message || '现场照片删除失败，请稍后重试。' }, { status: 500 })
+        }
+
+        if (!deletedAsset) {
+          return NextResponse.json({ error: 'photo not found' }, { status: 404 })
+        }
+      }
+
+      const objectPath = getCheckinPhotoObjectPath(targetUrl, user.id)
+      if (objectPath) {
+        await bestEffortRemoveCheckinPhotoObjects(supabase, [objectPath])
+      }
+
+      return NextResponse.json({
+        ok: true,
+        deletedPhotoId: targetAsset?.id ?? photoId,
+        deletedPhotoUrl: targetUrl,
+        photoUrl: nextCoverUrl,
+        assets: remainingAssets.map(toClientAsset),
+      })
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error && error.message.trim()
+              ? error.message
+              : '现场照片删除失败，请稍后重试。',
+        },
+        { status: 500 }
+      )
+    }
+  }
 
   if (action !== 'update_activity_note') {
     return NextResponse.json({ error: 'unsupported action' }, { status: 400 })

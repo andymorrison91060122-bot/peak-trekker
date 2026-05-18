@@ -12,7 +12,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**待启动（候选: FU-46 [P2 高优] 仍在首 / FU-31 [P2] / FU-43 [P2] / FU-44 [P2] / FU-45 [P2] / FU-30 / FU-2+FU-15 / FU-11 / FU-42 / community-final-polish 等）**
+**FU-44 close · activity-hero obsolete + orphan cleanup · 状态 🟡 in-progress**
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -413,7 +413,7 @@ status 字段是 schema/RLS/RPC 既有概念：
 ### FU-44 · activity-hero e2e baseline 失败：explore vs mountain 路由偏差
 
 - **优先级**: P2
-- **状态**: 🟢 active
+- **状态**: 🟡 in-progress
 
 **背景**: FU-41 sprint Phase 3 全量 e2e 暴露 tests/e2e/activity-hero.spec.ts 5 个 case 全部失败：spec 期望 a[href^="/explore/"]，页面渲染 /mountain/... 链接。main 独立复现 = pre-existing baseline。
 

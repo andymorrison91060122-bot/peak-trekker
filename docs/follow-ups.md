@@ -8,11 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`a85035f96aad0831`（Merge FU-46 子 sprint 3 · 2026-05-19）
+`9286e1922fac0a65`（Merge FU-44 close · 2026-05-19）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**FU-44 close · activity-hero obsolete + orphan cleanup · 状态 🟡 in-progress**
+**待启动（候选: FU-46 [P2 高优] 仍在首 / FU-31 [P2] / FU-43 [P2] / FU-45 [P2] / community-final-polish / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）**
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -84,7 +84,7 @@
 
 ---
 
-## Active Follow-ups（21 条）
+## Active Follow-ups（20 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -410,23 +410,6 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
-### FU-44 · activity-hero e2e baseline 失败：explore vs mountain 路由偏差
-
-- **优先级**: P2
-- **状态**: 🟡 in-progress
-
-**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 tests/e2e/activity-hero.spec.ts 5 个 case 全部失败：spec 期望 a[href^="/explore/"]，页面渲染 /mountain/... 链接。main 独立复现 = pre-existing baseline。
-
-**失败 case 5 个**: 全部位于 tests/e2e/activity-hero.spec.ts，根因相同。
-
-**根因 Hypothesis**: 业务路由从 /explore/<id> 改到 /mountain/<id>，spec 未同步。
-
-**修复建议**: 跑实际页确认 canonical 路径，spec 改 selector 或路由层做 redirect。
-
-**涉及**: tests/e2e/activity-hero.spec.ts; 可能 src/app/(main)/explore/* 与 src/app/(flow)/mountain/* 二选一对齐。
-
----
-
 ### FU-45 · admin-mountain-edit e2e baseline 失败：rich text 重复渲染
 
 - **优先级**: P2
@@ -449,11 +432,11 @@ status 字段是 schema/RLS/RPC 既有概念：
 - **优先级**: P2（**高优** — 阻塞全量 e2e gate 启用）
 - **状态**: 🟢 active
 
-**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 58 个 pre-existing failure（除 FU-44 / FU-45 之外），跨 8 个 spec 文件。main 独立复现确认全部 pre-existing，与 FU-41 commit 无因果。所有 case 已 test.fixme quarantine（commit 2e6a923），feature 分支 e2e 数学上 0 failure（除 Step 4 未跑完）。FU-46 子 sprint 1 已修 debug routes 3 个 quarantine case，inventory 58 → 55；子 sprint 2 已修 mountain-waypoints-display 5 个 case，inventory 55 → 50；子 sprint 3 已修 mountain-featured-posts 5 个 case，inventory 50 → 45。
+**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 58 个 pre-existing failure（除 FU-44 / FU-45 之外），跨 8 个 spec 文件。main 独立复现确认全部 pre-existing，与 FU-41 commit 无因果。所有 case 已 test.fixme quarantine（commit 2e6a923），feature 分支 e2e 数学上 0 failure（除 Step 4 未跑完）。FU-46 子 sprint 1 已修 debug routes 3 个 quarantine case，inventory 58 → 55；子 sprint 2 已修 mountain-waypoints-display 5 个 case，inventory 55 → 50；子 sprint 3 已修 mountain-featured-posts 5 个 case，inventory 50 → 45；FU-44 close sprint 判定 activity-hero 5 cases 为 obsolete cleanup，overall baseline backlog 45 → 40。
 
 **元层级 finding**: FU-13/14 / FU-40 / FU-33 / FU-1 等 sprint 仅跑相关子集 e2e 未全量，导致 baseline rot 多周期无感累积。v0.15 引入"V3 preflight 全量 e2e gate"协议但 FU-41 grandfather 豁免直到本 FU 修完。
 
-**Inventory**（45 remaining cases / 4 active spec 文件；子 sprint 1 已修 3 cases，子 sprint 2 已修 5 cases，子 sprint 3 已修 5 cases）:
+**Inventory**（40 remaining cases / 4 active spec 文件；子 sprint 1 已修 3 cases，子 sprint 2 已修 5 cases，子 sprint 3 已修 5 cases；FU-44 activity-hero 5 cases 已按 obsolete cleanup 移除，不计入"已修"）:
 - tests/e2e/app.spec.ts: 18 cases（含 trek/onboarding 流程偏差等）
 - tests/e2e/button-token-migration.spec.ts: 6 cases
 - tests/e2e/community-acceptance.spec.ts: 16 cases
@@ -464,6 +447,7 @@ status 字段是 schema/RLS/RPC 既有概念：
 - tests/e2e/debug-tokens.spec.ts: 1 case ✓ 已修（子 sprint 1, commit 8c7dcaa）
 - tests/e2e/mountain-waypoints-display.spec.ts: 5 cases ✓ 已修（子 sprint 2, commit a7762fb）
 - tests/e2e/mountain-featured-posts.spec.ts: 5 cases ✓ 已修（子 sprint 3, commit ba77bad；cheap win：子 sprint 2 `listActiveMountainsViaApi` selector fix 间接修好，本子 sprint 仅 unquarantine）
+- tests/e2e/activity-hero.spec.ts: 5 cases 移除（FU-44 close, commit 4c20094；obsolete cleanup，不是已修：spec 绑定 redesign 前旧 Activity Detail surface-card 设计，已删除 spec + 孤儿组件链）
 
 **额外 note**: main 上还有 1 个 tests/e2e/import-dedupe-flow.spec.ts case main-fail / feature-pass，疑似环境波动，不入 inventory。
 
@@ -478,7 +462,7 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
-## Closed Follow-ups（24 条）
+## Closed Follow-ups（25 条）
 
 ### FU-1 ✅ 同一份轨迹文件去重（防伪造）
 
@@ -681,6 +665,14 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
+### FU-44 ✅ activity-hero e2e baseline obsolete + orphan cleanup
+
+- **关闭原因**: FU-44 close sprint 判定 `tests/e2e/activity-hero.spec.ts` 为 obsolete：该 spec 测的是 redesign 前旧 surface-card 设计 ActivityDetail，redesign 后 `/activity/[id]` 已切到新 token design，`qaHero` / `activity-hero` / `data-hero-source` 在新版无对应业务代码。已删除 obsolete spec + 孤儿组件链（`src/components/activity/ActivityDetailClient.tsx`、`ActivityDetailHero.tsx`、`ActivityRoutePanel.tsx`）+ 仅旧组件使用的 dead CSS。原 FU-44 quarantine 时误诊为 "explore vs mountain URL 偏差"，实际 spec URL `/activity/${checkinId}` 与业务一致，真实根因为 spec selector 集留在旧设计。
+- **关闭 commit**: `4c20094`
+- **关闭时间**: 2026-05-19
+
+---
+
 > **历史跳号编号**：FU-26 在 Pre-3.a sprint 中编号跳号未实际引入；未来新增 FU 不复用此编号，按当前最大编号 +1 顺序分配。
 
 ---
@@ -750,6 +742,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.19 — 2026-05-19**: FU-44 close · activity-hero obsolete + orphan cleanup 完成。用户决策路径 C：`tests/e2e/activity-hero.spec.ts` 5 cases 不再修，宣告 obsolete 并删除。根因修正：FU-44 quarantine 时误诊为 "explore vs mountain URL 偏差"，实际 spec 访问 `/activity/${checkinId}` 与业务路径一致；真正问题是 spec 绑定 redesign 前旧 surface-card Activity Detail 的 `qaHero` / `activity-hero` / `data-hero-source` / `activity-route-section` selector 集，而当前 `/activity/[id]` 已切到 FU-13/14 接入手记/补传的新 token design ActivityDetail。清理内容：删除 obsolete spec，删除无人引用的旧组件链 `src/components/activity/ActivityDetailClient.tsx` + `ActivityDetailHero.tsx` + `ActivityRoutePanel.tsx`，并清掉仅旧 hero/panel 使用的 dead CSS；保留新版 `(flow)/activity/[id]` 与仍在使用的 `ActivityRouteMap` / `.act-route*`。验证：`rg` 确认旧 selector / component import 归零；`npm run lint` 0 errors / 13 warnings；node test 236 pass；`npm run build` PASS；遵守 v0.15 用户成本约束，不跑 e2e。FU-46 baseline accounting 移除 activity-hero 5 obsolete cases（不是"已修"），inventory 45 → 40。Active 21 → 20；Closed 24 → 25。
 
 **v0.18 — 2026-05-19**: FU-46 子 sprint 3 · mountain-featured-posts cheap win 验证完成。解除 `tests/e2e/mountain-featured-posts.spec.ts` 5 个 quarantine case。根因不是山友经验业务实现缺失，而是子 sprint 2 已修复的共享测试辅助 `listActiveMountainsViaApi()` selector drift 传递生效：Explore 列表卡片当前使用 `/mountain/<id>` 链接，helper 已兼容 `/mountain/<id>` 与 `/explore/<id>` 两种路径后，本 spec 的 `山友经验` section、featured card、跳转、admin feature/unfeature 5 条路径全部恢复。修复策略：仅移除目标 spec 5 个 `test.fixme`，不改业务代码 / schema / RLS。验证：cheap-win 预跑目标单 spec 5/5 PASS；正式 preflight `npm run lint` 0 errors / 13 warnings，node test 236 pass，`npm run build` PASS，目标单 spec 5/5 PASS（3.1m）。FU-46 inventory 50 → 45 cases。遵守 v0.15 用户成本约束，不跑全量 e2e。Active / Closed 数字均不变（FU-46 umbrella 未关）。
 

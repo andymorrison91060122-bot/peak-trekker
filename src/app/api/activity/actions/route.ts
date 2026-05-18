@@ -3,6 +3,7 @@ import {
   ActivityFieldPolicyError,
   assertActivityUpdatePolicy,
 } from '@/lib/activity-field-policy'
+import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { COMMUNITY_MAX_IMAGE_COUNT } from '@/lib/community'
 import { describeStorageError, normalizeStorageUploadError } from '@/lib/storage-errors'
@@ -249,8 +250,9 @@ export async function POST(request: Request) {
       if (!checkin.photo_url && uploadedRows[0]) {
         const coverUpdate = { photo_url: uploadedRows[0].url }
         assertActivityUpdatePolicy(coverUpdate, { allowedFields: ['photo_url'] })
+        const adminSupabase = createSupabaseAdminClient()
 
-        const { error: updatePhotoError } = await supabase
+        const { error: updatePhotoError } = await adminSupabase
           .from('checkins')
           .update(coverUpdate)
           .eq('id', checkinId)
@@ -314,8 +316,9 @@ export async function POST(request: Request) {
   const note = normalizeNote(body?.note)
   const noteUpdate = { note }
   assertActivityUpdatePolicy(noteUpdate, { allowedFields: ['note'] })
+  const adminSupabase = createSupabaseAdminClient()
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await adminSupabase
     .from('checkins')
     .update(noteUpdate)
     .eq('id', checkinId)

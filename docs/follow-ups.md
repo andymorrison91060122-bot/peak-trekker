@@ -12,7 +12,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**待启动（候选: FU-41 RLS write-gap [P1] / FU-31 多图 9 张 [P2] / FU-43 archive 卡片标签可读性 [P2] / FU-30 山行字段语义统一 / FU-2+FU-15 UI 文案统一 / FU-11 活动详情底部按钮悬浮 / FU-42 审核机制语义澄清）**
+**FU-41 · checkins RLS write-gap 系统审计 + 剩余 path 修复 sprint · 状态 🟡 in-progress**
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -347,7 +347,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 - **优先级**: P1（安全 / 数据完整性盲点）
 - **归属阶段**: 阶段 3 / 阶段 5
-- **状态**: 🟢 active
+- **状态**: 🟡 in-progress
 
 **背景**: FU-13/14 sprint 实战发现 `checkins.UPDATE` RLS policy admin-only，普通 owner 走 user client 写 0 行但无 error，造成 silent no-op。本 sprint 修了 activity/actions 两条直接相关 path（service-role 兜底），但 audit 暴露至少 2 处其他 callsite 仍受影响。
 

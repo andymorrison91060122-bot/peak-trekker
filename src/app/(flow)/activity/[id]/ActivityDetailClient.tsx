@@ -758,9 +758,14 @@ function PhotoStrip({
             但你去过的山不会忘记你 · 也可以补一张
           </div>
           <SecondaryButton
-            disabled={uploadDisabled}
+            aria-disabled={uploadDisabled ? 'true' : undefined}
             loading={isUploading}
-            style={{ marginTop: 12, minHeight: 44, height: 44 }}
+            style={{
+              marginTop: 12,
+              minHeight: 44,
+              height: 44,
+              ...(uploadDisabled ? { cursor: 'not-allowed', opacity: 0.58 } : {}),
+            }}
             onClick={onAddPhoto}
           >
             {isUploading ? '上传中' : '补一张照片'}
@@ -825,10 +830,16 @@ function PhotoStrip({
           {uploadHint ?? '可以继续补充现场照片'}
         </div>
         <SecondaryButton
-          disabled={uploadDisabled}
+          aria-disabled={uploadDisabled ? 'true' : undefined}
           loading={isUploading}
           onClick={onAddPhoto}
-          style={{ minHeight: 40, height: 40, padding: '0 var(--space-4)', whiteSpace: 'nowrap' }}
+          style={{
+            minHeight: 40,
+            height: 40,
+            padding: '0 var(--space-4)',
+            whiteSpace: 'nowrap',
+            ...(uploadDisabled ? { cursor: 'not-allowed', opacity: 0.58 } : {}),
+          }}
         >
           {isUploading ? '上传中' : '补一张'}
         </SecondaryButton>
@@ -1368,7 +1379,7 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
       return
     }
     if (photos.length >= ACTIVITY_PHOTO_MAX_COUNT) {
-      showLocalToast(`最多只能保留 ${ACTIVITY_PHOTO_MAX_COUNT} 张现场照片。`)
+      showLocalToast(`已达 ${ACTIVITY_PHOTO_MAX_COUNT} 张上限，删掉一张才能补传。`)
       return
     }
     if (isUploadingPhotos || photoUploadInFlightRef.current) return

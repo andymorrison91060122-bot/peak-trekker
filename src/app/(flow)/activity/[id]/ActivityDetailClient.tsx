@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
@@ -19,6 +19,12 @@ import {
 } from '@/components/ui/Icons'
 import type { CheckinSource } from '@/types'
 import { getDifficultyLevelLabel } from '@/lib/license-ui'
+import {
+  ACTIVITY_NOTE_MAX_LENGTH,
+  ACTIVITY_PHOTO_MAX_COUNT,
+  getActivityNoteValidation,
+  getActivityPhotoUploadValidation,
+} from '@/lib/activity-detail-validation'
 
 export type ActivityPhotoViewModel = {
   id: string
@@ -686,14 +692,34 @@ function RouteSnapshot({ activity }: { activity: ActivityDetailViewModel }) {
   )
 }
 
-function PhotoStrip({ activity, onAddPhoto }: { activity: ActivityDetailViewModel; onAddPhoto: () => void }) {
+function PhotoStrip({
+  activity,
+  onAddPhoto,
+  isUploading,
+}: {
+  activity: ActivityDetailViewModel
+  onAddPhoto: () => void
+  isUploading: boolean
+}) {
   const photos = activity.photos.slice(0, 3)
-  const labels = ['13:24 · 山顶', '08:48 · C1', '06:12 · 出发后']
+  const photoCount = activity.photos.length
+  const uploadValidation = getActivityPhotoUploadValidation({
+    currentPhotoCount: photoCount,
+    selectedFileCount: 1,
+    status: activity.status,
+    isUploading,
+  })
+  const uploadDisabled = !uploadValidation.isApproved || isUploading || photoCount >= ACTIVITY_PHOTO_MAX_COUNT
+  const uploadHint = !uploadValidation.isApproved
+    ? '待审核通过后可补传'
+    : photoCount >= ACTIVITY_PHOTO_MAX_COUNT
+      ? '已达到 9 张上限'
+      : null
 
   if (!photos.length) {
     return (
       <section style={sectionPadding('var(--space-5)')}>
-        <SectionHead>照片</SectionHead>
+        <SectionHead right={`已 ${photoCount}/${ACTIVITY_PHOTO_MAX_COUNT} 张`}>照片</SectionHead>
         <div
           style={{
             padding: '20px var(--space-4)',
@@ -732,11 +758,30 @@ function PhotoStrip({ activity, onAddPhoto }: { activity: ActivityDetailViewMode
             但你去过的山不会忘记你 · 也可以补一张
           </div>
           <SecondaryButton
-            style={{ marginTop: 12, minHeight: 44, height: 44 }}
+            aria-disabled={uploadDisabled ? 'true' : undefined}
+            loading={isUploading}
+            style={{
+              marginTop: 12,
+              minHeight: 44,
+              height: 44,
+              ...(uploadDisabled ? { cursor: 'not-allowed', opacity: 0.58 } : {}),
+            }}
             onClick={onAddPhoto}
           >
-            补一张照片
+            {isUploading ? '上传中' : '补一张照片'}
           </SecondaryButton>
+          {uploadHint ? (
+            <div
+              style={{
+                marginTop: 'var(--space-2)',
+                color: 'var(--color-on-surface-variant)',
+                fontSize: 'var(--font-label-s-size)',
+                lineHeight: 'var(--font-label-s-line)',
+              }}
+            >
+              {uploadHint}
+            </div>
+          ) : null}
         </div>
       </section>
     )
@@ -751,7 +796,7 @@ function PhotoStrip({ activity, onAddPhoto }: { activity: ActivityDetailViewMode
 
   return (
     <section style={sectionPadding('var(--space-5)')}>
-      <SectionHead right={`${photos.length} 张 · 你选的`}>这次的照片</SectionHead>
+      <SectionHead right={`已 ${photoCount}/${ACTIVITY_PHOTO_MAX_COUNT} 张`}>这次的照片</SectionHead>
       <div className={layoutClass} data-testid="activity-photo-gallery">
         {photos.map((photo, index) => {
           const isHero = photos.length >= 3 && index === 0
@@ -762,18 +807,155 @@ function PhotoStrip({ activity, onAddPhoto }: { activity: ActivityDetailViewMode
               style={{ backgroundImage: `url("${photo.thumbnailUrl}")` }}
             >
               <div className="act-photo__scrim" />
-              <div className="act-photo__label">{labels[index] ?? `C${index + 1}`}</div>
             </div>
           )
         })}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 'var(--space-3)',
+          marginTop: 'var(--space-3)',
+        }}
+      >
+        <div
+          style={{
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+          }}
+        >
+          {uploadHint ?? '可以继续补充现场照片'}
+        </div>
+        <SecondaryButton
+          aria-disabled={uploadDisabled ? 'true' : undefined}
+          loading={isUploading}
+          onClick={onAddPhoto}
+          style={{
+            minHeight: 40,
+            height: 40,
+            padding: '0 var(--space-4)',
+            whiteSpace: 'nowrap',
+            ...(uploadDisabled ? { cursor: 'not-allowed', opacity: 0.58 } : {}),
+          }}
+        >
+          {isUploading ? '上传中' : '补一张'}
+        </SecondaryButton>
       </div>
     </section>
   )
 }
 
-function MemoryNote({ activity, onEditNote }: { activity: ActivityDetailViewModel; onEditNote: () => void }) {
-  const hasNote = Boolean(activity.note.trim())
+function MemoryNote({
+  activity,
+  savedNote,
+  draftNote,
+  isEditing,
+  isSaving,
+  onStartEdit,
+  onCancelEdit,
+  onDraftChange,
+  onSave,
+}: {
+  activity: ActivityDetailViewModel
+  savedNote: string
+  draftNote: string
+  isEditing: boolean
+  isSaving: boolean
+  onStartEdit: () => void
+  onCancelEdit: () => void
+  onDraftChange: (value: string) => void
+  onSave: () => void
+}) {
+  const hasNote = Boolean(savedNote.trim())
   const notePlace = activity.isSummit ? '山顶' : '途中'
+  const noteValidation = getActivityNoteValidation({
+    draftNote,
+    savedNote,
+    status: activity.status,
+    isSaving,
+  })
+  const noteDisabledHint = !noteValidation.isApproved ? '待审核通过后可编辑' : null
+  const counterColor = noteValidation.isOverLimit ? 'var(--color-error)' : 'var(--color-on-surface-variant)'
+
+  if (isEditing) {
+    return (
+      <section style={sectionPadding('var(--space-5)')}>
+        <SectionHead>手记</SectionHead>
+        <div
+          style={{
+            padding: '14px var(--space-4)',
+            borderRadius: 14,
+            border: `1px solid ${noteValidation.isOverLimit ? 'var(--color-error)' : 'var(--color-outline)'}`,
+            background: 'var(--color-surface-variant)',
+          }}
+        >
+          <textarea
+            data-testid="activity-note-editor"
+            value={draftNote}
+            onChange={(event) => onDraftChange(event.target.value)}
+            placeholder="写下这次山行想记住的一句话。"
+            rows={5}
+            disabled={isSaving}
+            style={{
+              width: '100%',
+              minHeight: 120,
+              padding: 'var(--space-3)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-outline)',
+              color: 'var(--color-on-surface)',
+              background: 'var(--color-surface)',
+              font: 'inherit',
+              fontSize: 15,
+              lineHeight: 1.7,
+              resize: 'vertical',
+              outline: 'none',
+            }}
+          />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 'var(--space-3)',
+              marginTop: 'var(--space-2)',
+            }}
+          >
+            <div
+              style={{
+                color: counterColor,
+                fontSize: 'var(--font-label-s-size)',
+                lineHeight: 'var(--font-label-s-line)',
+                fontWeight: noteValidation.isOverLimit ? 700 : 500,
+              }}
+            >
+              {noteValidation.characterCount}/{ACTIVITY_NOTE_MAX_LENGTH}
+              {noteValidation.isOverLimit ? ' · 已超出 2000 字' : ''}
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <SecondaryButton
+                disabled={isSaving}
+                onClick={onCancelEdit}
+                style={{ minHeight: 40, height: 40, padding: '0 var(--space-4)' }}
+              >
+                取消
+              </SecondaryButton>
+              <PrimaryButton
+                disabled={!noteValidation.canSave}
+                loading={isSaving}
+                onClick={onSave}
+                style={{ minHeight: 40, height: 40, padding: '0 var(--space-4)' }}
+              >
+                保存
+              </PrimaryButton>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section style={sectionPadding('var(--space-5)')}>
@@ -797,7 +979,7 @@ function MemoryNote({ activity, onEditNote }: { activity: ActivityDetailViewMode
               paddingLeft: 'var(--space-3)',
             }}
           >
-            「{activity.note}」
+            「{savedNote}」
           </div>
           <div
             style={{
@@ -821,11 +1003,12 @@ function MemoryNote({ activity, onEditNote }: { activity: ActivityDetailViewMode
             </div>
             <button
               type="button"
-              onClick={onEditNote}
+              disabled={Boolean(noteDisabledHint)}
+              onClick={onStartEdit}
               style={{
                 border: 0,
                 padding: 0,
-                color: 'var(--color-on-surface-variant)',
+                color: noteDisabledHint ? 'color-mix(in srgb, var(--color-on-surface-variant) 50%, transparent)' : 'var(--color-on-surface-variant)',
                 background: 'transparent',
                 font: 'inherit',
                 fontSize: 'var(--font-label-s-size)',
@@ -833,7 +1016,7 @@ function MemoryNote({ activity, onEditNote }: { activity: ActivityDetailViewMode
                 cursor: 'pointer',
               }}
             >
-              编辑
+              {noteDisabledHint ?? '编辑'}
             </button>
           </div>
         </div>
@@ -864,22 +1047,25 @@ function MemoryNote({ activity, onEditNote }: { activity: ActivityDetailViewMode
           </div>
           <button
             type="button"
-            onClick={onEditNote}
+            disabled={Boolean(noteDisabledHint)}
+            onClick={onStartEdit}
             style={{
               marginTop: 12,
               padding: '8px 16px',
               borderRadius: 10,
               border: '1px solid var(--color-outline)',
-              color: 'var(--color-on-surface)',
-              background: 'var(--color-surface-variant)',
+              color: noteDisabledHint ? 'var(--color-on-surface-variant)' : 'var(--color-on-surface)',
+              background: noteDisabledHint
+                ? 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)'
+                : 'var(--color-surface-variant)',
               font: 'inherit',
               fontSize: 'var(--font-label-s-size)',
               lineHeight: 'var(--font-label-s-line)',
               fontWeight: 600,
-              cursor: 'pointer',
+              cursor: noteDisabledHint ? 'not-allowed' : 'pointer',
             }}
           >
-            写一句
+            {noteDisabledHint ?? '写一句'}
           </button>
         </div>
       )}
@@ -1063,6 +1249,37 @@ function ActivityInlineActions({ activity }: { activity: ActivityDetailViewModel
 export default function ActivityDetailClient({ activity }: { activity: ActivityDetailViewModel }) {
   const router = useRouter()
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [savedNote, setSavedNote] = useState(activity.note)
+  const [draftNote, setDraftNote] = useState(activity.note)
+  const [isNoteEditing, setIsNoteEditing] = useState(false)
+  const [isSavingNote, setIsSavingNote] = useState(false)
+  const [photos, setPhotos] = useState(activity.photos)
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false)
+  const noteSaveInFlightRef = useRef(false)
+  const photoUploadInFlightRef = useRef(false)
+  const photoInputRef = useRef<HTMLInputElement | null>(null)
+  const isNoteEditingRef = useRef(false)
+
+  useEffect(() => {
+    isNoteEditingRef.current = isNoteEditing
+  }, [isNoteEditing])
+
+  useEffect(() => {
+    setSavedNote(activity.note)
+    if (!isNoteEditingRef.current) {
+      setDraftNote(activity.note)
+    }
+  }, [activity.note])
+
+  useEffect(() => {
+    setPhotos(activity.photos)
+  }, [activity.photos])
+
+  const renderedActivity: ActivityDetailViewModel = {
+    ...activity,
+    note: savedNote,
+    photos,
+  }
 
   function showLocalToast(message: string) {
     setToastMessage(message)
@@ -1095,8 +1312,172 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
     window.alert('活动链接已复制。')
   }
 
+  function handleStartNoteEdit() {
+    if (activity.status !== 'approved') {
+      showLocalToast('待审核通过后可编辑。')
+      return
+    }
+    setDraftNote(savedNote)
+    setIsNoteEditing(true)
+  }
+
+  function handleCancelNoteEdit() {
+    setDraftNote(savedNote)
+    setIsNoteEditing(false)
+  }
+
+  async function handleSaveNote() {
+    const validation = getActivityNoteValidation({
+      draftNote,
+      savedNote,
+      status: activity.status,
+      isSaving: isSavingNote,
+    })
+    if (!validation.canSave || noteSaveInFlightRef.current) return
+
+    noteSaveInFlightRef.current = true
+    setIsSavingNote(true)
+    try {
+      const response = await fetch('/api/activity/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_activity_note',
+          checkinId: activity.id,
+          note: validation.normalizedDraft,
+        }),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(String(payload?.error ?? '攀登日记保存失败，请稍后重试。'))
+      }
+
+      const nextNote = typeof payload?.note === 'string' ? payload.note : validation.normalizedDraft
+      setSavedNote(nextNote)
+      setDraftNote(nextNote)
+      setIsNoteEditing(false)
+      showLocalToast('攀登日记已保存。')
+      router.refresh()
+    } catch (error) {
+      showLocalToast(error instanceof Error ? error.message : '攀登日记保存失败，请稍后重试。')
+    } finally {
+      noteSaveInFlightRef.current = false
+      setIsSavingNote(false)
+    }
+  }
+
+  function handleAddPhoto() {
+    const validation = getActivityPhotoUploadValidation({
+      currentPhotoCount: photos.length,
+      selectedFileCount: 1,
+      status: activity.status,
+      isUploading: isUploadingPhotos,
+    })
+
+    if (!validation.isApproved) {
+      showLocalToast('待审核通过后可补传。')
+      return
+    }
+    if (photos.length >= ACTIVITY_PHOTO_MAX_COUNT) {
+      showLocalToast(`已达 ${ACTIVITY_PHOTO_MAX_COUNT} 张上限，删掉一张才能补传。`)
+      return
+    }
+    if (isUploadingPhotos || photoUploadInFlightRef.current) return
+
+    photoInputRef.current?.click()
+  }
+
+  async function handlePhotoSelection(files: FileList | null) {
+    if (!files?.length) return
+
+    const selectedFiles = [...files]
+    const validation = getActivityPhotoUploadValidation({
+      currentPhotoCount: photos.length,
+      selectedFileCount: selectedFiles.length,
+      status: activity.status,
+      isUploading: isUploadingPhotos,
+    })
+
+    if (!validation.isApproved) {
+      showLocalToast('待审核通过后可补传。')
+      if (photoInputRef.current) photoInputRef.current.value = ''
+      return
+    }
+
+    if (validation.isOverLimit) {
+      showLocalToast(`最多只能保留 ${ACTIVITY_PHOTO_MAX_COUNT} 张现场照片。`)
+      if (photoInputRef.current) photoInputRef.current.value = ''
+      return
+    }
+
+    if (photoUploadInFlightRef.current || isUploadingPhotos) {
+      if (photoInputRef.current) photoInputRef.current.value = ''
+      return
+    }
+
+    photoUploadInFlightRef.current = true
+    setIsUploadingPhotos(true)
+    try {
+      const formData = new FormData()
+      formData.set('action', 'add_activity_images')
+      formData.set('checkinId', activity.id)
+      for (const file of selectedFiles) {
+        formData.append('files', file)
+      }
+
+      const response = await fetch('/api/activity/actions', {
+        method: 'POST',
+        body: formData,
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(String(payload?.error ?? '现场照片上传失败，请稍后重试。'))
+      }
+
+      const nextPhotos = Array.isArray(payload?.assets)
+        ? payload.assets.flatMap((asset: unknown): ActivityPhotoViewModel[] => {
+            if (!asset || typeof asset !== 'object') return []
+            const candidate = asset as Record<string, unknown>
+            if (typeof candidate.id !== 'string' || typeof candidate.url !== 'string') return []
+            return [
+              {
+                id: candidate.id,
+                url: candidate.url,
+                thumbnailUrl:
+                  typeof candidate.thumbnail_url === 'string' && candidate.thumbnail_url
+                    ? candidate.thumbnail_url
+                    : candidate.url,
+              },
+            ]
+          })
+        : []
+
+      if (nextPhotos.length) {
+        setPhotos((current) => {
+          const seen = new Set(current.map((photo) => photo.url))
+          const uniqueNext = nextPhotos.filter((photo) => {
+            if (seen.has(photo.url)) return false
+            seen.add(photo.url)
+            return true
+          })
+          return [...current, ...uniqueNext]
+        })
+      }
+
+      showLocalToast(selectedFiles.length > 1 ? '现场照片已上传。' : '现场照片已添加。')
+      router.refresh()
+    } catch (error) {
+      showLocalToast(error instanceof Error ? error.message : '现场照片上传失败，请稍后重试。')
+    } finally {
+      photoUploadInFlightRef.current = false
+      setIsUploadingPhotos(false)
+      if (photoInputRef.current) photoInputRef.current.value = ''
+    }
+  }
+
   return (
     <main
+      data-activity-checkin-id={activity.id}
       style={{
         position: 'relative',
         minHeight: '100dvh',
@@ -1107,17 +1488,38 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
       }}
     >
       <ActivityTopBar onBack={handleBack} onShare={handleShare} />
-      <ActivityHero activity={activity} />
-      <MemoryNote activity={activity} onEditNote={() => showLocalToast('手记功能即将上线')} />
-      {activity.isSummit ? <SummitReachedCard activity={activity} /> : <MaxAltitudeCard activity={activity} />}
-      <KeyDataGrid activity={activity} />
-      <ActivityRouteMap activity={activity} />
-      <RouteSnapshot activity={activity} />
-      <PhotoStrip activity={activity} onAddPhoto={() => showLocalToast('照片补传功能即将上线')} />
-      <CompanionStrip companions={activity.companions ?? []} />
-      <ProofStrip status={activity.proofStatus} />
-      <BackToRecords activity={activity} />
-      <ActivityInlineActions activity={activity} />
+      <ActivityHero activity={renderedActivity} />
+      <MemoryNote
+        activity={renderedActivity}
+        savedNote={savedNote}
+        draftNote={draftNote}
+        isEditing={isNoteEditing}
+        isSaving={isSavingNote}
+        onStartEdit={handleStartNoteEdit}
+        onCancelEdit={handleCancelNoteEdit}
+        onDraftChange={setDraftNote}
+        onSave={handleSaveNote}
+      />
+      {renderedActivity.isSummit ? <SummitReachedCard activity={renderedActivity} /> : <MaxAltitudeCard activity={renderedActivity} />}
+      <KeyDataGrid activity={renderedActivity} />
+      <ActivityRouteMap activity={renderedActivity} />
+      <RouteSnapshot activity={renderedActivity} />
+      <PhotoStrip activity={renderedActivity} onAddPhoto={handleAddPhoto} isUploading={isUploadingPhotos} />
+      <input
+        ref={photoInputRef}
+        data-testid="activity-photo-upload-input"
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(event) => {
+          void handlePhotoSelection(event.currentTarget.files)
+        }}
+      />
+      <CompanionStrip companions={renderedActivity.companions ?? []} />
+      <ProofStrip status={renderedActivity.proofStatus} />
+      <BackToRecords activity={renderedActivity} />
+      <ActivityInlineActions activity={renderedActivity} />
       {toastMessage ? (
         <div
           role="status"

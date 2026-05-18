@@ -58,6 +58,7 @@
 - **触发来源**: FU-13/14 sprint 漏跑全量致 FU-41 Phase 3 才暴露 64+ 项 baseline rot 累积。
 - **Grandfather 豁免**: FU-46 closed 前此协议**暂不强制**。FU-41 P1 数据完整性 bug 不应被 baseline rot 拖延，acceptance gate 改为 "守卫单测 + lint + 强关联 spec"。
 - **后续 sprint**: FU-46 高优先候选。FU-46 closed 后此协议正式 enforce。
+- **用户成本约束（v0.15 补丁引入）**: 全量 `npx playwright test` 跑成本高，**即便协议正式 enforce 后仍需用户专门确认才执行**；Codex / Claude 不可在 V1 / V3 模板默认无声触发，也不可自主决定跑全量。强关联子集 spec（如 `tests/e2e/<feature>.spec.ts`）自跑不受此限。**触发来源**: 用户 v0.15 sprint 末明确 feedback（"额度很难支撑我们去重复的做这件事，除非它一定是必要的"）。
 
 ### 新对话/接手指引
 新对话开始时只需读取以下三个来源即可 onboard：

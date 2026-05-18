@@ -4,6 +4,7 @@ import {
   assertActivityUpdatePolicy,
 } from '@/lib/activity-field-policy'
 import { canAccessAdminTools } from '@/lib/admin-access'
+import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 type CheckinReviewStatsRow = {
@@ -73,8 +74,9 @@ export async function POST(request: NextRequest) {
   const newStatus = action === 'approve' ? 'approved' : 'rejected'
   const reviewUpdate = { status: newStatus, ...(note ? { review_note: note } : {}) }
   assertActivityUpdatePolicy(reviewUpdate, { allowedFields: ['status', 'review_note'] })
+  const adminSupabase = createSupabaseAdminClient()
 
-  let { error } = await supabase
+  let { error } = await adminSupabase
     .from('checkins')
     .update(reviewUpdate)
     .eq('id', id)
@@ -83,7 +85,7 @@ export async function POST(request: NextRequest) {
     const adminNoteUpdate = { status: newStatus, admin_note: note }
     assertActivityUpdatePolicy(adminNoteUpdate, { allowedFields: ['status', 'admin_note'] })
 
-    const fallbackUpdate = await supabase
+    const fallbackUpdate = await adminSupabase
       .from('checkins')
       .update(adminNoteUpdate)
       .eq('id', id)

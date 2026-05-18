@@ -1253,8 +1253,9 @@ export async function POST(request: NextRequest) {
         poster_url: posterUrl,
       }
       assertActivityUpdatePolicy(posterUpdate, { allowedFields: ['poster_template', 'poster_url'] })
+      const adminSupabase = createSupabaseAdminClient()
 
-      await supabase
+      await adminSupabase
         .from('checkins')
         .update(posterUpdate)
         .eq('id', checkin.id)

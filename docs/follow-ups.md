@@ -8,11 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`facd81e974060bed`（Merge FU-46 子 sprint 2 · 2026-05-19）
+`a85035f96aad0831`（Merge FU-46 子 sprint 3 · 2026-05-19）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**FU-46 子 sprint 3 · mountain-featured-posts · 状态 🟡 in-progress**
+**待启动（候选: FU-46 [P2 高优] 仍在首 / FU-31 [P2] / FU-43 [P2] / FU-44 [P2] / FU-45 [P2] / FU-30 / FU-2+FU-15 / FU-11 / FU-42 / community-final-polish 等）**
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -449,21 +449,21 @@ status 字段是 schema/RLS/RPC 既有概念：
 - **优先级**: P2（**高优** — 阻塞全量 e2e gate 启用）
 - **状态**: 🟢 active
 
-**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 58 个 pre-existing failure（除 FU-44 / FU-45 之外），跨 8 个 spec 文件。main 独立复现确认全部 pre-existing，与 FU-41 commit 无因果。所有 case 已 test.fixme quarantine（commit 2e6a923），feature 分支 e2e 数学上 0 failure（除 Step 4 未跑完）。FU-46 子 sprint 1 已修 debug routes 3 个 quarantine case，inventory 58 → 55；子 sprint 2 已修 mountain-waypoints-display 5 个 case，inventory 55 → 50。
+**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 58 个 pre-existing failure（除 FU-44 / FU-45 之外），跨 8 个 spec 文件。main 独立复现确认全部 pre-existing，与 FU-41 commit 无因果。所有 case 已 test.fixme quarantine（commit 2e6a923），feature 分支 e2e 数学上 0 failure（除 Step 4 未跑完）。FU-46 子 sprint 1 已修 debug routes 3 个 quarantine case，inventory 58 → 55；子 sprint 2 已修 mountain-waypoints-display 5 个 case，inventory 55 → 50；子 sprint 3 已修 mountain-featured-posts 5 个 case，inventory 50 → 45。
 
 **元层级 finding**: FU-13/14 / FU-40 / FU-33 / FU-1 等 sprint 仅跑相关子集 e2e 未全量，导致 baseline rot 多周期无感累积。v0.15 引入"V3 preflight 全量 e2e gate"协议但 FU-41 grandfather 豁免直到本 FU 修完。
 
-**Inventory**（50 remaining cases / 5 active spec 文件；子 sprint 1 已修 3 cases，子 sprint 2 已修 5 cases）:
+**Inventory**（45 remaining cases / 4 active spec 文件；子 sprint 1 已修 3 cases，子 sprint 2 已修 5 cases，子 sprint 3 已修 5 cases）:
 - tests/e2e/app.spec.ts: 18 cases（含 trek/onboarding 流程偏差等）
 - tests/e2e/button-token-migration.spec.ts: 6 cases
 - tests/e2e/community-acceptance.spec.ts: 16 cases
 - tests/e2e/community-final-polish.spec.ts: 5 cases
-- tests/e2e/mountain-featured-posts.spec.ts: 5 cases
 
 **已修记录**:
 - tests/e2e/debug-access.spec.ts: 2 cases ✓ 已修（子 sprint 1, commit 880f703 + 8c7dcaa）
 - tests/e2e/debug-tokens.spec.ts: 1 case ✓ 已修（子 sprint 1, commit 8c7dcaa）
 - tests/e2e/mountain-waypoints-display.spec.ts: 5 cases ✓ 已修（子 sprint 2, commit a7762fb）
+- tests/e2e/mountain-featured-posts.spec.ts: 5 cases ✓ 已修（子 sprint 3, commit ba77bad；cheap win：子 sprint 2 `listActiveMountainsViaApi` selector fix 间接修好，本子 sprint 仅 unquarantine）
 
 **额外 note**: main 上还有 1 个 tests/e2e/import-dedupe-flow.spec.ts case main-fail / feature-pass，疑似环境波动，不入 inventory。
 
@@ -750,6 +750,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.18 — 2026-05-19**: FU-46 子 sprint 3 · mountain-featured-posts cheap win 验证完成。解除 `tests/e2e/mountain-featured-posts.spec.ts` 5 个 quarantine case。根因不是山友经验业务实现缺失，而是子 sprint 2 已修复的共享测试辅助 `listActiveMountainsViaApi()` selector drift 传递生效：Explore 列表卡片当前使用 `/mountain/<id>` 链接，helper 已兼容 `/mountain/<id>` 与 `/explore/<id>` 两种路径后，本 spec 的 `山友经验` section、featured card、跳转、admin feature/unfeature 5 条路径全部恢复。修复策略：仅移除目标 spec 5 个 `test.fixme`，不改业务代码 / schema / RLS。验证：cheap-win 预跑目标单 spec 5/5 PASS；正式 preflight `npm run lint` 0 errors / 13 warnings，node test 236 pass，`npm run build` PASS，目标单 spec 5/5 PASS（3.1m）。FU-46 inventory 50 → 45 cases。遵守 v0.15 用户成本约束，不跑全量 e2e。Active / Closed 数字均不变（FU-46 umbrella 未关）。
 
 **v0.17 — 2026-05-19**: FU-46 子 sprint 2 · mountain-waypoints-display baseline rot 修复完成。解除 `tests/e2e/mountain-waypoints-display.spec.ts` 5 个 quarantine case。根因确认是测试辅助 `listActiveMountainsViaApi()` 仍只读取 `a[href^="/explore/"]`，但当前 Explore 列表卡片已渲染 `/mountain/<id>` 链接；`/explore/[id]` 页面本身仍存在并已接入 WaypointsSection，WaypointsSection testid / admin waypoints API / `mountain_waypoints` schema 均无扩 scope 问题。修复策略：helper 优先读取 `data-testid="explore-mountain-card"`，兼容 `/mountain/<id>` 与 `/explore/<id>` 两种路径；移除目标 spec 5 个 `test.fixme`。验证：lint 0 errors / 13 warnings，node test 236 pass，`npm run build` PASS，目标单 spec 5/5 PASS。FU-46 inventory 55 → 50 cases。遵守 v0.15 用户成本约束，不跑全量 e2e。v0.8 机械化清单第十次实战。Active / Closed 数字均不变（FU-46 umbrella 未关）。
 

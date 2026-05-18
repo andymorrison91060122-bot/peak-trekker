@@ -451,15 +451,24 @@ export async function fetchMountainByIdViaApi(page: Page, mountainId: string) {
 export async function listActiveMountainsViaApi(page: Page) {
   await page.goto('/explore', { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
-  const mountainLinks = page.locator('a[href^="/explore/"]')
+  const mountainLinks = page.locator('[data-testid="explore-mountain-card"]')
   const count = await mountainLinks.count()
-  const hrefs = await Promise.all(
-    Array.from({ length: count }, async (_, index) => mountainLinks.nth(index).getAttribute('href'))
-  )
+  const hrefs = count > 0
+    ? await Promise.all(
+        Array.from({ length: count }, async (_, index) => mountainLinks.nth(index).getAttribute('href'))
+      )
+    : await page.locator('a[href^="/explore/"], a[href^="/mountain/"]').evaluateAll((links) =>
+        links
+          .map((link) => link.getAttribute('href'))
+          .filter((href): href is string => Boolean(href))
+      )
   const seen = new Set<string>()
   const mountains = hrefs
     .map((href) => {
-      const id = href?.split('/').pop()?.trim()
+      const path = href?.split('?')[0] ?? ''
+      const parts = path.split('/').filter(Boolean)
+      const section = parts[0]
+      const id = (section === 'explore' || section === 'mountain') ? parts[1]?.trim() : null
       return id ? { id } : null
     })
     .filter((item): item is { id: string } => Boolean(item))

@@ -12,7 +12,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**待启动（候选: FU-46 [P2 高优] 仍在首 / FU-31 [P2] / FU-43 [P2] / FU-45 [P2] / community-final-polish / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）**
+**FU-31 · 活动详情多图 9 张 + lightbox + 删除 · 状态 🟡 in-progress**
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -244,7 +244,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 - **优先级**: P2
 - **归属阶段**: 阶段 3 / 阶段 5
-- **状态**: 🟢 active
+- **状态**: 🟡 in-progress
 
 **背景**: FU-14 落地后用户可上传至 9 张照片，但当前 PhotoStrip 仅展示前 3 张（act-photos__layout 现有限制）。FU-13/14 sprint 视觉验收用户明确反馈：
 1. 上传超过 3 张后剩余照片无法在 UI 查看

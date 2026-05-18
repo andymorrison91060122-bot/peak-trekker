@@ -703,7 +703,6 @@ function PhotoStrip({
 }) {
   const photos = activity.photos.slice(0, 3)
   const photoCount = activity.photos.length
-  const labels = ['13:24 · 山顶', '08:48 · C1', '06:12 · 出发后']
   const uploadValidation = getActivityPhotoUploadValidation({
     currentPhotoCount: photoCount,
     selectedFileCount: 1,
@@ -803,7 +802,6 @@ function PhotoStrip({
               style={{ backgroundImage: `url("${photo.thumbnailUrl}")` }}
             >
               <div className="act-photo__scrim" />
-              <div className="act-photo__label">{labels[index] ?? `C${index + 1}`}</div>
             </div>
           )
         })}

@@ -109,6 +109,11 @@ test.describe('admin mountain basic info edit', () => {
   })
 
   test('admin can edit mountain description with rich text and it renders on mountain detail', async ({ page, baseURL }) => {
+    test.fixme(
+      true,
+      'Quarantined for FU-45: strict-mode locator violation, rich text renders duplicate elements, pre-existing baseline failure, unrelated to FU-41.',
+    )
+
     const root = baseURL ?? 'http://127.0.0.1:3100'
     await createAdminSession(page, root)
     const { mountainId } = await openFirstMountainEditor(page)

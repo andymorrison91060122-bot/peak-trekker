@@ -8,11 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`192c79c48173cb2a`（Merge FU-40 · 2026-05-18）
+`56555f8e28e2dec4`（Merge FU-13 + FU-14 · 2026-05-18）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**FU-13 + FU-14 · 活动详情手记 + 照片补传 合并 sprint · 状态 🟡 in-progress**
+**待启动（候选: FU-41 RLS write-gap [P1] / FU-31 多图 9 张 [P2] / FU-43 archive 卡片标签可读性 [P2] / FU-30 山行字段语义统一 / FU-2+FU-15 UI 文案统一 / FU-11 活动详情底部按钮悬浮 / FU-42 审核机制语义澄清）**
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -74,7 +74,7 @@
 
 ---
 
-## Active Follow-ups（18 条）
+## Active Follow-ups（19 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -190,38 +190,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-13 · 活动详情"手记"功能补齐
-
-- **优先级**: P2
-- **归属阶段**: 阶段 3 / 阶段 5
-- **状态**: 🟡 in-progress
-
-**背景**: 活动详情页"这次山行，你想记住什么？写一句"按钮当前是占位（"手记功能即将上线"）。
-
-**实施建议**: 
-- MVP 简单实现：纯文本输入 → 保存到 `checkins.notes` 字段
-- 250 字数限制，一次性写入 + 后续可编辑
-
-**涉及**: `src/app/(flow)/activity/[id]/ActivityDetailClient.tsx` + 可能 schema migration
-
----
-
-### FU-14 · 活动详情"照片补传"功能补齐
-
-- **优先级**: P2
-- **归属阶段**: 阶段 3 / 阶段 5
-- **状态**: 🟡 in-progress
-
-**背景**: 活动详情页"补一张照片"按钮当前是占位（"照片补传功能即将上线"）。
-
-**实施建议**:
-- 复用 Trek 流程的拍照上传逻辑
-- 上传到 `checkin_assets` 表
-
-**涉及**: `src/app/(flow)/activity/[id]/ActivityDetailClient.tsx` + 可能复用 `src/app/api/trek/photo-upload/route.ts`
-
----
-
 ### FU-15 · Live 阶段 GPS 弱信号"暂用上次值"文案修正
 
 - **优先级**: P2
@@ -262,20 +230,27 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-31 · 活动详情多图上传完整实装
+### FU-31 · 活动详情多图（最多 9 张）展示 + 单张大图查看 + 单张删除
 
 - **优先级**: P2
-- **归属阶段**: 与 FU-14 合并或独立 sprint
+- **归属阶段**: 阶段 3 / 阶段 5
 - **状态**: 🟢 active
 
-**背景**: 用户希望活动详情最多支持 9 张图，首张为登顶留证，后续可补传。当前数据库 `checkin_assets` 与 loader 的 `uniquePhotos(checkin.photo_url, assets)` 已能合并多源，但前端 UI 只展示 `slice(0, 3)`，且"补一张照片"仍是占位。
+**背景**: FU-14 落地后用户可上传至 9 张照片，但当前 PhotoStrip 仅展示前 3 张（act-photos__layout 现有限制）。FU-13/14 sprint 视觉验收用户明确反馈：
+1. 上传超过 3 张后剩余照片无法在 UI 查看
+2. 当前缩略图无法点击放大查看大图
+3. 9 张上限达到后没有删除入口（仅文字提示 "删掉一张才能补传"，但无实际操作路径）
 
 **实施建议**:
-- 活动详情照片 UI 升级到最多 9 张（例如 3×3 grid）
-- 实装补传入口，复用 Trek photo upload 到 Supabase Storage，并写入 `checkin_assets`
-- 首张始终保留为 `checkins.photo_url`（登顶留证）
+- 4+ 张展示方案候选: 横滑列表 / 网格 + "查看全部" 弹窗 / 单独详情子页
+- 大图查看: 点缩略图打开 lightbox，支持左右切换
+- 单张删除: lightbox 内提供删除按钮，调新 endpoint DELETE checkin_asset（owner gate via RLS join），若删除的是 photo_url 对应 asset 则后端同步切换 photo_url 到剩余首张或置 NULL
+- 后端 RLS 已允许 owner DELETE checkin_assets（FU-13/14 audit 确认）
 
-**涉及**: `src/app/(flow)/activity/[id]/ActivityDetailClient.tsx`、`checkin_assets`、`src/app/api/trek/photo-upload/route.ts` 或新 activity photo upload API。
+**涉及**:
+- `src/app/(flow)/activity/[id]/ActivityDetailClient.tsx` (PhotoStrip 重设计)
+- `src/app/api/activity/actions/route.ts` (新 delete_activity_image action)
+- `src/app/components.css` (lightbox 样式)
 
 ---
 
@@ -368,7 +343,89 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（21 条）
+### FU-41 · checkins RLS write-gap 系统审计 + 剩余 path 修复
+
+- **优先级**: P1（安全 / 数据完整性盲点）
+- **归属阶段**: 阶段 3 / 阶段 5
+- **状态**: 🟢 active
+
+**背景**: FU-13/14 sprint 实战发现 `checkins.UPDATE` RLS policy admin-only，普通 owner 走 user client 写 0 行但无 error，造成 silent no-op。本 sprint 修了 activity/actions 两条直接相关 path（service-role 兜底），但 audit 暴露至少 2 处其他 callsite 仍受影响。
+
+**已知待修 callsite**:
+- src/app/api/admin/checkin-review/route.ts:78 / 87 admin update status / review_note / admin_note — 若 admin 通过 ADMIN_EMAILS allowlist 进入但 profiles.is_admin=false，会被 RLS 拦截（silent no-op）
+- src/app/api/trek/actions/route.ts:1258 owner update poster_template / poster_url — silent no-op，share card 字段未持久化
+
+**实施建议**:
+- audit ADMIN_EMAILS allowlist 与 profiles.is_admin 一致性。要么补 profiles.is_admin 同步机制，要么 admin review route 也切 service-role
+- trek/actions:1258 poster update 切 service-role（与 activity/actions 同范式）
+- 顺便补静态守卫：grep "from('checkins').update(" 仅允许 admin client / service-role 调用点 + 显式注释豁免
+- 不改 RLS（defense-in-depth 保持）
+
+**涉及**:
+- src/app/api/admin/checkin-review/route.ts
+- src/app/api/trek/actions/route.ts
+- 可能 src/lib/* admin helper
+
+---
+
+### FU-42 · checkins 审核机制语义澄清 + status gate 存废决策
+
+- **优先级**: P2（业务方向 / 不阻塞）
+- **归属阶段**: 阶段 5
+- **状态**: 🟢 active
+
+**背景**: FU-13/14 sprint 视觉验收用户质疑：当前业务模型下（用户自行上传轨迹 + 截图识别 + 用户对数据负责），为何 checkins 仍有 status 三态（pending/approved/rejected）和 application-layer "approved gate"？
+status 字段是 schema/RLS/RPC 既有概念：
+- checkins INSERT 默认 status TBD
+- checkins.SELECT RLS 允许 status='approved' OR owner OR admin
+- verify_summit_checkin RPC 改 status
+- admin/checkin-review route 管理 status
+- FU-13/14 UI 在 status!=='approved' 时 disable 编辑入口
+
+**待澄清**:
+- 当前用户上传 checkin 默认 status 是什么？(查 checkins INSERT 默认值)
+- 哪些路径会进入 pending / rejected？(N2C / 截图识别 / import / 手动补签)
+- 是否还需要保留审核流程？还是直接 owner = approved 默认通过？
+- 若废弃审核：status 字段是否保留为 "owner-set" 状态语义 / 还是完全移除
+
+**决策范围（需产品方拍板）**:
+- 选 A: 保留 status 概念 + 明确触发条件 + UI gate 保留
+- 选 B: 默认全 approved + 拆 UI gate + 简化 RLS（保留 status 字段但语义降级）
+- 选 C: 完全移除 status 字段 + N2C / RPC / RLS / UI 全链路重构（大事）
+
+**不在范围**: 本 FU 仅做决策 + audit + 出方案，不立即实施（实施可拆出新 FU）
+
+**涉及（取决于决策）**:
+- supabase/migrations/* (RLS / RPC 改动)
+- src/app/api/admin/checkin-review/route.ts
+- src/lib/trek-verify-helpers.ts
+- src/app/(flow)/activity/[id]/ActivityDetailClient.tsx (gate 拆除)
+
+---
+
+### FU-43 · archive 卡片 hero 状态标签可读性增强
+
+- **优先级**: P2
+- **归属阶段**: 阶段 3 / 阶段 5
+- **状态**: 🟢 active
+
+**背景**: FU-13/14 sprint 视觉验收用户反馈，archive 页（山行档案）trip 列表卡片左上角 "已登顶/未登顶" + 右上角 "已留证/未留证" chip 叠在 hero 照片之上，当照片亮色或高对比度时 chip 文字看不清。
+
+**现状**: src/app/(flow)/archive/ArchiveClient.tsx:534 / 560
+
+**实施建议**:
+- 卡片 hero 上方加固定渐变遮罩（如 linear-gradient(180deg, rgba(0,0,0,0.45) 0%, transparent 50%)）
+- chip 背景 backdrop-filter blur + 半透明深色背景
+- chip 文字加 text-shadow 兜底
+- 不动 chip 逻辑或数据，仅视觉层增强
+
+**涉及**:
+- src/app/(flow)/archive/ArchiveClient.tsx
+- src/app/components.css (新增 chip overlay 样式)
+
+---
+
+## Closed Follow-ups（23 条）
 
 ### FU-1 ✅ 同一份轨迹文件去重（防伪造）
 
@@ -547,6 +604,22 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
+### FU-13 ✅ 活动详情"手记"功能补齐
+
+- **关闭原因**: FU-13 + FU-14 合并 sprint 落地。MemoryNote inline 编辑 + 2000 字 normalize 计数 + approved gate UI + 取消恢复 + 保存 toast + router.refresh()。后端 update_activity_note action 早已实现，本 sprint 仅前端接入 + 顺手修复 hidden RLS write-gap（service-role 兜底）。
+- **关闭 commit**: `09e1c5f`
+- **关闭时间**: 2026-05-18
+
+---
+
+### FU-14 ✅ 活动详情"照片补传"功能补齐
+
+- **关闭原因**: FU-13 + FU-14 合并 sprint 落地。PhotoStrip 接入 file input + 总数校验 + 上传进度 + 9 张上限 toast feedback。后端 add_activity_images action 早已实现，本 sprint 仅前端接入。含 2 个 in-sprint 补丁：删除硬编码 mock label（"13:24·山顶"等假数据）+ 已 9/9 张点按钮的 toast 反馈（aria-disabled + onClick 分支）。3 张展示限制 + 无大图查看 + 无删除入口写入 FU-31 描述补强（不在本 sprint scope）。
+- **关闭 commit**: `5d80c69`
+- **关闭时间**: 2026-05-18
+
+---
+
 > **历史跳号编号**：FU-26 在 Pre-3.a sprint 中编号跳号未实际引入；未来新增 FU 不复用此编号，按当前最大编号 +1 顺序分配。
 
 ---
@@ -616,6 +689,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.14 — 2026-05-18**：FU-13 + FU-14 合并 sprint 完成。活动详情手记 + 照片补传功能接入。**重大 finding：hidden RLS write-gap** —— checkins.UPDATE RLS policy 早已 admin-only（推测早期 RLS hardening sprint 锁死），普通 owner 走 user client 写 0 行但无 error，route 假装成功。原 finding "后端 update_activity_note / add_activity_images 已上线" 误判：route.ts 代码层确实写完，但生产 RLS 让所有 owner 写入静默失败，bug 一直潜伏（早期使用方仅孤儿文件 src/components/activity/ActivityDetailClient.tsx，无人 import）到 FU-13/14 接入 UI 才被 e2e 实测暴露。修复策略：service-role 兜底（与 FU-33 OCR quota Server-only 范式一致），gate 通过后切 admin client；不改 RLS（defense-in-depth 保持）。配套 audit 暴露剩余 callsite（admin review allowlist gap + trek poster silent no-op）入 FU-41 跟踪。2 个 in-sprint 补丁：(1) 删除 PhotoStrip 硬编码 mock label "13:24·山顶/08:48·C1/06:12·出发后"（与照片内容无关的假数据，沿用历史 mock 残留）；(2) 已 9/9 张点按钮的 toast feedback（aria-disabled + onClick 分支替代真 disabled，与"待审核通过后"toast 同范式）。视觉验收用户反馈促成 3 个新 FU：FU-41 RLS write-gap 系统审计（P1，源自 sprint 内 audit）；FU-42 审核机制语义澄清（P2，源自用户质疑业务必要性）；FU-43 archive 卡片标签可读性（P2，源自验收发现）。FU-31 描述补强 3 项（4+ 张展示 + 大图查看 + 单张删除）。测试基线 +4（活动 validation 3 单元 + 1 e2e）。Active 18 → 19；Closed 21 → 23。**注：v0.8 机械化清单第七次实战 + 首次"后端已实现"假设被实战推翻 + 单 sprint 开 3 个新 FU 的高净增量记录。**
 
 **v0.13 — 2026-05-18**：FU-40 Trek 退出自动暂停 + 服务端持久化完成。schema 加 paused_at + paused_elapsed_seconds + status CHECK 扩展；pause/resume 两个新 server action 含幂等 + 原子 UPDATE + 补偿 started_at 算法；client handleBack + popstate guard + restore paused 分支。含 2 个 in-sprint 补丁：(1) formatElapsedHMS H:MM:SS 3 段显示 + elapsedTimerRef 与 GPS runtime cleanup 解耦修 Bug 1+2（HH:MM 吞秒 + restore 后 tick 不走）；(2) finish_incomplete_trek 23505 catch + re-fetch idempotent + 客户端 finishInFlightRef guard + 按钮 loading/disabled 修 pause→finish→back duplicate INSERT 红框。已知 follow-up note：pause_elapsed_seconds 用 24h 硬 clamp 而非 LEAST(input, server-elapsed)，仅影响用户自身展示，未来 housekeeping 可收紧。Active 19 → 18；Closed 20 → 21。**里程碑：所有 P1 阻塞项全部清完**（Pre-3.a/FU-18/19/20/21/22/23/25 + FU-1/24/17/40 全闭，MVP 主路稳定，可以专注 P2 用户体验补齐节奏）。
 

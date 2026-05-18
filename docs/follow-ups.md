@@ -8,11 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`57ff50973d08e38d`（Merge FU-41 · 2026-05-18）
+`2590bd1710014ffc`（Merge FU-46 子 sprint 1 · 2026-05-19）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**FU-46 子 sprint 1 · debug routes baseline rot · 状态 🟡 in-progress**
+**待启动（候选: FU-46 [P2 高优] 仍在首 / FU-31 [P2] / FU-43 [P2] / FU-44 [P2] / FU-45 [P2] / FU-30 / FU-2+FU-15 / FU-11 / FU-42）**
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -59,6 +59,7 @@
 - **Grandfather 豁免**: FU-46 closed 前此协议**暂不强制**。FU-41 P1 数据完整性 bug 不应被 baseline rot 拖延，acceptance gate 改为 "守卫单测 + lint + 强关联 spec"。
 - **后续 sprint**: FU-46 高优先候选。FU-46 closed 后此协议正式 enforce。
 - **用户成本约束（v0.15 补丁引入）**: 全量 `npx playwright test` 跑成本高，**即便协议正式 enforce 后仍需用户专门确认才执行**；Codex / Claude 不可在 V1 / V3 模板默认无声触发，也不可自主决定跑全量。强关联子集 spec（如 `tests/e2e/<feature>.spec.ts`）自跑不受此限。**触发来源**: 用户 v0.15 sprint 末明确 feedback（"额度很难支撑我们去重复的做这件事，除非它一定是必要的"）。
+- **TS build preflight（v0.16 引入）**: 每个 sprint 的 preflight **必须**包含 `npm run build`。**触发来源**: FU-46 子 sprint 1 实战发现 2 个 pre-existing TypeScript build blocker（FU-13/14 ActivityDetailClient nextPhotos implicit any + FU-40 TrekClient 3 个 toast key 漏登 registry: trek_pause_persist_failed / trek_manual_refresh_cooldown / trek_resume_failed），均因之前 sprint preflight 不含 build 而长期潜伏。lint + node --test 不足以拦 TS strict mode 编译错误。**与全量 e2e gate 不同**: `npm run build` 成本相对低（< 2 分钟），不需用户专门确认。**如 build fail**: 立即 STOP 报告，按 fail-fast 协议。
 
 ### 新对话/接手指引
 新对话开始时只需读取以下三个来源即可 onboard：
@@ -448,21 +449,25 @@ status 字段是 schema/RLS/RPC 既有概念：
 - **优先级**: P2（**高优** — 阻塞全量 e2e gate 启用）
 - **状态**: 🟢 active
 
-**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 58 个 pre-existing failure（除 FU-44 / FU-45 之外），跨 8 个 spec 文件。main 独立复现确认全部 pre-existing，与 FU-41 commit 无因果。所有 case 已 test.fixme quarantine（commit 2e6a923），feature 分支 e2e 数学上 0 failure（除 Step 4 未跑完）。
+**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 58 个 pre-existing failure（除 FU-44 / FU-45 之外），跨 8 个 spec 文件。main 独立复现确认全部 pre-existing，与 FU-41 commit 无因果。所有 case 已 test.fixme quarantine（commit 2e6a923），feature 分支 e2e 数学上 0 failure（除 Step 4 未跑完）。FU-46 子 sprint 1 已修 debug routes 3 个 quarantine case，inventory 58 → 55。
 
 **元层级 finding**: FU-13/14 / FU-40 / FU-33 / FU-1 等 sprint 仅跑相关子集 e2e 未全量，导致 baseline rot 多周期无感累积。v0.15 引入"V3 preflight 全量 e2e gate"协议但 FU-41 grandfather 豁免直到本 FU 修完。
 
-**Inventory**（58 cases / 8 spec 文件）:
+**Inventory**（55 remaining cases / 6 active spec 文件；子 sprint 1 已修 3 cases）:
 - tests/e2e/app.spec.ts: 18 cases（含 trek/onboarding 流程偏差等）
 - tests/e2e/button-token-migration.spec.ts: 6 cases
 - tests/e2e/community-acceptance.spec.ts: 16 cases
 - tests/e2e/community-final-polish.spec.ts: 5 cases
-- tests/e2e/debug-access.spec.ts: 2 cases
-- tests/e2e/debug-tokens.spec.ts: 1 case
 - tests/e2e/mountain-featured-posts.spec.ts: 5 cases
 - tests/e2e/mountain-waypoints-display.spec.ts: 5 cases
 
+**已修记录**:
+- tests/e2e/debug-access.spec.ts: 2 cases ✓ 已修（子 sprint 1, commit 880f703 + 8c7dcaa）
+- tests/e2e/debug-tokens.spec.ts: 1 case ✓ 已修（子 sprint 1, commit 8c7dcaa）
+
 **额外 note**: main 上还有 1 个 tests/e2e/import-dedupe-flow.spec.ts case main-fail / feature-pass，疑似环境波动，不入 inventory。
+
+**已知 flake 记账**: tests/e2e/debug-tokens.spec.ts 内 2 个 non-quarantined case (token preview buttons share exact size specs / icon button missing aria label) 在子 sprint 1 跑后出现 registerFreshUser auth/login navigation 60s timeout flake，同分支单 spec 重跑通过 confirmed flake，未 quarantine，作为已知 flake 跟踪。若未来反复出现再单独 case sprint 拆解 helper 重置。
 
 **修复策略**:
 - 按 spec 文件分组单 sprint 修（根因相似度组合）或全套独立 sprint
@@ -745,6 +750,18 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.16 — 2026-05-19**: FU-46 子 sprint 1 · debug routes baseline rot 修复完成。3 个 quarantine case 修通: (1) debug-access:108 profile license progress — 业务 regress 修复（ProfileV2Client 恢复 ProfileLicenseProgressSection 渲染 + profile-records-server.ts 带 sourceType + 阈值 1000/2000/4000m × 3 count 计算 qualifiedForNext）; (2) debug-access:129 + debug-tokens:119 prod non-admin guard — Assumption #1 验证 page-level guard 正确方向，本身没破，被 pre-existing TS build blocker 阻挡的 false negative，修 blocker 后 guard 自动通过。
+
+**顺手修 2 个 pre-existing TS build blocker**: ActivityDetailClient nextPhotos implicit any (caf96e4, FU-13/14 sprint 引入) + TrekClient 3 个 toast key 漏登 registry (1f1beee, FU-40 sprint 引入 trek_pause_persist_failed / trek_manual_refresh_cooldown / trek_resume_failed)。**历史成因**: FU-40 / FU-13/14 / FU-41 sprint preflight 都不含 `npm run build`，TS strict mode 编译错误一直潜伏，本子 sprint 跑 prod-mode case 触发 build 才暴露 — 与 e2e baseline rot 同性质 silent rot。
+
+**协议增强（v0.16 引入）**: 工作流段加 "TS build preflight" 条款 — 每个 sprint preflight 强制 `npm run build`，与全量 e2e gate 不同（成本低不需用户确认）。
+
+**已知 flake 记账**: sprint 末实测 debug-tokens.spec.ts 内 2 个 non-quarantined case (token preview / icon button missing aria) 出现 registerFreshUser auth/login navigation timeout flake，同分支重跑通过 confirmed flake，与子 sprint 1 修复 3 个 quarantine target 无关，未引入 regression。归 FU-46 umbrella 已知 flake 跟踪。
+
+**FU-46 inventory**: 58 → 55 cases。**首子 sprint 范式确立**: 单 spec 子集验证 + 不全量 e2e + 用户成本约束 + 顺手 unblock pre-existing build blocker（与 baseline rot 同性质 silent rot）+ 同 spec non-target flake 不阻塞 V3。
+
+v0.8 机械化清单第九次实战。Active / Closed 数字均不变（FU-46 umbrella 未关）。
 
 **v0.15 — 2026-05-18**: FU-41 RLS write-gap 系统审计 + 剩余 path 修复完成。修 3 处 user client checkins.update silent no-op（admin review 主 update + fallback admin_note update + trek poster persistence），service-role 兜底范式延续（与 FU-13/14 fix 19dde9a 同范式）。新增静态守卫单测防再发。不改 RLS。canAccessAdminTools allowlist-only admin（profiles.is_admin=false）之前 silent no-op 改不动审批状态 / trek poster 永不持久化，本 sprint 后已修。
 

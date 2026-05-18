@@ -692,14 +692,35 @@ function RouteSnapshot({ activity }: { activity: ActivityDetailViewModel }) {
   )
 }
 
-function PhotoStrip({ activity, onAddPhoto }: { activity: ActivityDetailViewModel; onAddPhoto: () => void }) {
+function PhotoStrip({
+  activity,
+  onAddPhoto,
+  isUploading,
+}: {
+  activity: ActivityDetailViewModel
+  onAddPhoto: () => void
+  isUploading: boolean
+}) {
   const photos = activity.photos.slice(0, 3)
+  const photoCount = activity.photos.length
   const labels = ['13:24 · 山顶', '08:48 · C1', '06:12 · 出发后']
+  const uploadValidation = getActivityPhotoUploadValidation({
+    currentPhotoCount: photoCount,
+    selectedFileCount: 1,
+    status: activity.status,
+    isUploading,
+  })
+  const uploadDisabled = !uploadValidation.isApproved || isUploading || photoCount >= ACTIVITY_PHOTO_MAX_COUNT
+  const uploadHint = !uploadValidation.isApproved
+    ? '待审核通过后可补传'
+    : photoCount >= ACTIVITY_PHOTO_MAX_COUNT
+      ? '已达到 9 张上限'
+      : null
 
   if (!photos.length) {
     return (
       <section style={sectionPadding('var(--space-5)')}>
-        <SectionHead>照片</SectionHead>
+        <SectionHead right={`已 ${photoCount}/${ACTIVITY_PHOTO_MAX_COUNT} 张`}>照片</SectionHead>
         <div
           style={{
             padding: '20px var(--space-4)',
@@ -738,11 +759,25 @@ function PhotoStrip({ activity, onAddPhoto }: { activity: ActivityDetailViewMode
             但你去过的山不会忘记你 · 也可以补一张
           </div>
           <SecondaryButton
+            disabled={uploadDisabled}
+            loading={isUploading}
             style={{ marginTop: 12, minHeight: 44, height: 44 }}
             onClick={onAddPhoto}
           >
-            补一张照片
+            {isUploading ? '上传中' : '补一张照片'}
           </SecondaryButton>
+          {uploadHint ? (
+            <div
+              style={{
+                marginTop: 'var(--space-2)',
+                color: 'var(--color-on-surface-variant)',
+                fontSize: 'var(--font-label-s-size)',
+                lineHeight: 'var(--font-label-s-line)',
+              }}
+            >
+              {uploadHint}
+            </div>
+          ) : null}
         </div>
       </section>
     )
@@ -757,7 +792,7 @@ function PhotoStrip({ activity, onAddPhoto }: { activity: ActivityDetailViewMode
 
   return (
     <section style={sectionPadding('var(--space-5)')}>
-      <SectionHead right={`${photos.length} 张 · 你选的`}>这次的照片</SectionHead>
+      <SectionHead right={`已 ${photoCount}/${ACTIVITY_PHOTO_MAX_COUNT} 张`}>这次的照片</SectionHead>
       <div className={layoutClass} data-testid="activity-photo-gallery">
         {photos.map((photo, index) => {
           const isHero = photos.length >= 3 && index === 0
@@ -772,6 +807,33 @@ function PhotoStrip({ activity, onAddPhoto }: { activity: ActivityDetailViewMode
             </div>
           )
         })}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 'var(--space-3)',
+          marginTop: 'var(--space-3)',
+        }}
+      >
+        <div
+          style={{
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+          }}
+        >
+          {uploadHint ?? '可以继续补充现场照片'}
+        </div>
+        <SecondaryButton
+          disabled={uploadDisabled}
+          loading={isUploading}
+          onClick={onAddPhoto}
+          style={{ minHeight: 40, height: 40, padding: '0 var(--space-4)', whiteSpace: 'nowrap' }}
+        >
+          {isUploading ? '上传中' : '补一张'}
+        </SecondaryButton>
       </div>
     </section>
   )
@@ -1182,7 +1244,11 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
   const [draftNote, setDraftNote] = useState(activity.note)
   const [isNoteEditing, setIsNoteEditing] = useState(false)
   const [isSavingNote, setIsSavingNote] = useState(false)
+  const [photos, setPhotos] = useState(activity.photos)
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false)
   const noteSaveInFlightRef = useRef(false)
+  const photoUploadInFlightRef = useRef(false)
+  const photoInputRef = useRef<HTMLInputElement | null>(null)
   const isNoteEditingRef = useRef(false)
 
   useEffect(() => {
@@ -1196,9 +1262,14 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
     }
   }, [activity.note])
 
+  useEffect(() => {
+    setPhotos(activity.photos)
+  }, [activity.photos])
+
   const renderedActivity: ActivityDetailViewModel = {
     ...activity,
     note: savedNote,
+    photos,
   }
 
   function showLocalToast(message: string) {
@@ -1286,6 +1357,115 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
     }
   }
 
+  function handleAddPhoto() {
+    const validation = getActivityPhotoUploadValidation({
+      currentPhotoCount: photos.length,
+      selectedFileCount: 1,
+      status: activity.status,
+      isUploading: isUploadingPhotos,
+    })
+
+    if (!validation.isApproved) {
+      showLocalToast('待审核通过后可补传。')
+      return
+    }
+    if (photos.length >= ACTIVITY_PHOTO_MAX_COUNT) {
+      showLocalToast(`最多只能保留 ${ACTIVITY_PHOTO_MAX_COUNT} 张现场照片。`)
+      return
+    }
+    if (isUploadingPhotos || photoUploadInFlightRef.current) return
+
+    photoInputRef.current?.click()
+  }
+
+  async function handlePhotoSelection(files: FileList | null) {
+    if (!files?.length) return
+
+    const selectedFiles = [...files]
+    const validation = getActivityPhotoUploadValidation({
+      currentPhotoCount: photos.length,
+      selectedFileCount: selectedFiles.length,
+      status: activity.status,
+      isUploading: isUploadingPhotos,
+    })
+
+    if (!validation.isApproved) {
+      showLocalToast('待审核通过后可补传。')
+      if (photoInputRef.current) photoInputRef.current.value = ''
+      return
+    }
+
+    if (validation.isOverLimit) {
+      showLocalToast(`最多只能保留 ${ACTIVITY_PHOTO_MAX_COUNT} 张现场照片。`)
+      if (photoInputRef.current) photoInputRef.current.value = ''
+      return
+    }
+
+    if (photoUploadInFlightRef.current || isUploadingPhotos) {
+      if (photoInputRef.current) photoInputRef.current.value = ''
+      return
+    }
+
+    photoUploadInFlightRef.current = true
+    setIsUploadingPhotos(true)
+    try {
+      const formData = new FormData()
+      formData.set('action', 'add_activity_images')
+      formData.set('checkinId', activity.id)
+      for (const file of selectedFiles) {
+        formData.append('files', file)
+      }
+
+      const response = await fetch('/api/activity/actions', {
+        method: 'POST',
+        body: formData,
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(String(payload?.error ?? '现场照片上传失败，请稍后重试。'))
+      }
+
+      const nextPhotos = Array.isArray(payload?.assets)
+        ? payload.assets.flatMap((asset: unknown): ActivityPhotoViewModel[] => {
+            if (!asset || typeof asset !== 'object') return []
+            const candidate = asset as Record<string, unknown>
+            if (typeof candidate.id !== 'string' || typeof candidate.url !== 'string') return []
+            return [
+              {
+                id: candidate.id,
+                url: candidate.url,
+                thumbnailUrl:
+                  typeof candidate.thumbnail_url === 'string' && candidate.thumbnail_url
+                    ? candidate.thumbnail_url
+                    : candidate.url,
+              },
+            ]
+          })
+        : []
+
+      if (nextPhotos.length) {
+        setPhotos((current) => {
+          const seen = new Set(current.map((photo) => photo.url))
+          const uniqueNext = nextPhotos.filter((photo) => {
+            if (seen.has(photo.url)) return false
+            seen.add(photo.url)
+            return true
+          })
+          return [...current, ...uniqueNext]
+        })
+      }
+
+      showLocalToast(selectedFiles.length > 1 ? '现场照片已上传。' : '现场照片已添加。')
+      router.refresh()
+    } catch (error) {
+      showLocalToast(error instanceof Error ? error.message : '现场照片上传失败，请稍后重试。')
+    } finally {
+      photoUploadInFlightRef.current = false
+      setIsUploadingPhotos(false)
+      if (photoInputRef.current) photoInputRef.current.value = ''
+    }
+  }
+
   return (
     <main
       data-activity-checkin-id={activity.id}
@@ -1315,7 +1495,18 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
       <KeyDataGrid activity={renderedActivity} />
       <ActivityRouteMap activity={renderedActivity} />
       <RouteSnapshot activity={renderedActivity} />
-      <PhotoStrip activity={renderedActivity} onAddPhoto={() => showLocalToast('照片补传功能即将上线')} />
+      <PhotoStrip activity={renderedActivity} onAddPhoto={handleAddPhoto} isUploading={isUploadingPhotos} />
+      <input
+        ref={photoInputRef}
+        data-testid="activity-photo-upload-input"
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(event) => {
+          void handlePhotoSelection(event.currentTarget.files)
+        }}
+      />
       <CompanionStrip companions={renderedActivity.companions ?? []} />
       <ProofStrip status={renderedActivity.proofStatus} />
       <BackToRecords activity={renderedActivity} />

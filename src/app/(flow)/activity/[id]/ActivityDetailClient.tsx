@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
@@ -19,6 +19,12 @@ import {
 } from '@/components/ui/Icons'
 import type { CheckinSource } from '@/types'
 import { getDifficultyLevelLabel } from '@/lib/license-ui'
+import {
+  ACTIVITY_NOTE_MAX_LENGTH,
+  ACTIVITY_PHOTO_MAX_COUNT,
+  getActivityNoteValidation,
+  getActivityPhotoUploadValidation,
+} from '@/lib/activity-detail-validation'
 
 export type ActivityPhotoViewModel = {
   id: string
@@ -771,9 +777,114 @@ function PhotoStrip({ activity, onAddPhoto }: { activity: ActivityDetailViewMode
   )
 }
 
-function MemoryNote({ activity, onEditNote }: { activity: ActivityDetailViewModel; onEditNote: () => void }) {
-  const hasNote = Boolean(activity.note.trim())
+function MemoryNote({
+  activity,
+  savedNote,
+  draftNote,
+  isEditing,
+  isSaving,
+  onStartEdit,
+  onCancelEdit,
+  onDraftChange,
+  onSave,
+}: {
+  activity: ActivityDetailViewModel
+  savedNote: string
+  draftNote: string
+  isEditing: boolean
+  isSaving: boolean
+  onStartEdit: () => void
+  onCancelEdit: () => void
+  onDraftChange: (value: string) => void
+  onSave: () => void
+}) {
+  const hasNote = Boolean(savedNote.trim())
   const notePlace = activity.isSummit ? '山顶' : '途中'
+  const noteValidation = getActivityNoteValidation({
+    draftNote,
+    savedNote,
+    status: activity.status,
+    isSaving,
+  })
+  const noteDisabledHint = !noteValidation.isApproved ? '待审核通过后可编辑' : null
+  const counterColor = noteValidation.isOverLimit ? 'var(--color-error)' : 'var(--color-on-surface-variant)'
+
+  if (isEditing) {
+    return (
+      <section style={sectionPadding('var(--space-5)')}>
+        <SectionHead>手记</SectionHead>
+        <div
+          style={{
+            padding: '14px var(--space-4)',
+            borderRadius: 14,
+            border: `1px solid ${noteValidation.isOverLimit ? 'var(--color-error)' : 'var(--color-outline)'}`,
+            background: 'var(--color-surface-variant)',
+          }}
+        >
+          <textarea
+            data-testid="activity-note-editor"
+            value={draftNote}
+            onChange={(event) => onDraftChange(event.target.value)}
+            placeholder="写下这次山行想记住的一句话。"
+            rows={5}
+            disabled={isSaving}
+            style={{
+              width: '100%',
+              minHeight: 120,
+              padding: 'var(--space-3)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-outline)',
+              color: 'var(--color-on-surface)',
+              background: 'var(--color-surface)',
+              font: 'inherit',
+              fontSize: 15,
+              lineHeight: 1.7,
+              resize: 'vertical',
+              outline: 'none',
+            }}
+          />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 'var(--space-3)',
+              marginTop: 'var(--space-2)',
+            }}
+          >
+            <div
+              style={{
+                color: counterColor,
+                fontSize: 'var(--font-label-s-size)',
+                lineHeight: 'var(--font-label-s-line)',
+                fontWeight: noteValidation.isOverLimit ? 700 : 500,
+              }}
+            >
+              {noteValidation.characterCount}/{ACTIVITY_NOTE_MAX_LENGTH}
+              {noteValidation.isOverLimit ? ' · 已超出 2000 字' : ''}
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <SecondaryButton
+                disabled={isSaving}
+                onClick={onCancelEdit}
+                style={{ minHeight: 40, height: 40, padding: '0 var(--space-4)' }}
+              >
+                取消
+              </SecondaryButton>
+              <PrimaryButton
+                disabled={!noteValidation.canSave}
+                loading={isSaving}
+                onClick={onSave}
+                style={{ minHeight: 40, height: 40, padding: '0 var(--space-4)' }}
+              >
+                保存
+              </PrimaryButton>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section style={sectionPadding('var(--space-5)')}>
@@ -797,7 +908,7 @@ function MemoryNote({ activity, onEditNote }: { activity: ActivityDetailViewMode
               paddingLeft: 'var(--space-3)',
             }}
           >
-            「{activity.note}」
+            「{savedNote}」
           </div>
           <div
             style={{
@@ -821,11 +932,12 @@ function MemoryNote({ activity, onEditNote }: { activity: ActivityDetailViewMode
             </div>
             <button
               type="button"
-              onClick={onEditNote}
+              disabled={Boolean(noteDisabledHint)}
+              onClick={onStartEdit}
               style={{
                 border: 0,
                 padding: 0,
-                color: 'var(--color-on-surface-variant)',
+                color: noteDisabledHint ? 'color-mix(in srgb, var(--color-on-surface-variant) 50%, transparent)' : 'var(--color-on-surface-variant)',
                 background: 'transparent',
                 font: 'inherit',
                 fontSize: 'var(--font-label-s-size)',
@@ -833,7 +945,7 @@ function MemoryNote({ activity, onEditNote }: { activity: ActivityDetailViewMode
                 cursor: 'pointer',
               }}
             >
-              编辑
+              {noteDisabledHint ?? '编辑'}
             </button>
           </div>
         </div>
@@ -864,22 +976,25 @@ function MemoryNote({ activity, onEditNote }: { activity: ActivityDetailViewMode
           </div>
           <button
             type="button"
-            onClick={onEditNote}
+            disabled={Boolean(noteDisabledHint)}
+            onClick={onStartEdit}
             style={{
               marginTop: 12,
               padding: '8px 16px',
               borderRadius: 10,
               border: '1px solid var(--color-outline)',
-              color: 'var(--color-on-surface)',
-              background: 'var(--color-surface-variant)',
+              color: noteDisabledHint ? 'var(--color-on-surface-variant)' : 'var(--color-on-surface)',
+              background: noteDisabledHint
+                ? 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)'
+                : 'var(--color-surface-variant)',
               font: 'inherit',
               fontSize: 'var(--font-label-s-size)',
               lineHeight: 'var(--font-label-s-line)',
               fontWeight: 600,
-              cursor: 'pointer',
+              cursor: noteDisabledHint ? 'not-allowed' : 'pointer',
             }}
           >
-            写一句
+            {noteDisabledHint ?? '写一句'}
           </button>
         </div>
       )}
@@ -1063,6 +1178,28 @@ function ActivityInlineActions({ activity }: { activity: ActivityDetailViewModel
 export default function ActivityDetailClient({ activity }: { activity: ActivityDetailViewModel }) {
   const router = useRouter()
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [savedNote, setSavedNote] = useState(activity.note)
+  const [draftNote, setDraftNote] = useState(activity.note)
+  const [isNoteEditing, setIsNoteEditing] = useState(false)
+  const [isSavingNote, setIsSavingNote] = useState(false)
+  const noteSaveInFlightRef = useRef(false)
+  const isNoteEditingRef = useRef(false)
+
+  useEffect(() => {
+    isNoteEditingRef.current = isNoteEditing
+  }, [isNoteEditing])
+
+  useEffect(() => {
+    setSavedNote(activity.note)
+    if (!isNoteEditingRef.current) {
+      setDraftNote(activity.note)
+    }
+  }, [activity.note])
+
+  const renderedActivity: ActivityDetailViewModel = {
+    ...activity,
+    note: savedNote,
+  }
 
   function showLocalToast(message: string) {
     setToastMessage(message)
@@ -1095,8 +1232,63 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
     window.alert('活动链接已复制。')
   }
 
+  function handleStartNoteEdit() {
+    if (activity.status !== 'approved') {
+      showLocalToast('待审核通过后可编辑。')
+      return
+    }
+    setDraftNote(savedNote)
+    setIsNoteEditing(true)
+  }
+
+  function handleCancelNoteEdit() {
+    setDraftNote(savedNote)
+    setIsNoteEditing(false)
+  }
+
+  async function handleSaveNote() {
+    const validation = getActivityNoteValidation({
+      draftNote,
+      savedNote,
+      status: activity.status,
+      isSaving: isSavingNote,
+    })
+    if (!validation.canSave || noteSaveInFlightRef.current) return
+
+    noteSaveInFlightRef.current = true
+    setIsSavingNote(true)
+    try {
+      const response = await fetch('/api/activity/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_activity_note',
+          checkinId: activity.id,
+          note: validation.normalizedDraft,
+        }),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(String(payload?.error ?? '攀登日记保存失败，请稍后重试。'))
+      }
+
+      const nextNote = typeof payload?.note === 'string' ? payload.note : validation.normalizedDraft
+      setSavedNote(nextNote)
+      setDraftNote(nextNote)
+      setIsNoteEditing(false)
+      showLocalToast('攀登日记已保存。')
+      router.refresh()
+    } catch (error) {
+      showLocalToast(error instanceof Error ? error.message : '攀登日记保存失败，请稍后重试。')
+    } finally {
+      noteSaveInFlightRef.current = false
+      setIsSavingNote(false)
+    }
+  }
+
   return (
     <main
+      data-activity-checkin-id={activity.id}
       style={{
         position: 'relative',
         minHeight: '100dvh',
@@ -1107,17 +1299,27 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
       }}
     >
       <ActivityTopBar onBack={handleBack} onShare={handleShare} />
-      <ActivityHero activity={activity} />
-      <MemoryNote activity={activity} onEditNote={() => showLocalToast('手记功能即将上线')} />
-      {activity.isSummit ? <SummitReachedCard activity={activity} /> : <MaxAltitudeCard activity={activity} />}
-      <KeyDataGrid activity={activity} />
-      <ActivityRouteMap activity={activity} />
-      <RouteSnapshot activity={activity} />
-      <PhotoStrip activity={activity} onAddPhoto={() => showLocalToast('照片补传功能即将上线')} />
-      <CompanionStrip companions={activity.companions ?? []} />
-      <ProofStrip status={activity.proofStatus} />
-      <BackToRecords activity={activity} />
-      <ActivityInlineActions activity={activity} />
+      <ActivityHero activity={renderedActivity} />
+      <MemoryNote
+        activity={renderedActivity}
+        savedNote={savedNote}
+        draftNote={draftNote}
+        isEditing={isNoteEditing}
+        isSaving={isSavingNote}
+        onStartEdit={handleStartNoteEdit}
+        onCancelEdit={handleCancelNoteEdit}
+        onDraftChange={setDraftNote}
+        onSave={handleSaveNote}
+      />
+      {renderedActivity.isSummit ? <SummitReachedCard activity={renderedActivity} /> : <MaxAltitudeCard activity={renderedActivity} />}
+      <KeyDataGrid activity={renderedActivity} />
+      <ActivityRouteMap activity={renderedActivity} />
+      <RouteSnapshot activity={renderedActivity} />
+      <PhotoStrip activity={renderedActivity} onAddPhoto={() => showLocalToast('照片补传功能即将上线')} />
+      <CompanionStrip companions={renderedActivity.companions ?? []} />
+      <ProofStrip status={renderedActivity.proofStatus} />
+      <BackToRecords activity={renderedActivity} />
+      <ActivityInlineActions activity={renderedActivity} />
       {toastMessage ? (
         <div
           role="status"

@@ -122,8 +122,10 @@ function uniquePhotos(legacyPhotoUrl: string | null, assets: CheckinAssetRow[]):
     seen.add(legacyPhotoUrl)
     photos.push({
       id: 'legacy-photo',
+      assetId: null,
       url: legacyPhotoUrl,
       thumbnailUrl: legacyPhotoUrl,
+      isLegacyCover: true,
     })
   }
 
@@ -132,6 +134,7 @@ function uniquePhotos(legacyPhotoUrl: string | null, assets: CheckinAssetRow[]):
     seen.add(asset.url)
     photos.push({
       id: asset.id,
+      assetId: asset.id,
       url: asset.url,
       thumbnailUrl: asset.thumbnail_url ?? asset.url,
     })

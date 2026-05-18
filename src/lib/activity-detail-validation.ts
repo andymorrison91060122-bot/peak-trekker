@@ -17,6 +17,11 @@ export type ActivityPhotoUploadValidationInput = {
   isUploading?: boolean
 }
 
+export type ActivityPhotoDeleteValidationInput = {
+  status: EditableActivityStatus
+  isDeleting?: boolean
+}
+
 export function normalizeActivityNoteForSave(value: string) {
   return value.trim()
 }
@@ -64,5 +69,17 @@ export function getActivityPhotoUploadValidation({
     isApproved,
     isOverLimit,
     canUpload: isApproved && !isUploading && safeSelectedCount > 0 && !isOverLimit,
+  }
+}
+
+export function getActivityPhotoDeleteValidation({
+  status,
+  isDeleting = false,
+}: ActivityPhotoDeleteValidationInput) {
+  const isApproved = status === 'approved'
+
+  return {
+    isApproved,
+    canDelete: isApproved && !isDeleting,
   }
 }

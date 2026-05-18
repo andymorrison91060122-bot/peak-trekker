@@ -1590,6 +1590,14 @@
   grid-template-rows: repeat(2, minmax(0, 1fr));
 }
 
+.act-photos__layout--four {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.act-photos__layout--grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .act-photos__layout--two {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -1600,18 +1608,26 @@
 
 .act-photo {
   position: relative;
+  display: block;
+  width: 100%;
   min-height: 0;
   overflow: hidden;
   aspect-ratio: 1 / 1;
+  padding: 0;
   border: 1px solid var(--color-outline);
   border-radius: var(--radius-md);
   background-position: center 35%;
   background-size: cover;
+  cursor: zoom-in;
 }
 
 .act-photo--hero {
   grid-row: 1 / span 2;
   aspect-ratio: 1 / 1.1;
+}
+
+.act-photos__layout--one .act-photo {
+  aspect-ratio: 16 / 10;
 }
 
 .act-photo__scrim {
@@ -1640,6 +1656,146 @@
 .act-photo--hero .act-photo__label {
   left: 12px;
   bottom: 10px;
+}
+
+.act-photo:focus-visible,
+.act-lightbox__thumb:focus-visible,
+.act-lightbox__delete:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.act-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: max(env(safe-area-inset-top), var(--space-5)) var(--space-4) max(env(safe-area-inset-bottom), var(--space-5));
+  background: rgba(6, 8, 10, 0.94);
+  backdrop-filter: blur(12px);
+}
+
+.act-lightbox__close {
+  position: absolute;
+  top: max(env(safe-area-inset-top), var(--space-4));
+  right: var(--space-4);
+  z-index: 3;
+}
+
+.act-lightbox__nav {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  transform: translateY(-50%);
+}
+
+.act-lightbox__nav--prev {
+  left: var(--space-3);
+}
+
+.act-lightbox__nav--next {
+  right: var(--space-3);
+}
+
+.act-lightbox__stage {
+  display: grid;
+  place-items: center;
+  width: min(100%, 720px);
+  max-height: 68dvh;
+  justify-self: center;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-outline) 80%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.act-lightbox__image {
+  width: 100%;
+  height: min(68dvh, 720px);
+  max-height: 68dvh;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.act-lightbox__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: min(100%, 720px);
+  justify-self: center;
+  color: var(--color-on-surface);
+}
+
+.act-lightbox__count {
+  font-family: var(--font-mono);
+  font-size: var(--font-label-m-size);
+  line-height: var(--font-label-m-line);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.act-lightbox__hint {
+  margin-top: var(--space-1);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-s-size);
+  line-height: var(--font-label-s-line);
+}
+
+.act-lightbox__delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-error) 42%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+  font-size: var(--font-label-m-size);
+  line-height: var(--font-label-m-line);
+  font-weight: var(--font-label-m-weight);
+  cursor: pointer;
+}
+
+.act-lightbox__delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.act-lightbox__delete-glyph {
+  display: inline-flex;
+}
+
+.act-lightbox__thumbs {
+  display: flex;
+  gap: var(--space-2);
+  width: min(100%, 720px);
+  justify-self: center;
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+}
+
+.act-lightbox__thumb {
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-outline) 80%, transparent);
+  border-radius: var(--radius-sm);
+  background-position: center;
+  background-size: cover;
+  cursor: pointer;
+}
+
+.act-lightbox__thumb[data-active='true'] {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 32%, transparent);
 }
 
 .act-companion {

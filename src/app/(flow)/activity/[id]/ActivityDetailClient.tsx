@@ -1434,7 +1434,7 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
         throw new Error(String(payload?.error ?? '现场照片上传失败，请稍后重试。'))
       }
 
-      const nextPhotos = Array.isArray(payload?.assets)
+      const nextPhotos: ActivityPhotoViewModel[] = Array.isArray(payload?.assets)
         ? payload.assets.flatMap((asset: unknown): ActivityPhotoViewModel[] => {
             if (!asset || typeof asset !== 'object') return []
             const candidate = asset as Record<string, unknown>

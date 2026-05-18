@@ -3,9 +3,6 @@ import { once } from 'node:events'
 import { expect, test } from '@playwright/test'
 import { registerFreshUser } from './community.helpers'
 
-const FU46_QUARANTINE_REASON =
-  'Quarantined for FU-46: pre-existing baseline rot, unrelated to FU-41 RLS write-gap repair. See FU-46 active for inventory.'
-
 const PROD_PORT = 3201
 const PROD_ROOT = `http://127.0.0.1:${PROD_PORT}`
 
@@ -105,7 +102,6 @@ test.afterAll(async () => {
 })
 
 test('profile page shows license progress while keeping debug tools out of the formal profile', async ({ page, baseURL }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   const root = baseURL ?? 'http://127.0.0.1:3100'
 
   await registerFreshUser(page, root, { returnTo: '/profile' })
@@ -126,7 +122,6 @@ test('debug route stays focused on QA tools and no longer renders license progre
 })
 
 test('debug route is not exposed to non-admin users in production mode', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   test.setTimeout(300_000)
   await ensureProductionServer()
 

@@ -8,11 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`af944a441f711e88`（Merge FU-31 · 2026-05-19）
+`5294a9de963ac98916da8dd0bd4eb7ab5dfcd120`（Merge FU-48 · 2026-05-19）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-FU-48 · 天气组件前端接入 daily-only · 状态 🟡 in-progress
+待启动（候选: FU-47 [P1 高优] / FU-49 [P2] / FU-46 [P2 高优] / FU-43 / FU-45 / community-final-polish / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -477,44 +477,39 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
-### FU-48 · 天气组件前端真实接入 + 新 UI 改造
+### FU-49 · (main)/explore/[id] mountain detail + MountainCard 孤儿组件 obsolete cleanup
 
-- **优先级**: P1（docs §14 第 4 步前端缺 + 用户验收发现）
-- **归属阶段**: 阶段 4 / 阶段 5
-- **状态**: 🟡 in-progress
+- **优先级**: P2（dead code 清理，不阻塞业务）
+- **归属阶段**: 阶段 5 / 阶段 6
+- **状态**: 🟢 active
 
-**背景**: docs/map-weather-brief.md §7 / §8 / §11 定义了"QWeather 主源 + Open-Meteo fallback + Detail 页轻量天气展示"。后端 / API / schema / cache 表均已完成（src/lib/weather/qweather-adapter.ts / weather-service.ts / weather-core.ts / src/app/api/weather/[mountainId]/route.ts / supabase/migrations/20260505203730_n4_weather_cache.sql 全部就位 + mountains 表 weather_priority_tier / weather_enabled 字段已有），但 Mountain Detail 前端 src/app/(main)/explore/[id]/page.tsx 第 60-78 / 141 / 256-263 行仍用本地函数 getWeatherGuidance() 生成静态文案，没调 /api/weather/[mountainId] 不显示真实天气。
+**背景**: FU-48 sprint 实施前调研发现 `src/app/(main)/explore/[id]/page.tsx` + `src/components/ui/MountainUI.tsx` 中的 MountainCard / MountainCardLarge 跳 `/explore/<id>` 是孤儿状态：
+- ExploreMountainCard (`src/components/ui/ExploreMountainCard.tsx:69`) 跳 `/mountain/<id>` 是用户实际访问主路径，已 import 在 `(main)/explore/ExploreClient.tsx`
+- MountainCard / MountainCardLarge in `MountainUI.tsx` grep 0 hit 业务 import，是孤儿组件
+- `(main)/explore/[id]/page.tsx` 仅 e2e spec / 孤儿卡片假设入口，无真实用户访问
 
-**设计权威（实施时必须读 + 1:1 复刻视觉，不可自由发挥）**:
-- design-system/ui_kits/mobile/WeatherMapModules.jsx line 86-181 `WeatherBlock` standalone 设计：
-  · live state: 当前温度大数字 (26px mono fontWeight 800) + 体感温度 + 状态文字（多云间晴）+ 海拔标注 + 出发窗口 chip（可出发/需复核）+ 8 小时温度 bar chart (HourBar) + 风/降水/能见度 KPI 行 (KPIRow) + 风险提示卡片 + reference footnote
-  · stale state: 添加橙色覆盖渐变 + 警示 chip + 风险文案"数据已 6 小时未更新"+ 复核提示
-  · unavailable state: 简洁卡片 "天气暂时拿不到" + 重试按钮 + 区域气象点没有响应提示
-- 共享 atoms 在同文件：WeatherIcon (sun/cloud/snow/wind/rain) / HourBar / KPIRow / ReferenceFootnote
-- 配套 showcase frames：MountainDetailWithModules / MountainDetailWeatherUnavailable / MountainDetailWeatherStale
-
-**业务价值**: 用户出发前需轻量决策提示（温度 / 风速 / 降水概率 / 高低温）；当前用户看到的天气区是固定模板文字，与实际天气无关。
+与 FU-44 close (activity-hero obsolete cleanup) 同范式。
 
 **实施建议**:
-- Mountain Detail 前端调用 GET /api/weather/[mountainId]（含 loading + error 状态）
-- 按 docs §11 P0 字段集渲染 + 按 WeatherBlock 设计 1:1 复刻：当前天气状态 / 当前温度 / 风速 风级 / 降水概率或降水量 / 今日最高最低温 / 更新时间 / 必要时的简短风险提示
-- 移除本地 getWeatherGuidance() 静态文案逻辑
-- 失败降级（docs §13.2 + WeatherBlock unavailable state）："天气信息暂不可用" 轻说明 + 不阻塞开始记录 / 活动 / 分享主链路
-- 长尾山峰非小时级更新文案（docs §13.3 + WeatherBlock stale state）："今日已更新" 非"1 小时内更新" + 明确展示更新时间
-
-**不在 scope**:
-- 不实施缓存分层 S/A/B/C 热度任务（拆独立 FU-49）
-- 不重构 weather-core / qweather-adapter（已就绪）
-- 不引入新天气 provider
+- 删除 `(main)/explore/[id]/page.tsx`
+- 删除 MountainCard / MountainCardLarge from `MountainUI.tsx`（grep 验证无外部 import）
+- 删除仅旧版引用的 dead CSS
+- **关键依赖**: `mountain-waypoints-display.spec.ts` (FU-46 子 sprint 2 已修) + `mountain-featured-posts.spec.ts` (FU-46 子 sprint 3 已修) 走 `/explore/<id>`，需:
+  · 选 (a): 改 spec URL 为 `/mountain/<id>`，验证 testid 在新版 `(flow)/mountain/[id]/MountainDetailClient.tsx` 是否齐全（waypoint-display-* / mountain-featured-posts-section / etc）— 大概率部分缺失需补 testid
+  · 选 (b): 这两个 spec 也 obsolete cleanup（标 FU-49 删除），与 FU-44 activity-hero 同范式 — 但 FU-46 inventory 完成进度回退（-10 cases）
+  · 选 (c): 添加 `/explore/<id>` → `/mountain/<id>` redirect，保留 spec 路径但页面不存在 — 最小改动但有 magic
+  · 具体方向由 V1 Phase 1 探索决定
 
 **涉及**:
-- src/app/(main)/explore/[id]/page.tsx weather 区改造（fetch + render）
-- 新增 src/components/mountain/WeatherSection.tsx 局部组件（1:1 复刻 WeatherBlock）
-- src/app/components.css 新 weather UI 样式
+- `src/app/(main)/explore/[id]/page.tsx` 删除
+- `src/components/ui/MountainUI.tsx` MountainCard + MountainCardLarge 删除
+- 可能 `src/app/components.css` 删除关联 dead CSS
+- `tests/e2e/mountain-waypoints-display.spec.ts` 改 URL 或 obsolete
+- `tests/e2e/mountain-featured-posts.spec.ts` 改 URL 或 obsolete
 
 ---
 
-## Closed Follow-ups（26 条）
+## Closed Follow-ups（27 条）
 
 ### FU-1 ✅ 同一份轨迹文件去重（防伪造）
 
@@ -733,6 +728,14 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
+### FU-48 ✅ 天气组件前端真实接入 + 新 UI 改造（daily-only 折中版）
+
+- **关闭原因**: FU-48 sprint 落地 daily-only 折中版。当前真实主入口 `/mountain/[id]` 改为前端调用 `GET /api/weather/[mountainId]`，新增 client `WeatherSection` + `weather-view-model` helper，覆盖 loading / live / stale / unavailable 三态与 retry；UI 按 `WeatherMapModules.jsx` WeatherBlock 复刻核心结构，但基于当前 `WeatherResponse` 字段不做 hourly bar chart / visibility KPI / 假数据。出发窗口规则：stale、风速 ≥39 km/h、今日降水 ≥5 mm → 需复核，否则可出发；降水按 mm 处理。遗留 `(main)/explore/[id]` 静态天气与孤儿 MountainCard 清理另开 FU-49 跟踪。
+- **关闭 commit**: `5294a9d`
+- **关闭时间**: 2026-05-19
+
+---
+
 > **历史跳号编号**：FU-26 在 Pre-3.a sprint 中编号跳号未实际引入；未来新增 FU 不复用此编号，按当前最大编号 +1 顺序分配。
 
 ---
@@ -802,6 +805,20 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.22 — 2026-05-19**: FU-48 天气组件前端真实接入 daily-only 折中版落地。
+
+**范围决策**: 用户与 Claude 调研确认 backend `WeatherResponse` 当前缺 hourly forecast / visibility 字段，本 sprint 选 C daily-only 折中，只做前端真实接入，不扩 backend / schema / provider。实施范围改为当前真实主入口 `/mountain/[id]`，遗留 `/explore/[id]` 不在本 sprint 修改。
+
+**前端**: `/mountain/[id]` 天气区从服务端直接读 `weather_cache` 改为 client `WeatherSection` 调 `GET /api/weather/[mountainId]`。新增 `src/lib/weather/weather-view-model.ts` 将 API response 转为 daily-only ViewModel，新增 `src/components/mountain/WeatherSection.tsx` 实现 loading / live / stale / unavailable + retry。移除旧内联 HourBar 模拟、visibility placeholder、缓存直读天气 props。CSS 新增 `.mountain-weather-*`，保留 `.weather-reminder-*` 供遗留 `/explore/[id]` 使用。
+
+**daily-only UI**: 复刻 `design-system/ui_kits/mobile/WeatherMapModules.jsx` WeatherBlock 的 current row / 出发窗口 chip / 今日明日 forecast row / 风与降水 KPI / risk note / reference footnote；不渲染 hourly bar chart，不渲染 visibility KPI，不制造假数据。
+
+**规则**: stale 只由 `WeatherResponse.stale === true` 控制；风速 ≥39 km/h 或今日降水 ≥5 mm 或 stale → "需复核"，否则 "可出发"；`forecast.precipitation` 按降水量 mm 展示，不按概率。
+
+**测试与视觉验收**: `npm run lint` PASS（0 errors / 13 warnings）；node tests 242 pass；`npm run build` PASS；`npx playwright test tests/e2e/mountain-weather-section.spec.ts` 4/4 PASS。375px 视觉自查覆盖 live / stale / unavailable / loading：`scrollWidth=375`，天气卡片与 fixed CTA 无重叠，未出现能见度或小时柱文本。
+
+**新增 FU**: FU-49 跟踪 `(main)/explore/[id]` legacy mountain detail + MountainCard / MountainCardLarge 孤儿组件 obsolete cleanup。Active 21 → 21（关 FU-48 + 加 FU-49 净 0）；Closed 26 → 27。
 
 **v0.21 — 2026-05-19**: docs 补丁 - 补 FU-47 地图组件实施 (MapLibre + PMTiles) + FU-48 天气组件前端真实接入入 Active 段。
 

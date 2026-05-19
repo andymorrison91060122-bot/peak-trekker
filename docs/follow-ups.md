@@ -12,7 +12,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动（候选: FU-47 [P1 高优] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-46 [P2 高优] / FU-43 / FU-45 / community-final-polish / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）
+FU-47 子 sprint (a) · MapLibre + PMTiles 底图基建 · 状态 🟡 in-progress
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -442,7 +442,7 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 - **优先级**: P1（docs §14 第 5 步实施门面缺失 + 用户验收发现）
 - **归属阶段**: 阶段 4 / 阶段 5
-- **状态**: 🟢 active
+- **状态**: 🟡 in-progress
 
 **背景**: docs/map-weather-brief.md §4 / §5 / §14 第 5 步定义了"MapLibre GL JS + PMTiles / Protomaps 自托管 OSM 衍生底图 + 业务 GeoJSON 叠加层"地图方案（已与 Mapbox 方案对比后锁定，理由：大陆访问可控 / 长期 0 费用 / 无 Attribution 限制）。当前代码层 grep MapLibre / pmtiles / protomaps 0 hit，Mountain Detail 仅用 MapPlaceholder 静态占位组件 + routePreviewImage 山峰图，Trek 完全没接，ActivityRouteMap 是 SVG drawing 模拟不是真地图。
 

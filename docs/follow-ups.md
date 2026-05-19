@@ -12,7 +12,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动（候选: FU-47 [P1 高优] / FU-49 [P2] / FU-46 [P2 高优] / FU-43 / FU-45 / community-final-polish / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）
+FU-50 · 出发窗口分级判定规则增强 · 状态 🟡 in-progress
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -84,7 +84,7 @@
 
 ---
 
-## Active Follow-ups（21 条）
+## Active Follow-ups（22 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -506,6 +506,63 @@ status 字段是 schema/RLS/RPC 既有概念：
 - 可能 `src/app/components.css` 删除关联 dead CSS
 - `tests/e2e/mountain-waypoints-display.spec.ts` 改 URL 或 obsolete
 - `tests/e2e/mountain-featured-posts.spec.ts` 改 URL 或 obsolete
+
+---
+
+### FU-50 · 出发窗口分级判定规则增强 (三态 + 6 维度)
+
+- **优先级**: P2（产品质量 — FU-48 副产物）
+- **归属阶段**: 阶段 4 / 阶段 5
+- **状态**: 🟡 in-progress
+
+**背景**: FU-48 daily-only sprint 视觉验收发现规则过简化漏洞 — 极端天气（如 -17°C / 大雪 / 7546m）仍显示"可出发"。新增三态分级 + 6 维度评估。
+
+**三态分级**:
+- 🟢 可出发 (can_depart)
+- 🟠 建议评估 (needs_evaluation)
+- 🔴 不建议出发 (not_recommended)
+
+**6 维度判定**:
+
+1. 体感温度 (feelsLike, °C):
+   - ≥ 0: 🟢
+   - -10 ~ 0: 🟠
+   - ≤ -10: 🔴
+
+2. 风速 (windSpeed, km/h):
+   - < 29: 🟢
+   - 29 - 49: 🟠
+   - ≥ 50: 🔴
+
+3. 今日降水量 (forecast[0].precipitation, mm/24h):
+   - < 1: 🟢
+   - 1 - 15: 🟠
+   - ≥ 15: 🔴
+
+4. 天气描述 (description 关键词匹配):
+   - 🟠: 小雪 / 小雨 / 雨夹雪 / 雾 / 大雾 / 浓雾
+   - 🔴: 中雪 / 大雪 / 暴雪 / 暴风雪 / 雪暴 / 雷暴 / 雷阵雨 / 冰雹 / 沙尘暴 / 强风暴
+
+5. 海拔加权 (mountain.altitude, m):
+   - < 3000: 按维度 1-4 标准
+   - 3000 - 5000: 任一维度 🟠 时升级为 🔴
+   - ≥ 5000: 即便所有维度 🟢，默认 🟠
+
+6. stale 状态 (response.stale === true):
+   - 🟠
+
+**最终判定**: 收集所有维度等级，取 max（最严重）为最终状态。
+
+**文案**: "建议评估" 代替 FU-48 实施版 "需复核"（更口语化，与"分级"原话一致）。
+
+**涉及**:
+- src/lib/weather/weather-view-model.ts: 扩展 DeparturePolicy 类型 + buildDeparturePolicy 函数 + 6 维度阈值常量
+- src/components/mountain/WeatherSection.tsx: 三色 chip + 三文案
+- src/app/(flow)/mountain/[id]/page.tsx: 传 mountain.altitude
+- tests/weather-view-model.test.ts: 六维度边界 case
+- tests/e2e/mountain-weather-section.spec.ts: 三态分级断言
+
+**规则依据**: 户外登山常识（蒲福风级 + 气象降水标准 + 失温阈值 + 高原反应海拔分级）+ 用户视觉验收发现的真实漏洞场景。
 
 ---
 

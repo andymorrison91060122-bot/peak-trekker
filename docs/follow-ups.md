@@ -12,7 +12,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动（候选: FU-47 [P1 高优] / FU-48 [P1 高优] / FU-46 [P2 高优] / FU-43 / FU-45 / community-final-polish / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）
+FU-48 · 天气组件前端接入 daily-only · 状态 🟡 in-progress
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -481,7 +481,7 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 - **优先级**: P1（docs §14 第 4 步前端缺 + 用户验收发现）
 - **归属阶段**: 阶段 4 / 阶段 5
-- **状态**: 🟢 active
+- **状态**: 🟡 in-progress
 
 **背景**: docs/map-weather-brief.md §7 / §8 / §11 定义了"QWeather 主源 + Open-Meteo fallback + Detail 页轻量天气展示"。后端 / API / schema / cache 表均已完成（src/lib/weather/qweather-adapter.ts / weather-service.ts / weather-core.ts / src/app/api/weather/[mountainId]/route.ts / supabase/migrations/20260505203730_n4_weather_cache.sql 全部就位 + mountains 表 weather_priority_tier / weather_enabled 字段已有），但 Mountain Detail 前端 src/app/(main)/explore/[id]/page.tsx 第 60-78 / 141 / 256-263 行仍用本地函数 getWeatherGuidance() 生成静态文案，没调 /api/weather/[mountainId] 不显示真实天气。
 

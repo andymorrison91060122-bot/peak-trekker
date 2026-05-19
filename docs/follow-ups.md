@@ -12,7 +12,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动（候选: FU-46 [P2 高优] / FU-43 / FU-45 / community-final-polish / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）
+待启动（候选: FU-47 [P1 高优] / FU-48 [P1 高优] / FU-46 [P2 高优] / FU-43 / FU-45 / community-final-polish / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -84,7 +84,7 @@
 
 ---
 
-## Active Follow-ups（19 条）
+## Active Follow-ups（21 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -438,6 +438,82 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
+### FU-47 · 地图组件实施 (MapLibre + PMTiles 自托管)
+
+- **优先级**: P1（docs §14 第 5 步实施门面缺失 + 用户验收发现）
+- **归属阶段**: 阶段 4 / 阶段 5
+- **状态**: 🟢 active
+
+**背景**: docs/map-weather-brief.md §4 / §5 / §14 第 5 步定义了"MapLibre GL JS + PMTiles / Protomaps 自托管 OSM 衍生底图 + 业务 GeoJSON 叠加层"地图方案（已与 Mapbox 方案对比后锁定，理由：大陆访问可控 / 长期 0 费用 / 无 Attribution 限制）。当前代码层 grep MapLibre / pmtiles / protomaps 0 hit，Mountain Detail 仅用 MapPlaceholder 静态占位组件 + routePreviewImage 山峰图，Trek 完全没接，ActivityRouteMap 是 SVG drawing 模拟不是真地图。
+
+**设计权威（实施时必须读 + 1:1 复刻视觉，不可自由发挥）**:
+- design-system/ui_kits/mobile/WeatherMapModules.jsx 含 3 个地图组件 standalone 设计（line 252-595）:
+  · RouteSnapshotMap (line 252) — Mountain Detail 路线地图，三态 ok / fallback / unavailable
+  · ActivityRouteMap (line 342) — Activity Detail 完整轨迹 + 3-stat strip (距离/时长/最高海拔)
+  · TrekReferenceMap (line 415) — Trek 轻量参考，含 progress / weak / offline 状态
+- 共享 atoms 在同文件：TopoMap (line 197) 等高线渲染基础 / MapWaypointStrip / ReferenceFootnote
+- 配套 showcase frames：MountainDetailRouteUnavailable / MountainDetailRouteFallback / ActivityDetailRouteOnly / TrekReferenceShowcase 等
+
+**业务价值**: 用户进 Mountain Detail 看路线/关键点位需真实地图理解地形；Trek 实时记录需轻量地图反馈位置；Activity Detail 轨迹快照需要真实地理 context。docs §3.1 已明确"地图职责"不承担专业导航，仅作轻量参考。
+
+**实施建议**（按 docs §14 第 5 步分解，可拆 3 子 sprint）:
+- (a) 底图选型 + PMTiles 自托管落地：MapLibre GL JS 依赖引入 + Protomaps PMTiles 自托管（对象存储 + CDN）+ 业务 GeoJSON 输出接口
+- (b) Mountain Detail 地图层接入：1:1 复刻 RouteSnapshotMap 设计（含 fallback / unavailable 状态）+ GeoJSON 山峰位置 / 路线 / 关键点位 / 风险点叠加
+- (c) Trek 轻量交互 + Activity Detail 轨迹快照：1:1 复刻 TrekReferenceMap + ActivityRouteMap 设计
+
+**不在 scope**:
+- 不做专业导航 / 离线 / 路径纠偏
+- 不接天地图主底图（仅可选影像层，本 FU 内不接）
+- Share Engine 继续走 SVG 静态轨迹（docs §5.1 已定）
+- Explore / Community 不引入重地图（docs §5.1 已定）
+
+**涉及**:
+- 新增 src/components/map/ 地图组件层（MapLibre wrapper + 三个组件 RouteSnapshotMap / ActivityRouteMap / TrekReferenceMap）
+- 新增 src/lib/map/* GeoJSON output service
+- src/app/(main)/explore/[id]/page.tsx 接入 Mountain Detail 地图
+- src/app/(flow)/trek/* 接入 Trek 轻量地图
+- src/components/activity/ActivityRouteMap.tsx 重写为 MapLibre（替换当前 SVG）
+- 部署 PMTiles assets 到 Cloudflare / Supabase storage / 等
+
+---
+
+### FU-48 · 天气组件前端真实接入 + 新 UI 改造
+
+- **优先级**: P1（docs §14 第 4 步前端缺 + 用户验收发现）
+- **归属阶段**: 阶段 4 / 阶段 5
+- **状态**: 🟢 active
+
+**背景**: docs/map-weather-brief.md §7 / §8 / §11 定义了"QWeather 主源 + Open-Meteo fallback + Detail 页轻量天气展示"。后端 / API / schema / cache 表均已完成（src/lib/weather/qweather-adapter.ts / weather-service.ts / weather-core.ts / src/app/api/weather/[mountainId]/route.ts / supabase/migrations/20260505203730_n4_weather_cache.sql 全部就位 + mountains 表 weather_priority_tier / weather_enabled 字段已有），但 Mountain Detail 前端 src/app/(main)/explore/[id]/page.tsx 第 60-78 / 141 / 256-263 行仍用本地函数 getWeatherGuidance() 生成静态文案，没调 /api/weather/[mountainId] 不显示真实天气。
+
+**设计权威（实施时必须读 + 1:1 复刻视觉，不可自由发挥）**:
+- design-system/ui_kits/mobile/WeatherMapModules.jsx line 86-181 `WeatherBlock` standalone 设计：
+  · live state: 当前温度大数字 (26px mono fontWeight 800) + 体感温度 + 状态文字（多云间晴）+ 海拔标注 + 出发窗口 chip（可出发/需复核）+ 8 小时温度 bar chart (HourBar) + 风/降水/能见度 KPI 行 (KPIRow) + 风险提示卡片 + reference footnote
+  · stale state: 添加橙色覆盖渐变 + 警示 chip + 风险文案"数据已 6 小时未更新"+ 复核提示
+  · unavailable state: 简洁卡片 "天气暂时拿不到" + 重试按钮 + 区域气象点没有响应提示
+- 共享 atoms 在同文件：WeatherIcon (sun/cloud/snow/wind/rain) / HourBar / KPIRow / ReferenceFootnote
+- 配套 showcase frames：MountainDetailWithModules / MountainDetailWeatherUnavailable / MountainDetailWeatherStale
+
+**业务价值**: 用户出发前需轻量决策提示（温度 / 风速 / 降水概率 / 高低温）；当前用户看到的天气区是固定模板文字，与实际天气无关。
+
+**实施建议**:
+- Mountain Detail 前端调用 GET /api/weather/[mountainId]（含 loading + error 状态）
+- 按 docs §11 P0 字段集渲染 + 按 WeatherBlock 设计 1:1 复刻：当前天气状态 / 当前温度 / 风速 风级 / 降水概率或降水量 / 今日最高最低温 / 更新时间 / 必要时的简短风险提示
+- 移除本地 getWeatherGuidance() 静态文案逻辑
+- 失败降级（docs §13.2 + WeatherBlock unavailable state）："天气信息暂不可用" 轻说明 + 不阻塞开始记录 / 活动 / 分享主链路
+- 长尾山峰非小时级更新文案（docs §13.3 + WeatherBlock stale state）："今日已更新" 非"1 小时内更新" + 明确展示更新时间
+
+**不在 scope**:
+- 不实施缓存分层 S/A/B/C 热度任务（拆独立 FU-49）
+- 不重构 weather-core / qweather-adapter（已就绪）
+- 不引入新天气 provider
+
+**涉及**:
+- src/app/(main)/explore/[id]/page.tsx weather 区改造（fetch + render）
+- 新增 src/components/mountain/WeatherSection.tsx 局部组件（1:1 复刻 WeatherBlock）
+- src/app/components.css 新 weather UI 样式
+
+---
+
 ## Closed Follow-ups（26 条）
 
 ### FU-1 ✅ 同一份轨迹文件去重（防伪造）
@@ -726,6 +802,22 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.21 — 2026-05-19**: docs 补丁 - 补 FU-47 地图组件实施 (MapLibre + PMTiles) + FU-48 天气组件前端真实接入入 Active 段。
+
+**触发来源**: FU-31 V3 收尾后用户对 19 个 Active FU 全景反应发现两项需求漏入册 — docs/map-weather-brief.md §14 第 4 / 5 步定义的地图 + 天气前端接入在 follow-ups.md 没有对应 FU 跟踪。
+
+**接入状态调研**:
+- 地图：MapLibre / PMTiles / Protomaps grep 0 hit，Mountain Detail 仅 MapPlaceholder 静态占位，完全没实施
+- 天气：后端 / API / schema / cache migration 全部完整，但 Mountain Detail 前端用 getWeatherGuidance() 本地静态文案，没调 /api/weather/[mountainId]
+
+**地图方案对比**: 与 Mapbox 商业 SaaS 方案对比后锁定原方案 MapLibre + PMTiles 自托管（理由：大陆访问可控 / 长期 0 费用 / 无 Attribution 限制 / 无供应商锁定 + 与 docs §4 一致）。
+
+**视觉权威**: design-system/ui_kits/mobile/WeatherMapModules.jsx 已有 597 行 standalone 设计含 4 组件（WeatherBlock / RouteSnapshotMap / ActivityRouteMap / TrekReferenceMap）+ 各状态完整覆盖，FU-47 / FU-48 实施 V1 阶段必须明确 1:1 复刻不可自由发挥。
+
+两 FU 均标 P1 优先级（用户体感重要 + docs 已规划但实施 gap）。
+
+零代码改动，仅 docs commit。Active 19 → 21；Closed 不变。
 
 **v0.20 — 2026-05-19**: FU-31 活动详情多图 9 张 + lightbox + 单张删除完整落地。补齐 FU-13/14 sprint 视觉验收发现的 3 项遗漏（4+ 张展示 / 大图查看 / 单张删除）。
 

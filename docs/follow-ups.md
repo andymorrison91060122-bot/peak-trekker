@@ -8,11 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`9286e1922fac0a65`（Merge FU-44 close · 2026-05-19）
+`af944a441f711e88`（Merge FU-31 · 2026-05-19）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-**FU-31 · 活动详情多图 9 张 + lightbox + 删除 · 状态 🟡 in-progress**
+待启动（候选: FU-46 [P2 高优] / FU-43 / FU-45 / community-final-polish / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -84,7 +84,7 @@
 
 ---
 
-## Active Follow-ups（20 条）
+## Active Follow-ups（19 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -237,30 +237,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 **实施建议**: 明确 "山行" 在 Profile / Archive 中是否都只计 complete，或 Archive 是否应分开展示 complete / incomplete，并同步 PRD/UI 文档。
 
 **涉及**: `src/app/(main)/profile/page.tsx`、`src/app/(flow)/archive/*`、`docs/ui-interaction-spec.md`。
-
----
-
-### FU-31 · 活动详情多图（最多 9 张）展示 + 单张大图查看 + 单张删除
-
-- **优先级**: P2
-- **归属阶段**: 阶段 3 / 阶段 5
-- **状态**: 🟡 in-progress
-
-**背景**: FU-14 落地后用户可上传至 9 张照片，但当前 PhotoStrip 仅展示前 3 张（act-photos__layout 现有限制）。FU-13/14 sprint 视觉验收用户明确反馈：
-1. 上传超过 3 张后剩余照片无法在 UI 查看
-2. 当前缩略图无法点击放大查看大图
-3. 9 张上限达到后没有删除入口（仅文字提示 "删掉一张才能补传"，但无实际操作路径）
-
-**实施建议**:
-- 4+ 张展示方案候选: 横滑列表 / 网格 + "查看全部" 弹窗 / 单独详情子页
-- 大图查看: 点缩略图打开 lightbox，支持左右切换
-- 单张删除: lightbox 内提供删除按钮，调新 endpoint DELETE checkin_asset（owner gate via RLS join），若删除的是 photo_url 对应 asset 则后端同步切换 photo_url 到剩余首张或置 NULL
-- 后端 RLS 已允许 owner DELETE checkin_assets（FU-13/14 audit 确认）
-
-**涉及**:
-- `src/app/(flow)/activity/[id]/ActivityDetailClient.tsx` (PhotoStrip 重设计)
-- `src/app/api/activity/actions/route.ts` (新 delete_activity_image action)
-- `src/app/components.css` (lightbox 样式)
 
 ---
 
@@ -462,7 +438,7 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
-## Closed Follow-ups（25 条）
+## Closed Follow-ups（26 条）
 
 ### FU-1 ✅ 同一份轨迹文件去重（防伪造）
 
@@ -673,6 +649,14 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
+### FU-31 ✅ 活动详情多图（最多 9 张）展示 + 单张大图查看 + 单张删除
+
+- **关闭原因**: FU-31 sprint 落地。PhotoStrip 重设计支持 1-9 张照片完整展示（1 全宽 / 2 双列 / 3 hero mosaic / 4 2x2 等分 / 5-9 自适应 3 列网格末行靠左），新增 lightbox 大图查看（左右切换 + 键盘 ←→Esc + 移动端滑动 + 缩略图条 + N/total 计数），单张删除（lightbox 内删除按钮 + window.confirm 二次确认 + 删除中锁定）。新后端 action delete_activity_image (POST /api/activity/actions JSON)：owner + status='approved' + field-policy gate；checkin_assets DELETE 用 user client（RLS 已允许 owner via checkins join）；checkins.photo_url 同步切换用 service-role admin client（与 FU-13/14/41 同范式）；storage.objects best-effort remove（data URL / 非 public URL 跳过）。ViewModel 调整含 assetId / isLegacyCover 处理 uniquePhotos legacy-photo 去重边界。含 1 个 in-sprint 视觉补丁 efc7748 修 8 个 UI/UX 缺陷（4 个 PhotoStrip 网格 + 4 个 Lightbox 排版）。测试基线 +1 e2e (activity-photo-gallery.spec.ts) + 1 unit (getActivityPhotoDeleteValidation)。
+- **关闭 commit**: `af944a4`
+- **关闭时间**: 2026-05-19
+
+---
+
 > **历史跳号编号**：FU-26 在 Pre-3.a sprint 中编号跳号未实际引入；未来新增 FU 不复用此编号，按当前最大编号 +1 顺序分配。
 
 ---
@@ -742,6 +726,24 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.20 — 2026-05-19**: FU-31 活动详情多图 9 张 + lightbox + 单张删除完整落地。补齐 FU-13/14 sprint 视觉验收发现的 3 项遗漏（4+ 张展示 / 大图查看 / 单张删除）。
+
+**前端**: PhotoStrip 重设计支持 1-9 张展示（1 全宽 / 2 双列 / 3 hero mosaic / 4 2x2 / 5-9 自适应 3 列），lightbox 局部实现含键盘 + 移动端滑动 + 缩略图条 + 二次确认，未 approved gate disable 删除入口。CSS 新增 .act-photos__layout--{four,grid} + .act-lightbox* 完整样式。
+
+**后端**: 新 action delete_activity_image (POST /api/activity/actions JSON)：owner / status / field-policy gate → user client 删 checkin_assets (RLS owner allowed) → 若 cover 用 admin client 同步 photo_url → storage best-effort remove。data URL / 非 public URL 跳过 storage 删除。
+
+**ViewModel 调整**: ActivityPhotoViewModel 增 assetId / isLegacyCover 处理 uniquePhotos() legacy photo_url + same-URL asset dedupe 边界（首图可能 id='legacy-photo' 但真实 asset 被隐藏，删除目标优先级：assetId 命中 → legacy-photo + photoUrl 兜底）。
+
+**Sprint 副产物 — 视觉验收**: 实施后视觉验收发现 8 个 UI/UX 缺陷（4 PhotoStrip 网格 / 4 Lightbox 排版）。in-sprint 补丁 efc7748 修正：PhotoStrip 不预留空 slot + 4 张去 hero mosaic + 末行靠左；Lightbox 改 fixed close right-top + safe-area / 切换按钮 absolute 悬浮图片左右中间 / 删除按钮 toolbar row 独立不覆盖图片 / 图片区 place-items center 解决单张大空白。
+
+**双盲对比记账（Plan 阶段）**: Codex Phase 1 调研抓到 Claude 漏掉的 2 处深层风险（uniquePhotos legacy-photo dedupe 边界 + storage objects best-effort remove），Claude 学到未来调研要追 ViewModel 转换层 + 第三方资源边界。
+
+**协议遵守**: v0.16 含 build / v0.15 不全量 e2e 用户成本约束 / codex-autonomy-no-prefill Phase 1 让 Codex 自由探索 + Plan 阶段双盲对比。
+
+测试基线 +2（1 e2e + 1 unit helper）。Active 20 → 19；Closed 25 → 26。
+
+v0.8 机械化清单第十三次实战。首次 feature 类 sprint（不是 baseline rot 清理），UI 改动 + 后端 + ViewModel + lightbox 完整链路。
 
 **v0.19 — 2026-05-19**: FU-44 close · activity-hero obsolete + orphan cleanup 完成。用户决策路径 C：`tests/e2e/activity-hero.spec.ts` 5 cases 不再修，宣告 obsolete 并删除。根因修正：FU-44 quarantine 时误诊为 "explore vs mountain URL 偏差"，实际 spec 访问 `/activity/${checkinId}` 与业务路径一致；真正问题是 spec 绑定 redesign 前旧 surface-card Activity Detail 的 `qaHero` / `activity-hero` / `data-hero-source` / `activity-route-section` selector 集，而当前 `/activity/[id]` 已切到 FU-13/14 接入手记/补传的新 token design ActivityDetail。清理内容：删除 obsolete spec，删除无人引用的旧组件链 `src/components/activity/ActivityDetailClient.tsx` + `ActivityDetailHero.tsx` + `ActivityRoutePanel.tsx`，并清掉仅旧 hero/panel 使用的 dead CSS；保留新版 `(flow)/activity/[id]` 与仍在使用的 `ActivityRouteMap` / `.act-route*`。验证：`rg` 确认旧 selector / component import 归零；`npm run lint` 0 errors / 13 warnings；node test 236 pass；`npm run build` PASS；遵守 v0.15 用户成本约束，不跑 e2e。FU-46 baseline accounting 移除 activity-hero 5 obsolete cases（不是"已修"），inventory 45 → 40。Active 21 → 20；Closed 24 → 25。
 

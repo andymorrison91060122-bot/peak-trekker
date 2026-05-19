@@ -5,23 +5,7 @@ import { listWaypointsByMountain } from '@/lib/waypoints-queries'
 import { listFeaturedPostsByMountain } from '@/lib/community-server'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
 import type { Waypoint } from '@/lib/waypoints'
-import type { WeatherCurrent, WeatherData, WeatherForecastDay } from '@/lib/weather/types'
 import MountainDetailClient from './MountainDetailClient'
-
-type MountainDetailMountain = Mountain & {
-  weather_enabled?: boolean | null
-}
-
-type WeatherCacheRow = {
-  weather_data: WeatherData | null
-  fetched_at: string | null
-}
-
-export type MountainDetailWeather = {
-  fetchedAt: string
-  current: WeatherCurrent | null
-  forecast: WeatherForecastDay[]
-}
 
 function sortWaypointsByElevation(waypoints: Waypoint[]) {
   return [...waypoints].sort((a, b) => {
@@ -30,34 +14,6 @@ function sortWaypointsByElevation(waypoints: Waypoint[]) {
     if (aElevation !== bElevation) return aElevation - bElevation
     return a.sort_order - b.sort_order
   })
-}
-
-async function loadWeatherCache(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  mountain: MountainDetailMountain
-): Promise<MountainDetailWeather | null> {
-  if (mountain.weather_enabled === false) return null
-
-  try {
-    const { data, error } = await supabase
-      .from('weather_cache')
-      .select('weather_data, fetched_at')
-      .eq('mountain_id', mountain.id)
-      .maybeSingle()
-
-    if (error || !data) return null
-
-    const row = data as WeatherCacheRow
-    const forecast = row.weather_data?.forecast?.slice(0, 5) ?? []
-
-    return {
-      fetchedAt: row.fetched_at ?? row.weather_data?.fetchedAt ?? new Date().toISOString(),
-      current: row.weather_data?.current ?? null,
-      forecast,
-    }
-  } catch {
-    return null
-  }
 }
 
 async function loadFeaturedPosts(
@@ -90,13 +46,10 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
     listWaypointsByMountain(id).catch(() => []),
   ])
 
-  const mountain = mountainRes.data as MountainDetailMountain | null
+  const mountain = mountainRes.data as Mountain | null
   if (!mountain) notFound()
 
-  const [weather, featuredPosts] = await Promise.all([
-    loadWeatherCache(supabase, mountain),
-    loadFeaturedPosts(supabase, mountain.id),
-  ])
+  const featuredPosts = await loadFeaturedPosts(supabase, mountain.id)
 
   return (
     <MountainDetailClient
@@ -104,7 +57,6 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
       userLicense={(profileRes.data?.license_level ?? 'none') as User['license_level']}
       requiresLogin={!user}
       waypoints={sortWaypointsByElevation(waypointsRes)}
-      weather={weather}
       featuredPosts={featuredPosts}
       heroImages={getMountainDetailHeroImages(mountain, 6)}
     />

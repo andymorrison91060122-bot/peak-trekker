@@ -801,17 +801,17 @@ function PhotoStrip({
       : photos.length === 4
         ? 'act-photos__layout act-photos__layout--four'
         : photos.length === 3
-      ? 'act-photos__layout act-photos__layout--three'
-      : photos.length === 2
-        ? 'act-photos__layout act-photos__layout--two'
-        : 'act-photos__layout act-photos__layout--one'
+          ? 'act-photos__layout act-photos__layout--three'
+          : photos.length === 2
+            ? 'act-photos__layout act-photos__layout--two'
+            : 'act-photos__layout act-photos__layout--one'
 
   return (
     <section style={sectionPadding('var(--space-5)')}>
       <SectionHead right={`已 ${photoCount}/${ACTIVITY_PHOTO_MAX_COUNT} 张`}>这次的照片</SectionHead>
       <div className={layoutClass} data-testid="activity-photo-gallery">
         {photos.map((photo, index) => {
-          const isHero = photos.length >= 3 && index === 0
+          const isHero = photos.length === 3 && index === 0
           return (
             <button
               type="button"
@@ -922,29 +922,6 @@ function ActivityPhotoLightbox({
         className="act-lightbox__close"
       />
 
-      {photos.length > 1 ? (
-        <>
-          <IconButton
-            icon={<BackIcon size={20} />}
-            ariaLabel="上一张照片"
-            variant="filled"
-            shape="circular"
-            onClick={() => goToOffset(-1)}
-            disabled={isDeleting}
-            className="act-lightbox__nav act-lightbox__nav--prev"
-          />
-          <IconButton
-            icon="chevron-right"
-            ariaLabel="下一张照片"
-            variant="filled"
-            shape="circular"
-            onClick={() => goToOffset(1)}
-            disabled={isDeleting}
-            className="act-lightbox__nav act-lightbox__nav--next"
-          />
-        </>
-      ) : null}
-
       <div
         className="act-lightbox__stage"
         onTouchStart={(event) => {
@@ -960,6 +937,29 @@ function ActivityPhotoLightbox({
           goToOffset(deltaX > 0 ? -1 : 1)
         }}
       >
+        {photos.length > 1 ? (
+          <>
+            <IconButton
+              icon={<BackIcon size={20} />}
+              ariaLabel="上一张照片"
+              variant="filled"
+              shape="circular"
+              onClick={() => goToOffset(-1)}
+              disabled={isDeleting}
+              className="act-lightbox__nav act-lightbox__nav--prev"
+            />
+            <IconButton
+              icon="chevron-right"
+              ariaLabel="下一张照片"
+              variant="filled"
+              shape="circular"
+              onClick={() => goToOffset(1)}
+              disabled={isDeleting}
+              className="act-lightbox__nav act-lightbox__nav--next"
+            />
+          </>
+        ) : null}
+
         <div
           className="act-lightbox__image"
           data-testid="activity-photo-lightbox-image"

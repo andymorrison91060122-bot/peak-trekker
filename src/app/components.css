@@ -1588,6 +1588,7 @@
 .act-photos__layout--three {
   grid-template-columns: 2fr 1fr;
   grid-template-rows: repeat(2, minmax(0, 1fr));
+  aspect-ratio: 16 / 10;
 }
 
 .act-photos__layout--four {
@@ -1623,11 +1624,17 @@
 
 .act-photo--hero {
   grid-row: 1 / span 2;
-  aspect-ratio: 1 / 1.1;
+  height: 100%;
+  aspect-ratio: auto;
 }
 
 .act-photos__layout--one .act-photo {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 16 / 9;
+}
+
+.act-photos__layout--three .act-photo {
+  height: 100%;
+  aspect-ratio: auto;
 }
 
 .act-photo__scrim {
@@ -1669,53 +1676,70 @@
   position: fixed;
   inset: 0;
   z-index: 140;
-  display: grid;
-  grid-template-rows: 1fr auto auto;
-  align-items: center;
-  gap: var(--space-3);
-  padding: max(env(safe-area-inset-top), var(--space-5)) var(--space-4) max(env(safe-area-inset-bottom), var(--space-5));
-  background: rgba(6, 8, 10, 0.94);
+  display: flex;
+  width: 100vw;
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.92);
   backdrop-filter: blur(12px);
 }
 
-.act-lightbox__close {
-  position: absolute;
-  top: max(env(safe-area-inset-top), var(--space-4));
-  right: var(--space-4);
-  z-index: 3;
+.act-lightbox__close.ui-icon-btn-root {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 12px);
+  right: 16px;
+  z-index: 5;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border-color: color-mix(in srgb, white 18%, transparent);
+  background: rgba(0, 0, 0, 0.52);
+  color: white;
+  backdrop-filter: blur(8px);
 }
 
-.act-lightbox__nav {
+.act-lightbox__nav.ui-icon-btn-root {
   position: absolute;
   top: 50%;
   z-index: 3;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border-color: color-mix(in srgb, white 18%, transparent);
+  background: rgba(0, 0, 0, 0.52);
+  color: white;
+  backdrop-filter: blur(8px);
   transform: translateY(-50%);
 }
 
 .act-lightbox__nav--prev {
-  left: var(--space-3);
+  left: 12px;
 }
 
 .act-lightbox__nav--next {
-  right: var(--space-3);
+  right: 12px;
 }
 
 .act-lightbox__stage {
+  position: relative;
   display: grid;
   place-items: center;
-  width: min(100%, 720px);
-  max-height: 68dvh;
-  justify-self: center;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--color-outline) 80%, transparent);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  padding: max(56px, calc(env(safe-area-inset-top) + 56px)) var(--space-4) var(--space-6);
 }
 
 .act-lightbox__image {
-  width: 100%;
-  height: min(68dvh, 720px);
-  max-height: 68dvh;
+  display: grid;
+  place-items: center;
+  width: min(100%, 920px);
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
@@ -1726,9 +1750,10 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  width: min(100%, 720px);
-  justify-self: center;
-  color: var(--color-on-surface);
+  min-height: 56px;
+  flex: 0 0 auto;
+  padding: var(--space-3) var(--space-4);
+  color: white;
 }
 
 .act-lightbox__count {
@@ -1741,7 +1766,7 @@
 
 .act-lightbox__hint {
   margin-top: var(--space-1);
-  color: var(--color-on-surface-variant);
+  color: rgba(255, 255, 255, 0.64);
   font-size: var(--font-label-s-size);
   line-height: var(--font-label-s-line);
 }
@@ -1755,8 +1780,8 @@
   padding: 0 var(--space-4);
   border: 1px solid color-mix(in srgb, var(--color-error) 42%, transparent);
   border-radius: var(--radius-md);
-  color: var(--color-error);
-  background: color-mix(in srgb, var(--color-error) 12%, transparent);
+  color: #ffb4ab;
+  background: color-mix(in srgb, #ffb4ab 12%, transparent);
   font-size: var(--font-label-m-size);
   line-height: var(--font-label-m-line);
   font-weight: var(--font-label-m-weight);
@@ -1775,16 +1800,17 @@
 .act-lightbox__thumbs {
   display: flex;
   gap: var(--space-2);
-  width: min(100%, 720px);
-  justify-self: center;
+  height: 64px;
+  flex: 0 0 auto;
+  width: 100%;
   overflow-x: auto;
-  padding-bottom: var(--space-1);
+  padding: 0 var(--space-4) var(--space-4);
 }
 
 .act-lightbox__thumb {
-  flex: 0 0 52px;
-  width: 52px;
-  height: 52px;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--color-outline) 80%, transparent);
   border-radius: var(--radius-sm);

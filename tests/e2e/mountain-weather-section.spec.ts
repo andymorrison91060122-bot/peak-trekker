@@ -28,7 +28,7 @@ test('mountain weather section renders live daily-only data', async ({ page }) =
   await expect(kpis.getByText('风', { exact: true })).toBeVisible()
   await expect(kpis.getByText('18 km/h')).toBeVisible()
   await expect(kpis.getByText('降水', { exact: true })).toBeVisible()
-  await expect(kpis.getByText('1.8 mm')).toBeVisible()
+  await expect(kpis.getByText('0 mm')).toBeVisible()
   await expect(section.getByText('仅作决策参考 · Peak Trekker 不是专业天气产品')).toBeVisible()
   await expect(section.getByText('能见度')).toHaveCount(0)
   await expect(section.getByText('04')).toHaveCount(0)
@@ -43,9 +43,65 @@ test('mountain weather section renders stale review state', async ({ page }) => 
 
   const section = page.getByTestId('mountain-weather-section')
   await expect(section).toHaveAttribute('data-weather-state', 'stale')
-  await expect(section.getByText('需复核')).toBeVisible()
+  await expect(section.getByText('建议评估')).toBeVisible()
   await expect(section.getByText(/数据已 [78] 小时未更新/).first()).toBeVisible()
   await expect(section.getByText('出发前请通过其他渠道复核当前状况。')).toBeVisible()
+})
+
+test('mountain weather section renders review state for moderate weather risk', async ({ page }) => {
+  await mockWeather(page, liveWeatherPayload({
+    current: {
+      ...baseWeatherPayload().current,
+      windSpeed: 29,
+      description: '多云',
+    },
+    forecast: [
+      {
+        ...baseWeatherPayload().forecast[0],
+        precipitation: 0,
+        description: '多云',
+      },
+      baseWeatherPayload().forecast[1],
+    ],
+  }))
+  await gotoFirstMountain(page)
+
+  const section = page.getByTestId('mountain-weather-section')
+  await expect(section).toHaveAttribute('data-weather-state', 'live')
+  await expect(section.getByText('建议评估')).toBeVisible()
+  await expect(section.getByText('风速需评估')).toBeVisible()
+  await expect(section.getByText('可出发')).toHaveCount(0)
+})
+
+test('mountain weather section renders not recommended for extreme cold and snow', async ({ page }) => {
+  await mockWeather(page, liveWeatherPayload({
+    current: {
+      ...baseWeatherPayload().current,
+      temperature: -14,
+      feelsLike: -17,
+      windSpeed: 45,
+      description: '大雪',
+      icon: 'snow',
+    },
+    forecast: [
+      {
+        ...baseWeatherPayload().forecast[0],
+        tempMax: -9,
+        tempMin: -19,
+        description: '大雪',
+        icon: 'snow',
+        precipitation: 8,
+      },
+      baseWeatherPayload().forecast[1],
+    ],
+  }))
+  await gotoFirstMountain(page)
+
+  const section = page.getByTestId('mountain-weather-section')
+  await expect(section).toHaveAttribute('data-weather-state', 'live')
+  await expect(section.getByText('不建议出发')).toBeVisible()
+  await expect(section.getByText('天气风险过高')).toBeVisible()
+  await expect(section.getByText('可出发')).toHaveCount(0)
 })
 
 test('mountain weather section renders unavailable state and retries', async ({ page }) => {
@@ -154,7 +210,7 @@ function baseWeatherPayload() {
         tempMin: 11,
         description: '多云',
         icon: '101',
-        precipitation: 1.8,
+        precipitation: 0,
       },
       {
         date: '2026-05-20',

@@ -1,14 +1,41 @@
 import type { WeatherForecastDay, WeatherResponse } from './types'
 
-export const WEATHER_WIND_REVIEW_THRESHOLD_KMH = 39
-export const WEATHER_PRECIP_REVIEW_THRESHOLD_MM = 5
+export const WEATHER_TEMPERATURE_REVIEW_THRESHOLD_C = 0
+export const WEATHER_TEMPERATURE_DANGER_THRESHOLD_C = -10
+export const WEATHER_WIND_REVIEW_THRESHOLD_KMH = 29
+export const WEATHER_WIND_DANGER_THRESHOLD_KMH = 50
+export const WEATHER_PRECIP_REVIEW_THRESHOLD_MM = 1
+export const WEATHER_PRECIP_DANGER_THRESHOLD_MM = 15
+export const WEATHER_ALTITUDE_WEIGHTING_THRESHOLD_M = 3000
+export const WEATHER_HIGH_ALTITUDE_REVIEW_THRESHOLD_M = 5000
+
+const DESCRIPTION_REVIEW_KEYWORDS = ['雨夹雪', '大雾', '浓雾', '小雪', '小雨', '雾'] as const
+const DESCRIPTION_DANGER_KEYWORDS = ['强风暴', '沙尘暴', '暴风雪', '雷阵雨', '雷暴', '暴雪', '雪暴', '中雪', '大雪', '冰雹'] as const
 
 export type WeatherIconKind = 'sun' | 'cloud' | 'rain' | 'snow' | 'wind'
+export type DeparturePolicy = 'can_depart' | 'needs_evaluation' | 'not_recommended'
+export type DepartureSeverity = 'ok' | 'review' | 'danger'
+export type DepartureDimensionKey =
+  | 'temperature'
+  | 'wind'
+  | 'precipitation'
+  | 'description'
+  | 'altitude'
+  | 'stale'
+
+export type DepartureDimensionResult = {
+  severity: DepartureSeverity
+  reasons: string[]
+}
+
+export type DeparturePolicyDimensions = Record<DepartureDimensionKey, DepartureDimensionResult>
 
 export type DepartureWindowViewModel = {
-  label: '可出发' | '需复核'
-  tone: 'ok' | 'review'
-  reasons: Array<'stale' | 'wind' | 'precipitation'>
+  policy: DeparturePolicy
+  label: '可出发' | '建议评估' | '不建议出发'
+  tone: DepartureSeverity
+  reasons: string[]
+  dimensions: DeparturePolicyDimensions
 }
 
 export type WeatherForecastDayViewModel = {
@@ -23,11 +50,11 @@ export type WeatherKpiViewModel = {
   label: '风' | '降水'
   value: string
   sub: string
-  tone: 'ok' | 'review'
+  tone: DepartureSeverity
 }
 
 export type WeatherRiskNoteViewModel = {
-  tone: 'ok' | 'review'
+  tone: DepartureSeverity
   title: string
   body: string
 }
@@ -55,27 +82,45 @@ type MountainWeatherContext = {
   altitude: number
 }
 
-export function buildDepartureWindow({
+export function buildDeparturePolicy({
   stale,
+  feelsLike,
   windSpeed,
   precipitation,
+  description,
+  todayDescription,
+  altitude,
 }: {
   stale: boolean
+  feelsLike: number | null | undefined
   windSpeed: number | null | undefined
   precipitation: number | null | undefined
+  description: string | null | undefined
+  todayDescription: string | null | undefined
+  altitude: number | null | undefined
 }): DepartureWindowViewModel {
-  const reasons: DepartureWindowViewModel['reasons'] = []
-  if (stale) reasons.push('stale')
-  if (isFiniteNumber(windSpeed) && windSpeed >= WEATHER_WIND_REVIEW_THRESHOLD_KMH) {
-    reasons.push('wind')
-  }
-  if (isFiniteNumber(precipitation) && precipitation >= WEATHER_PRECIP_REVIEW_THRESHOLD_MM) {
-    reasons.push('precipitation')
+  const naturalDimensions = {
+    temperature: evaluateTemperature(feelsLike),
+    wind: evaluateWindSpeed(windSpeed),
+    precipitation: evaluatePrecipitation(precipitation),
+    description: evaluateDescription(description, todayDescription),
   }
 
-  return reasons.length > 0
-    ? { label: '需复核', tone: 'review', reasons }
-    : { label: '可出发', tone: 'ok', reasons }
+  const dimensions: DeparturePolicyDimensions = {
+    ...naturalDimensions,
+    altitude: evaluateAltitude(altitude, Object.values(naturalDimensions)),
+    stale: evaluateStale(stale),
+  }
+
+  const tone = maxSeverity(Object.values(dimensions).map((dimension) => dimension.severity))
+  const policy = severityToPolicy(tone)
+  return {
+    policy,
+    label: policyToLabel(policy),
+    tone,
+    reasons: tone === 'ok' ? [] : collectReasonsForSeverity(dimensions, tone),
+    dimensions,
+  }
 }
 
 export function toDailyWeatherViewModel(
@@ -92,10 +137,14 @@ export function toDailyWeatherViewModel(
 
   const stale = response.stale === true
   const staleHours = stale ? getHoursSince(response.fetchedAt, now) : null
-  const departureWindow = buildDepartureWindow({
+  const departureWindow = buildDeparturePolicy({
     stale,
+    feelsLike: response.current.feelsLike,
     windSpeed: response.current.windSpeed,
     precipitation: today.precipitation,
+    description: response.current.description,
+    todayDescription: today.description,
+    altitude: mountain.altitude,
   })
 
   return {
@@ -122,13 +171,13 @@ export function toDailyWeatherViewModel(
         label: '风',
         value: formatWindSpeed(response.current.windSpeed),
         sub: response.current.windDirection || '风向待复核',
-        tone: departureWindow.reasons.includes('wind') ? 'review' : 'ok',
+        tone: departureWindow.dimensions.wind.severity,
       },
       {
         label: '降水',
         value: formatPrecipitation(today.precipitation),
         sub: '今日预报',
-        tone: departureWindow.reasons.includes('precipitation') ? 'review' : 'ok',
+        tone: departureWindow.dimensions.precipitation.severity,
       },
     ],
     riskNote: buildRiskNote(departureWindow, staleHours),
@@ -140,32 +189,60 @@ function buildRiskNote(
   departureWindow: DepartureWindowViewModel,
   staleHours: number | null
 ): WeatherRiskNoteViewModel {
-  if (departureWindow.reasons.includes('stale')) {
+  if (departureWindow.policy === 'not_recommended') {
+    return {
+      tone: 'danger',
+      title: '天气风险过高',
+      body: '当前窗口不适合直接出发，请改期或等待条件改善。',
+    }
+  }
+  if (departureWindow.dimensions.stale.severity === 'review') {
     return {
       tone: 'review',
       title: `数据已 ${staleHours ?? 1} 小时未更新`,
       body: '出发前请通过其他渠道复核当前状况。',
     }
   }
-  if (departureWindow.reasons.includes('wind') && departureWindow.reasons.includes('precipitation')) {
-    return {
-      tone: 'review',
-      title: '风雨条件需复核',
-      body: '风速和降水都偏高，建议重新判断出发窗口。',
+  if (departureWindow.policy === 'needs_evaluation') {
+    if (departureWindow.dimensions.temperature.severity === 'review') {
+      return {
+        tone: 'review',
+        title: '低温条件需评估',
+        body: '体感温度偏低，出发前请确认保暖、补给和回撤余量。',
+      }
     }
-  }
-  if (departureWindow.reasons.includes('wind')) {
-    return {
-      tone: 'review',
-      title: '风速偏高',
-      body: '山脊和垭口体感会更强，出发前请复核阵风预报。',
+    if (departureWindow.dimensions.wind.severity === 'review') {
+      return {
+        tone: 'review',
+        title: '风速需评估',
+        body: '山脊和垭口体感会更强，出发前请复核阵风预报。',
+      }
     }
-  }
-  if (departureWindow.reasons.includes('precipitation')) {
+    if (departureWindow.dimensions.precipitation.severity === 'review') {
+      return {
+        tone: 'review',
+        title: '降水需评估',
+        body: '路面湿滑和节奏变化会更明显，建议保留回撤余量。',
+      }
+    }
+    if (departureWindow.dimensions.description.severity === 'review') {
+      return {
+        tone: 'review',
+        title: '天气现象需评估',
+        body: '当前描述包含需复核的天气现象，出发前请确认局地变化。',
+      }
+    }
+    if (departureWindow.dimensions.altitude.severity === 'review') {
+      return {
+        tone: 'review',
+        title: '高海拔需评估',
+        body: '高海拔环境放大天气变化，建议结合身体状态和装备再判断。',
+      }
+    }
     return {
       tone: 'review',
-      title: '降水偏高',
-      body: '路面湿滑和节奏变化会更明显，建议保留回撤余量。',
+      title: '天气窗口需评估',
+      body: '出发前请结合路线、装备和实时天气重新判断。',
     }
   }
   return {
@@ -173,6 +250,111 @@ function buildRiskNote(
     title: '天气窗口较稳',
     body: '山区天气变化快，出发前仍建议再复核一次。',
   }
+}
+
+function evaluateTemperature(feelsLike: number | null | undefined): DepartureDimensionResult {
+  if (!isFiniteNumber(feelsLike)) return okDimension()
+  if (feelsLike <= WEATHER_TEMPERATURE_DANGER_THRESHOLD_C) {
+    return { severity: 'danger', reasons: ['体感≤-10°C'] }
+  }
+  if (feelsLike < WEATHER_TEMPERATURE_REVIEW_THRESHOLD_C) {
+    return { severity: 'review', reasons: ['体感-10~0°C'] }
+  }
+  return okDimension()
+}
+
+function evaluateWindSpeed(windSpeed: number | null | undefined): DepartureDimensionResult {
+  if (!isFiniteNumber(windSpeed)) return okDimension()
+  if (windSpeed >= WEATHER_WIND_DANGER_THRESHOLD_KMH) {
+    return { severity: 'danger', reasons: ['风速≥50 km/h'] }
+  }
+  if (windSpeed >= WEATHER_WIND_REVIEW_THRESHOLD_KMH) {
+    return { severity: 'review', reasons: ['风速29-49 km/h'] }
+  }
+  return okDimension()
+}
+
+function evaluatePrecipitation(precipitation: number | null | undefined): DepartureDimensionResult {
+  if (!isFiniteNumber(precipitation)) return okDimension()
+  if (precipitation >= WEATHER_PRECIP_DANGER_THRESHOLD_MM) {
+    return { severity: 'danger', reasons: ['降水≥15 mm'] }
+  }
+  if (precipitation >= WEATHER_PRECIP_REVIEW_THRESHOLD_MM) {
+    return { severity: 'review', reasons: ['降水1-15 mm'] }
+  }
+  return okDimension()
+}
+
+function evaluateDescription(
+  description: string | null | undefined,
+  todayDescription: string | null | undefined
+): DepartureDimensionResult {
+  const text = `${description ?? ''} ${todayDescription ?? ''}`
+  const dangerKeyword = DESCRIPTION_DANGER_KEYWORDS.find((keyword) => text.includes(keyword))
+  if (dangerKeyword) return { severity: 'danger', reasons: [`描述含"${dangerKeyword}"`] }
+
+  const reviewKeyword = DESCRIPTION_REVIEW_KEYWORDS.find((keyword) => text.includes(keyword))
+  if (reviewKeyword) return { severity: 'review', reasons: [`描述含"${reviewKeyword}"`] }
+
+  return okDimension()
+}
+
+function evaluateAltitude(
+  altitude: number | null | undefined,
+  naturalDimensions: DepartureDimensionResult[]
+): DepartureDimensionResult {
+  if (!isFiniteNumber(altitude)) return okDimension()
+  if (altitude >= WEATHER_HIGH_ALTITUDE_REVIEW_THRESHOLD_M) {
+    return { severity: 'review', reasons: ['海拔≥5000m默认建议评估'] }
+  }
+  if (
+    altitude >= WEATHER_ALTITUDE_WEIGHTING_THRESHOLD_M &&
+    naturalDimensions.some((dimension) => dimension.severity === 'review')
+  ) {
+    return { severity: 'danger', reasons: ['3000m以上中等天气风险升级'] }
+  }
+  return okDimension()
+}
+
+function evaluateStale(stale: boolean): DepartureDimensionResult {
+  return stale ? { severity: 'review', reasons: ['数据已过期'] } : okDimension()
+}
+
+function okDimension(): DepartureDimensionResult {
+  return { severity: 'ok', reasons: [] }
+}
+
+function maxSeverity(severities: DepartureSeverity[]): DepartureSeverity {
+  return severities.reduce<DepartureSeverity>((max, severity) => (
+    severityRank(severity) > severityRank(max) ? severity : max
+  ), 'ok')
+}
+
+function collectReasonsForSeverity(
+  dimensions: DeparturePolicyDimensions,
+  severity: DepartureSeverity
+) {
+  return Object.values(dimensions).flatMap((dimension) => (
+    dimension.severity === severity ? dimension.reasons : []
+  ))
+}
+
+function severityRank(severity: DepartureSeverity) {
+  if (severity === 'danger') return 2
+  if (severity === 'review') return 1
+  return 0
+}
+
+function severityToPolicy(severity: DepartureSeverity): DeparturePolicy {
+  if (severity === 'danger') return 'not_recommended'
+  if (severity === 'review') return 'needs_evaluation'
+  return 'can_depart'
+}
+
+function policyToLabel(policy: DeparturePolicy): DepartureWindowViewModel['label'] {
+  if (policy === 'not_recommended') return '不建议出发'
+  if (policy === 'needs_evaluation') return '建议评估'
+  return '可出发'
 }
 
 function formatForecastDay(

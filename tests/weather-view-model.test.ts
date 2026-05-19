@@ -13,12 +13,15 @@ test('daily weather view model renders live weather and departure window', async
   assert.equal(viewModel.current.temperature, '18°')
   assert.equal(viewModel.current.feelsLike, '体感 15°')
   assert.equal(viewModel.current.altitude, '2888m')
-  assert.deepEqual(viewModel.departureWindow, { label: '可出发', tone: 'ok', reasons: [] })
+  assert.equal(viewModel.departureWindow.policy, 'can_depart')
+  assert.equal(viewModel.departureWindow.label, '可出发')
+  assert.equal(viewModel.departureWindow.tone, 'ok')
+  assert.deepEqual(viewModel.departureWindow.reasons, [])
   assert.deepEqual(viewModel.forecast.map((day) => day.label), ['今日', '明日'])
   assert.equal(viewModel.forecast[0].temperature, '22° / 11°')
-  assert.equal(viewModel.forecast[0].precipitation, '1.8 mm')
+  assert.equal(viewModel.forecast[0].precipitation, '0 mm')
   assert.equal(viewModel.kpis[0].value, '18 km/h')
-  assert.equal(viewModel.kpis[1].value, '1.8 mm')
+  assert.equal(viewModel.kpis[1].value, '0 mm')
   assert.equal(viewModel.riskNote.tone, 'ok')
 })
 
@@ -34,26 +37,47 @@ test('daily weather view model marks stale responses for review', async () => {
   assert.equal(viewModel.state, 'stale')
   assert.equal(viewModel.updateLabel, '数据已 8 小时未更新')
   assert.equal(viewModel.staleHours, 8)
-  assert.equal(viewModel.departureWindow.label, '需复核')
-  assert.deepEqual(viewModel.departureWindow.reasons, ['stale'])
+  assert.equal(viewModel.departureWindow.policy, 'needs_evaluation')
+  assert.equal(viewModel.departureWindow.label, '建议评估')
+  assert.equal(viewModel.departureWindow.tone, 'review')
+  assert.deepEqual(viewModel.departureWindow.reasons, ['数据已过期'])
   assert.equal(viewModel.riskNote.title, '数据已 8 小时未更新')
 })
 
-test('departure window requires review for high wind or high precipitation', async () => {
-  const { buildDepartureWindow } = await import(`../src/lib/weather/weather-view-model.${sourceExtension}`)
+test('departure policy grades temperature, wind, precipitation, description, altitude, and stale dimensions', async () => {
+  const { buildDeparturePolicy } = await import(`../src/lib/weather/weather-view-model.${sourceExtension}`)
 
-  assert.deepEqual(
-    buildDepartureWindow({ stale: false, windSpeed: 39, precipitation: 0 }),
-    { label: '需复核', tone: 'review', reasons: ['wind'] }
-  )
-  assert.deepEqual(
-    buildDepartureWindow({ stale: false, windSpeed: 8, precipitation: 5 }),
-    { label: '需复核', tone: 'review', reasons: ['precipitation'] }
-  )
-  assert.deepEqual(
-    buildDepartureWindow({ stale: false, windSpeed: 8, precipitation: 4.9 }),
-    { label: '可出发', tone: 'ok', reasons: [] }
-  )
+  assert.equal(buildDeparturePolicy(buildPolicyInput()).policy, 'can_depart')
+  assert.equal(buildDeparturePolicy(buildPolicyInput({ feelsLike: -0.1 })).policy, 'needs_evaluation')
+  assert.equal(buildDeparturePolicy(buildPolicyInput({ feelsLike: -10 })).policy, 'not_recommended')
+  assert.equal(buildDeparturePolicy(buildPolicyInput({ windSpeed: 29 })).policy, 'needs_evaluation')
+  assert.equal(buildDeparturePolicy(buildPolicyInput({ windSpeed: 50 })).policy, 'not_recommended')
+  assert.equal(buildDeparturePolicy(buildPolicyInput({ precipitation: 1 })).policy, 'needs_evaluation')
+  assert.equal(buildDeparturePolicy(buildPolicyInput({ precipitation: 15 })).policy, 'not_recommended')
+  assert.equal(buildDeparturePolicy(buildPolicyInput({ description: '小雪' })).policy, 'needs_evaluation')
+  assert.equal(buildDeparturePolicy(buildPolicyInput({ todayDescription: '大雪' })).policy, 'not_recommended')
+  assert.equal(buildDeparturePolicy(buildPolicyInput({ stale: true })).policy, 'needs_evaluation')
+  assert.equal(buildDeparturePolicy(buildPolicyInput({ altitude: 5000 })).policy, 'needs_evaluation')
+})
+
+test('departure policy applies altitude weighting only to natural weather risks', async () => {
+  const { buildDeparturePolicy } = await import(`../src/lib/weather/weather-view-model.${sourceExtension}`)
+
+  const midAltitudeWind = buildDeparturePolicy(buildPolicyInput({ altitude: 3000, windSpeed: 29 }))
+  assert.equal(midAltitudeWind.policy, 'not_recommended')
+  assert.deepEqual(midAltitudeWind.dimensions.altitude.reasons, ['3000m以上中等天气风险升级'])
+
+  const midAltitudeStale = buildDeparturePolicy(buildPolicyInput({ altitude: 3000, stale: true }))
+  assert.equal(midAltitudeStale.policy, 'needs_evaluation')
+  assert.deepEqual(midAltitudeStale.dimensions.altitude.reasons, [])
+
+  const highAltitudeClear = buildDeparturePolicy(buildPolicyInput({ altitude: 5200 }))
+  assert.equal(highAltitudeClear.policy, 'needs_evaluation')
+  assert.deepEqual(highAltitudeClear.dimensions.altitude.reasons, ['海拔≥5000m默认建议评估'])
+
+  const redKeywordWins = buildDeparturePolicy(buildPolicyInput({ description: '小雪转暴雪' }))
+  assert.equal(redKeywordWins.policy, 'not_recommended')
+  assert.deepEqual(redKeywordWins.dimensions.description.reasons, ['描述含"暴雪"'])
 })
 
 test('daily weather view model tolerates missing tomorrow forecast', async () => {
@@ -91,6 +115,27 @@ function buildWeatherResponse(overrides: Partial<ReturnType<typeof buildBaseWeat
   }
 }
 
+function buildPolicyInput(overrides: {
+  stale?: boolean
+  feelsLike?: number
+  windSpeed?: number
+  precipitation?: number
+  description?: string
+  todayDescription?: string
+  altitude?: number
+} = {}) {
+  return {
+    stale: false,
+    feelsLike: 8,
+    windSpeed: 12,
+    precipitation: 0,
+    description: '多云间晴',
+    todayDescription: '多云',
+    altitude: 2154,
+    ...overrides,
+  }
+}
+
 function buildBaseWeatherResponse() {
   return {
     mountainId: 'mountain-1',
@@ -109,7 +154,7 @@ function buildBaseWeatherResponse() {
       pressure: 1007,
     },
     forecast: [
-      buildForecastDay({ date: '2026-05-19', tempMax: 22, tempMin: 11, precipitation: 1.8 }),
+      buildForecastDay({ date: '2026-05-19', tempMax: 22, tempMin: 11, precipitation: 0 }),
       buildForecastDay({ date: '2026-05-20', tempMax: 19, tempMin: 10, description: '小雨', precipitation: 4.2 }),
       buildForecastDay({ date: '2026-05-21', tempMax: 20, tempMin: 9, description: '晴', precipitation: 0 }),
     ],

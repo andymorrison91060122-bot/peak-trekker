@@ -8,11 +8,11 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`5294a9de963ac98916da8dd0bd4eb7ab5dfcd120`（Merge FU-48 · 2026-05-19）
+`7a02dca`（Merge FU-50 · 2026-05-19）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-FU-50 · 出发窗口分级判定规则增强 · 状态 🟡 in-progress
+待启动（候选: FU-47 [P1 高优] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-46 [P2 高优] / FU-43 / FU-45 / community-final-polish / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -509,64 +509,66 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
-### FU-50 · 出发窗口分级判定规则增强 (三态 + 6 维度)
+### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
-- **优先级**: P2（产品质量 — FU-48 副产物）
-- **归属阶段**: 阶段 4 / 阶段 5
-- **状态**: 🟡 in-progress
+- **优先级**: P1（上线门禁项 — 阻塞正式上线，但当前阶段不实施）
+- **归属阶段**: 上线准备 / 阶段 6
+- **状态**: 🟢 active
 
-**背景**: FU-48 daily-only sprint 视觉验收发现规则过简化漏洞 — 极端天气（如 -17°C / 大雪 / 7546m）仍显示"可出发"。新增三态分级 + 6 维度评估。
+**背景**: 当前阶段山峰数据 (mountains 表) 处于待完善状态，每座山的 `weather_priority_tier` 级别未根据真实热度数据分配（FU-50 Phase 4 验收时所有 20 座山均为 tier=C 默认值，未做合理分级）。FU-50 Phase 4 验收前讨论中明确：当前不纠结 tier 准确性，作为上线前联合校验项处理。
 
-**三态分级**:
-- 🟢 可出发 (can_depart)
-- 🟠 建议评估 (needs_evaluation)
-- 🔴 不建议出发 (not_recommended)
+后端 cache + tier 逻辑已就绪（FU-48 / FU-50 验证）:
+- src/lib/weather/weather-core.ts TIER_CONFIG (S/A/B/C 1h/6h/24h/24h 刷新)
+- mountains 表 weather_priority_tier 字段
+- weather_cache 表 + stale-while-revalidate 策略
 
-**6 维度判定**:
+但 tier 实际分配 + 数据完整性 + 监控未做。
 
-1. 体感温度 (feelsLike, °C):
-   - ≥ 0: 🟢
-   - -10 ~ 0: 🟠
-   - ≤ -10: 🔴
+**联合校验三项**:
 
-2. 风速 (windSpeed, km/h):
-   - < 29: 🟢
-   - 29 - 49: 🟠
-   - ≥ 50: 🔴
+1. **山峰信息完整性 audit**:
+   - 所有 mountains 行核心字段非空: latitude / longitude / altitude / difficulty / min_license / description / cover_image
+   - 跑 SQL audit 报告缺字段山峰清单
+   - 运营 / admin 补录缺失字段
+   - 验收: 0 行缺失
 
-3. 今日降水量 (forecast[0].precipitation, mm/24h):
-   - < 1: 🟢
-   - 1 - 15: 🟠
-   - ≥ 15: 🔴
+2. **weather_priority_tier 分级合理性**:
+   - 按 docs/map-weather-brief.md §9.3 推荐配比分配:
+     · S 层 25 座 (核心热门)
+     · A 层 75 座 (常规活跃)
+     · B 层 250 座 (长尾)
+     · C 层 其余 (按需)
+   - 根据近 7 天 / 30 天访问数据计算热度
+   - 实施热度升降级任务 (cron / scheduled task per docs §9.5)
+   - 验收: 配比与 docs 一致 + tier 字段全部填充
 
-4. 天气描述 (description 关键词匹配):
-   - 🟠: 小雪 / 小雨 / 雨夹雪 / 雾 / 大雾 / 浓雾
-   - 🔴: 中雪 / 大雪 / 暴雪 / 暴风雪 / 雪暴 / 雷暴 / 雷阵雨 / 冰雹 / 沙尘暴 / 强风暴
+3. **天气刷新逻辑实际生效校验**:
+   - cache 命中率监控（埋点 / log）
+   - QWeather 调用频率监控（防止误超免费额度）
+   - 跑一次完整生产场景 (访问主流山峰) 验证 cache 命中行为
+   - 添加 dashboard / metric 或简单 log 报告
+   - 验收: 月度调用预估 ≤ docs §9.3 估算的 34,500 次
 
-5. 海拔加权 (mountain.altitude, m):
-   - < 3000: 按维度 1-4 标准
-   - 3000 - 5000: 任一维度 🟠 时升级为 🔴
-   - ≥ 5000: 即便所有维度 🟢，默认 🟠
+**实施依据**: docs/map-weather-brief.md §9 (400 山缓存策略) + §9.5 (热度升降级) + §15.2 (天气验收)。
 
-6. stale 状态 (response.stale === true):
-   - 🟠
-
-**最终判定**: 收集所有维度等级，取 max（最严重）为最终状态。
-
-**文案**: "建议评估" 代替 FU-48 实施版 "需复核"（更口语化，与"分级"原话一致）。
+**触发来源**: FU-50 Phase 4 验收讨论 — 用户判断 tier 准确性当前阶段不实施，作为上线前联合校验项独立跟踪。
 
 **涉及**:
-- src/lib/weather/weather-view-model.ts: 扩展 DeparturePolicy 类型 + buildDeparturePolicy 函数 + 6 维度阈值常量
-- src/components/mountain/WeatherSection.tsx: 三色 chip + 三文案
-- src/app/(flow)/mountain/[id]/page.tsx: 传 mountain.altitude
-- tests/weather-view-model.test.ts: 六维度边界 case
-- tests/e2e/mountain-weather-section.spec.ts: 三态分级断言
+- supabase mountains 表数据补录（运营 / admin）
+- 可能 supabase scheduled task / cron 实现 tier 升降级
+- src/lib/weather/* 监控埋点（metric / log）
+- docs/release-checklist.md 上线 checklist 加入这三项
 
-**规则依据**: 户外登山常识（蒲福风级 + 气象降水标准 + 失温阈值 + 高原反应海拔分级）+ 用户视觉验收发现的真实漏洞场景。
+**不在 scope（已就绪，FU-48 / FU-50 已落地）**:
+- 不动 weather-core / cache 实现
+- 不动 TIER_CONFIG 阈值（docs §9.3 已锁定）
+- 不重写 QWeather adapter
+
+**实施时机**: 不立即启动，作为上线门禁项跟踪。所有功能性 sprint 完成 / 接近上线时启动。
 
 ---
 
-## Closed Follow-ups（27 条）
+## Closed Follow-ups（28 条）
 
 ### FU-1 ✅ 同一份轨迹文件去重（防伪造）
 
@@ -793,6 +795,14 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
+### FU-50 ✅ 出发窗口分级判定规则增强 (三态 + 6 维度)
+
+- **关闭原因**: FU-50 sprint 落地三态分级 + 6 维度评估替换 FU-48 daily-only 实施版简化规则。三态 (`can_depart` / `needs_evaluation` / `not_recommended`) + 文案"可出发 / 建议评估 / 不建议出发"；6 维度（体感温度 / 风速 / 降水 / 描述 / 海拔加权 / stale）+ max 聚合算法；海拔 3000-5000m 任一中等异常升级 🔴 / 海拔 ≥ 5000m 默认 🟠 + 红色自然风险升 🔴 / stale 不参与海拔升级；描述同时匹配 `current.description + forecast[0].description` 红橙关键词，红优先。Phase 4 用户反向校验真实库 10 座山规则计算 100% PASS（含 FU-48 漏洞场景：慕士塔格峰 7546m / -17°C / 中雪从"可出发"正确切到"不建议出发"）+ 三态截图视觉 PASS。**已知后续优化（不阻塞）**: 描述橙色关键词列表未含"毛毛雨 / 强毛毛雨 / 阵雨"等中等降水描述，未来可补全（玉龙雪山 review 行 #6 即触此 finding，本 sprint 仅靠降水维度兜底）。
+- **关闭 commit**: `7a02dca`
+- **关闭时间**: 2026-05-19
+
+---
+
 > **历史跳号编号**：FU-26 在 Pre-3.a sprint 中编号跳号未实际引入；未来新增 FU 不复用此编号，按当前最大编号 +1 顺序分配。
 
 ---
@@ -862,6 +872,28 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.23 — 2026-05-19**: FU-50 出发窗口分级判定规则增强完整落地。
+
+**实施**: 新增 src/lib/weather/weather-view-model.ts `DeparturePolicy` 类型 + 6 维度判定 + max 聚合 + 海拔加权 + buildDeparturePolicy 函数。WeatherSection 三色 chip（绿 success / 橙 warning / 红 error）+ 三文案。规则依据：户外登山常识（蒲福风级 + 气象降水标准 + 失温阈值 + 高原反应海拔分级）。
+
+**反向校验**: Phase 4 用 Codex Supabase 插件查 20 座山 + 选 10 座（6 ≥5000m + 3 座 3000-5000m 加权验证 + 1 座 <3000m 对照）+ 调本地 /api/weather/[mountainId] 真实数据 + 跑 buildDeparturePolicy 计算 + 输出 markdown 表。10 行规则计算 Claude review + 用户视觉验收 100% PASS。
+
+**FU-48 漏洞已修验证**: 慕士塔格峰 7546m / -17°C / 中雪从"可出发"→"不建议出发"（体感 ≤-10 + 描述含中雪 + 海拔默认 🟠）；梅里雪山 6740m / 2°C / 中雪从"可出发"→"不建议出发"（描述含中雪触发，证明 description 维度 FU-48 漏洞的核心修复）。
+
+**协议合规化**: 严格遵守 codex-no-self-visual-acceptance — Phase 3 后 STOP 不自报 PASS；Phase 4 准备 review package 仅给证据；用户 review 后 Claude 单独发 V3 指令；Codex 仅在 V3 指令后 push + merge。**首次完全符合新协议的 sprint 闭环**。
+
+**协议补强 finding**: Phase 4 Step 2 一度出现当前会话未暴露 Supabase SQL tool 的情况；用户重新触发 `@supabase` 后 Codex Supabase 插件恢复并完成查询。未创建 `scripts/_temp_fu50_audit.ts` fallback 脚本，未使用第三方 REST fallback。
+
+**FU-48 视觉验收 post-merge PASS 追认**: FU-48 sprint Codex 跳过用户视觉验收直接 push merge 是协议违反，本次 FU-48 经用户 manual smoke (样式 + 数据 OK) PASS 追认；规则简化漏洞由 FU-50 独立修复（已合规）。
+
+**新增 FU-51 (P1 上线门禁项)**: 跟踪山峰 tier 准确性 + 信息完整性 + 刷新逻辑生效联合校验。当前 mountains 表 20 座全 tier=C 是默认值，docs §9.3 推荐配比 (S 25 / A 75 / B 250 / C 其余) 上线前需补。
+
+**已知后续优化**: 描述橙色关键词补"毛毛雨 / 强毛毛雨 / 阵雨"系列（不阻塞，FU-50 closed 注脚记录）。
+
+测试基线 +N（六维度单元测试 + 三态 e2e mock 断言）。**Active 22 → 22**（关 FU-50 -1 + 加 FU-51 +1 = 净 0）；**Closed 27 → 28**（+FU-50）。
+
+v0.8 机械化清单第十五次实战。
 
 **v0.22 — 2026-05-19**: FU-48 天气组件前端真实接入 daily-only 折中版落地。
 

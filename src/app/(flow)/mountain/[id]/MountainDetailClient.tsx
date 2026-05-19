@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
 import type { Waypoint, WaypointType } from '@/lib/waypoints'
 import { getRouteSegments, type RouteSegment } from '@/lib/mountain-route-segments'
-import type { MountainDetailWeather } from './page'
 import { getLicenseRequirementLabel, getLicenseShortLabel } from '@/lib/license-ui'
 import { BackIcon, CheckIcon, MoreIcon, PinIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
 import { HelpTrigger } from '@/components/help/HelpTrigger'
 import Chip from '@/components/ui/Chip'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
+import WeatherSection from '@/components/mountain/WeatherSection'
 
 const LICENSE_RANK: Record<User['license_level'], number> = {
   none: 0,
@@ -25,7 +25,6 @@ type MountainDetailClientProps = {
   userLicense: User['license_level']
   requiresLogin: boolean
   waypoints: Waypoint[]
-  weather: MountainDetailWeather | null
   featuredPosts: CommunityPostViewModel[]
   heroImages: string[]
 }
@@ -72,65 +71,6 @@ function getSeasonDecision(mountain: Mountain) {
       ? '高海拔路线通常 10–11 月更稳 · 出发前仍需复核天气'
       : '低中海拔路线通常 4–10 月更适合 · 雨季与大风天请谨慎',
   }
-}
-
-function getWeatherAgeLabel(fetchedAt: string) {
-  const time = Date.parse(fetchedAt)
-  if (!Number.isFinite(time)) return '最近更新'
-
-  const diffHours = Math.max(0, Math.floor((Date.now() - time) / 3_600_000))
-  if (diffHours < 1) return '更新于 1 小时内'
-  if (diffHours < 24) return `更新于 ${diffHours} 小时前`
-  return '更新于 1 天前'
-}
-
-function getWeatherAgeMeta(fetchedAt: string) {
-  const time = Date.parse(fetchedAt)
-  if (!Number.isFinite(time)) {
-    return { label: '最近更新', stale: false, hours: 0 }
-  }
-
-  const diffMinutes = Math.max(0, Math.floor((Date.now() - time) / 60_000))
-  const diffHours = Math.floor(diffMinutes / 60)
-  const stale = diffHours > 6
-
-  if (diffMinutes < 60) {
-    return { label: `更新于 ${Math.max(1, diffMinutes)} 分钟前`, stale, hours: diffHours }
-  }
-
-  return { label: getWeatherAgeLabel(fetchedAt), stale, hours: diffHours }
-}
-
-function getWeatherGlyph(description?: string, icon?: string) {
-  const text = `${description ?? ''} ${icon ?? ''}`.toLowerCase()
-  if (text.includes('雪') || text.includes('snow')) return '雪'
-  if (text.includes('雨') || text.includes('rain') || text.includes('shower')) return '雨'
-  if (text.includes('云') || text.includes('cloud') || text.includes('overcast')) return '云'
-  return '晴'
-}
-
-function formatWeatherNumber(value: number | null | undefined, suffix = '') {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--'
-  return `${Math.round(value)}${suffix}`
-}
-
-function buildWeatherBars(weather: MountainDetailWeather) {
-  const labels = ['04', '06', '08', '10', '12', '14', '16', '18']
-  const first = weather.forecast[0]
-  const min = first?.tempMin ?? (weather.current?.temperature ?? 0) - 3
-  const max = first?.tempMax ?? (weather.current?.temperature ?? 0) + 3
-  const range = Math.max(1, max - min)
-
-  return labels.map((label, index) => {
-    const wave = Math.sin((index / (labels.length - 1)) * Math.PI)
-    const value = Math.round(min + wave * range)
-    return {
-      label,
-      value,
-      height: 18 + Math.round(((value - min) / range) * 34),
-      warn: value < 0,
-    }
-  })
 }
 
 function cleanDescription(value: string | null | undefined) {
@@ -850,270 +790,6 @@ function EmptyModuleCard({
   )
 }
 
-function WeatherSection({
-  weather,
-  mountain,
-  onRetry,
-}: {
-  weather: MountainDetailWeather | null
-  mountain: Mountain
-  onRetry: () => void
-}) {
-  if (!weather || !weather.current || weather.forecast.length === 0) {
-    return (
-      <section data-testid="mountain-weather-section">
-        <SectionHeader
-          title="天气参考"
-          right={
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              数据源 · 不可用
-              <HelpTrigger anchor="map.weather-lag" size={14} style={{ width: 26, height: 26 }} />
-            </span>
-          }
-        />
-        <div style={{ padding: '0 var(--space-4)' }}>
-          <EmptyModuleCard
-            icon={<span style={{ fontSize: 24 }}>↓</span>}
-            title="天气暂时拿不到"
-            description="区域气象点没有响应，出发前请通过其他渠道复核。"
-            action={<SecondaryButton onClick={onRetry}>重试</SecondaryButton>}
-          />
-        </div>
-      </section>
-    )
-  }
-
-  const age = getWeatherAgeMeta(weather.fetchedAt)
-  const current = weather.current
-  const bars = buildWeatherBars(weather)
-  const windLevel = typeof current.windSpeed === 'number' ? Math.max(1, Math.round(current.windSpeed / 6)) : null
-  const precipitation = weather.forecast[0]?.precipitation
-  const windowOk = !age.stale && (precipitation ?? 0) < 20 && (current.windSpeed ?? 0) < 38
-
-  return (
-    <section data-testid="mountain-weather-section">
-      <SectionHeader
-        title="天气参考"
-        right={
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              color: age.stale ? 'var(--color-warning)' : 'var(--color-on-surface-variant)',
-              fontSize: 'var(--font-label-s-size)',
-              lineHeight: 'var(--font-label-s-line)',
-            }}
-          >
-            {!age.stale ? (
-              <span
-                aria-hidden
-                style={{ width: 5, height: 5, borderRadius: 'var(--radius-pill)', background: 'var(--color-success)' }}
-              />
-            ) : null}
-            {age.label}
-            <HelpTrigger anchor="map.weather-lag" size={14} style={{ width: 26, height: 26 }} />
-          </span>
-        }
-      />
-      <div style={{ padding: '0 var(--space-4)' }}>
-        <div
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            background: 'var(--color-surface-variant)',
-            border: '1px solid var(--color-outline)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '14px 14px 12px',
-          }}
-        >
-          {age.stale ? (
-            <div
-              aria-hidden
-              style={{
-                position: 'absolute',
-                inset: 0,
-                pointerEvents: 'none',
-                background: 'linear-gradient(180deg, color-mix(in srgb, var(--color-warning) 7%, transparent), transparent 45%)',
-              }}
-            />
-          ) : null}
-          <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', gap: 12, alignItems: 'center' }}>
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 'var(--radius-md)',
-                background: 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
-                border: '1px solid var(--color-outline)',
-                display: 'grid',
-                placeItems: 'center',
-                color: 'var(--color-on-surface)',
-                fontSize: 20,
-                fontWeight: 700,
-              }}
-            >
-              {getWeatherGlyph(current.description, current.icon)}
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
-                <span
-                  style={{
-                    color: 'var(--color-on-surface)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 32,
-                    lineHeight: '34px',
-                    fontWeight: 700,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  {formatWeatherNumber(current.temperature, '°')}
-                </span>
-                <span style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-m-size)' }}>
-                  体感 {formatWeatherNumber(current.feelsLike, '°')}
-                </span>
-              </div>
-              <div
-                style={{
-                  marginTop: 3,
-                  color: 'var(--color-on-surface-variant)',
-                  fontSize: 'var(--font-label-m-size)',
-                  lineHeight: 'var(--font-label-m-line)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {mountain.name} · {current.description || '天气信息'} · {formatInteger(mountain.altitude)}m
-              </div>
-            </div>
-            <div
-              style={{
-                padding: '5px 9px',
-                borderRadius: 'var(--radius-pill)',
-                border: `1px solid ${windowOk ? 'var(--color-success)' : 'var(--color-warning)'}`,
-                background: windowOk
-                  ? 'color-mix(in srgb, var(--color-success) 13%, transparent)'
-                  : 'color-mix(in srgb, var(--color-warning) 12%, transparent)',
-                color: windowOk ? 'var(--color-success)' : 'var(--color-warning)',
-                fontSize: 'var(--font-label-s-size)',
-                lineHeight: 'var(--font-label-s-line)',
-                fontWeight: 700,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {windowOk ? '可出发' : '需注意'}
-            </div>
-          </div>
-
-          <div style={{ position: 'relative', marginTop: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))`, gap: 4, alignItems: 'end', minHeight: 78 }}>
-              {bars.map((bar) => (
-                <div key={bar.label} style={{ minWidth: 0, textAlign: 'center' }}>
-                  <div
-                    style={{
-                      color: bar.warn ? 'var(--color-warning)' : 'var(--color-on-surface)',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 10,
-                      lineHeight: '14px',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {bar.value}°
-                  </div>
-                  <div
-                    aria-hidden
-                    style={{
-                      width: 7,
-                      height: bar.height,
-                      margin: '3px auto',
-                      borderRadius: 'var(--radius-pill)',
-                      background: bar.warn ? 'var(--color-warning)' : 'var(--color-success)',
-                      opacity: 0.78,
-                    }}
-                  />
-                  <div style={{ color: 'var(--color-on-surface-variant)', fontFamily: 'var(--font-mono)', fontSize: 9 }}>
-                    {bar.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div
-            style={{
-              position: 'relative',
-              marginTop: 14,
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: 8,
-            }}
-          >
-            {[
-              { label: '风', value: windLevel ? `${windLevel} 级` : '--', sub: current.windDirection || '阵风待复核' },
-              { label: '降水', value: typeof precipitation === 'number' ? `${Math.round(precipitation)}%` : '--', sub: '近端预报' },
-              { label: '能见度', value: '--', sub: '缓存未提供' },
-            ].map((item) => (
-              <div key={item.label} style={{ minWidth: 0 }}>
-                <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 10, lineHeight: '14px' }}>{item.label}</div>
-                <div
-                  style={{
-                    marginTop: 2,
-                    color: item.label === '风' && !windowOk ? 'var(--color-warning)' : 'var(--color-success)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 20,
-                    lineHeight: '24px',
-                    fontWeight: 700,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  {item.value}
-                </div>
-                <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 10, lineHeight: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {item.sub}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {age.stale || !windowOk ? (
-            <div
-              style={{
-                position: 'relative',
-                marginTop: 14,
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid color-mix(in srgb, var(--color-warning) 28%, transparent)',
-                background: 'color-mix(in srgb, var(--color-warning) 8%, transparent)',
-                color: 'var(--color-on-surface)',
-                fontSize: 'var(--font-label-m-size)',
-                lineHeight: '20px',
-              }}
-            >
-              <span style={{ color: 'var(--color-warning)', fontWeight: 700 }}>⚠ </span>
-              {age.stale
-                ? `数据已 ${Math.max(7, age.hours)} 小时未更新 · 出发前请通过其他渠道复核当前状况。`
-                : '阵风或降水偏高 · 山顶段建议更早出发，避开午后窗口。'}
-            </div>
-          ) : null}
-
-          <div
-            style={{
-              position: 'relative',
-              marginTop: 12,
-              color: 'var(--color-on-surface-variant)',
-              fontSize: 'var(--font-label-s-size)',
-              lineHeight: 'var(--font-label-s-line)',
-            }}
-          >
-            仅作决策参考 · Peak Trekker 不是专业天气产品
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function RouteFootnote({ children }: { children: ReactNode }) {
   return (
     <div
@@ -1570,7 +1246,6 @@ export default function MountainDetailClient({
   userLicense,
   requiresLogin,
   waypoints,
-  weather,
   featuredPosts,
   heroImages,
 }: MountainDetailClientProps) {
@@ -1653,7 +1328,7 @@ export default function MountainDetailClient({
         isLocked={isLocked}
       />
 
-      <WeatherSection weather={weather} mountain={mountain} onRetry={() => router.refresh()} />
+      <WeatherSection mountain={mountain} />
       <RouteReferenceSection mountain={mountain} waypoints={waypoints} />
       {waypoints.length > 0 ? <WaypointSection waypoints={waypoints} /> : null}
       {featuredPosts.length > 0 ? <FeaturedSection posts={featuredPosts} /> : null}

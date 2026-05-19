@@ -102,7 +102,6 @@ export default function WeatherSection({
   }
 
   const weather = state.weather
-  const review = weather.departureWindow.tone === 'review'
 
   return (
     <section
@@ -110,6 +109,7 @@ export default function WeatherSection({
       className="mountain-weather"
       data-testid="mountain-weather-section"
       data-weather-state={weather.state}
+      data-departure-policy={weather.departureWindow.policy}
     >
       <WeatherHeader
         right={
@@ -134,7 +134,7 @@ export default function WeatherSection({
               {weather.current.description} · {weather.current.altitude}
             </div>
           </div>
-          <div className={`mountain-weather__window ${review ? 'mountain-weather__window--review' : 'mountain-weather__window--ok'}`}>
+          <div className={`mountain-weather__window mountain-weather__window--${weather.departureWindow.tone}`}>
             <span>窗口</span>
             <strong>{weather.departureWindow.label}</strong>
           </div>
@@ -155,7 +155,7 @@ export default function WeatherSection({
           {weather.kpis.map((item) => (
             <div className="mountain-weather__kpi" key={item.label}>
               <div className="mountain-weather__kpi-label">{item.label}</div>
-              <div className={`mountain-weather__kpi-value ${item.tone === 'review' ? 'mountain-weather__kpi-value--review' : ''}`}>
+              <div className={`mountain-weather__kpi-value ${item.tone === 'ok' ? '' : `mountain-weather__kpi-value--${item.tone}`}`}>
                 {item.value}
               </div>
               <div className="mountain-weather__kpi-sub">{item.sub}</div>
@@ -163,7 +163,7 @@ export default function WeatherSection({
           ))}
         </div>
 
-        <div className={`mountain-weather__risk-note ${weather.riskNote.tone === 'review' ? 'mountain-weather__risk-note--review' : ''}`}>
+        <div className={`mountain-weather__risk-note ${weather.riskNote.tone === 'ok' ? '' : `mountain-weather__risk-note--${weather.riskNote.tone}`}`}>
           <WarnGlyph />
           <div>
             <strong>{weather.riskNote.title}</strong>

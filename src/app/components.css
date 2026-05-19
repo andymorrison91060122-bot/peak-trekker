@@ -1145,6 +1145,10 @@
   color: var(--color-warning);
 }
 
+.mountain-weather__window--danger strong {
+  color: var(--color-error);
+}
+
 .mountain-weather__forecast-row {
   position: relative;
   margin-top: 14px;
@@ -1220,6 +1224,10 @@
   color: var(--color-warning);
 }
 
+.mountain-weather__kpi-value--danger {
+  color: var(--color-error);
+}
+
 .mountain-weather__kpi-sub {
   margin-top: 1px;
   overflow: hidden;
@@ -1263,6 +1271,15 @@
 
 .mountain-weather__risk-note--review svg {
   color: var(--color-warning);
+}
+
+.mountain-weather__risk-note--danger {
+  border-color: color-mix(in srgb, var(--color-error) 34%, transparent);
+  background: color-mix(in srgb, var(--color-error) 9%, transparent);
+}
+
+.mountain-weather__risk-note--danger svg {
+  color: var(--color-error);
 }
 
 .mountain-weather__footnote {

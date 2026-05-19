@@ -1588,6 +1588,15 @@
 .act-photos__layout--three {
   grid-template-columns: 2fr 1fr;
   grid-template-rows: repeat(2, minmax(0, 1fr));
+  aspect-ratio: 16 / 10;
+}
+
+.act-photos__layout--four {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.act-photos__layout--grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .act-photos__layout--two {
@@ -1600,18 +1609,32 @@
 
 .act-photo {
   position: relative;
+  display: block;
+  width: 100%;
   min-height: 0;
   overflow: hidden;
   aspect-ratio: 1 / 1;
+  padding: 0;
   border: 1px solid var(--color-outline);
   border-radius: var(--radius-md);
   background-position: center 35%;
   background-size: cover;
+  cursor: zoom-in;
 }
 
 .act-photo--hero {
   grid-row: 1 / span 2;
-  aspect-ratio: 1 / 1.1;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.act-photos__layout--one .act-photo {
+  aspect-ratio: 16 / 9;
+}
+
+.act-photos__layout--three .act-photo {
+  height: 100%;
+  aspect-ratio: auto;
 }
 
 .act-photo__scrim {
@@ -1640,6 +1663,165 @@
 .act-photo--hero .act-photo__label {
   left: 12px;
   bottom: 10px;
+}
+
+.act-photo:focus-visible,
+.act-lightbox__thumb:focus-visible,
+.act-lightbox__delete:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.act-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: flex;
+  width: 100vw;
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(12px);
+}
+
+.act-lightbox__close.ui-icon-btn-root {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 12px);
+  right: 16px;
+  z-index: 5;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border-color: color-mix(in srgb, white 18%, transparent);
+  background: rgba(0, 0, 0, 0.52);
+  color: white;
+  backdrop-filter: blur(8px);
+}
+
+.act-lightbox__nav.ui-icon-btn-root {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border-color: color-mix(in srgb, white 18%, transparent);
+  background: rgba(0, 0, 0, 0.52);
+  color: white;
+  backdrop-filter: blur(8px);
+  transform: translateY(-50%);
+}
+
+.act-lightbox__nav--prev {
+  left: 12px;
+}
+
+.act-lightbox__nav--next {
+  right: 12px;
+}
+
+.act-lightbox__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  padding: max(56px, calc(env(safe-area-inset-top) + 56px)) var(--space-4) var(--space-6);
+}
+
+.act-lightbox__image {
+  display: grid;
+  place-items: center;
+  width: min(100%, 920px);
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.act-lightbox__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 56px;
+  flex: 0 0 auto;
+  padding: var(--space-3) var(--space-4);
+  color: white;
+}
+
+.act-lightbox__count {
+  font-family: var(--font-mono);
+  font-size: var(--font-label-m-size);
+  line-height: var(--font-label-m-line);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.act-lightbox__hint {
+  margin-top: var(--space-1);
+  color: rgba(255, 255, 255, 0.64);
+  font-size: var(--font-label-s-size);
+  line-height: var(--font-label-s-line);
+}
+
+.act-lightbox__delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-error) 42%, transparent);
+  border-radius: var(--radius-md);
+  color: #ffb4ab;
+  background: color-mix(in srgb, #ffb4ab 12%, transparent);
+  font-size: var(--font-label-m-size);
+  line-height: var(--font-label-m-line);
+  font-weight: var(--font-label-m-weight);
+  cursor: pointer;
+}
+
+.act-lightbox__delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.act-lightbox__delete-glyph {
+  display: inline-flex;
+}
+
+.act-lightbox__thumbs {
+  display: flex;
+  gap: var(--space-2);
+  height: 64px;
+  flex: 0 0 auto;
+  width: 100%;
+  overflow-x: auto;
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.act-lightbox__thumb {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--color-outline) 80%, transparent);
+  border-radius: var(--radius-sm);
+  background-position: center;
+  background-size: cover;
+  cursor: pointer;
+}
+
+.act-lightbox__thumb[data-active='true'] {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 32%, transparent);
 }
 
 .act-companion {

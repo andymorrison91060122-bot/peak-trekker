@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import IconButton from '@/components/ui/IconButton'
+import { ActionGlyph } from '@/components/ui/IconActionButton'
 import ActivityRouteMap from '@/components/activity/ActivityRouteMap'
 import { SourceLabel, type SourceLabelProps } from '@/components/ui/SourceLabel'
 import { HelpLink } from '@/components/help/HelpLink'
@@ -23,13 +24,16 @@ import {
   ACTIVITY_NOTE_MAX_LENGTH,
   ACTIVITY_PHOTO_MAX_COUNT,
   getActivityNoteValidation,
+  getActivityPhotoDeleteValidation,
   getActivityPhotoUploadValidation,
 } from '@/lib/activity-detail-validation'
 
 export type ActivityPhotoViewModel = {
   id: string
+  assetId: string | null
   url: string
   thumbnailUrl: string
+  isLegacyCover?: boolean
 }
 
 export type ActivityWaypointViewModel = {
@@ -695,13 +699,17 @@ function RouteSnapshot({ activity }: { activity: ActivityDetailViewModel }) {
 function PhotoStrip({
   activity,
   onAddPhoto,
+  onOpenPhoto,
   isUploading,
+  isDeleting,
 }: {
   activity: ActivityDetailViewModel
   onAddPhoto: () => void
+  onOpenPhoto: (index: number) => void
   isUploading: boolean
+  isDeleting: boolean
 }) {
-  const photos = activity.photos.slice(0, 3)
+  const photos = activity.photos
   const photoCount = activity.photos.length
   const uploadValidation = getActivityPhotoUploadValidation({
     currentPhotoCount: photoCount,
@@ -709,7 +717,7 @@ function PhotoStrip({
     status: activity.status,
     isUploading,
   })
-  const uploadDisabled = !uploadValidation.isApproved || isUploading || photoCount >= ACTIVITY_PHOTO_MAX_COUNT
+  const uploadDisabled = !uploadValidation.isApproved || isUploading || isDeleting || photoCount >= ACTIVITY_PHOTO_MAX_COUNT
   const uploadHint = !uploadValidation.isApproved
     ? '待审核通过后可补传'
     : photoCount >= ACTIVITY_PHOTO_MAX_COUNT
@@ -788,26 +796,34 @@ function PhotoStrip({
   }
 
   const layoutClass =
-    photos.length >= 3
-      ? 'act-photos__layout act-photos__layout--three'
-      : photos.length === 2
-        ? 'act-photos__layout act-photos__layout--two'
-        : 'act-photos__layout act-photos__layout--one'
+    photos.length >= 5
+      ? 'act-photos__layout act-photos__layout--grid'
+      : photos.length === 4
+        ? 'act-photos__layout act-photos__layout--four'
+        : photos.length === 3
+          ? 'act-photos__layout act-photos__layout--three'
+          : photos.length === 2
+            ? 'act-photos__layout act-photos__layout--two'
+            : 'act-photos__layout act-photos__layout--one'
 
   return (
     <section style={sectionPadding('var(--space-5)')}>
       <SectionHead right={`已 ${photoCount}/${ACTIVITY_PHOTO_MAX_COUNT} 张`}>这次的照片</SectionHead>
       <div className={layoutClass} data-testid="activity-photo-gallery">
         {photos.map((photo, index) => {
-          const isHero = photos.length >= 3 && index === 0
+          const isHero = photos.length === 3 && index === 0
           return (
-            <div
+            <button
+              type="button"
               key={photo.id}
               className={isHero ? 'act-photo act-photo--hero' : 'act-photo'}
+              data-testid={`activity-photo-tile-${index}`}
+              aria-label={`查看第 ${index + 1} 张照片`}
+              onClick={() => onOpenPhoto(index)}
               style={{ backgroundImage: `url("${photo.thumbnailUrl}")` }}
             >
               <div className="act-photo__scrim" />
-            </div>
+            </button>
           )
         })}
       </div>
@@ -845,6 +861,155 @@ function PhotoStrip({
         </SecondaryButton>
       </div>
     </section>
+  )
+}
+
+function ActivityPhotoLightbox({
+  photos,
+  activeIndex,
+  isDeleting,
+  status,
+  onClose,
+  onSelectIndex,
+  onDeletePhoto,
+}: {
+  photos: ActivityPhotoViewModel[]
+  activeIndex: number
+  isDeleting: boolean
+  status: ActivityDetailViewModel['status']
+  onClose: () => void
+  onSelectIndex: (index: number) => void
+  onDeletePhoto: (photo: ActivityPhotoViewModel) => void
+}) {
+  const safeIndex = Math.min(Math.max(activeIndex, 0), Math.max(photos.length - 1, 0))
+  const activePhoto = photos[safeIndex]
+  const touchStartXRef = useRef<number | null>(null)
+  const deleteValidation = getActivityPhotoDeleteValidation({ status, isDeleting })
+
+  function goToOffset(offset: number) {
+    if (isDeleting || photos.length <= 1) return
+    onSelectIndex((safeIndex + offset + photos.length) % photos.length)
+  }
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose()
+      if (event.key === 'ArrowLeft') goToOffset(-1)
+      if (event.key === 'ArrowRight') goToOffset(1)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  })
+
+  if (!activePhoto) return null
+
+  return (
+    <div
+      className="act-lightbox"
+      data-testid="activity-photo-lightbox"
+      role="dialog"
+      aria-modal="true"
+      aria-label="查看活动照片"
+    >
+      <IconButton
+        icon="close"
+        ariaLabel="关闭照片查看"
+        variant="filled"
+        shape="circular"
+        onClick={onClose}
+        disabled={isDeleting}
+        className="act-lightbox__close"
+      />
+
+      <div
+        className="act-lightbox__stage"
+        onTouchStart={(event) => {
+          touchStartXRef.current = event.touches[0]?.clientX ?? null
+        }}
+        onTouchEnd={(event) => {
+          const startX = touchStartXRef.current
+          touchStartXRef.current = null
+          const endX = event.changedTouches[0]?.clientX ?? null
+          if (startX === null || endX === null) return
+          const deltaX = endX - startX
+          if (Math.abs(deltaX) < 40) return
+          goToOffset(deltaX > 0 ? -1 : 1)
+        }}
+      >
+        {photos.length > 1 ? (
+          <>
+            <IconButton
+              icon={<BackIcon size={20} />}
+              ariaLabel="上一张照片"
+              variant="filled"
+              shape="circular"
+              onClick={() => goToOffset(-1)}
+              disabled={isDeleting}
+              className="act-lightbox__nav act-lightbox__nav--prev"
+            />
+            <IconButton
+              icon="chevron-right"
+              ariaLabel="下一张照片"
+              variant="filled"
+              shape="circular"
+              onClick={() => goToOffset(1)}
+              disabled={isDeleting}
+              className="act-lightbox__nav act-lightbox__nav--next"
+            />
+          </>
+        ) : null}
+
+        <div
+          className="act-lightbox__image"
+          data-testid="activity-photo-lightbox-image"
+          role="img"
+          aria-label={`活动照片 ${safeIndex + 1}`}
+          style={{ backgroundImage: `url("${activePhoto.url}")` }}
+        />
+      </div>
+
+      <div className="act-lightbox__footer">
+        <div>
+          <div className="act-lightbox__count" data-testid="activity-photo-lightbox-count">
+            {safeIndex + 1} / {photos.length}
+          </div>
+          {deleteValidation.isApproved ? null : (
+            <div className="act-lightbox__hint">待审核通过后可删除</div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="act-lightbox__delete"
+          data-testid="activity-photo-delete-button"
+          disabled={!deleteValidation.canDelete}
+          onClick={() => onDeletePhoto(activePhoto)}
+        >
+          <span className="act-lightbox__delete-glyph" aria-hidden="true">
+            <ActionGlyph name="delete" />
+          </span>
+          {isDeleting ? '删除中' : '删除'}
+        </button>
+      </div>
+
+      {photos.length > 1 ? (
+        <div className="act-lightbox__thumbs" aria-label="照片缩略图">
+          {photos.map((photo, index) => (
+            <button
+              key={`${photo.id}-thumb`}
+              type="button"
+              className="act-lightbox__thumb"
+              data-active={index === safeIndex ? 'true' : 'false'}
+              aria-label={`切换到第 ${index + 1} 张照片`}
+              onClick={() => onSelectIndex(index)}
+              disabled={isDeleting}
+              style={{ backgroundImage: `url("${photo.thumbnailUrl}")` }}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -1255,8 +1420,11 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
   const [isSavingNote, setIsSavingNote] = useState(false)
   const [photos, setPhotos] = useState(activity.photos)
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [isDeletingPhoto, setIsDeletingPhoto] = useState(false)
   const noteSaveInFlightRef = useRef(false)
   const photoUploadInFlightRef = useRef(false)
+  const photoDeleteInFlightRef = useRef(false)
   const photoInputRef = useRef<HTMLInputElement | null>(null)
   const isNoteEditingRef = useRef(false)
 
@@ -1274,6 +1442,17 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
   useEffect(() => {
     setPhotos(activity.photos)
   }, [activity.photos])
+
+  useEffect(() => {
+    if (lightboxIndex === null) return
+    if (!photos.length) {
+      setLightboxIndex(null)
+      return
+    }
+    if (lightboxIndex >= photos.length) {
+      setLightboxIndex(photos.length - 1)
+    }
+  }, [lightboxIndex, photos.length])
 
   const renderedActivity: ActivityDetailViewModel = {
     ...activity,
@@ -1367,6 +1546,8 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
   }
 
   function handleAddPhoto() {
+    if (isDeletingPhoto || photoDeleteInFlightRef.current) return
+
     const validation = getActivityPhotoUploadValidation({
       currentPhotoCount: photos.length,
       selectedFileCount: 1,
@@ -1385,6 +1566,66 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
     if (isUploadingPhotos || photoUploadInFlightRef.current) return
 
     photoInputRef.current?.click()
+  }
+
+  function handleOpenPhoto(index: number) {
+    if (!photos[index]) return
+    setLightboxIndex(index)
+  }
+
+  async function handleDeletePhoto(photo: ActivityPhotoViewModel) {
+    const validation = getActivityPhotoDeleteValidation({
+      status: activity.status,
+      isDeleting: isDeletingPhoto,
+    })
+
+    if (!validation.isApproved) {
+      showLocalToast('待审核通过后可删除。')
+      return
+    }
+    if (!validation.canDelete || photoDeleteInFlightRef.current) return
+
+    if (!window.confirm('删除后，这张照片会从活动详情移除。')) return
+
+    photoDeleteInFlightRef.current = true
+    setIsDeletingPhoto(true)
+    try {
+      const response = await fetch('/api/activity/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_activity_image',
+          checkinId: activity.id,
+          photoId: photo.assetId ?? photo.id,
+          photoUrl: photo.url,
+        }),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(String(payload?.error ?? '现场照片删除失败，请稍后重试。'))
+      }
+
+      const deletedPhotoUrl = typeof payload?.deletedPhotoUrl === 'string' ? payload.deletedPhotoUrl : photo.url
+      const nextPhotos = photos.filter((candidate) => {
+        if (candidate.id === photo.id) return false
+        if (candidate.assetId && photo.assetId && candidate.assetId === photo.assetId) return false
+        if (candidate.url === deletedPhotoUrl) return false
+        return true
+      })
+
+      setPhotos(nextPhotos)
+      setLightboxIndex((currentIndex) => {
+        if (!nextPhotos.length) return null
+        return Math.min(currentIndex ?? 0, nextPhotos.length - 1)
+      })
+      showLocalToast('现场照片已删除。')
+      router.refresh()
+    } catch (error) {
+      showLocalToast(error instanceof Error ? error.message : '现场照片删除失败，请稍后重试。')
+    } finally {
+      photoDeleteInFlightRef.current = false
+      setIsDeletingPhoto(false)
+    }
   }
 
   async function handlePhotoSelection(files: FileList | null) {
@@ -1442,6 +1683,7 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
             return [
               {
                 id: candidate.id,
+                assetId: candidate.id,
                 url: candidate.url,
                 thumbnailUrl:
                   typeof candidate.thumbnail_url === 'string' && candidate.thumbnail_url
@@ -1504,7 +1746,13 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
       <KeyDataGrid activity={renderedActivity} />
       <ActivityRouteMap activity={renderedActivity} />
       <RouteSnapshot activity={renderedActivity} />
-      <PhotoStrip activity={renderedActivity} onAddPhoto={handleAddPhoto} isUploading={isUploadingPhotos} />
+      <PhotoStrip
+        activity={renderedActivity}
+        onAddPhoto={handleAddPhoto}
+        onOpenPhoto={handleOpenPhoto}
+        isUploading={isUploadingPhotos}
+        isDeleting={isDeletingPhoto}
+      />
       <input
         ref={photoInputRef}
         data-testid="activity-photo-upload-input"
@@ -1516,6 +1764,19 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
           void handlePhotoSelection(event.currentTarget.files)
         }}
       />
+      {lightboxIndex !== null ? (
+        <ActivityPhotoLightbox
+          photos={photos}
+          activeIndex={lightboxIndex}
+          isDeleting={isDeletingPhoto}
+          status={activity.status}
+          onClose={() => setLightboxIndex(null)}
+          onSelectIndex={setLightboxIndex}
+          onDeletePhoto={(photo) => {
+            void handleDeletePhoto(photo)
+          }}
+        />
+      ) : null}
       <CompanionStrip companions={renderedActivity.companions ?? []} />
       <ProofStrip status={renderedActivity.proofStatus} />
       <BackToRecords activity={renderedActivity} />

@@ -240,6 +240,21 @@ export async function countApprovedCheckinsForSession(sessionId: string) {
   return count ?? 0
 }
 
+export async function getCheckinPhotoUrlForTest(checkinId: string) {
+  const supabase = getSupabaseAdminClient()
+  const { data, error } = await supabase
+    .from('checkins')
+    .select('photo_url')
+    .eq('id', checkinId)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Failed to load checkin photo_url for E2E test: ${error.message}`)
+  }
+
+  return typeof data?.photo_url === 'string' ? data.photo_url : null
+}
+
 export async function seedTestMountain(overrides: Partial<TestMountain> = {}) {
   const supabase = getSupabaseAdminClient()
   const unique = Date.now()

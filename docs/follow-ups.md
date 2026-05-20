@@ -2,17 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
+> Last Updated: 2026-05-20 · 最新版本记录: v0.24
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`7a02dca`（Merge FU-50 · 2026-05-19）
+`0fd292d`（Merge FU-47(a) · 2026-05-20）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-FU-47 子 sprint (a) · MapLibre + PMTiles 底图基建 · 状态 🟡 in-progress
+待启动（候选: FU-47(b) [P1 高优] / FU-52 [P2 cleanup] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-46 [P2 高优] / FU-43 / FU-45 / community-final-polish / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -84,7 +85,7 @@ FU-47 子 sprint (a) · MapLibre + PMTiles 底图基建 · 状态 🟡 in-progre
 
 ---
 
-## Active Follow-ups（22 条）
+## Active Follow-ups（23 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -444,7 +445,7 @@ status 字段是 schema/RLS/RPC 既有概念：
 - **归属阶段**: 阶段 4 / 阶段 5
 - **状态**: 🟡 in-progress
 
-**背景**: docs/map-weather-brief.md §4 / §5 / §14 第 5 步定义了"MapLibre GL JS + PMTiles / Protomaps 自托管 OSM 衍生底图 + 业务 GeoJSON 叠加层"地图方案（已与 Mapbox 方案对比后锁定，理由：大陆访问可控 / 长期 0 费用 / 无 Attribution 限制）。当前代码层 grep MapLibre / pmtiles / protomaps 0 hit，Mountain Detail 仅用 MapPlaceholder 静态占位组件 + routePreviewImage 山峰图，Trek 完全没接，ActivityRouteMap 是 SVG drawing 模拟不是真地图。
+**背景**: docs/map-weather-brief.md §4 / §5 / §14 第 5 步定义了"MapLibre GL JS + PMTiles / Protomaps 自托管 OSM 衍生底图 + 业务 GeoJSON 叠加层"地图方案（已与 Mapbox 方案对比后锁定，理由：大陆访问可控 / 长期 0 费用 / 无 Attribution 限制）。入册时代码层 grep MapLibre / pmtiles / protomaps 0 hit；FU-47(a) 已补齐底图基建 + GeoJSON endpoint + debug demo，但 Mountain Detail / Trek / Activity 仍未接入真实业务页面。
 
 **设计权威（实施时必须读 + 1:1 复刻视觉，不可自由发挥）**:
 - design-system/ui_kits/mobile/WeatherMapModules.jsx 含 3 个地图组件 standalone 设计（line 252-595）:
@@ -456,10 +457,15 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 **业务价值**: 用户进 Mountain Detail 看路线/关键点位需真实地图理解地形；Trek 实时记录需轻量地图反馈位置；Activity Detail 轨迹快照需要真实地理 context。docs §3.1 已明确"地图职责"不承担专业导航，仅作轻量参考。
 
+**子 sprint 进度**:
+- (a) ✅ done: MapLibre + PMTiles 基建落地。最终 baseline 锁定 mountain-bbox local packs（30km × 30km 正方形 + z=9-12 四层 + dark flavor + 1:1 aspect-ratio container），Supabase Storage public object、`/api/mountains/geojson`、`/debug/map-prototype` demo page、10km 华山轨迹验证均完成（merge `0fd292d`）。
+- (b) 🟢 next candidate: Mountain Detail + Activity 实际接入 mountain-bbox PMTiles。按 (a) baseline 方案接入真实 `RouteSnapshotMap` / `ActivityRouteMap`，并设计 300 山峰 PMTiles 自动生成 + 上传 pipeline。
+- (c) 🟢 pending: Trek 轻量参考地图接入 `TrekReferenceMap`，仍遵守"轨迹记录是核心，地图是辅助"定位。
+
 **实施建议**（按 docs §14 第 5 步分解，可拆 3 子 sprint）:
-- (a) 底图选型 + PMTiles 自托管落地：MapLibre GL JS 依赖引入 + Protomaps PMTiles 自托管（对象存储 + CDN）+ 业务 GeoJSON 输出接口
-- (b) Mountain Detail 地图层接入：1:1 复刻 RouteSnapshotMap 设计（含 fallback / unavailable 状态）+ GeoJSON 山峰位置 / 路线 / 关键点位 / 风险点叠加
-- (c) Trek 轻量交互 + Activity Detail 轨迹快照：1:1 复刻 TrekReferenceMap + ActivityRouteMap 设计
+- (a) ✅ 已完成：MapLibre GL JS 依赖引入 + Protomaps PMTiles 自托管（Supabase Storage public object）+ 业务 GeoJSON 输出接口 + debug demo 验证
+- (b) Mountain Detail + Activity 地图层接入：1:1 复刻 RouteSnapshotMap / ActivityRouteMap 设计（含 fallback / unavailable 状态）+ GeoJSON 山峰位置 / 路线 / 关键点位 / 风险点叠加 + per-mountain PMTiles pipeline
+- (c) Trek 轻量交互接入：1:1 复刻 TrekReferenceMap 设计，保持浅 zoom / 轻参考 / 不做专业导航
 
 **不在 scope**:
 - 不做专业导航 / 离线 / 路径纠偏
@@ -568,7 +574,34 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
-## Closed Follow-ups（28 条）
+### FU-52 · PMTiles 实验包 cleanup + 全国主包保留决策
+
+- **优先级**: P2（存储治理 / FU-47(a) 副产物）
+- **归属阶段**: 阶段 5 / 地图基建后续
+- **状态**: 🟢 active
+
+**背景**: FU-47(a) Phase 4 为验证地图产品方向，临时生成并上传多组 PMTiles 实验包：v5 6 组合 mountain-bbox candidate、v7 `z=11-12` 双层、v8 `z=9-12` baseline，以及早期 `z=7` / `z=8` 中国 bbox 全国主包。用户已明确 V3 不删除旧 PMTiles，cleanup 独立跟踪。
+
+**实施建议**:
+- 盘点 Supabase Storage `map-tiles/basemap/` 下所有实验对象 + `/tmp/peak-trekker-maptiles/` 本地候选文件
+- 保留 v8 baseline `huashan-bbox30-z9-12.pmtiles`
+- 删除或 archive v5/v7 已否决候选包
+- 单独评估 `china-z7-20260519.pmtiles` / `china-z8*` 是否仍保留作 Explore 兜底 / 全国概览，否则清理
+- 清理前输出对象清单 + 文件大小 + 删除计划，执行后 Range/public URL 验证
+
+**不在 scope**:
+- 不改变 FU-47(a) 已锁定的 mountain-bbox baseline
+- 不接入 Mountain Detail / Trek / Activity
+- 不删除未经过用户确认的远程对象
+
+**涉及**:
+- Supabase Storage `map-tiles` bucket
+- `/tmp/peak-trekker-maptiles/` 本地实验产物（系统临时目录，是否清理由执行时确认）
+- docs/follow-ups.md cleanup 记账
+
+---
+
+## Closed Follow-ups（29 条）
 
 ### FU-1 ✅ 同一份轨迹文件去重（防伪造）
 
@@ -803,6 +836,14 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
+### FU-47(a) ✅ MapLibre + PMTiles mountain-bbox 底图基建
+
+- **关闭原因**: FU-47(a) 子 sprint 落地 MapLibre + PMTiles 自托管底图基建。先完成中国 bbox z=7 Supabase Storage 主包 + `/api/mountains/geojson` + `/debug/map-prototype` 基线；Phase 4 经 v3/v4/v5/v7/v8 多轮候选实验验证后，用户视觉验收 PASS 并锁定 production Mountain Detail 基线：mountain-bbox local packs（30km × 30km 正方形 + z=9-12 四层 + dark flavor + 1:1 aspect-ratio container）。最终华山 baseline 包 `huashan-bbox30-z9-12.pmtiles` 为 634.2 KiB / mountain，300 山峰累积估算 206.15 MiB（含 z=7 主包 20.4 MB）。关键设计决策：default dark + 保留 `?flavor=` debug override；dynamic `fitZoom = cameraForBounds(bbox).zoom` clamp ≤ 12；`setMaxBounds` 使用 post-fit envelope（用户 v7 Q&A 已批准）；1:1 容器匹配正方形 bbox，避免 production 卡片上下空白；保留 10km 华山示例轨迹用于尺度验证。旧实验 PMTiles（v5 6 候选 + v7 z=11-12 + z=7/z=8 全国主包）暂留 Supabase Storage，拆 FU-52 cleanup 跟踪。
+- **关闭 commit**: `0fd292d`
+- **关闭时间**: 2026-05-20
+
+---
+
 > **历史跳号编号**：FU-26 在 Pre-3.a sprint 中编号跳号未实际引入；未来新增 FU 不复用此编号，按当前最大编号 +1 顺序分配。
 
 ---
@@ -872,6 +913,22 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.24 — 2026-05-20**: FU-47(a) MapLibre + PMTiles 自托管底图基建完整落地。
+
+**实施**: 新增 MapLibre GL JS + PMTiles + Protomaps basemap dependencies；新增 `src/lib/map/*` 山峰 GeoJSON transform + `GET /api/mountains/geojson`（service-role 读 mountains + HTTP cache）；新增 `/debug/map-prototype` QA demo page，包含 Supabase Storage public PMTiles、20+ mountains 点位、hover/click 山峰信息、MapLibre navigation control、10km 华山示例轨迹、动态 zoom review panel。
+
+**PMTiles strategy lock**: Phase 4 从全国 bbox z=7/z=8 对比，收敛到 mountain-bbox local packs。最终 baseline 为 30km × 30km 正方形 bbox + z=9-12 四层 + dark flavor + 1:1 aspect-ratio container。华山基线包 `huashan-bbox30-z9-12.pmtiles` 实测 634.2 KiB / mountain；300 山峰累积估算 206.15 MiB（含 z=7 主包 20.4 MB）。
+
+**关键设计决策**: default dark flavor 与 Peak Trekker 深色 UI 对齐；保留 `?flavor=` debug override；`fitZoom = cameraForBounds(bbox).zoom` 并 clamp ≤ 12；zoom 上限固定 z=12 避免 overzoom 模糊；pan bounds 使用 post-fit envelope（用户 v7 Q&A 已批准）而不是 raw bbox，保证 375px 下完整 bbox 可见；1:1 地图容器匹配 30km 正方形 bbox，避免 production Mountain Detail 卡片上下空白。
+
+**验证链路**: v3/v4 验证 z=7 vs z=8 + 真实轨迹尺度；v5 验证 25/30/50km × z=12/13 六组合；v7 验证 30km × z=11-12 双层 + 动态 fitZoom；v8 最终切 z=9-12 四层 + 1:1 容器。用户 Phase 4 视觉验收原话："整体样式我都验收过了，没有任何问题"。
+
+**后续拆分**: FU-47 父项保持 active/in-progress，后续 (b) 接 Mountain Detail + Activity（含 300 山峰 PMTiles 自动生成 + 上传 pipeline），(c) 接 Trek 轻量参考地图。新增 FU-52 跟踪 PMTiles 实验包 cleanup + z=7/z=8 全国主包是否保留作 Explore 兜底。
+
+测试基线 +N（mountain GeoJSON unit + map prototype e2e）。**Active 22 → 23**（FU-47 父项保留 + 新增 FU-52）；**Closed 28 → 29**（+FU-47(a) 子 sprint）。
+
+v0.8 机械化清单第十六次实战。
 
 **v0.23 — 2026-05-19**: FU-50 出发窗口分级判定规则增强完整落地。
 

@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-20 · 最新版本记录: v0.24
+> Last Updated: 2026-05-21 · 最新版本记录: v0.25
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`0fd292d`（Merge FU-47(a) · 2026-05-20）
+`cff778f`（Merge FU-46 子 sprint 4 · 2026-05-21）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动（候选: FU-47(b) [P1 高优] / FU-52 [P2 cleanup] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-46 [P2 高优] / FU-43 / FU-45 / community-final-polish / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）
+待启动（候选: FU-47(b) [P1 高优] / FU-52 [P2 cleanup] / FU-53 [P2 cleanup] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-46 [P2 高优] / FU-43 / FU-45 / FU-54 [P3 上线前] / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -85,7 +85,7 @@
 
 ---
 
-## Active Follow-ups（23 条）
+## Active Follow-ups（25 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -409,22 +409,23 @@ status 字段是 schema/RLS/RPC 既有概念：
 - **优先级**: P2（**高优** — 阻塞全量 e2e gate 启用）
 - **状态**: 🟢 active
 
-**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 58 个 pre-existing failure（除 FU-44 / FU-45 之外），跨 8 个 spec 文件。main 独立复现确认全部 pre-existing，与 FU-41 commit 无因果。所有 case 已 test.fixme quarantine（commit 2e6a923），feature 分支 e2e 数学上 0 failure（除 Step 4 未跑完）。FU-46 子 sprint 1 已修 debug routes 3 个 quarantine case，inventory 58 → 55；子 sprint 2 已修 mountain-waypoints-display 5 个 case，inventory 55 → 50；子 sprint 3 已修 mountain-featured-posts 5 个 case，inventory 50 → 45；FU-44 close sprint 判定 activity-hero 5 cases 为 obsolete cleanup，overall baseline backlog 45 → 40。
+**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 58 个 pre-existing failure（除 FU-44 / FU-45 之外），跨 8 个 spec 文件。main 独立复现确认全部 pre-existing，与 FU-41 commit 无因果。所有 case 已 test.fixme quarantine（commit 2e6a923），feature 分支 e2e 数学上 0 failure（除 Step 4 未跑完）。FU-46 子 sprint 1 已修 debug routes 3 个 quarantine case，inventory 58 → 55；子 sprint 2 已修 mountain-waypoints-display 5 个 case，inventory 55 → 50；子 sprint 3 已修 mountain-featured-posts 5 个 case，inventory 50 → 45；FU-44 close sprint 判定 activity-hero 5 cases 为 obsolete cleanup，overall baseline backlog 45 → 40；子 sprint 4 已修 community-final-polish 5 cases，overall baseline backlog 40 → 35。
 
 **元层级 finding**: FU-13/14 / FU-40 / FU-33 / FU-1 等 sprint 仅跑相关子集 e2e 未全量，导致 baseline rot 多周期无感累积。v0.15 引入"V3 preflight 全量 e2e gate"协议但 FU-41 grandfather 豁免直到本 FU 修完。
 
-**Inventory**（40 remaining cases / 4 active spec 文件；子 sprint 1 已修 3 cases，子 sprint 2 已修 5 cases，子 sprint 3 已修 5 cases；FU-44 activity-hero 5 cases 已按 obsolete cleanup 移除，不计入"已修"）:
+**Inventory**（35 remaining cases / 3 active spec 文件；子 sprint 1 已修 3 cases，子 sprint 2 已修 5 cases，子 sprint 3 已修 5 cases，子 sprint 4 已修 5 cases；FU-44 activity-hero 5 cases 已按 obsolete cleanup 移除，不计入"已修"）:
 - tests/e2e/app.spec.ts: 18 cases（含 trek/onboarding 流程偏差等）
 - tests/e2e/button-token-migration.spec.ts: 6 cases
 - tests/e2e/community-acceptance.spec.ts: 16 cases
-- tests/e2e/community-final-polish.spec.ts: 5 cases
 
 **已修记录**:
 - tests/e2e/debug-access.spec.ts: 2 cases ✓ 已修（子 sprint 1, commit 880f703 + 8c7dcaa）
+  > 撤销说明：本 case 在 FU-46 子 sprint 4 重新加回 test.fixme，ProfileV2Client.tsx 中的 <ProfileLicenseProgressSection /> render 已删除，组件源文件保留待 FU-54 重设计。
 - tests/e2e/debug-tokens.spec.ts: 1 case ✓ 已修（子 sprint 1, commit 8c7dcaa）
 - tests/e2e/mountain-waypoints-display.spec.ts: 5 cases ✓ 已修（子 sprint 2, commit a7762fb）
 - tests/e2e/mountain-featured-posts.spec.ts: 5 cases ✓ 已修（子 sprint 3, commit ba77bad；cheap win：子 sprint 2 `listActiveMountainsViaApi` selector fix 间接修好，本子 sprint 仅 unquarantine）
 - tests/e2e/activity-hero.spec.ts: 5 cases 移除（FU-44 close, commit 4c20094；obsolete cleanup，不是已修：spec 绑定 redesign 前旧 Activity Detail surface-card 设计，已删除 spec + 孤儿组件链）
+- tests/e2e/community-final-polish.spec.ts: 5 cases ✓ 已修（子 sprint 4, commit 5e69e33）
 
 **额外 note**: main 上还有 1 个 tests/e2e/import-dedupe-flow.spec.ts case main-fail / feature-pass，疑似环境波动，不入 inventory。
 
@@ -598,6 +599,47 @@ status 字段是 schema/RLS/RPC 既有概念：
 - Supabase Storage `map-tiles` bucket
 - `/tmp/peak-trekker-maptiles/` 本地实验产物（系统临时目录，是否清理由执行时确认）
 - docs/follow-ups.md cleanup 记账
+
+---
+
+### FU-53 · SharePosterButton (legacy) obsolete cleanup
+
+- **优先级**: P2
+- **归属阶段**: FU-44 范式 / 阶段 6 后续 cleanup
+- **状态**: 🟢 active
+
+**背景**: 老版"分享 sheet"组件 `src/components/ui/SharePosterButton.tsx` 已被 `/share` 路由的新分享编辑器（`src/app/(flow)/share/ShareClient.tsx`）取代，但调用方未清理：
+- `src/app/(main)/share-card-lab/page.tsx`（debug 入口）
+- `src/components/profile/ProfileCommunitySections.tsx:185`（"分享素材 / 默认先给你最适合直接发出的推荐预览"）
+
+**实施建议**:
+- 删除 `SharePosterButton.tsx` + 所有 import 引用
+- 改 `ProfileCommunitySections.tsx:185` 走新 `/share` 或移除入口
+- 删 `share-card-lab` debug 页面（或改造为 `ShareClient` 演示）
+- 跑 grep 确认 `SharePosterButton` 0 hit
+
+**触发来源**: FU-46 子 sprint 4 Phase 4 视觉 review（Issue 1）
+
+**涉及**: `SharePosterButton.tsx` + `share-card-lab/page.tsx` + `ProfileCommunitySections.tsx`
+
+---
+
+### FU-54 · ProfileLicenseProgressSection 重设计
+
+- **优先级**: P3 上线前
+- **归属阶段**: 阶段 6 后 / 上线前
+- **状态**: 🟢 active
+
+**背景**: FU-46 子 sprint 4 in-sprint patch 删除了 `ProfileV2Client.tsx` 中的 `<ProfileLicenseProgressSection />` render（该 render 在子 sprint 1 commit `880f703` 为通过 e2e case 误恢复，但用户业务上不要这个模块）。源文件 `src/components/profile/ProfileLicenseProgressSection.tsx` 保留，用户希望重设计后再上线。
+
+**实施建议**:
+- 与用户对齐重设计目标（执照进度展示形态 / 等级阈值口径 / 资格判定逻辑 / 入口位置）
+- 重新设计后 render 回 `ProfileV2Client.tsx`
+- 解除 `tests/e2e/debug-access.spec.ts:108` profile license progress 的 `test.fixme`（同时按新设计校准 spec assertions）
+
+**触发来源**: FU-46 子 sprint 4 Phase 4 视觉 review（Issue 2）
+
+**涉及**: `ProfileLicenseProgressSection.tsx` + `ProfileV2Client.tsx` + `debug-access.spec.ts:108`
 
 ---
 
@@ -913,6 +955,21 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.25（2026-05-21）
+
+FU-46 子 sprint 4 · community-final-polish baseline rot 收尾
+
+- 解除 `tests/e2e/community-final-polish.spec.ts` 5 个 `test.fixme`（CommunityCard v2 token + threshold metadata + tags chips + 3-line clamp + 详情链接；CommunityDetail post-shell 单壳 + source card 外置；components.css v2 styles incremental）— commit `5e69e33`
+- in-sprint patch: 删除 `ProfileV2Client.tsx` 中误恢复的 `<ProfileLicenseProgressSection />` render（误恢复源自子 sprint 1 commit `880f703`）；`tests/e2e/debug-access.spec.ts:108` profile license progress case 重新 `test.fixme`，reason `"licensed-progress hidden pending redesign · FU-54"`；组件源文件保留 — commit `e7fbaf5`
+- 新增 FU-53（SharePosterButton legacy obsolete cleanup，P2，FU-44 范式）
+- 新增 FU-54（ProfileLicenseProgressSection 重设计，P3 上线前）
+- FU-46 inventory: 40 cases → 35 cases（剩余 3 spec: app.spec 18 / button-token-migration 6 / community-acceptance 16，可按子 sprint 5/6/7 续修）
+- 子 sprint 1 已修记录加 debug-access:108 撤销说明注脚
+- 计数: Active 23 → 25（+FU-53 +FU-54，FU-46 仍 active）/ Closed 29 不变
+- main merge: `cff778f`
+- preflight: lint 0e/13w · node --test 246p · build PASS · 子 spec community-final-polish 5p · debug-access 1 skipped + 2 passed
+- 用户 Phase 4 浏览器视觉验收: PASS（Profile 375px 无 license progress 模块 / 无 horizontal overflow / 真实数据账号 14 山行 5077m 2 省份渲染正常）
 
 **v0.24 — 2026-05-20**: FU-47(a) MapLibre + PMTiles 自托管底图基建完整落地。
 

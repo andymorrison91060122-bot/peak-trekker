@@ -28,9 +28,12 @@ type MapPrototypeWindow = Window & {
   }
 }
 
+type FlavorName = 'light' | 'dark' | 'black' | 'grayscale' | 'white'
+
 function buildMinimalBasemapStyle(
   tileUrl: string,
   basemaps: typeof import('@protomaps/basemaps'),
+  flavorName: FlavorName = 'dark',
 ): StyleSpecification {
   const allowedLayerIds = new Set([
     'background',
@@ -60,7 +63,7 @@ function buildMinimalBasemapStyle(
     'places_country',
   ])
   const baseLayers = basemaps
-    .layers('protomaps', basemaps.namedFlavor('light'), { lang: 'zh' })
+    .layers('protomaps', basemaps.namedFlavor(flavorName), { lang: 'zh' })
     .filter((layer) => allowedLayerIds.has(layer.id))
 
   return {
@@ -108,6 +111,10 @@ export default function MapPrototypeClient({
 
     async function initializeMap() {
       try {
+        const search = typeof window !== 'undefined' ? window.location.search : ''
+        const flavorMatch = search.match(/[?&]flavor=(light|dark|black|grayscale|white)/)
+        const flavorName: FlavorName = (flavorMatch?.[1] as FlavorName | undefined) ?? 'dark'
+
         const [{ default: maplibregl }, { Protocol }, basemaps] = await Promise.all([
           import('maplibre-gl'),
           import('pmtiles'),
@@ -130,7 +137,7 @@ export default function MapPrototypeClient({
 
         const map = new maplibregl.Map({
           container: containerRef.current,
-          style: buildMinimalBasemapStyle(tileUrl, basemaps),
+          style: buildMinimalBasemapStyle(tileUrl, basemaps, flavorName),
           center: [104.2, 35.8],
           zoom: 3.2,
           minZoom: 2.4,
@@ -188,9 +195,9 @@ export default function MapPrototypeClient({
                 'text-anchor': 'top',
               },
               paint: {
-                'text-color': '#18212f',
-                'text-halo-color': '#ffffff',
-                'text-halo-width': 1.2,
+                'text-color': '#e6edf3',
+                'text-halo-color': '#0d1117',
+                'text-halo-width': 1.5,
               },
             })
 
@@ -299,7 +306,12 @@ export default function MapPrototypeClient({
           </div>
           <code>{tileObjectPath}</code>
         </div>
-        <div ref={containerRef} className="map-prototype__canvas" data-testid="map-prototype-canvas" />
+        <div
+          ref={containerRef}
+          className="map-prototype__canvas"
+          data-testid="map-prototype-canvas"
+          style={{ aspectRatio: '1 / 1', minHeight: 0 }}
+        />
         {status === 'error' ? (
           <div className="map-prototype__error" role="alert">
             地图暂时无法加载：{errorMessage}

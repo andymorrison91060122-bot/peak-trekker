@@ -4,14 +4,17 @@ import { useRouter } from 'next/navigation'
 import { startTransition, useMemo, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import type { CommunityPostViewModel } from '@/types'
 import { normalizeCommunityActionError } from '@/lib/community'
+import { getSourceLabelType } from '@/lib/source-label-utils'
 import { sanitizeCommunityText, sanitizeCommunityUsername } from '@/components/community/communityRender'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import ActivityStatStrip from '@/components/community/ActivityStatStrip'
 import AuthorStrip from '@/components/community/AuthorStrip'
+import CommunityContentBlock from '@/components/community/CommunityContentBlock'
+import CommunityTagBlock from '@/components/community/CommunityTagBlock'
+import CommunityThresholdTag from '@/components/community/CommunityThresholdTag'
 import InteractionBar from '@/components/community/InteractionBar'
 import MediaBlock from '@/components/community/MediaBlock'
 import MountainBindRow from '@/components/community/MountainBindRow'
-import PostBody from '@/components/community/PostBody'
 
 function getPostMedia(post: CommunityPostViewModel) {
   return post.assets.filter((asset) => asset.type === 'image' || asset.type === 'video')
@@ -48,6 +51,7 @@ export default function CommunityCard({
   const mountainHref = post.mountain?.id ? `/mountain/${post.mountain.id}` : '/explore'
   const activityHref = `/activity/${post.checkinId}`
   const detailHref = `/community/${post.id}`
+  const sourceLabelType = getSourceLabelType(post.sourceType)
 
   function runMenuAction(action: () => void) {
     onMenuClose()
@@ -148,10 +152,16 @@ export default function CommunityCard({
         avatarUrl={post.author.avatarUrl}
         time={post.publishedRelative}
         isMine={post.isOwner}
+        sourceLabelType={sourceLabelType}
       />
 
-      <MountainBindRow mountain={mountain} mountainHref={mountainHref} />
-      <PostBody text={bodyText} />
+      <div className="community-v2-card__metadata-row">
+        <MountainBindRow mountain={mountain} mountainHref={mountainHref} />
+        <CommunityThresholdTag difficulty={post.mountain?.difficulty} />
+      </div>
+      <div className="community-v2-card__title">{post.title || mountain.name}</div>
+      <CommunityContentBlock content={bodyText} variant="feed" detailHref={detailHref} />
+      <CommunityTagBlock tags={post.tags} variant="feed" />
       <MediaBlock media={media} title={post.title || mountain.name} />
       <ActivityStatStrip metrics={post.metrics} />
 

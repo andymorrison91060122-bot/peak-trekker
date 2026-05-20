@@ -2995,9 +2995,9 @@
 .community-v2-feed-header__title {
   margin: 0;
   color: var(--color-on-surface);
-  font-size: var(--font-title-l-size);
-  line-height: var(--font-title-l-line);
-  font-weight: 700;
+  font-size: var(--font-headline-m-size);
+  line-height: var(--font-headline-m-line);
+  font-weight: var(--font-headline-m-weight);
 }
 
 .community-v2-feed__body {
@@ -3205,6 +3205,20 @@
   font-size: var(--font-label-s-size);
   line-height: var(--font-label-s-line);
   font-weight: var(--font-label-s-weight);
+}
+
+.community-v2-card__metadata-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.community-v2-card__title {
+  color: var(--color-on-surface);
+  font-size: var(--font-title-l-size);
+  line-height: var(--font-title-l-line);
+  font-weight: var(--font-title-l-weight);
 }
 
 .community-v2-post-body {

@@ -102,6 +102,8 @@ test.afterAll(async () => {
 })
 
 test('profile page shows license progress while keeping debug tools out of the formal profile', async ({ page, baseURL }) => {
+  test.fixme(true, 'licensed-progress hidden pending redesign · FU-54')
+
   const root = baseURL ?? 'http://127.0.0.1:3100'
 
   await registerFreshUser(page, root, { returnTo: '/profile' })

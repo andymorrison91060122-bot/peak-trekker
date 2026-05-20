@@ -48,6 +48,9 @@ export default async function DebugPage() {
           <Link href="/share-card-lab" className="secondary-btn" style={{ textDecoration: 'none', minHeight: 42, padding: '0 14px' }}>
             打开分享实验室
           </Link>
+          <Link href="/debug/map-prototype" className="secondary-btn" style={{ textDecoration: 'none', minHeight: 42, padding: '0 14px' }}>
+            打开地图原型
+          </Link>
         </div>
       </div>
 

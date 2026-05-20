@@ -12,7 +12,6 @@ import { MountainIcon } from '@/components/ui/Icons'
 import type { CheckinSource } from '@/types'
 import MyRecordsModal from '@/components/profile/MyRecordsModal'
 import ProfileAvatarUploader from '@/components/profile/ProfileAvatarUploader'
-import ProfileLicenseProgressSection from '@/components/profile/ProfileLicenseProgressSection'
 import ProvinceContributionSection from '@/components/profile/ProvinceContributionSection'
 
 export type ProfileV2Identity = {
@@ -59,18 +58,6 @@ function formatDate(value: string) {
   const date = new Date(value)
   if (!Number.isFinite(date.getTime())) return '----·--·--'
   return `${date.getFullYear()}·${String(date.getMonth() + 1).padStart(2, '0')}·${String(date.getDate()).padStart(2, '0')}`
-}
-
-const PROFILE_LICENSE_PROGRESS_CONFIG = {
-  none: { next: 'basic', needCount: 3, needAlt: 1000 },
-  basic: { next: 'intermediate', needCount: 3, needAlt: 2000 },
-  intermediate: { next: 'advanced', needCount: 3, needAlt: 4000 },
-  advanced: { next: null, needCount: 0, needAlt: 0 },
-} as const
-
-function normalizeProfileLicenseLevel(level: string): keyof typeof PROFILE_LICENSE_PROGRESS_CONFIG {
-  if (level === 'basic' || level === 'intermediate' || level === 'advanced') return level
-  return 'none'
 }
 
 function SectionHeading({
@@ -612,21 +599,6 @@ export default function ProfileV2Client({
   const visibleTrips = useMemo(() => trips.slice(0, 3), [trips])
   const visibleShares = useMemo(() => shares.slice(0, 3), [shares])
   const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
-  const approvedRealtimeTrips = useMemo(
-    () =>
-      trips.filter(
-        (trip) =>
-          trip.status === 'approved' &&
-          (trip.completionStatus ?? 'complete') === 'complete' &&
-          trip.sourceType === 'realtime_gps'
-      ),
-    [trips]
-  )
-  const currentLicense = normalizeProfileLicenseLevel(identity.licenseLevel)
-  const currentLicenseConfig = PROFILE_LICENSE_PROGRESS_CONFIG[currentLicense]
-  const qualifiedForNext = currentLicenseConfig.next
-    ? approvedRealtimeTrips.filter((trip) => trip.altitudeM <= currentLicenseConfig.needAlt).length
-    : currentLicenseConfig.needCount
 
   return (
     <div
@@ -645,11 +617,6 @@ export default function ProfileV2Client({
         licenseLevel={identity.licenseLevel}
       />
       <SummaryTiles summary={summary} />
-      <ProfileLicenseProgressSection
-        currentLicense={currentLicense}
-        approvedRealtimeCount={approvedRealtimeTrips.length}
-        qualifiedForNext={qualifiedForNext}
-      />
       <ArchivePreviewSection trips={visibleTrips} />
       <SharePreviewSection shares={visibleShares} currentUserId={identity.userId} />
       {provinceRankingEnabled ? (

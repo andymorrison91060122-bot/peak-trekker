@@ -8,8 +8,9 @@ import { normalizeCommunityActionError } from '@/lib/community'
 import { getSourceLabelType } from '@/lib/source-label-utils'
 import { sanitizeCommunityText, sanitizeCommunityUsername } from '@/components/community/communityRender'
 import AuthorStrip from '@/components/community/AuthorStrip'
+import CommunityContentBlock from '@/components/community/CommunityContentBlock'
+import CommunityTagBlock from '@/components/community/CommunityTagBlock'
 import InteractionBar from '@/components/community/InteractionBar'
-import PostBody from '@/components/community/PostBody'
 import IconButton from '@/components/ui/IconButton'
 import { BackIcon, MoreIcon, ShareIcon } from '@/components/ui/Icons'
 import { useAppToast } from '@/components/ui/AppToastProvider'
@@ -20,12 +21,6 @@ const monoStyle: CSSProperties = {
 }
 
 const formatNumber = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 })
-
-function formatDate(value: string) {
-  const date = new Date(value)
-  if (!Number.isFinite(date.getTime())) return '----·--·--'
-  return `${date.getFullYear()}·${String(date.getMonth() + 1).padStart(2, '0')}·${String(date.getDate()).padStart(2, '0')}`
-}
 
 function formatDistance(value: number) {
   if (!Number.isFinite(value) || value <= 0) return '--'
@@ -174,7 +169,7 @@ function MountainBindCard({ post }: { post: CommunityPostViewModel }) {
   return (
     <Link
       href={href}
-      data-testid="community-detail-mountain-card"
+      data-testid="community-record-source-card"
       style={{
         display: 'grid',
         gridTemplateColumns: '60px minmax(0, 1fr) auto',
@@ -281,48 +276,6 @@ function MountainBindCard({ post }: { post: CommunityPostViewModel }) {
   )
 }
 
-function BodyCloser({ post }: { post: CommunityPostViewModel }) {
-  const href = getMountainHref(post)
-
-  return (
-    <div data-testid="community-detail-body-closer" style={{ padding: '14px var(--space-5) 0' }}>
-      <div style={{ height: 1, background: 'var(--color-outline)', opacity: 0.55 }} />
-      <div
-        style={{
-          marginTop: 'var(--space-3)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          flexWrap: 'wrap',
-          color: 'var(--color-on-surface-variant)',
-          fontSize: 'var(--font-label-s-size)',
-          lineHeight: 'var(--font-label-s-line)',
-          ...monoStyle,
-        }}
-      >
-        <Link
-          href={href}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            color: 'var(--color-on-surface)',
-            fontWeight: 600,
-            textDecoration: 'none',
-          }}
-        >
-          {post.mountain?.name ?? '未知山峰'}
-          <span aria-hidden="true">›</span>
-        </Link>
-        <span style={{ color: 'var(--color-outline)' }}>·</span>
-        <span>{post.sourceLabel}</span>
-        <span style={{ color: 'var(--color-outline)' }}>·</span>
-        <span>{formatDate(post.publishedAt)}</span>
-      </div>
-    </div>
-  )
-}
-
 function GalleryFullBleed({
   media,
   title,
@@ -342,7 +295,7 @@ function GalleryFullBleed({
 
   return (
     <section
-      data-testid="community-detail-media-region"
+      data-testid="community-detail-media"
       style={{
         marginTop: 18,
         marginLeft: 'calc(var(--space-4) * -1)',
@@ -438,7 +391,7 @@ function RoutePreviewBlock({
 
   return (
     <section
-      data-testid="community-detail-media-region"
+      data-testid="community-detail-media"
       style={{
         margin: '20px 0 0',
         border: '1px solid var(--color-outline)',
@@ -923,18 +876,16 @@ export default function CommunityDetailClient({ post }: { post: CommunityPostVie
             <MountainBindCard post={post} />
           </div>
 
-          {bodyText ? (
-            <div style={{ padding: '18px var(--space-5) 0' }}>
-              <PostBody text={bodyText} full />
-            </div>
-          ) : null}
-
-          <BodyCloser post={post} />
-
-          <div style={{ padding: '0 var(--space-4)' }}>
-            <MediaRegion post={post} />
-            <DetailStatBlock metrics={post.metrics} />
-            {post.isOwner ? <AuthorOnlyLink checkinId={post.checkinId} /> : null}
+          <div style={{ padding: '18px var(--space-4) 0' }}>
+            <section className="community-detail-post-shell" data-testid="community-detail-post-shell">
+              {bodyText ? <CommunityContentBlock content={bodyText} variant="detail" /> : null}
+              <CommunityTagBlock tags={post.tags} variant="detail" />
+              <MediaRegion post={post} />
+              <DetailStatBlock metrics={post.metrics} />
+              <div data-testid="community-detail-actions">
+                {post.isOwner ? <AuthorOnlyLink checkinId={post.checkinId} /> : null}
+              </div>
+            </section>
           </div>
         </main>
       </div>

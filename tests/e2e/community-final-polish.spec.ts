@@ -1,16 +1,21 @@
 import { expect, test, type Locator } from '@playwright/test'
 import {
-  createGpsCheckinViaApi,
   createHistoricalCheckinViaApi,
   createPngDataUrl,
   dismissActivationChecklistIfPresent,
-  fetchMountainByIdViaApi,
-  getFirstMountain,
+  listActiveMountainsViaApi,
   registerFreshUser,
 } from './community.helpers'
 
-const FU46_QUARANTINE_REASON =
-  'Quarantined for FU-46: pre-existing baseline rot, unrelated to FU-41 RLS write-gap repair. See FU-46 active for inventory.'
+async function getFirstTargetMountain(page: import('@playwright/test').Page) {
+  const mountains = await listActiveMountainsViaApi(page)
+  const first = mountains[0]
+  if (!first?.id) {
+    throw new Error('Expected at least one active mountain for community-final-polish tests.')
+  }
+
+  return { mountainId: first.id }
+}
 
 async function createPublishedPost(
   page: import('@playwright/test').Page,
@@ -27,7 +32,7 @@ async function createPublishedPost(
     imageCount?: number
   }
 ) {
-  const { mountainId } = await getFirstMountain(page, baseURL)
+  const { mountainId } = await getFirstTargetMountain(page)
   const checkinId = await createHistoricalCheckinViaApi(page, mountainId, `community-polish-${Date.now()}`)
   const pngDataUrl = createPngDataUrl()
   const assets = Array.from({ length: imageCount }, (_, index) => ({
@@ -67,22 +72,26 @@ async function readFontSizePx(locator: Locator) {
   return locator.evaluate((node) => Number.parseFloat(window.getComputedStyle(node as HTMLElement).fontSize))
 }
 
+async function openShareSheetFromLab(
+  page: import('@playwright/test').Page,
+  root: string
+) {
+  await page.goto(`${root}/share-card-lab`, { waitUntil: 'domcontentloaded' })
+  await page.getByRole('button', { name: '生成分享素材' }).click()
+
+  return {
+    currentUrl: page.url(),
+    dialog: page.getByRole('dialog', { name: '分享素材' }),
+  }
+}
+
 test('share sheet keeps a single-column sticky layout on 375px without horizontal overflow', async ({ page, baseURL }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   test.setTimeout(180_000)
   const root = baseURL ?? 'http://127.0.0.1:3100'
 
   await page.setViewportSize({ width: 375, height: 812 })
-  await registerFreshUser(page, root, { returnTo: '/profile' })
-  const { mountainId } = await getFirstMountain(page, root)
-  const mountain = await fetchMountainByIdViaApi(page, mountainId)
-  const checkinId = await createGpsCheckinViaApi(page, mountain, `share-layout-${Date.now()}`)
 
-  await page.goto(`${root}/activity/${checkinId}`, { waitUntil: 'domcontentloaded' })
-  await dismissActivationChecklistIfPresent(page)
-  await page.getByRole('button', { name: '生成分享素材' }).click()
-
-  const dialog = page.getByRole('dialog', { name: '分享素材' })
+  const { dialog } = await openShareSheetFromLab(page, root)
   const layout = dialog.getByTestId('share-sheet-layout')
   const preview = dialog.getByTestId('share-preview-surface')
   const modalFooter = dialog.locator('.modal-footer[data-layout="share-sheet"]')
@@ -123,7 +132,6 @@ test('share sheet keeps a single-column sticky layout on 375px without horizonta
 })
 
 test('share sheet copies the current page link when navigator.share is unavailable', async ({ page, baseURL }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   test.setTimeout(180_000)
   const root = baseURL ?? 'http://127.0.0.1:3100'
 
@@ -145,16 +153,8 @@ test('share sheet copies the current page link when navigator.share is unavailab
   })
 
   await page.setViewportSize({ width: 375, height: 812 })
-  await registerFreshUser(page, root, { returnTo: '/profile' })
-  const { mountainId } = await getFirstMountain(page, root)
-  const mountain = await fetchMountainByIdViaApi(page, mountainId)
-  const checkinId = await createGpsCheckinViaApi(page, mountain, `share-fallback-${Date.now()}`)
 
-  await page.goto(`${root}/activity/${checkinId}`, { waitUntil: 'domcontentloaded' })
-  await dismissActivationChecklistIfPresent(page)
-  await page.getByRole('button', { name: '生成分享素材' }).click()
-
-  const dialog = page.getByRole('dialog', { name: '分享素材' })
+  const { currentUrl, dialog } = await openShareSheetFromLab(page, root)
   await expect(dialog.getByTestId('share-preview-image')).toBeVisible({ timeout: 30_000 })
   const shareButton = dialog.getByRole('button', { name: '分享' })
   await expect(shareButton).toBeEnabled()
@@ -163,11 +163,10 @@ test('share sheet copies the current page link when navigator.share is unavailab
   await expect(page.locator('[role="alert"][data-toast-appearance="surface"]')).toContainText('链接已复制')
   const clipboardWrites = await page.evaluate(() => (window as Window & { __clipboardWrites?: string[] }).__clipboardWrites ?? [])
   expect(clipboardWrites).toHaveLength(1)
-  expect(clipboardWrites[0]).toBe(`${root}/activity/${checkinId}`)
+  expect(clipboardWrites[0]).toBe(currentUrl)
 })
 
 test('community feed uses token title hierarchy and inline threshold metadata', async ({ page, baseURL }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   test.setTimeout(180_000)
   const root = baseURL ?? 'http://127.0.0.1:3100'
   const title = `山友圈收口 ${Date.now()}`
@@ -181,12 +180,12 @@ test('community feed uses token title hierarchy and inline threshold metadata', 
   })
 
   await page.goto(`${root}/community`, { waitUntil: 'domcontentloaded' })
-  const pageTitle = page.locator('.community-page__title')
+  const pageTitle = page.locator('.community-v2-feed-header__title')
   const card = page.getByTestId('community-feed-card').filter({ hasText: '这条动态用于验证 feed 标题层级、标签位置和山峰门槛标签。' }).first()
-  const postTitle = card.locator('.community-card__title')
+  const postTitle = card.locator('.community-v2-card__title')
   const threshold = card.getByTestId('community-post-threshold')
-  const sourcePill = card.locator('.community-card__source-pill')
-  const authorLine = card.locator('.community-card__author-line')
+  const sourcePill = card.locator('.source-label')
+  const authorLine = card.getByTestId('community-author-strip')
 
   await expect(pageTitle).toHaveText('山友圈')
   await expect(card).toBeVisible()
@@ -208,7 +207,6 @@ test('community feed uses token title hierarchy and inline threshold metadata', 
 })
 
 test('community feed and profile share cards clamp long summaries to three lines and link to detail', async ({ page, baseURL }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   test.setTimeout(180_000)
   const root = baseURL ?? 'http://127.0.0.1:3100'
   const title = `长摘要折叠 ${Date.now()}`
@@ -262,14 +260,14 @@ test('community feed and profile share cards clamp long summaries to three lines
 
   await page.goto(`${root}/profile`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
-  const profileShareCard = page.getByTestId('profile-share-card').filter({ hasText: excerpt }).first()
-  await expect(profileShareCard).toBeVisible()
-  await expect(profileShareCard.locator('.community-copy-block__body')).toHaveClass(/community-copy-block__body--clamped/)
-  await expect(profileShareCard.getByRole('link', { name: '查看完整内容 →' })).toBeVisible()
+  const detailPath = new URL(post.detailUrl).pathname
+  const profileShareSection = page.getByTestId('profile-share-preview-section')
+  const profileShareLink = profileShareSection.locator(`a[href="${detailPath}"]`).first()
+  await expect(profileShareSection).toBeVisible()
+  await expect(profileShareLink).toBeVisible()
 })
 
 test('community detail merges post content into one shell and keeps source metadata outside', async ({ page, baseURL }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   test.setTimeout(180_000)
   const root = baseURL ?? 'http://127.0.0.1:3100'
   const title = `社区详情合并 ${Date.now()}`

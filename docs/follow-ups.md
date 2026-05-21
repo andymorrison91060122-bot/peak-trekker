@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-21 · 最新版本记录: v0.27
+> Last Updated: 2026-05-22 · 最新版本记录: v0.28
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`80fc087`（Merge FU-42 sub-sprint 1 · 2026-05-21）
+`2256ec5`（Merge FU-42 sub-sprint 2 · 2026-05-22）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动（候选: FU-47(b) [P1 高优] / FU-42 sub-sprint 2 [P2] / FU-52 [P2 cleanup] / FU-53 [P2 cleanup] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-46 [P2 高优] / FU-43 / FU-45 / FU-54 [P3 上线前] / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15）
+待启动（候选: FU-47(b) [P1 高优] / FU-42 sub-sprint 3 [P2] / FU-46 sub-sprint 5 [P2 高优] / FU-52 [P2 cleanup] / FU-53 [P2 cleanup] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-43 / FU-45 / FU-54 [P3 上线前] / community-acceptance / button-token-migration / app.spec / FU-2+FU-15）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -85,7 +85,7 @@
 
 ---
 
-## Active Follow-ups（24 条）
+## Active Follow-ups（23 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -208,20 +208,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 **背景**: 已确认是 WGS-84 坐标系（与 GPS 一致）。但 19 座山的坐标点可能不是真实峰顶（如华山指向景区中心而非南峰落雁峰，误差约 400-500m）。会影响"登顶检测距离阈值"。
 
 **实施建议**: 物料完善时校准每座山的"峰顶坐标"为真实最高点。
-
----
-
-### FU-30 · 档案页 / Profile 页 "山行"字段语义统一
-
-- **优先级**: P2
-- **归属阶段**: 阶段 3 后续 / 阶段 6 文档对齐
-- **状态**: 🟢 active
-
-**背景**: 视觉验证中发现 Archive 档案页与 Profile 页 "山行"数量可能出现 9 vs 8 的语义差异；当前 Profile 明确不计入 `completion_status='incomplete'`。
-
-**实施建议**: 明确 "山行" 在 Profile / Archive 中是否都只计 complete，或 Archive 是否应分开展示 complete / incomplete，并同步 PRD/UI 文档。
-
-**涉及**: `src/app/(main)/profile/page.tsx`、`src/app/(flow)/archive/*`、`docs/ui-interaction-spec.md`。
 
 ---
 
@@ -359,14 +345,16 @@ status 字段是 schema/RLS/RPC 既有概念：
   - DB schema simplification (`DROP COLUMN checkins.status` 或语义降级 + RLS 简化)
   - RLS `checkins_select` policy 调整 (移除 `status='approved' OR` 分支，保留 `user_id` + admin)
 
-**Sub-sprint 进度 (2026-05-21)**:
+**Sub-sprint 进度 (2026-05-22)**:
 - ✅ sub-sprint 1 已完成: 前端 UI 审核语义全面拆除
   - 删除 ProfileV2 review queue section (commit `516fc6b`)
   - 删除 Activity Detail 手记区 status gate (含 `noteDisabledHint` / 按钮 disabled / `handleStartNoteEdit` guard / `handleSaveNote` 内 noteValidation 简化) (commit `7c8f580`)
   - 净改动 5 文件 (-82 行)
-- ⏳ sub-sprint 2 待启动: archive/profile filter 切换 + `isSummit` 业务语义迁移到 `verified_at` + `ActivityDetailClient` 内剩余 `activity.status` 引用清除 (photo upload/delete hints + API payload + 子组件 prop 等)
-- ⏳ sub-sprint 3 待启动: 服务端 API guard 拆除 + 写入路径默认 `approved` + type 系统 (`src/types/index.ts` / `review-queue.ts`) status 字段废除
-- ⏳ sub-sprint 4 待启动: DB migration `DROP COLUMN checkins.status` + RLS `checkins_select` 简化 + `verify_summit_checkin` RPC 改写 + `admin/checkins` 整套删除
+- ✅ sub-sprint 2 已完成: 前端 status gate 拆除 + `isSummit` 业务字段迁移到 `verified_at` + FU-30 folding (Profile / Archive "山行"口径统一) + `activity/actions` API guards 拆除 (folding patch)
+  - backfill migration: 343 行 `status IN ('approved','verified') AND verified_at IS NULL` 历史数据补 `verified_at=created_at` (commit `50b772c`)
+  - Archive `isSummit` 切为 `summit_verified === true || verified_at !== null`；Activity Detail `isSummit` 切为 `checkin.verified_at !== null`；Profile 头部统计切 completion-only；Activity Detail 照片补传 / 删除 UI gate 拆除；`activity/actions` photo/note endpoint 的 status guard 拆除 (commit `fa084e5` / `f443cba`)
+- ⏳ sub-sprint 3 待启动: `trek/actions` + `community-server` status guards 拆除 + 写入路径 status default `approved` + type 系统 (`src/types/index.ts` / `review-queue.ts`) status 字段废除
+- ⏳ sub-sprint 4 待启动: DB migration `DROP COLUMN checkins.status` + RLS `checkins_select` 简化 + `verify_summit_checkin` RPC 改写 + `admin/checkins` 整套删除 (含 `ProfileReviewQueueSummary` / `MyRecordsModal` 孤儿组件清理)
 
 ---
 
@@ -659,7 +647,15 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
-## Closed Follow-ups（30 条）
+## Closed Follow-ups（31 条）
+
+### FU-30 ✅ 档案页 / Profile 页 "山行"字段语义统一
+
+- **关闭原因**: FU-42 sub-sprint 2 folding 实施：Profile head 统计改为 `completionStatus === 'complete'` only（不再 filter status）；Archive 显示所有 own trips（含 incomplete + 任意 status）；Activity Detail BackToRecords 显示所有 own checkin（与 Archive 总数一致）；`docs/ui-interaction-spec.md` 已同步语义文档。
+- **关闭 commit**: `fa084e5`
+- **关闭时间**: 2026-05-22
+
+---
 
 ### FU-11 ✅ 活动详情底部按钮悬浮 + 主次互换 (含 in-sprint patch: publish 路由 status filter 拆除 / 数据健康度 gate)
 
@@ -979,6 +975,33 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.28（2026-05-22）
+
+FU-42 sub-sprint 2 + FU-30 folding · 前端 status gate 拆除 + isSummit 业务字段迁移到 verified_at + Profile / Archive 山行口径统一 收尾
+
+- Backfill migration (`supabase/migrations/20260521161903_backfill_checkins_verified_at_from_legacy_status.sql`): `UPDATE checkins SET verified_at = created_at WHERE status IN ('approved', 'verified') AND verified_at IS NULL` — 343 行历史数据补 `verified_at` (53.59% 占比)；commit `50b772c`；migration 已 apply 远端 production（Phase 3 实施时 Codex Supabase MCP apply，V3 不重复 push）
+- Frontend status gate 拆除 + `isSummit` verified_at 迁移 + FU-30 folding (commit `fa084e5`):
+  - `archive/page.tsx` `isSummit` fallback chain 简化为 `summit_verified === true || verified_at !== null`（删 `status='approved' / 'verified'` 分支）
+  - `activity/[id]/page.tsx` `isSummit` 改 `checkin.verified_at !== null`；`deriveSourceLabelType` 删 status fallback；`recordCount` 拆 `.eq('status','approved')` 改 all own trips（与 Archive 对齐，deviation from V1 B.8 spec；user mental model: BackToRecords describes Archive surface）
+  - `profile/page.tsx` `buildSummary` completionStatus only filter（拆 `status='approved'`）；重命名 `approvedTrips` → `completeTrips`
+  - `ActivityDetailClient.tsx` 照片补传 / 删除 UI gate 拆除（"待审核通过后可补传/删除"文案删除，disabled prop 拆除）；`activity-detail-validation.ts` `getActivityPhotoUploadValidation` / `getActivityPhotoDeleteValidation` `isApproved` 始终 true
+  - 单测 `tests/lib/activity-detail-validation.test.ts` 覆盖 pending / rejected 可上传 / 删除；`tests/trek-stability-static.test.ts` Profile summary 断言 completion-only
+  - `docs/ui-interaction-spec.md` 同步 FU-30 文档对齐（Archive = all / Profile head = completed only；都不依赖 status）
+- In-sprint patch · API guards 拆除 (commit `f443cba`):
+  - `src/app/api/activity/actions/route.ts` 3 处 `status='approved'` API guards 删除：photo upload + photo delete + note edit
+  - 触发原因: 用户 Phase 4 视觉验收发现 pending 活动前端 gate 拆除后 server 422 反弹 toast "只有已通过的攀登记录才能补充现场照片。" 暴露"审核"概念
+  - owner check (`user_id !== user.id` → 403) 保留作 cross-user 安全防御
+  - 也修复 sub-sprint 1 retroactive bug（note edit pending 活动 422）
+- 用户视觉验收 PASS: Archive 登顶 chip / Profile head 统计 / Activity Detail 照片区无"审核"文案 / Lightbox 删除按钮 / 手记编辑保存成功 + 照片上传成功（无 422）
+- 计数: Active 24 → 23（FU-30 closed）/ Closed 30 → 31
+- main merge: `2256ec5`
+- preflight: lint 0e/13w · node --test 246p · build PASS · activity-photo-gallery.spec.ts 1 passed
+- 视觉证据: `/tmp/peak-trekker-fu42-visual/`（Phase 3）+ `/tmp/peak-trekker-fu42-sub2-patch-review/`（patch 后）
+- 协议升级（新存 feedback codex-must-provide-visual-evidence memory）: UI 改动 sprint Phase 3 必须 Codex 跑视觉验收 + 提供截图证据（不下结论）；与 codex-no-self-visual-acceptance 互补（提供数据 vs 下结论）
+- 已知遗漏（sub-sprint 3）: `trek/actions` / `community-server` status guards / 写入路径 status default / type 系统 status 字段废除
+- 已知遗漏（sub-sprint 4）: DB `DROP COLUMN status` + RLS 简化 + `verify_summit_checkin` RPC 改写 + `admin/checkins` 整套删除 + 孤儿组件 (`MyRecordsModal` / `ProfileReviewQueueSummary`) 清理
+- FU-42 进度: sub-sprint 1 ✅ done / sub-sprint 2 ✅ done（含 FU-30 folding + API guards patch）/ sub-sprint 3 ⏳ pending / sub-sprint 4 ⏳ pending
 
 ### v0.27（2026-05-21）
 

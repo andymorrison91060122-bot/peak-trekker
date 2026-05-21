@@ -243,16 +243,6 @@ export type PublishableRecord = {
   postVisibility?: PostVisibility | null
 }
 
-export type ReviewQueueRecord = {
-  checkinId: string
-  mountainName: string
-  mountainProvince: string
-  photoUrl: string | null
-  status: 'pending' | 'rejected'
-  reviewNote: string | null
-  createdAt: string
-}
-
 export type PostReport = {
   id: string
   post_id: string

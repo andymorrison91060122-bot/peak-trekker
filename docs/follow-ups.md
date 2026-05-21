@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-22 · 最新版本记录: v0.28
+> Last Updated: 2026-05-22 · 最新版本记录: v0.29
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`2256ec5`（Merge FU-42 sub-sprint 2 · 2026-05-22）
+`a7bf2c9`（Merge FU-42 sub-sprint 3 · 2026-05-22）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动（候选: FU-47(b) [P1 高优] / FU-42 sub-sprint 3 [P2] / FU-46 sub-sprint 5 [P2 高优] / FU-52 [P2 cleanup] / FU-53 [P2 cleanup] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-43 / FU-45 / FU-54 [P3 上线前] / community-acceptance / button-token-migration / app.spec / FU-2+FU-15）
+待启动（候选: FU-47(b) [P1 高优] / FU-42 sub-sprint 4 [P2] / FU-46 sub-sprint 5 [P2 高优] / FU-52 [P2 cleanup] / FU-53 [P2 cleanup] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-43 / FU-45 / FU-54 [P3 上线前] / community-acceptance / button-token-migration / app.spec / FU-2+FU-15）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -353,8 +353,17 @@ status 字段是 schema/RLS/RPC 既有概念：
 - ✅ sub-sprint 2 已完成: 前端 status gate 拆除 + `isSummit` 业务字段迁移到 `verified_at` + FU-30 folding (Profile / Archive "山行"口径统一) + `activity/actions` API guards 拆除 (folding patch)
   - backfill migration: 343 行 `status IN ('approved','verified') AND verified_at IS NULL` 历史数据补 `verified_at=created_at` (commit `50b772c`)
   - Archive `isSummit` 切为 `summit_verified === true || verified_at !== null`；Activity Detail `isSummit` 切为 `checkin.verified_at !== null`；Profile 头部统计切 completion-only；Activity Detail 照片补传 / 删除 UI gate 拆除；`activity/actions` photo/note endpoint 的 status guard 拆除 (commit `fa084e5` / `f443cba`)
-- ⏳ sub-sprint 3 待启动: `trek/actions` + `community-server` status guards 拆除 + 写入路径 status default `approved` + type 系统 (`src/types/index.ts` / `review-queue.ts`) status 字段废除
-- ⏳ sub-sprint 4 待启动: DB migration `DROP COLUMN checkins.status` + RLS `checkins_select` 简化 + `verify_summit_checkin` RPC 改写 + `admin/checkins` 整套删除 (含 `ProfileReviewQueueSummary` / `MyRecordsModal` 孤儿组件清理)
+- ✅ sub-sprint 3 已完成: share card poster generation status guard 拆除 (`trek/actions` `generate_share_card`) + review queue dead code cleanup
+  - 删除 `src/lib/review-queue.ts` 整模块、`ProfileReviewQueueSummary` / `MyRecordsModal` 孤儿组件、`ReviewQueueRecord` type、Trek dead query / dead prop、review queue CSS 类名；pending 活动可生成 share card poster (commit `32ca29e` / `75a6574`)
+  - 净改动 11 文件 (-421 行)
+- ⏳ sub-sprint 4 待启动 - 剩余 scope:
+  - `ActivityDetailViewModel.status` / `Trip.status` / `ProfileV2TripPreview.status` 等 type 字段废除
+  - 写入路径 `status='pending'/'approved'` default 处理 (随 DB `DROP COLUMN` 一并)
+  - `admin/checkins` 路由整套删除 (UI + API + e2e)
+  - `api/admin/checkin-review/route.ts` 删除
+  - DB migration: `DROP COLUMN checkins.status` (或 `RENAME` 作 legacy 兼容)
+  - RLS `checkins_select` policy 简化 (移除 `status='approved'` 分支)
+  - `verify_summit_checkin` RPC 改写 (移除 `status='approved'` write，仅 set `verified_at` + ranking)
 
 ---
 
@@ -975,6 +984,29 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.29（2026-05-22）
+
+FU-42 sub-sprint 3 · application-level review queue 概念彻底清除 + share card poster guard 拆除 收尾
+
+- share card poster generation status guard 拆除 (`src/app/api/trek/actions/route.ts` line 1237 删除 `if (checkin.status !== 'approved')` reject block；owner check 保留作 cross-user 安全防御)；pending 状态活动现在也能 generate share card poster (主要 unblock legacy `SharePosterButton` 路径，FU-53 cleanup 范围)；配套 `tests/e2e/share-preview-track.spec.ts` 加 pending 活动 share card 验证 case (commit `75a6574`)
+- Review queue application-level dead code cleanup (commit `32ca29e`):
+  - 删除 `src/lib/review-queue.ts` (整模块废弃)
+  - 删除 `src/components/profile/ProfileReviewQueueSummary.tsx` (sub-sprint 1 留作回退的孤儿组件)
+  - 删除 `src/components/profile/MyRecordsModal.tsx` (同上)
+  - `src/types/index.ts` `ReviewQueueRecord` type 删除
+  - `src/app/(flow)/trek/page.tsx` 删除 `listReviewQueueRecords` dead query + `reviewQueueRecords` 变量 + `initialReviewQueueRecords` / `initialReviewQueueCount` prop 传递
+  - `src/app/(flow)/trek/TrekClient.tsx` 删除 `initialReviewQueueRecords` / `initialReviewQueueCount` prop 类型 + body 内 noop 接收 (`void`)
+  - `src/app/components.css` 删除 `.review-queue-*` 和 `.profile-review-queue-trigger*` 等 review queue 相关 CSS 类名 (-126 行)
+  - `tests/e2e/button-token-migration.spec.ts` 删除 review queue helper / cases
+  - `tests/e2e/trek-photo-checkin.spec.ts` 删除 `trek-review-queue-trigger` 负向 assertion
+- 用户视觉验收 PASS: Profile 无 review queue 入口残留 / Pending 活动点"生成分享"进入 `/share` preview 不再 422 / Trek 页面正常 render 无 review queue UI 残留
+- 计数: Active 23 不变 (FU-42 仍 active) / Closed 31 不变
+- main merge: `a7bf2c9`
+- preflight: lint 0e/13w · node --test 246p · build PASS · share-preview-track + trek-photo-checkin 4 passed
+- 视觉证据: `/tmp/peak-trekker-fu42-sub3-review/` (3 截图 + `metrics.json`, `hasHorizontalOverflow=false`, `pageErrors=[]`)
+- Known issue 注脚: `metrics.json` console 6 条 `Failed to load resource 403` pre-existing dev env issue (与 sub-sprint 3 改动无关)，待后续追查
+- FU-42 进度: sub-sprint 1 ✅ done / sub-sprint 2 ✅ done / sub-sprint 3 ✅ done / sub-sprint 4 ⏳ pending (DB schema + RLS + RPC + admin/checkins 整套 + types 系统 status 字段 + 写入路径 default)
 
 ### v0.28（2026-05-22）
 

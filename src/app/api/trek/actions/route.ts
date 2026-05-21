@@ -1234,13 +1234,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'checkin not found' }, { status: 404 })
     }
 
-    if (checkin.status !== 'approved') {
-      return NextResponse.json(
-        { error: 'checkin_not_approved', detail: 'only approved records can generate share cards' },
-        { status: 422 }
-      )
-    }
-
     const source = resolveCheckinSource({ source: checkin.source, type: checkin.type })
     const posterRenderMode: ShareRenderMode = renderMode === 'photo_composite' ? 'overlay_only' : renderMode
     const effectiveRenderMode: ShareRenderMode = renderMode

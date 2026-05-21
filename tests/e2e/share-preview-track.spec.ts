@@ -8,6 +8,7 @@ import {
 } from './trek-regression.helpers'
 import {
   createHistoricalCheckinViaApi,
+  createPendingHistoricalCheckinViaApi,
   dismissActivationChecklistIfPresent,
   registerFreshUser,
 } from './community.helpers'
@@ -130,6 +131,39 @@ async function expectServerPng(page: Page, checkinId: string) {
 
 test.afterEach(async () => {
   await cleanupSeededCheckins()
+})
+
+test('pending historical checkins can generate share card metadata and open the share preview', async ({
+  page,
+  baseURL,
+}) => {
+  test.setTimeout(180_000)
+  const root = baseURL ?? 'http://127.0.0.1:3100'
+
+  await registerFreshUser(page, root, { returnTo: '/explore' })
+  await dismissActivationChecklistIfPresent(page)
+
+  const pendingCheckinId = await createPendingHistoricalCheckinViaApi(page, HUASHAN.id, `pending-share-${Date.now()}`)
+  SEEDED_CHECKIN_IDS.push(pendingCheckinId)
+
+  const actionResponse = await page.request.post('/api/trek/actions', {
+    data: {
+      action: 'generate_share_card',
+      checkinId: pendingCheckinId,
+      template: 'summit_card',
+      renderMode: 'classic_card',
+      anchorPosition: 'top',
+    },
+  })
+  const actionBody = await actionResponse.json().catch(() => ({}))
+
+  expect(actionResponse.status(), JSON.stringify(actionBody)).toBe(200)
+  expect(String(actionBody?.posterUrl ?? '')).toContain('/api/poster?')
+  expect(String(actionBody?.checkinId ?? '')).toBe(pendingCheckinId)
+
+  await page.goto(`/share?checkinId=${pendingCheckinId}`, { waitUntil: 'domcontentloaded' })
+  await expect(page.getByTestId('share-hero-preview')).toBeVisible({ timeout: 20_000 })
+  await captureOptionalE2EScreenshot(page, 'share-pending-preview.png')
 })
 
 test('share editor renders empty, single-point, and real track previews without fake fallback routes', async ({

@@ -62,7 +62,6 @@ export default async function CommunityPublishPage({
           .select(selectClause)
           .eq('id', checkinId)
           .eq('user_id', user.id)
-          .eq('status', 'approved')
           .single()
 
         lastResult = result as {
@@ -113,7 +112,7 @@ export default async function CommunityPublishPage({
     user_id: string
     type: 'gps' | 'photo'
     source?: CheckinSource | null
-    status: 'approved'
+    status: 'pending' | 'approved' | 'rejected'
     note: string | null
     photo_url: string | null
     poster_url?: string | null

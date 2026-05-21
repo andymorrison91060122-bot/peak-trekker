@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-21 · 最新版本记录: v0.26
+> Last Updated: 2026-05-21 · 最新版本记录: v0.27
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`4c2417c`（Merge FU-11 · 2026-05-21）
+`80fc087`（Merge FU-42 sub-sprint 1 · 2026-05-21）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动（候选: FU-47(b) [P1 高优] / FU-52 [P2 cleanup] / FU-53 [P2 cleanup] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-46 [P2 高优] / FU-43 / FU-45 / FU-54 [P3 上线前] / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-42）
+待启动（候选: FU-47(b) [P1 高优] / FU-42 sub-sprint 2 [P2] / FU-52 [P2 cleanup] / FU-53 [P2 cleanup] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-46 [P2 高优] / FU-43 / FU-45 / FU-54 [P3 上线前] / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -358,6 +358,15 @@ status 字段是 schema/RLS/RPC 既有概念：
   - `verify_summit_checkin` RPC (整体废弃决策)
   - DB schema simplification (`DROP COLUMN checkins.status` 或语义降级 + RLS 简化)
   - RLS `checkins_select` policy 调整 (移除 `status='approved' OR` 分支，保留 `user_id` + admin)
+
+**Sub-sprint 进度 (2026-05-21)**:
+- ✅ sub-sprint 1 已完成: 前端 UI 审核语义全面拆除
+  - 删除 ProfileV2 review queue section (commit `516fc6b`)
+  - 删除 Activity Detail 手记区 status gate (含 `noteDisabledHint` / 按钮 disabled / `handleStartNoteEdit` guard / `handleSaveNote` 内 noteValidation 简化) (commit `7c8f580`)
+  - 净改动 5 文件 (-82 行)
+- ⏳ sub-sprint 2 待启动: archive/profile filter 切换 + `isSummit` 业务语义迁移到 `verified_at` + `ActivityDetailClient` 内剩余 `activity.status` 引用清除 (photo upload/delete hints + API payload + 子组件 prop 等)
+- ⏳ sub-sprint 3 待启动: 服务端 API guard 拆除 + 写入路径默认 `approved` + type 系统 (`src/types/index.ts` / `review-queue.ts`) status 字段废除
+- ⏳ sub-sprint 4 待启动: DB migration `DROP COLUMN checkins.status` + RLS `checkins_select` 简化 + `verify_summit_checkin` RPC 改写 + `admin/checkins` 整套删除
 
 ---
 
@@ -970,6 +979,19 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.27（2026-05-21）
+
+FU-42 sub-sprint 1 · 前端 UI 审核语义全面拆除 收尾
+
+- 删除 ProfileV2 review queue section (含 `ReviewQueueSection` 函数 + render call + `listReviewQueueRecords` 数据查询 + `reviewRecords` prop 传递；`MyRecordsModal` + `ProfileReviewQueueSummary` component 文件保留作 orphan，不再被 import)；commit `516fc6b`
+- 拆除 Activity Detail 手记区 status gate (含 `noteDisabledHint` 文案 + 2 处按钮 disabled / fallback 文案 / conditional style + `handleStartNoteEdit` status guard + `showLocalToast`)；`getActivityNoteValidation` 签名保留 status 字段兼容，但 `isApproved` 始终 true，`canSave` 不再依赖 status；单测覆盖 pending/rejected 也可编辑保存的规则；commit `7c8f580`
+- 用户视觉验收 PASS: Profile 页面无"待审核记录"入口 + Activity Detail 手记任意活动状态可编辑
+- 计数: Active 24 不变 (FU-42 仍 active) / Closed 30 不变
+- main merge: `80fc087`
+- preflight: lint 0e/13w · node --test 246p · build PASS · activity-note-editor.spec.ts 1 passed
+- 已知遗漏 (留 FU-42 sub-sprint 2): `ActivityDetailClient` 内 photo upload/delete 等剩余 7 处 `activity.status` 引用；archive/profile filter 仍依赖 `status='approved'`；`isSummit` / `proofStatus` 仍依赖 status
+- FU-42 子任务进度: sub-sprint 1 ✅ done / sub-sprint 2 ⏳ pending / sub-sprint 3 ⏳ pending / sub-sprint 4 ⏳ pending
 
 ### v0.26（2026-05-21）
 

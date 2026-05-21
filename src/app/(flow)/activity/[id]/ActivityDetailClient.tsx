@@ -712,18 +712,8 @@ function PhotoStrip({
 }) {
   const photos = activity.photos
   const photoCount = activity.photos.length
-  const uploadValidation = getActivityPhotoUploadValidation({
-    currentPhotoCount: photoCount,
-    selectedFileCount: 1,
-    status: activity.status,
-    isUploading,
-  })
-  const uploadDisabled = !uploadValidation.isApproved || isUploading || isDeleting || photoCount >= ACTIVITY_PHOTO_MAX_COUNT
-  const uploadHint = !uploadValidation.isApproved
-    ? '待审核通过后可补传'
-    : photoCount >= ACTIVITY_PHOTO_MAX_COUNT
-      ? '已达到 9 张上限'
-      : null
+  const uploadDisabled = isUploading || isDeleting || photoCount >= ACTIVITY_PHOTO_MAX_COUNT
+  const uploadHint = photoCount >= ACTIVITY_PHOTO_MAX_COUNT ? '已达到 9 张上限' : null
 
   if (!photos.length) {
     return (
@@ -869,7 +859,6 @@ function ActivityPhotoLightbox({
   photos,
   activeIndex,
   isDeleting,
-  status,
   onClose,
   onSelectIndex,
   onDeletePhoto,
@@ -877,7 +866,6 @@ function ActivityPhotoLightbox({
   photos: ActivityPhotoViewModel[]
   activeIndex: number
   isDeleting: boolean
-  status: ActivityDetailViewModel['status']
   onClose: () => void
   onSelectIndex: (index: number) => void
   onDeletePhoto: (photo: ActivityPhotoViewModel) => void
@@ -885,7 +873,7 @@ function ActivityPhotoLightbox({
   const safeIndex = Math.min(Math.max(activeIndex, 0), Math.max(photos.length - 1, 0))
   const activePhoto = photos[safeIndex]
   const touchStartXRef = useRef<number | null>(null)
-  const deleteValidation = getActivityPhotoDeleteValidation({ status, isDeleting })
+  const deleteValidation = getActivityPhotoDeleteValidation({ status: 'approved', isDeleting })
 
   function goToOffset(offset: number) {
     if (isDeleting || photos.length <= 1) return
@@ -975,9 +963,6 @@ function ActivityPhotoLightbox({
           <div className="act-lightbox__count" data-testid="activity-photo-lightbox-count">
             {safeIndex + 1} / {photos.length}
           </div>
-          {deleteValidation.isApproved ? null : (
-            <div className="act-lightbox__hint">待审核通过后可删除</div>
-          )}
         </div>
 
         <button
@@ -1549,17 +1534,6 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
   function handleAddPhoto() {
     if (isDeletingPhoto || photoDeleteInFlightRef.current) return
 
-    const validation = getActivityPhotoUploadValidation({
-      currentPhotoCount: photos.length,
-      selectedFileCount: 1,
-      status: activity.status,
-      isUploading: isUploadingPhotos,
-    })
-
-    if (!validation.isApproved) {
-      showLocalToast('待审核通过后可补传。')
-      return
-    }
     if (photos.length >= ACTIVITY_PHOTO_MAX_COUNT) {
       showLocalToast(`已达 ${ACTIVITY_PHOTO_MAX_COUNT} 张上限，删掉一张才能补传。`)
       return
@@ -1580,10 +1554,6 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
       isDeleting: isDeletingPhoto,
     })
 
-    if (!validation.isApproved) {
-      showLocalToast('待审核通过后可删除。')
-      return
-    }
     if (!validation.canDelete || photoDeleteInFlightRef.current) return
 
     if (!window.confirm('删除后，这张照片会从活动详情移除。')) return
@@ -1639,12 +1609,6 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
       status: activity.status,
       isUploading: isUploadingPhotos,
     })
-
-    if (!validation.isApproved) {
-      showLocalToast('待审核通过后可补传。')
-      if (photoInputRef.current) photoInputRef.current.value = ''
-      return
-    }
 
     if (validation.isOverLimit) {
       showLocalToast(`最多只能保留 ${ACTIVITY_PHOTO_MAX_COUNT} 张现场照片。`)
@@ -1771,7 +1735,6 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
           photos={photos}
           activeIndex={lightboxIndex}
           isDeleting={isDeletingPhoto}
-          status={activity.status}
           onClose={() => setLightboxIndex(null)}
           onSelectIndex={setLightboxIndex}
           onDeletePhoto={(photo) => {

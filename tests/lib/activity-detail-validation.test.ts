@@ -59,7 +59,7 @@ test('activity note validation allows changed drafts for every legacy status and
   }
 })
 
-test('activity photo upload validation enforces approved status, in-flight guard, and 9-photo cap', () => {
+test('activity photo upload validation enforces in-flight guard and 9-photo cap for every legacy status', () => {
   assert.equal(
     getActivityPhotoUploadValidation({
       currentPhotoCount: 8,
@@ -92,7 +92,16 @@ test('activity photo upload validation enforces approved status, in-flight guard
       selectedFileCount: 1,
       status: 'pending',
     }).canUpload,
-    false
+    true
+  )
+
+  assert.equal(
+    getActivityPhotoUploadValidation({
+      currentPhotoCount: 0,
+      selectedFileCount: 1,
+      status: 'rejected',
+    }).canUpload,
+    true
   )
 
   assert.equal(
@@ -106,7 +115,7 @@ test('activity photo upload validation enforces approved status, in-flight guard
   )
 })
 
-test('activity photo delete validation enforces approved status and in-flight guard', () => {
+test('activity photo delete validation enforces only the in-flight guard for every legacy status', () => {
   assert.equal(
     getActivityPhotoDeleteValidation({
       status: 'approved',
@@ -118,14 +127,14 @@ test('activity photo delete validation enforces approved status and in-flight gu
     getActivityPhotoDeleteValidation({
       status: 'pending',
     }).canDelete,
-    false
+    true
   )
 
   assert.equal(
     getActivityPhotoDeleteValidation({
       status: 'rejected',
     }).canDelete,
-    false
+    true
   )
 
   assert.equal(

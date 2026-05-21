@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import TrekClient from './TrekClient'
 import { buildAuthReturnTarget } from '@/lib/auth-redirect'
-import { listReviewQueueRecords } from '@/lib/review-queue'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import AppToastProvider from '@/components/ui/AppToastProvider'
 import type { User } from '@/types'
@@ -20,10 +19,6 @@ export default async function TrekPage({
     redirect(`/auth/login?from=${encodeURIComponent(buildAuthReturnTarget('/trek', search))}`)
   }
 
-  const reviewQueueRecords = await listReviewQueueRecords({
-    supabase,
-    userId: user.id,
-  })
   const { data: profile } = await supabase
     .from('profiles')
     .select('province, license_level')
@@ -33,8 +28,6 @@ export default async function TrekPage({
   return (
     <AppToastProvider>
       <TrekClient
-        initialReviewQueueRecords={reviewQueueRecords}
-        initialReviewQueueCount={reviewQueueRecords.length}
         userProvince={profile?.province ?? null}
         userLicense={(profile?.license_level ?? 'none') as User['license_level']}
       />

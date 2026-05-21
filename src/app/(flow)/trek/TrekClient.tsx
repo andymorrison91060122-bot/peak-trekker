@@ -38,7 +38,7 @@ import {
   ShareIcon,
   WarnIcon,
 } from '@/components/ui/Icons'
-import type { Mountain, ReviewQueueRecord, User } from '@/types'
+import type { Mountain, User } from '@/types'
 
 type TrekStatus =
   | 'idle'
@@ -156,13 +156,9 @@ type RestoredTrekSession = {
 }
 
 export default function TrekClient({
-  initialReviewQueueRecords,
-  initialReviewQueueCount,
   userProvince,
   userLicense,
 }: {
-  initialReviewQueueRecords: ReviewQueueRecord[]
-  initialReviewQueueCount: number
   userProvince: string | null
   userLicense: User['license_level']
 }) {
@@ -204,9 +200,6 @@ export default function TrekClient({
     [trekTestMode]
   )
   const incompleteRecordMinSeconds = trekTestMode ? verificationRules.minSessionSeconds : INVALID_RECORD_SECONDS
-  void initialReviewQueueRecords
-  void initialReviewQueueCount
-
   const [status, setStatus] = useState<TrekStatus>('idle')
   const [gps, setGps] = useState<GpsState>(null)
   const [gpsError, setGpsError] = useState('')
@@ -227,7 +220,6 @@ export default function TrekClient({
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null)
   const [checkinNote, setCheckinNote] = useState('')
   const [showPhotoPanel, setShowPhotoPanel] = useState(false)
-  const [isReviewQueueOpen, setIsReviewQueueOpen] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoLoading, setPhotoLoading] = useState(false)
   const [checkinLoading, setCheckinLoading] = useState(false)
@@ -1683,8 +1675,6 @@ export default function TrekClient({
 
   void userProvince
   void showPhotoPanel
-  void isReviewQueueOpen
-  void setIsReviewQueueOpen
   void selectedPhotoTargetLabel
   void photoButtonsAriaDisabled
   void handlePhotoCheckin

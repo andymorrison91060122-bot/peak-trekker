@@ -10,7 +10,6 @@ test('trek page no longer exposes the legacy historical photo check-in panel', a
   await expect(page.getByText('还没有选择这次要去的山')).toBeVisible()
   await expect(page.getByTestId('photo-checkin-toggle')).toHaveCount(0)
   await expect(page.getByTestId('photo-checkin-status')).toHaveCount(0)
-  await expect(page.getByTestId('trek-review-queue-trigger')).toHaveCount(0)
   await expect(page.getByRole('button', { name: '提交照片打卡' })).toHaveCount(0)
 })
 

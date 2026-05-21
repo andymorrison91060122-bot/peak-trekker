@@ -1,8 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import {
   createHistoricalCheckinViaApi,
-  createPendingHistoricalCheckinViaApi,
-  createRejectedHistoricalCheckinViaApi,
   dismissActivationChecklistIfPresent,
   getFirstMountain,
   registerFreshUser,
@@ -146,15 +144,6 @@ async function readEffectiveVisibility(locator: Locator) {
   })
 }
 
-async function openMyRecordsModalFromProfile(page: Page) {
-  const trigger = page.getByTestId('profile-review-queue-trigger')
-  await expect(trigger).toBeVisible()
-  await trigger.click()
-  const dialog = page.getByRole('dialog', { name: '我的记录' })
-  await expect(dialog).toBeVisible()
-  return dialog
-}
-
 test.skip('profile record actions use one primary CTA plus share and more icon buttons without overflow', async ({ page, baseURL }) => {
   // Skipped in baseline cleanup: this setup path intermittently hangs before assertions
   // with a closed browser context while creating the seeded community post.
@@ -283,53 +272,6 @@ test('profile identity header stays compact without a duplicated activity jump b
     expect(editOverlay.width).toBe('28px')
     expect(editOverlay.height).toBe('28px')
   }
-})
-
-test('profile pending metric opens the review queue modal and excludes approved records', async ({ page, baseURL }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
-  test.setTimeout(180_000)
-  const root = baseURL ?? 'http://127.0.0.1:3100'
-
-  await page.setViewportSize({ width: 375, height: 812 })
-  await registerFreshUser(page, root, { returnTo: '/profile' })
-  const { mountainId } = await getFirstMountain(page, root)
-
-  const pendingNote = `review-queue-pending-${Date.now()}`
-  const approvedNote = `review-queue-approved-${Date.now()}`
-  const rejectedNote = `review-queue-rejected-${Date.now()}`
-  const rejectReason = '照片不清晰，未能识别峰顶环境。'
-
-  await createPendingHistoricalCheckinViaApi(page, mountainId, pendingNote)
-  await createHistoricalCheckinViaApi(page, mountainId, approvedNote)
-  await createRejectedHistoricalCheckinViaApi(page, mountainId, rejectedNote, rejectReason)
-
-  await page.goto(`${root}/profile`)
-  await dismissActivationChecklistIfPresent(page)
-
-  const dialog = await openMyRecordsModalFromProfile(page)
-  const cards = dialog.getByTestId('review-queue-card')
-
-  await expect(cards).toHaveCount(2)
-  await expect(dialog.getByText('审核中').first()).toBeVisible()
-  await expect(dialog.getByText('未通过').first()).toBeVisible()
-  await expect(dialog.getByText(rejectReason)).toBeVisible()
-  await expect(dialog.getByText('还没有待处理的记录')).toHaveCount(0)
-  await expect(dialog.getByText(approvedNote)).toHaveCount(0)
-})
-
-test('profile review queue modal shows an empty state when there are no pending or rejected records', async ({ page, baseURL }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
-  const root = baseURL ?? 'http://127.0.0.1:3100'
-
-  await page.setViewportSize({ width: 375, height: 812 })
-  await registerFreshUser(page, root, { returnTo: '/profile' })
-
-  await page.goto(`${root}/profile`)
-  await dismissActivationChecklistIfPresent(page)
-
-  const dialog = await openMyRecordsModalFromProfile(page)
-  await expect(dialog.getByTestId('review-queue-empty')).toContainText('还没有待处理的记录')
-  await expect(dialog.getByTestId('review-queue-card')).toHaveCount(0)
 })
 
 test('activity detail switches the primary CTA by publish state and keeps a single primary action', async ({ page, baseURL }) => {

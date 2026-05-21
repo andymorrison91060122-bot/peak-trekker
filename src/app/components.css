@@ -2272,21 +2272,63 @@
   white-space: nowrap;
 }
 
+.activity-detail-page {
+  /* Reserve space for the fixed action footer: buttons + help link + hint + padding. */
+  --act-actions-footer-height: 148px;
+  padding-bottom: calc(var(--act-actions-footer-height) + env(safe-area-inset-bottom));
+}
+
 .act-actions {
-  padding: 24px var(--space-4) 26px;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: var(--space-3) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-outline);
+  background:
+    linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-surface) 96%, transparent) 26%, var(--color-surface) 100%);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+.act-actions__inner {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
 }
 
 .act-actions__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.act-actions__button.ui-btn-root {
+  width: 100%;
+  min-width: 0;
+}
+
+.act-actions__button:only-child {
+  grid-column: 1 / -1;
+}
+
+.act-actions__button .ui-btn-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.act-actions__help {
+  margin-top: var(--space-3);
+  text-align: center;
 }
 
 .act-actions__hint {
-  margin-top: 14px;
+  margin-top: var(--space-2);
   color: var(--color-on-surface-variant);
   font-size: var(--font-label-s-size);
-  line-height: 1.6;
+  line-height: var(--font-label-s-line);
   text-align: center;
 }
 

@@ -180,9 +180,6 @@ export async function POST(request: Request) {
     if (checkin.user_id !== user.id) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 })
     }
-    if (checkin.status !== 'approved') {
-      return NextResponse.json({ error: '只有已通过的攀登记录才能补充现场照片。' }, { status: 422 })
-    }
 
     for (const file of files) {
       const validation = validateStorageImageFile(file, {
@@ -327,9 +324,6 @@ export async function POST(request: Request) {
     if (checkin.user_id !== user.id) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 })
     }
-    if (checkin.status !== 'approved') {
-      return NextResponse.json({ error: '只有已通过的攀登记录才能删除现场照片。' }, { status: 422 })
-    }
 
     try {
       const existingAssets = await loadExistingImageAssets(supabase, checkinId)
@@ -436,9 +430,6 @@ export async function POST(request: Request) {
   }
   if (checkin.user_id !== user.id) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
-  }
-  if (checkin.status !== 'approved') {
-    return NextResponse.json({ error: '只有已通过的攀登记录才能编辑攀登日记。' }, { status: 422 })
   }
 
   const note = normalizeNote(body?.note)

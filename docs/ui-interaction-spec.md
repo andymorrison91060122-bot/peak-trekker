@@ -986,6 +986,9 @@ Banner 用于：
 * 记录与分享分开展示
 * 保留执照体系
 * 不做重成就墙
+* Archive / 我的山行档案展示当前用户的全部山行记录，包含 incomplete 记录与历史 status 值，不依赖 `checkins.status`
+* Profile 头部统计只统计 `completionStatus === 'complete'` 的完成山行，不依赖 `checkins.status`
+* Profile 与 Archive 的"山行"口径需明确区分：Archive 是完整私人档案，Profile 头部是完成山行摘要
 
 ## 长期方向
 

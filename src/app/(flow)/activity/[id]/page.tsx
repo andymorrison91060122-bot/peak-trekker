@@ -153,7 +153,7 @@ function durationFromRange(start: string | null | undefined, end: string | null 
 
 function deriveSourceLabelType(checkin: CheckinRow, sourceType: CheckinSource): SourceLabelProps['type'] {
   if (checkin.source) return getSourceLabelType(sourceType)
-  if (checkin.verified_at || checkin.status === 'approved' || (checkin.status as string) === 'verified') {
+  if (checkin.verified_at) {
     return 'gps_verified'
   }
   return 'uploaded'
@@ -218,8 +218,7 @@ export default async function ActivityDetailPage({
     supabase
       .from('checkins')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('status', 'approved'),
+      .eq('user_id', user.id),
   ])
 
   const session = (sessionResult.data ?? null) as SessionRow | null
@@ -264,7 +263,7 @@ export default async function ActivityDetailPage({
     ? rawDurationSeconds
     : 0
   const summitAt = checkin.verified_at ?? checkin.end_time ?? session?.ended_at ?? null
-  const isSummit = checkin.status === 'approved'
+  const isSummit = Boolean(checkin.verified_at)
   const proofStatus =
     isSummit && elevationSamples.length >= 8 ? 'confirmed' : isSummit ? 'partial' : 'none'
   const hasMeaningfulActivityData = distanceKm > 0 || ascentM > 0 || durationSeconds > 60

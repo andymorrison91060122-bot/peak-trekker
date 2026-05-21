@@ -142,7 +142,8 @@ test('trek photo upload route and client normalize thrown fetch failures', () =>
 })
 
 test('profile summary excludes incomplete completion_status records', () => {
-  assert.match(profilePage, /trip\.status === 'approved' && \(trip\.completionStatus \?\? 'complete'\) === 'complete'/)
+  assert.match(profilePage, /\(trip\.completionStatus \?\? 'complete'\) === 'complete'/)
+  assert.doesNotMatch(profilePage, /trip\.status === 'approved'/)
 })
 
 test('summit verification can persist uploaded summit photo url', () => {

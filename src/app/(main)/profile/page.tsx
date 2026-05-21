@@ -58,16 +58,16 @@ function resolveIdentity({
 }
 
 function buildSummary(trips: ProfileV2TripPreview[]): ProfileV2Summary {
-  const approvedTrips = trips.filter((trip) => trip.status === 'approved' && (trip.completionStatus ?? 'complete') === 'complete')
+  const completeTrips = trips.filter((trip) => (trip.completionStatus ?? 'complete') === 'complete')
   const visitedProvinces = new Set(
-    approvedTrips
+    completeTrips
       .map((trip) => trip.province)
       .filter((province) => province && province !== '未留证' && province !== '未知地点')
   )
 
   return {
-    tripCount: approvedTrips.length,
-    maxAltitudeM: Math.max(0, ...approvedTrips.map((trip) => trip.altitudeM)),
+    tripCount: completeTrips.length,
+    maxAltitudeM: Math.max(0, ...completeTrips.map((trip) => trip.altitudeM)),
     visitedProvinceCount: visitedProvinces.size,
   }
 }

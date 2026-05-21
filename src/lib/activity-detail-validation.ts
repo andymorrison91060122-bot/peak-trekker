@@ -51,13 +51,12 @@ export function getActivityNoteValidation({
 export function getActivityPhotoUploadValidation({
   currentPhotoCount,
   selectedFileCount,
-  status,
   isUploading = false,
 }: ActivityPhotoUploadValidationInput) {
   const safeCurrentCount = Math.max(0, Math.floor(currentPhotoCount))
   const safeSelectedCount = Math.max(0, Math.floor(selectedFileCount))
   const nextPhotoCount = safeCurrentCount + safeSelectedCount
-  const isApproved = status === 'approved'
+  const isApproved = true
   const isOverLimit = nextPhotoCount > ACTIVITY_PHOTO_MAX_COUNT
 
   return {
@@ -72,10 +71,9 @@ export function getActivityPhotoUploadValidation({
 }
 
 export function getActivityPhotoDeleteValidation({
-  status,
   isDeleting = false,
 }: ActivityPhotoDeleteValidationInput) {
-  const isApproved = status === 'approved'
+  const isApproved = true
 
   return {
     isApproved,

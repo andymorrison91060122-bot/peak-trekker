@@ -231,9 +231,7 @@ function normalizeTrip({
     0
   const isSummit =
     checkin.summit_verified === true ||
-    Boolean(checkin.verified_at) ||
-    checkin.status === 'approved' ||
-    checkin.status === 'verified'
+    Boolean(checkin.verified_at)
   const hasProof = Boolean(checkin.mountain_id)
   const photoUrl = checkin.photo_url ?? assets[0]?.thumbnail_url ?? assets[0]?.url ?? mountain?.cover_image ?? null
 

@@ -3,7 +3,6 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { listUserCommunityPosts } from '@/lib/community-server'
 import { listProfileTrips } from '@/lib/profile-records-server'
 import { getUserMonthlyContribution } from '@/lib/province-ranking-queries'
-import { listReviewQueueRecords } from '@/lib/review-queue'
 import ProfileV2Client, {
   type ProfileV2Identity,
   type ProfileV2SharePreview,
@@ -84,16 +83,12 @@ export default async function ProfilePage() {
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
   const currentMonth = getShanghaiYearMonth()
 
-  const [trips, myPosts, reviewQueueRecords, provinceContribution] = await Promise.all([
+  const [trips, myPosts, provinceContribution] = await Promise.all([
     listProfileTrips({
       supabase,
       userId: user.id,
     }),
     listUserCommunityPosts({
-      supabase,
-      userId: user.id,
-    }),
-    listReviewQueueRecords({
       supabase,
       userId: user.id,
     }),
@@ -120,7 +115,6 @@ export default async function ProfilePage() {
       summary={buildSummary(trips)}
       trips={trips}
       shares={shares}
-      reviewRecords={reviewQueueRecords}
       provinceContribution={provinceContribution}
       monthLabel={currentMonth.label}
     />

@@ -3,14 +3,12 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { ReviewQueueRecord } from '@/types'
 import type { UserContribution } from '@/lib/province-ranking'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import { MountainIcon } from '@/components/ui/Icons'
 import type { CheckinSource } from '@/types'
-import MyRecordsModal from '@/components/profile/MyRecordsModal'
 import ProfileAvatarUploader from '@/components/profile/ProfileAvatarUploader'
 import ProvinceContributionSection from '@/components/profile/ProvinceContributionSection'
 
@@ -405,69 +403,6 @@ function SharePreviewSection({
   )
 }
 
-function ReviewQueueSection({ records }: { records: ReviewQueueRecord[] }) {
-  const [open, setOpen] = useState(false)
-  const pendingCount = records.filter((record) => record.status === 'pending').length
-  const firstRecord = records[0]
-
-  if (!firstRecord) return null
-
-  return (
-    <section style={{ marginBottom: 'var(--space-6)' }} data-testid="profile-review-section">
-      <SectionHeading title="待审核记录" />
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        style={{
-          width: '100%',
-          minHeight: 64,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 'var(--space-3)',
-          textAlign: 'left',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--color-outline)',
-          background: 'var(--color-surface-variant)',
-          color: 'var(--color-on-surface)',
-          padding: 'var(--space-3) var(--space-4)',
-          cursor: 'pointer',
-        }}
-      >
-        <span style={{ minWidth: 0, display: 'grid', gap: 'var(--space-1)' }}>
-          <span className="pt-title-m" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {firstRecord.mountainName}
-          </span>
-          <span className="pt-label-s" style={{ color: 'var(--color-on-surface-variant)', fontFamily: 'var(--font-mono)' }}>
-            {formatDate(firstRecord.createdAt)}
-            {pendingCount > 1 ? ` · 还有 ${pendingCount - 1} 条审核中` : ''}
-          </span>
-        </span>
-        <span
-          className="pt-label-s"
-          style={{
-            flexShrink: 0,
-            minHeight: 24,
-            display: 'inline-flex',
-            alignItems: 'center',
-            borderRadius: 'var(--radius-pill)',
-            padding: '0 var(--space-2)',
-            color: firstRecord.status === 'pending' ? 'var(--color-warning)' : 'var(--color-error)',
-            border: '1px solid var(--color-outline)',
-            background:
-              firstRecord.status === 'pending'
-                ? 'color-mix(in srgb, var(--color-warning) 13%, transparent)'
-                : 'color-mix(in srgb, var(--color-error) 12%, transparent)',
-          }}
-        >
-          {firstRecord.status === 'pending' ? '审核中' : '未通过'}
-        </span>
-      </button>
-      <MyRecordsModal open={open} onClose={() => setOpen(false)} records={records} />
-    </section>
-  )
-}
-
 function SupportSection() {
   const { showToast } = useAppToast()
   const rows = [
@@ -584,7 +519,6 @@ export default function ProfileV2Client({
   summary,
   trips,
   shares,
-  reviewRecords,
   provinceContribution,
   monthLabel,
 }: {
@@ -592,7 +526,6 @@ export default function ProfileV2Client({
   summary: ProfileV2Summary
   trips: ProfileV2TripPreview[]
   shares: ProfileV2SharePreview[]
-  reviewRecords: ReviewQueueRecord[]
   provinceContribution: UserContribution | null
   monthLabel: string
 }) {
@@ -622,7 +555,6 @@ export default function ProfileV2Client({
       {provinceRankingEnabled ? (
         <ProvinceContributionSection contribution={provinceContribution} monthLabel={monthLabel} />
       ) : null}
-      <ReviewQueueSection records={reviewRecords} />
       <SupportSection />
       <LogoutLink />
     </div>

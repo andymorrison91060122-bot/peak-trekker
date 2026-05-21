@@ -267,6 +267,7 @@ export default async function ActivityDetailPage({
   const isSummit = checkin.status === 'approved'
   const proofStatus =
     isSummit && elevationSamples.length >= 8 ? 'confirmed' : isSummit ? 'partial' : 'none'
+  const hasMeaningfulActivityData = distanceKm > 0 || ascentM > 0 || durationSeconds > 60
 
   const activity: ActivityDetailViewModel = {
     id: checkin.id,
@@ -277,6 +278,7 @@ export default async function ActivityDetailPage({
     sourceLabelType,
     status: checkin.status,
     isSummit,
+    hasMeaningfulActivityData,
     mountain: {
       id: mountain?.id ?? null,
       name: mountain?.name ?? '未关联山峰',

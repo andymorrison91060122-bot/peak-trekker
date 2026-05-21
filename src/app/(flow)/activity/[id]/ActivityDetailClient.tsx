@@ -59,6 +59,7 @@ export type ActivityDetailViewModel = {
   sourceLabelType: SourceLabelProps['type']
   status: 'pending' | 'approved' | 'rejected'
   isSummit: boolean
+  hasMeaningfulActivityData: boolean
   mountain: {
     id: string | null
     name: string
@@ -1392,21 +1393,30 @@ function BackToRecords({ activity }: { activity: ActivityDetailViewModel }) {
 
 function ActivityInlineActions({ activity }: { activity: ActivityDetailViewModel }) {
   const router = useRouter()
+  const canPublishToCommunity = activity.mountain.id !== null && activity.hasMeaningfulActivityData
 
   return (
     <section className="act-actions" data-testid="activity-inline-actions">
-      <div className="act-actions__grid">
-        <SecondaryButton as="a" href={`/share?checkinId=${activity.id}`} style={{ width: '100%', whiteSpace: 'nowrap' }}>
-          生成分享
-        </SecondaryButton>
-        <PrimaryButton onClick={() => router.push(`/community/publish/${activity.id}`)} style={{ width: '100%', whiteSpace: 'nowrap' }}>
-          发布到山友圈
-        </PrimaryButton>
+      <div className="act-actions__inner">
+        <div className="act-actions__grid">
+          {canPublishToCommunity ? (
+            <SecondaryButton className="act-actions__button" onClick={() => router.push(`/community/publish/${activity.id}`)}>
+              发布到山友圈
+            </SecondaryButton>
+          ) : null}
+          <PrimaryButton as="a" href={`/share?checkinId=${activity.id}`} className="act-actions__button">
+            生成分享
+          </PrimaryButton>
+        </div>
+        {canPublishToCommunity ? (
+          <>
+            <div className="act-actions__help">
+              <HelpLink anchor="review.community-eligibility">什么样能发到山友圈</HelpLink>
+            </div>
+            <div className="act-actions__hint">这是属于你的山行 · 不发布也是好选择</div>
+          </>
+        ) : null}
       </div>
-      <div style={{ marginTop: 'var(--space-3)', textAlign: 'center' }}>
-        <HelpLink anchor="review.community-eligibility">什么样能发到山友圈</HelpLink>
-      </div>
-      <div className="act-actions__hint">这是属于你的山行 · 不发布也是好选择</div>
     </section>
   )
 }
@@ -1719,6 +1729,7 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
 
   return (
     <main
+      className="activity-detail-page"
       data-activity-checkin-id={activity.id}
       style={{
         position: 'relative',
@@ -1789,7 +1800,7 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
             zIndex: 20,
             left: 'var(--space-4)',
             right: 'var(--space-4)',
-            bottom: 96,
+            bottom: 'calc(var(--act-actions-footer-height, 148px) + env(safe-area-inset-bottom) + var(--space-3))',
             maxWidth: 'var(--page-max-width)',
             margin: '0 auto',
             padding: 'var(--space-3) var(--space-4)',

@@ -8,21 +8,12 @@ import {
   getActivityPhotoUploadValidation,
 } from '../../src/lib/activity-detail-validation.ts'
 
-test('activity note validation blocks unchanged, saving, unapproved, and over-limit drafts', () => {
+test('activity note validation blocks unchanged, saving, and over-limit drafts', () => {
   assert.equal(
     getActivityNoteValidation({
       draftNote: '今天风很大',
       savedNote: '今天风很大',
       status: 'approved',
-    }).canSave,
-    false
-  )
-
-  assert.equal(
-    getActivityNoteValidation({
-      draftNote: '今天风很大',
-      savedNote: '',
-      status: 'pending',
     }).canSave,
     false
   )
@@ -46,7 +37,7 @@ test('activity note validation blocks unchanged, saving, unapproved, and over-li
   assert.equal(overLimit.canSave, false)
 })
 
-test('activity note validation allows changed approved drafts and trims payload', () => {
+test('activity note validation allows changed drafts for every legacy status and trims payload', () => {
   const result = getActivityNoteValidation({
     draftNote: '  山顶风停了  ',
     savedNote: '山顶风很大',
@@ -55,6 +46,17 @@ test('activity note validation allows changed approved drafts and trims payload'
 
   assert.equal(result.canSave, true)
   assert.equal(result.normalizedDraft, '山顶风停了')
+
+  for (const status of ['pending', 'rejected'] as const) {
+    assert.equal(
+      getActivityNoteValidation({
+        draftNote: `状态 ${status} 也能编辑`,
+        savedNote: '',
+        status,
+      }).canSave,
+      true
+    )
+  }
 })
 
 test('activity photo upload validation enforces approved status, in-flight guard, and 9-photo cap', () => {

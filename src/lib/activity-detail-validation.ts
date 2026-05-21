@@ -29,13 +29,12 @@ export function normalizeActivityNoteForSave(value: string) {
 export function getActivityNoteValidation({
   draftNote,
   savedNote,
-  status,
   isSaving = false,
 }: ActivityNoteValidationInput) {
   const characterCount = draftNote.length
   const normalizedDraft = normalizeActivityNoteForSave(draftNote)
   const normalizedSaved = normalizeActivityNoteForSave(savedNote)
-  const isApproved = status === 'approved'
+  const isApproved = true
   const isOverLimit = characterCount > ACTIVITY_NOTE_MAX_LENGTH
   const isChanged = normalizedDraft !== normalizedSaved
 
@@ -45,7 +44,7 @@ export function getActivityNoteValidation({
     isApproved,
     isOverLimit,
     isChanged,
-    canSave: isApproved && !isSaving && !isOverLimit && isChanged,
+    canSave: !isSaving && !isOverLimit && isChanged,
   }
 }
 

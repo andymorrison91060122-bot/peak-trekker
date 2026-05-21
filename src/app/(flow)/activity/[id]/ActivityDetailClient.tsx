@@ -1043,7 +1043,6 @@ function MemoryNote({
     status: activity.status,
     isSaving,
   })
-  const noteDisabledHint = !noteValidation.isApproved ? '待审核通过后可编辑' : null
   const counterColor = noteValidation.isOverLimit ? 'var(--color-error)' : 'var(--color-on-surface-variant)'
 
   if (isEditing) {
@@ -1169,12 +1168,11 @@ function MemoryNote({
             </div>
             <button
               type="button"
-              disabled={Boolean(noteDisabledHint)}
               onClick={onStartEdit}
               style={{
                 border: 0,
                 padding: 0,
-                color: noteDisabledHint ? 'color-mix(in srgb, var(--color-on-surface-variant) 50%, transparent)' : 'var(--color-on-surface-variant)',
+                color: 'var(--color-on-surface-variant)',
                 background: 'transparent',
                 font: 'inherit',
                 fontSize: 'var(--font-label-s-size)',
@@ -1182,7 +1180,7 @@ function MemoryNote({
                 cursor: 'pointer',
               }}
             >
-              {noteDisabledHint ?? '编辑'}
+              编辑
             </button>
           </div>
         </div>
@@ -1213,25 +1211,22 @@ function MemoryNote({
           </div>
           <button
             type="button"
-            disabled={Boolean(noteDisabledHint)}
             onClick={onStartEdit}
             style={{
               marginTop: 12,
               padding: '8px 16px',
               borderRadius: 10,
               border: '1px solid var(--color-outline)',
-              color: noteDisabledHint ? 'var(--color-on-surface-variant)' : 'var(--color-on-surface)',
-              background: noteDisabledHint
-                ? 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)'
-                : 'var(--color-surface-variant)',
+              color: 'var(--color-on-surface)',
+              background: 'var(--color-surface-variant)',
               font: 'inherit',
               fontSize: 'var(--font-label-s-size)',
               lineHeight: 'var(--font-label-s-line)',
               fontWeight: 600,
-              cursor: noteDisabledHint ? 'not-allowed' : 'pointer',
+              cursor: 'pointer',
             }}
           >
-            {noteDisabledHint ?? '写一句'}
+            写一句
           </button>
         </div>
       )}
@@ -1502,10 +1497,6 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
   }
 
   function handleStartNoteEdit() {
-    if (activity.status !== 'approved') {
-      showLocalToast('待审核通过后可编辑。')
-      return
-    }
     setDraftNote(savedNote)
     setIsNoteEditing(true)
   }

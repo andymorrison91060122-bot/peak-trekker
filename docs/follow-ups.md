@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-21 · 最新版本记录: v0.25
+> Last Updated: 2026-05-21 · 最新版本记录: v0.26
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`cff778f`（Merge FU-46 子 sprint 4 · 2026-05-21）
+`4c2417c`（Merge FU-11 · 2026-05-21）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动（候选: FU-47(b) [P1 高优] / FU-52 [P2 cleanup] / FU-53 [P2 cleanup] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-46 [P2 高优] / FU-43 / FU-45 / FU-54 [P3 上线前] / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-11 / FU-42）
+待启动（候选: FU-47(b) [P1 高优] / FU-52 [P2 cleanup] / FU-53 [P2 cleanup] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-46 [P2 高优] / FU-43 / FU-45 / FU-54 [P3 上线前] / community-acceptance / button-token-migration / app.spec / FU-30 / FU-2+FU-15 / FU-42）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -85,7 +85,7 @@
 
 ---
 
-## Active Follow-ups（25 条）
+## Active Follow-ups（24 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -166,22 +166,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 **涉及**: `src/app/(flow)/import/ImportClient.tsx`
 
 **验收**: 375×812 截图点击按钮后 toast 显示，FAQ 行为不变。
-
----
-
-### FU-11 · 活动详情底部按钮悬浮 + 主次互换
-
-- **优先级**: P2
-- **归属阶段**: 阶段 3 子任务
-- **状态**: 🟢 active
-
-**背景**: 活动详情页底部"生成分享 + 发布到山友圈"两个按钮平铺在内容流末尾（不悬浮），且主次颠倒。
-
-**实施建议**:
-- 底部操作栏改 sticky bottom
-- 主次互换：生成分享 = 绿色 primary，发布到山友圈 = 次级深色
-
-**涉及**: `src/app/(flow)/activity/[id]/ActivityDetailClient.tsx`
 
 ---
 
@@ -362,6 +346,18 @@ status 字段是 schema/RLS/RPC 既有概念：
 - src/app/api/admin/checkin-review/route.ts
 - src/lib/trek-verify-helpers.ts
 - src/app/(flow)/activity/[id]/ActivityDetailClient.tsx (gate 拆除)
+
+**决策结论 (2026-05-21 FU-11 sprint Phase 4 后)**:
+- 用户明确选 **C 方向 (完全移除 status 字段 + 全链路重构)**
+- 业务认知: 当前 3 种活动来源 (用户上传轨迹 / 截图识别 / 应用记录) 业务上没有审核流程，"审核状态"语义在项目里不存在
+- FU-11 sprint folding 进的子操作 (本 FU 视为已完成的部分): publish 路由 application-layer `.eq('status', 'approved')` filter 已拆除 (commit `b9203a0`); 类型 annotation 三态 union (`pending | approved | rejected`)
+- 剩余 FU-42 实施 scope (待后续 sprint):
+  - "手记 · 待审核通过后可编辑" 文案 (`ActivityDetailClient.tsx` 或相关组件)
+  - `ActivityDetailClient` 其他 status 相关 UI gate (`isSummit` / `proofStatus` / 等)
+  - `admin/checkin-review` route (整体废弃决策)
+  - `verify_summit_checkin` RPC (整体废弃决策)
+  - DB schema simplification (`DROP COLUMN checkins.status` 或语义降级 + RLS 简化)
+  - RLS `checkins_select` policy 调整 (移除 `status='approved' OR` 分支，保留 `user_id` + admin)
 
 ---
 
@@ -643,7 +639,26 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
-## Closed Follow-ups（29 条）
+## Known Issues
+
+### Known Issue · checkin 数据字段写入路径异常 (2026-05-21 FU-11 sprint 期间发现)
+
+- **现象**: 某些 checkin 数据 (如 activity `7707122f-bebe-4b04-b904-1ad4397b706a`) 的 `checkin.distance_meters` / `checkin.elevation_gain_meters` / `checkin.max_elevation_meters` 字段被写入 0 而非 null；`checkin.duration_seconds` 被写入 60 (1 分钟)。同条 checkin 关联的 session 数据真实 (`distance_m=8300m` / `ascent_m=1465m` / 时长 3h)。
+- **关联现象**: Activity Detail 优先用 checkin 字段 → 显示 `0m / 1m / -- / --`；FU-11 sprint 已加入口 gate 隐藏脏数据活动 publish UI，Activity Detail 数据展示保持真实异常以便用户看到数据问题。
+- **待 root cause 调查**: trek 服务定时写入 / N2C close action / `verify_summit_checkin` RPC 等写入路径中哪一条产生了 0/60 异常值；是否其他 source type (用户上传 / 截图识别) 也有类似问题。
+- **处理方向**: 后续 sprint 单独调查 (体量未定，可能开新 FU 或并入 FU-42 整体废除 status + 字段写入完整性审计)。
+
+---
+
+## Closed Follow-ups（30 条）
+
+### FU-11 ✅ 活动详情底部按钮悬浮 + 主次互换 (含 in-sprint patch: publish 路由 status filter 拆除 / 数据健康度 gate)
+
+- **关闭原因**: footer 改 fixed bottom + safe-area + backdrop blur + border-top + 主次互换 (左 `SecondaryButton` "发布到山友圈" / 右 `PrimaryButton as="a"` "生成分享")；`ActivityInlineActions` 加 `canPublishToCommunity` gate (`mountain.id !== null && hasMeaningfulActivityData`)；未关联山峰 / 脏数据活动 footer 只显示"生成分享"全宽；publish 路由 application-layer status filter 拆除 (FU-42 子操作 folding)；Activity Detail 数据展示保持原 fallback chain 真实异常。
+- **关闭 commit**: `6c0b0e8` / `b9203a0`
+- **关闭时间**: 2026-05-21
+
+---
 
 ### FU-1 ✅ 同一份轨迹文件去重（防伪造）
 
@@ -955,6 +970,21 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.26（2026-05-21）
+
+FU-11 · 活动详情底部按钮悬浮 + 主次互换 收尾 (含 2 个 in-sprint patch + folding FU-42 子操作)
+
+- 解除 FU-11 sprint 主体: footer 改 `position: fixed` + `safe-area-inset-bottom` + `backdrop-filter: blur(18px)` + border-top + 渐变背景；按钮主次互换 (左 `SecondaryButton` "发布到山友圈" / 右 `PrimaryButton as="a"` "生成分享")；HelpLink + hint 跟随 fixed footer；`activity-detail-page` 加 `--act-actions-footer-height: 148px` 让出底部空间；toast 上移到 footer 上方；commit `6c0b0e8`
+- in-sprint patch: publish 路由 `src/app/(main)/community/publish/[checkinId]/page.tsx` 删除 application-layer `.eq('status', 'approved')` filter，类型 annotation 改三态 union (folding FU-42 选 C 方向子操作)；commit `b9203a0`
+- in-sprint patch (含在 commit `6c0b0e8`): `ActivityInlineActions` 加 `canPublishToCommunity` gate，条件 `mountain.id !== null && hasMeaningfulActivityData`；`hasMeaningfulActivityData` 基于 Activity Detail 已计算 metrics 字段 (`distanceKm > 0 || ascentM > 0 || durationSeconds > 60`)；未关联山峰 / 脏数据活动 footer 只显示"生成分享"全宽 (CSS `.act-actions__button:only-child { grid-column: 1 / -1; }`)；HelpLink + hint 也隐藏
+- Activity Detail 数据展示保持 main 原 fallback chain (脏数据活动仍显示 `0m / 1m / --`)，让用户看到真实异常
+- FU-42 决策结论记录: 用户选 C 方向 (完全移除 status)；剩余实施 scope 后续 sprint 处理
+- Known Issue 注脚: checkin 数据字段写入路径异常 (写入 0 / 60 异常值)，待后续 sprint root cause
+- 计数: Active 25 → 24 (FU-11 closed) / Closed 29 → 30
+- main merge: `4c2417c`
+- preflight: lint 0e/13w · node --test 246p · build PASS · 子 spec screenshot-recognition-flow 2 passed
+- 用户 Phase 4 浏览器视觉验收: PASS (含 5 轮 in-sprint patch 全部覆盖)
 
 ### v0.25（2026-05-21）
 

@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-22 · 最新版本记录: v0.29
+> Last Updated: 2026-05-22 · 最新版本记录: v0.30
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`a7bf2c9`（Merge FU-42 sub-sprint 3 · 2026-05-22）
+`15bd36c`（Merge FU-42 sub-sprint 4 · 2026-05-22）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动（候选: FU-47(b) [P1 高优] / FU-42 sub-sprint 4 [P2] / FU-46 sub-sprint 5 [P2 高优] / FU-52 [P2 cleanup] / FU-53 [P2 cleanup] / FU-51 [P1 上线门禁] / FU-49 [P2] / FU-43 / FU-45 / FU-54 [P3 上线前] / community-acceptance / button-token-migration / app.spec / FU-2+FU-15）
+待启动 (候选清单见 v0.30 末尾推荐)
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -85,7 +85,7 @@
 
 ---
 
-## Active Follow-ups（23 条）
+## Active Follow-ups（22 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -297,73 +297,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 - src/app/(flow)/screenshot/ScreenshotClient.tsx
 - 可能扩展 checkins schema (pace_min_per_km column)
 - src/app/(flow)/activity/[id]/ActivityDetailClient.tsx
-
----
-
-### FU-42 · checkins 审核机制语义澄清 + status gate 存废决策
-
-- **优先级**: P2（业务方向 / 不阻塞）
-- **归属阶段**: 阶段 5
-- **状态**: 🟢 active
-
-**背景**: FU-13/14 sprint 视觉验收用户质疑：当前业务模型下（用户自行上传轨迹 + 截图识别 + 用户对数据负责），为何 checkins 仍有 status 三态（pending/approved/rejected）和 application-layer "approved gate"？
-status 字段是 schema/RLS/RPC 既有概念：
-- checkins INSERT 默认 status TBD
-- checkins.SELECT RLS 允许 status='approved' OR owner OR admin
-- verify_summit_checkin RPC 改 status
-- admin/checkin-review route 管理 status
-- FU-13/14 UI 在 status!=='approved' 时 disable 编辑入口
-
-**待澄清**:
-- 当前用户上传 checkin 默认 status 是什么？(查 checkins INSERT 默认值)
-- 哪些路径会进入 pending / rejected？(N2C / 截图识别 / import / 手动补签)
-- 是否还需要保留审核流程？还是直接 owner = approved 默认通过？
-- 若废弃审核：status 字段是否保留为 "owner-set" 状态语义 / 还是完全移除
-
-**决策范围（需产品方拍板）**:
-- 选 A: 保留 status 概念 + 明确触发条件 + UI gate 保留
-- 选 B: 默认全 approved + 拆 UI gate + 简化 RLS（保留 status 字段但语义降级）
-- 选 C: 完全移除 status 字段 + N2C / RPC / RLS / UI 全链路重构（大事）
-
-**不在范围**: 本 FU 仅做决策 + audit + 出方案，不立即实施（实施可拆出新 FU）
-
-**涉及（取决于决策）**:
-- supabase/migrations/* (RLS / RPC 改动)
-- src/app/api/admin/checkin-review/route.ts
-- src/lib/trek-verify-helpers.ts
-- src/app/(flow)/activity/[id]/ActivityDetailClient.tsx (gate 拆除)
-
-**决策结论 (2026-05-21 FU-11 sprint Phase 4 后)**:
-- 用户明确选 **C 方向 (完全移除 status 字段 + 全链路重构)**
-- 业务认知: 当前 3 种活动来源 (用户上传轨迹 / 截图识别 / 应用记录) 业务上没有审核流程，"审核状态"语义在项目里不存在
-- FU-11 sprint folding 进的子操作 (本 FU 视为已完成的部分): publish 路由 application-layer `.eq('status', 'approved')` filter 已拆除 (commit `b9203a0`); 类型 annotation 三态 union (`pending | approved | rejected`)
-- 剩余 FU-42 实施 scope (待后续 sprint):
-  - "手记 · 待审核通过后可编辑" 文案 (`ActivityDetailClient.tsx` 或相关组件)
-  - `ActivityDetailClient` 其他 status 相关 UI gate (`isSummit` / `proofStatus` / 等)
-  - `admin/checkin-review` route (整体废弃决策)
-  - `verify_summit_checkin` RPC (整体废弃决策)
-  - DB schema simplification (`DROP COLUMN checkins.status` 或语义降级 + RLS 简化)
-  - RLS `checkins_select` policy 调整 (移除 `status='approved' OR` 分支，保留 `user_id` + admin)
-
-**Sub-sprint 进度 (2026-05-22)**:
-- ✅ sub-sprint 1 已完成: 前端 UI 审核语义全面拆除
-  - 删除 ProfileV2 review queue section (commit `516fc6b`)
-  - 删除 Activity Detail 手记区 status gate (含 `noteDisabledHint` / 按钮 disabled / `handleStartNoteEdit` guard / `handleSaveNote` 内 noteValidation 简化) (commit `7c8f580`)
-  - 净改动 5 文件 (-82 行)
-- ✅ sub-sprint 2 已完成: 前端 status gate 拆除 + `isSummit` 业务字段迁移到 `verified_at` + FU-30 folding (Profile / Archive "山行"口径统一) + `activity/actions` API guards 拆除 (folding patch)
-  - backfill migration: 343 行 `status IN ('approved','verified') AND verified_at IS NULL` 历史数据补 `verified_at=created_at` (commit `50b772c`)
-  - Archive `isSummit` 切为 `summit_verified === true || verified_at !== null`；Activity Detail `isSummit` 切为 `checkin.verified_at !== null`；Profile 头部统计切 completion-only；Activity Detail 照片补传 / 删除 UI gate 拆除；`activity/actions` photo/note endpoint 的 status guard 拆除 (commit `fa084e5` / `f443cba`)
-- ✅ sub-sprint 3 已完成: share card poster generation status guard 拆除 (`trek/actions` `generate_share_card`) + review queue dead code cleanup
-  - 删除 `src/lib/review-queue.ts` 整模块、`ProfileReviewQueueSummary` / `MyRecordsModal` 孤儿组件、`ReviewQueueRecord` type、Trek dead query / dead prop、review queue CSS 类名；pending 活动可生成 share card poster (commit `32ca29e` / `75a6574`)
-  - 净改动 11 文件 (-421 行)
-- ⏳ sub-sprint 4 待启动 - 剩余 scope:
-  - `ActivityDetailViewModel.status` / `Trip.status` / `ProfileV2TripPreview.status` 等 type 字段废除
-  - 写入路径 `status='pending'/'approved'` default 处理 (随 DB `DROP COLUMN` 一并)
-  - `admin/checkins` 路由整套删除 (UI + API + e2e)
-  - `api/admin/checkin-review/route.ts` 删除
-  - DB migration: `DROP COLUMN checkins.status` (或 `RENAME` 作 legacy 兼容)
-  - RLS `checkins_select` policy 简化 (移除 `status='approved'` 分支)
-  - `verify_summit_checkin` RPC 改写 (移除 `status='approved'` write，仅 set `verified_at` + ranking)
 
 ---
 
@@ -656,7 +589,21 @@ status 字段是 schema/RLS/RPC 既有概念：
 
 ---
 
-## Closed Follow-ups（31 条）
+## Closed Follow-ups（32 条）
+
+### FU-42 ✅ checkins status tristate 完全移除 (选 C · sub-sprint 1+2+3+4 全闭环)
+
+- **关闭原因**: 选 C 完全移除 `status` 三态字段；项目业务模型不再存在 checkins 审核状态语义。sub-sprint 1+2+3+4 已完成前端 UI、应用层、dead code、admin review surface、types/tests、DB migration 编码全链路收口。
+- **sub-sprint 1**: 业务字段澄清 + audit + 选 C 拍板；拆 Profile review queue section 与 Activity Detail 手记 status gate。
+- **sub-sprint 2**: backfill 历史 status 数据 + UI gate 拆除 + `isSummit` / Profile / Archive 口径切到 `verified_at` / `completionStatus`，并 folding FU-30。
+- **sub-sprint 3**: 应用层死代码清理（`review-queue.ts` + 孤儿组件 + Trek dead query + `ReviewQueueRecord` type + CSS）与 share card poster guard 拆除。
+- **sub-sprint 4**: 应用层 `checkins.status` 引用全清 + `admin/checkins` 路由/API 删除 + `isSummit` / 山行 count / community gating 切到 `verified_at` + DB migration 编码（`DROP COLUMN` + RLS 简化 + RPC 重写）。
+- **生产 schema 未应用**: migration 文件已 commit 但未在 V3 期间执行；等 Vercel deploy 完成后通过 Codex Supabase MCP 应用并验证。
+- **关闭 commit**: `29f8f51` / `7ea0ff4`
+- **merge commit**: `15bd36c`
+- **关闭时间**: 2026-05-22
+
+---
 
 ### FU-30 ✅ 档案页 / Profile 页 "山行"字段语义统一
 
@@ -984,6 +931,20 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.30（2026-05-22）
+
+FU-42 sub-sprint 4 · close 整个 FU-42 umbrella · checkins.status 三态字段全链路移除收尾
+
+- **实施**: 40 modified + 3 deleted (`admin/checkins` UI 2 + `checkin-review` API 1) + 1 new migration；net +326/-984 across merge（app commit +163/-984, migration +163）。
+- **应用层切换**: `isSummit` / Profile 山行 count / Archive count / community feed gating / Activity Detail pending 编辑与分享入口全部从 `status='approved'` 切到 `verified_at IS NOT NULL` 或 `completionStatus` 业务字段。
+- **DB migration (deploy-gated)**: 新 SQL 文件按顺序 (1) DROP+CREATE POLICY `checkins_select`（移除 `status='approved'` 分支）, (2) CREATE OR REPLACE FUNCTION `verify_and_record_checkin`（写 `verified_at` + ranking fields + `completion_status`, 签名稳定）, (3) DROP INDEX `idx_checkins_status_source`, (4) DROP CONSTRAINT `checkins_status_check`, (5) DROP COLUMN `status`。V3 期间**未应用**到生产，避免应用部署完成前 schema 已变的 race window；等 Vercel deploy 完成后通过 Codex Supabase MCP 单独应用 + 验证。
+- **准入**: lint 0e/10w · node test 246p · build PASS · strong-coupling e2e 4 specs / 7 tests pass · 用户视觉验收 5 个场景全过 (Profile head / Archive isSummit chip / Activity Detail pending / `/admin/checkins` 404 / Trek summit verify)。
+- **提交分桶**: app code refactor commit `29f8f51` / migration deploy-gated commit `7ea0ff4` / docs v0.30 commit（本条）。
+- Active 23 → 22 · Closed 31 → 32 · 关闭 FU-42 整个 umbrella (sub-sprint 1+2+3+4)。
+- **已知偏差**: 生产 schema 尚未 apply migration；需在 V3 推 main 后等 Vercel 部署完成，然后通过 Codex Supabase MCP 单独执行 migration 并验证 column gone / RLS simplified / RPC rewritten。
+
+v0.8 机械化清单第十七次实战。
 
 ### v0.29（2026-05-22）
 

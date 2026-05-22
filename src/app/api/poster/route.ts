@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import { resolveCheckinSource } from '@/lib/trek-utils'
 import { getMountainPosterBackgroundImage } from '@/lib/mountain-media'
+import { parseCommunityPostPayload } from '@/lib/community'
 import { getRandomQuote, IN_PROGRESS_QUOTES, SUMMIT_QUOTES } from '@/lib/sharing-quotes'
 import type { ShareAnchorPosition, ShareCardTemplate, ShareRenderMode } from '@/types'
 
@@ -1329,19 +1331,23 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createSupabaseServerClient()
+  const adminSupabase = createSupabaseAdminClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   const checkinSelectVariants = [
     `
-      id, type, source, note, created_at, status, latitude, longitude,
+      id, user_id, type, source, note, created_at, latitude, longitude,
       mountains(name, altitude, province, cover_image, gallery_images, route_preview_image, route_preview_image_url, latitude, longitude),
       profiles(username)
     `,
     `
-      id, type, source, note, created_at, status, latitude, longitude,
+      id, user_id, type, source, note, created_at, latitude, longitude,
       mountains(name, altitude, province, cover_image, latitude, longitude),
       profiles(username)
     `,
     `
-      id, type, note, created_at, status, latitude, longitude,
+      id, user_id, type, note, created_at, latitude, longitude,
       mountains(name, altitude, province, cover_image, latitude, longitude),
       profiles(username)
     `,
@@ -1357,11 +1363,10 @@ export async function GET(request: NextRequest) {
         | null = null
 
       for (const selectClause of checkinSelectVariants) {
-        const result = await supabase
+        const result = await adminSupabase
           .from('checkins')
           .select(selectClause)
           .eq('id', checkinId)
-          .eq('status', 'approved')
           .single()
 
         lastResult = result as {
@@ -1381,6 +1386,7 @@ export async function GET(request: NextRequest) {
     }
 
   const checkin = checkinResult.data as (Record<string, unknown> & {
+    user_id: string
     type: string
     note: string | null
     created_at: string
@@ -1412,6 +1418,29 @@ export async function GET(request: NextRequest) {
     source: checkin.source ?? null,
     type: checkin.type,
   })
+  const mountainName = mountain?.name ?? '未知山峰'
+  const isOwner = Boolean(user?.id && checkin.user_id === user.id)
+  if (!isOwner) {
+    const { data: publicPosts } = await adminSupabase
+      .from('posts')
+      .select('content')
+      .eq('checkin_id', checkinId)
+      .order('created_at', { ascending: false })
+      .limit(10)
+    const hasPublicPost = ((publicPosts ?? []) as Array<{ content: string | null }>).some((post) => {
+      const parsed = parseCommunityPostPayload({
+        content: post.content,
+        checkinId,
+        sourceType: source,
+        mountainName,
+      })
+      return parsed.status === 'published' && parsed.visibility === 'public'
+    })
+
+    if (!hasPublicPost) {
+      return NextResponse.json({ error: 'Checkin not found' }, { status: 404 })
+    }
+  }
   const latitude = hasValidCoordinates(checkin.latitude ?? null, checkin.longitude ?? null)
     ? checkin.latitude ?? null
     : mountain?.latitude ?? null
@@ -1425,7 +1454,7 @@ export async function GET(request: NextRequest) {
 
   const svg = buildPosterSVG({
     template,
-    mountainName: mountain?.name ?? '未知山峰',
+    mountainName,
     altitude: mountain?.altitude ?? 0,
     province: mountain?.province ?? '',
     latitude,

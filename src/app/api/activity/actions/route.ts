@@ -20,7 +20,6 @@ import type { CheckinAsset } from '@/types'
 type CheckinRow = {
   id: string
   user_id: string
-  status: 'pending' | 'approved' | 'rejected'
   note: string | null
   photo_url: string | null
 }
@@ -89,7 +88,7 @@ async function loadCheckinById(
 ) {
   const { data, error } = await supabase
     .from('checkins')
-    .select('id, user_id, status, note, photo_url')
+    .select('id, user_id, note, photo_url')
     .eq('id', checkinId)
     .maybeSingle()
 

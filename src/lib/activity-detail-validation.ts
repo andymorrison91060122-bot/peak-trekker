@@ -1,24 +1,19 @@
 export const ACTIVITY_NOTE_MAX_LENGTH = 2000
 export const ACTIVITY_PHOTO_MAX_COUNT = 9
 
-export type EditableActivityStatus = 'pending' | 'approved' | 'rejected'
-
 export type ActivityNoteValidationInput = {
   draftNote: string
   savedNote: string
-  status: EditableActivityStatus
   isSaving?: boolean
 }
 
 export type ActivityPhotoUploadValidationInput = {
   currentPhotoCount: number
   selectedFileCount: number
-  status: EditableActivityStatus
   isUploading?: boolean
 }
 
 export type ActivityPhotoDeleteValidationInput = {
-  status: EditableActivityStatus
   isDeleting?: boolean
 }
 

@@ -99,7 +99,7 @@ export default function CommunityManualAcceptanceChecklist() {
           </div>
           <div className="metric-tile">
             <div className="metric-label">建议记录</div>
-            <div className="section-subtitle">至少准备 1 条实时登顶记录和 1 条审核通过的历史补签记录，方便分别验证即时发布与延迟发布。</div>
+            <div className="section-subtitle">至少准备 1 条实时登顶记录和 1 条历史补签记录，方便分别验证即时发布与延迟发布。</div>
           </div>
           <div className="metric-tile">
             <div className="metric-label">建议入口</div>

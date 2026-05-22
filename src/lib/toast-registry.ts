@@ -72,7 +72,7 @@ export const TOAST_REGISTRY = {
   },
   photo_checkin_success: {
     tone: 'success',
-    message: '照片已提交，审核通过后将出现在记录中。',
+    message: '照片已加入记录。',
   },
   image_upload_success: {
     tone: 'success',

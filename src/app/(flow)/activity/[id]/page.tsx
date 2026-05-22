@@ -25,7 +25,6 @@ type CheckinRow = {
   mountain_id: string | null
   type: string | null
   source?: string | null
-  status: 'pending' | 'approved' | 'rejected'
   photo_url: string | null
   note: string | null
   session_id?: string | null
@@ -68,14 +67,14 @@ type RawTrackPoint = {
 }
 
 const CHECKIN_SELECT_FULL = `
-  id, user_id, mountain_id, type, source, status, photo_url, note, session_id, verified_at, created_at,
+  id, user_id, mountain_id, type, source, photo_url, note, session_id, verified_at, created_at,
   distance_meters, duration_seconds, elevation_gain_meters, max_elevation_meters, min_elevation_meters,
   start_time, end_time, track_points,
   mountains(id, name, altitude, province, difficulty, cover_image, gallery_images)
 `
 
 const CHECKIN_SELECT_LEGACY = `
-  id, user_id, mountain_id, type, source, status, photo_url, note, session_id, verified_at, created_at,
+  id, user_id, mountain_id, type, source, photo_url, note, session_id, verified_at, created_at,
   mountains(id, name, altitude, province, difficulty, cover_image, gallery_images)
 `
 
@@ -275,7 +274,6 @@ export default async function ActivityDetailPage({
     summitAt,
     sourceType,
     sourceLabelType,
-    status: checkin.status,
     isSummit,
     hasMeaningfulActivityData,
     mountain: {

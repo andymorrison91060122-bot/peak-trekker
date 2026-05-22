@@ -13,7 +13,7 @@ type MockCheckinRecord = {
   province: string | null
   provinceCode: string | null
   difficulty: string
-  status: string
+  verifiedAt: string | null
   createdAt: string
 }
 
@@ -58,7 +58,7 @@ function aggregateProvinceRows(
 
   for (const row of rows) {
     const createdAtMs = Date.parse(row.createdAt)
-    if (row.status !== 'approved') continue
+    if (!row.verifiedAt) continue
     if (Number.isNaN(createdAtMs) || createdAtMs < startMs || createdAtMs >= endMs) continue
     if (!row.province || !row.provinceCode) continue
 
@@ -130,7 +130,7 @@ test('getMonthBoundary returns UTC windows for UTC+8 calendar months', () => {
   })
 })
 
-test('province aggregation only scores approved checkins inside the target month', () => {
+test('province aggregation only scores verified checkins inside the target month', () => {
   const rows = aggregateProvinceRows(
     [
       {
@@ -138,7 +138,7 @@ test('province aggregation only scores approved checkins inside the target month
         province: '北京',
         provinceCode: 'BJ',
         difficulty: 'beginner',
-        status: 'approved',
+        verifiedAt: '2026-04-01T00:00:00.000Z',
         createdAt: '2026-04-01T00:00:00.000Z',
       },
       {
@@ -146,7 +146,7 @@ test('province aggregation only scores approved checkins inside the target month
         province: '北京',
         provinceCode: 'BJ',
         difficulty: 'advanced',
-        status: 'approved',
+        verifiedAt: '2026-04-10T08:00:00.000Z',
         createdAt: '2026-04-10T08:00:00.000Z',
       },
       {
@@ -154,7 +154,7 @@ test('province aggregation only scores approved checkins inside the target month
         province: '北京',
         provinceCode: 'BJ',
         difficulty: 'expert',
-        status: 'approved',
+        verifiedAt: '2026-04-20T08:00:00.000Z',
         createdAt: '2026-04-20T08:00:00.000Z',
       },
       {
@@ -162,7 +162,7 @@ test('province aggregation only scores approved checkins inside the target month
         province: '北京',
         provinceCode: 'BJ',
         difficulty: 'expert',
-        status: 'pending',
+        verifiedAt: null,
         createdAt: '2026-04-21T08:00:00.000Z',
       },
       {
@@ -170,7 +170,7 @@ test('province aggregation only scores approved checkins inside the target month
         province: '北京',
         provinceCode: 'BJ',
         difficulty: 'expert',
-        status: 'rejected',
+        verifiedAt: null,
         createdAt: '2026-04-22T08:00:00.000Z',
       },
       {
@@ -178,7 +178,7 @@ test('province aggregation only scores approved checkins inside the target month
         province: '北京',
         provinceCode: 'BJ',
         difficulty: 'expert',
-        status: 'approved',
+        verifiedAt: '2026-03-20T08:00:00.000Z',
         createdAt: '2026-03-20T08:00:00.000Z',
       },
     ],
@@ -205,7 +205,7 @@ test('province ranking attributes score to the user province and skips users wit
         province: '北京',
         provinceCode: 'BJ',
         difficulty: 'advanced',
-        status: 'approved',
+        verifiedAt: '2026-04-05T08:00:00.000Z',
         createdAt: '2026-04-05T08:00:00.000Z',
       },
       {
@@ -213,7 +213,7 @@ test('province ranking attributes score to the user province and skips users wit
         province: null,
         provinceCode: null,
         difficulty: 'expert',
-        status: 'approved',
+        verifiedAt: '2026-04-06T08:00:00.000Z',
         createdAt: '2026-04-06T08:00:00.000Z',
       },
     ],
@@ -234,7 +234,7 @@ test('province ranking uses competition rank for ties', () => {
         province: '北京',
         provinceCode: 'BJ',
         difficulty: 'advanced',
-        status: 'approved',
+        verifiedAt: '2026-04-05T08:00:00.000Z',
         createdAt: '2026-04-05T08:00:00.000Z',
       },
       {
@@ -242,7 +242,7 @@ test('province ranking uses competition rank for ties', () => {
         province: '四川',
         provinceCode: 'SC',
         difficulty: 'advanced',
-        status: 'approved',
+        verifiedAt: '2026-04-06T08:00:00.000Z',
         createdAt: '2026-04-06T08:00:00.000Z',
       },
       {
@@ -250,7 +250,7 @@ test('province ranking uses competition rank for ties', () => {
         province: '河南',
         provinceCode: 'HA',
         difficulty: 'beginner',
-        status: 'approved',
+        verifiedAt: '2026-04-07T08:00:00.000Z',
         createdAt: '2026-04-07T08:00:00.000Z',
       },
     ],

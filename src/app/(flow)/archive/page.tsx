@@ -35,7 +35,6 @@ type CheckinRow = {
   mountain_id: string | null
   type?: string | null
   source?: string | null
-  status: string | null
   photo_url: string | null
   verified_at?: string | null
   created_at: string
@@ -77,23 +76,23 @@ const PROFILE_SELECT_VARIANTS = [
 
 const CHECKIN_SELECT_VARIANTS = [
   `
-    id, user_id, mountain_id, type, source, status, photo_url, verified_at, created_at,
+    id, user_id, mountain_id, type, source, photo_url, verified_at, created_at,
     summit_verified, altitude, distance_km, ascent_m, duration_seconds,
     distance_meters, elevation_gain_meters, max_elevation_meters, session_id,
     mountains(id, name, altitude, province, region, cover_image, gallery_images)
   `,
   `
-    id, user_id, mountain_id, type, source, status, photo_url, verified_at, created_at,
+    id, user_id, mountain_id, type, source, photo_url, verified_at, created_at,
     distance_meters, elevation_gain_meters, max_elevation_meters, duration_seconds,
     session_id,
     mountains(id, name, altitude, province, cover_image, gallery_images)
   `,
   `
-    id, user_id, mountain_id, type, status, photo_url, verified_at, created_at, session_id,
+    id, user_id, mountain_id, type, photo_url, verified_at, created_at, session_id,
     mountains(id, name, altitude, province, cover_image, gallery_images)
   `,
   `
-    id, user_id, mountain_id, type, status, photo_url, created_at,
+    id, user_id, mountain_id, type, photo_url, created_at,
     mountains(id, name, altitude, province)
   `,
 ] as const

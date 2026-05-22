@@ -34,15 +34,15 @@ export default async function CommunityPublishPage({
 
   const checkinSelectVariants = [
     `
-      id, user_id, type, source, status, note, photo_url, poster_url, session_id, created_at,
+      id, user_id, type, source, note, photo_url, poster_url, session_id, created_at,
       mountains(id, name, altitude, province, difficulty, cover_image, gallery_images, route_preview_image, route_preview_image_url)
     `,
     `
-      id, user_id, type, status, note, photo_url, poster_url, created_at,
+      id, user_id, type, note, photo_url, poster_url, created_at,
       mountains(id, name, altitude, province, difficulty)
     `,
     `
-      id, user_id, type, status, note, photo_url, created_at,
+      id, user_id, type, note, photo_url, created_at,
       mountains(id, name, altitude, province, difficulty)
     `,
   ]
@@ -112,7 +112,6 @@ export default async function CommunityPublishPage({
     user_id: string
     type: 'gps' | 'photo'
     source?: CheckinSource | null
-    status: 'pending' | 'approved' | 'rejected'
     note: string | null
     photo_url: string | null
     poster_url?: string | null

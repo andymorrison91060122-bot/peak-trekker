@@ -69,7 +69,7 @@ export async function fetchCheckinForE2E(checkinId: string) {
   const supabase = getSupabaseAdminClient()
   const { data, error } = await supabase
     .from('checkins')
-    .select('id, status, completion_status, session_id, mountain_id, photo_url')
+    .select('id, completion_status, session_id, mountain_id, photo_url, verified_at')
     .eq('id', checkinId)
     .single()
 
@@ -79,11 +79,11 @@ export async function fetchCheckinForE2E(checkinId: string) {
 
   return data as {
     id: string
-    status: string
     completion_status: string | null
     session_id: string | null
     mountain_id: string | null
     photo_url: string | null
+    verified_at: string | null
   }
 }
 

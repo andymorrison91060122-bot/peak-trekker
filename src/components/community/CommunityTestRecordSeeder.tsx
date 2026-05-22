@@ -99,7 +99,6 @@ export default function CommunityTestRecordSeeder({
           mountainId: selectedMountain.id,
           photoUrl: QA_PNG_DATA_URL,
           note: note.trim() || 'QA 手动验收测试记录',
-          qaForceApproved: true,
         })
 
         const checkinId = typeof result.checkinId === 'string' ? result.checkinId : ''
@@ -112,7 +111,7 @@ export default function CommunityTestRecordSeeder({
           mountainName: selectedMountain.name,
           sourceType: 'historical_photo',
         })
-        flash('已为当前账号生成一条审核通过的补签记录。')
+        flash('已为当前账号生成一条照片补签记录。')
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : '生成补签记录失败，请稍后重试。')
       }

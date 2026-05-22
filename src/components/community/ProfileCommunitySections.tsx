@@ -104,7 +104,7 @@ export default function ProfileCommunitySections({
             <div>
               <div className="font-pixel" style={{ fontSize: 16, marginBottom: 4 }}>有新的补签记录可分享</div>
               <div className="section-subtitle">
-                你有 {unsharedHistorical.length} 条审核通过的补签记录还没发到山友圈，海报和素材会自动带入发布页。
+                你有 {unsharedHistorical.length} 条照片补签记录还没发到山友圈，海报和素材会自动带入发布页。
               </div>
             </div>
             <Link href={`/community/publish/${unsharedHistorical[0].checkinId}`} className="primary-btn" style={{ textDecoration: 'none' }}>
@@ -116,7 +116,7 @@ export default function ProfileCommunitySections({
           <div className="metric-tile">
             <div className="font-pixel" style={{ fontSize: 18, marginBottom: 6 }}>你的首条记录会显示在这里</div>
             <div className="section-subtitle">
-              完成实时登顶或补签审核通过后，就可以从这里补充内容并分享到山友圈。
+              完成实时登顶或照片补签后，就可以从这里补充内容并分享到山友圈。
             </div>
           </div>
         ) : (

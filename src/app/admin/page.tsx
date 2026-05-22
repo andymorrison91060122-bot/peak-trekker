@@ -1,20 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
-const DIFF_LABEL: Record<string, string> = {
-  beginner: '入门', intermediate: '中级', advanced: '高级', expert: '专家',
-}
-const TYPE_LABEL: Record<string, string> = {
-  gps: 'GPS', photo: '照片',
-}
-
-type AdminDashboardCheckin = {
-  id: string
-  type: string
-  created_at: string
-  mountains: { name: string | null; altitude: number | null; difficulty: string | null } | null
-  profiles: { username: string | null; province: string | null } | null
-}
-
 type AdminDashboardProvinceStat = {
   province_name: string
   score: number | null
@@ -69,27 +54,14 @@ export default async function AdminDashboard() {
   const [
     usersRes,
     mountainsRes,
-    pendingRes,
     todayRes,
     monthRes,
-    recentPendingRes,
     provinceRes,
   ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('mountains').select('*', { count: 'exact', head: true }),
-    supabase.from('checkins').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('checkins').select('*', { count: 'exact', head: true }).gte('created_at', todayStart),
     supabase.from('checkins').select('*', { count: 'exact', head: true }).gte('created_at', monthStart),
-    supabase
-      .from('checkins')
-      .select(`
-        id, type, status, created_at, note,
-        mountains(name, altitude, difficulty),
-        profiles(username, province)
-      `)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: true })
-      .limit(10),
     supabase
       .from('province_stats')
       .select('province_name, score, active_users')
@@ -99,16 +71,13 @@ export default async function AdminDashboard() {
 
   const totalUsers = usersRes.count ?? 0
   const totalMountains = mountainsRes.count ?? 0
-  const pendingCount = pendingRes.count ?? 0
   const todayCount = todayRes.count ?? 0
   const monthCount = monthRes.count ?? 0
-  const recentPending = (recentPendingRes.data ?? []) as unknown as AdminDashboardCheckin[]
   const topProvinces = (provinceRes.data ?? []) as AdminDashboardProvinceStat[]
 
   const stats = [
     { label: '总用户数', value: totalUsers, sub: 'TOTAL USERS' },
     { label: '山峰总数', value: totalMountains, sub: 'MOUNTAINS' },
-    { label: '待审核打卡', value: pendingCount, sub: 'PENDING' },
     { label: '今日打卡', value: todayCount, sub: 'TODAY' },
     { label: '本月打卡', value: monthCount, sub: 'THIS MONTH' },
     { label: '省份热度榜', value: topProvinces.length > 0 ? topProvinces[0].province_name : '—', sub: 'TOP PROVINCE' },
@@ -132,99 +101,7 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16 }}>
-
-        {/* 中部：最近 10 条待审核打卡 */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <h2 className="font-pixel" style={{ fontSize: 8, color: 'var(--green-bright)' }}>
-              待审核打卡
-            </h2>
-            <a href="/admin/checkins" style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--green-primary)', textDecoration: 'none' }}>
-              查看全部 →
-            </a>
-          </div>
-
-          {recentPending.length === 0 ? (
-            <div style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              padding: '32px 16px',
-              textAlign: 'center',
-            }}>
-              <div className="font-pixel" style={{ fontSize: 8, color: 'var(--green-neon)', marginBottom: 8 }}>
-                [  OK  ]
-              </div>
-              <div style={{ fontFamily: 'Share Tech Mono', fontSize: 11, color: 'var(--text-muted)' }}>
-                暂无待审核打卡
-              </div>
-            </div>
-          ) : (
-            <div style={{ border: '1px solid var(--border-color)' }}>
-              {/* 表头 */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr 120px 60px',
-                gap: 0,
-                padding: '8px 12px',
-                background: '#111',
-                borderBottom: '1px solid var(--border-color)',
-              }}>
-                {['用户', '山峰', '时间', '类型'].map(h => (
-                  <div key={h} style={{ fontFamily: 'Share Tech Mono', fontSize: 9, color: 'var(--text-muted)', letterSpacing: 1 }}>
-                    {h}
-                  </div>
-                ))}
-              </div>
-              {recentPending.map((c, i) => (
-                <div
-                  key={c.id}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr 120px 60px',
-                    gap: 0,
-                    padding: '10px 12px',
-                    borderBottom: i < recentPending.length - 1 ? '1px solid var(--border-color)' : 'none',
-                    background: i % 2 === 0 ? 'var(--bg-card)' : 'rgba(0,0,0,0.3)',
-                    alignItems: 'center',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--text-primary)' }}>
-                      {c.profiles?.username ?? '—'}
-                    </div>
-                    <div style={{ fontFamily: 'Share Tech Mono', fontSize: 9, color: 'var(--text-muted)' }}>
-                      {c.profiles?.province ?? ''}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--text-primary)' }}>
-                      {c.mountains?.name ?? '—'}
-                    </div>
-                    <div style={{ fontFamily: 'Share Tech Mono', fontSize: 9, color: 'var(--text-muted)' }}>
-                      ▲ {(c.mountains?.altitude ?? 0).toLocaleString()}m · {DIFF_LABEL[c.mountains?.difficulty ?? ''] ?? ''}
-                    </div>
-                  </div>
-                  <div style={{ fontFamily: 'Share Tech Mono', fontSize: 9, color: 'var(--text-muted)' }}>
-                    {new Date(c.created_at).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                  <div>
-                    <span style={{
-                      fontFamily: 'Share Tech Mono', fontSize: 9,
-                      color: c.type === 'gps' ? 'var(--green-neon)' : '#F4A261',
-                      padding: '2px 6px',
-                      border: `1px solid ${c.type === 'gps' ? 'var(--green-neon)' : '#F4A261'}`,
-                    }}>
-                      {TYPE_LABEL[c.type] ?? c.type}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* 右侧：省份热度 Top5 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
         <div>
           <h2 className="font-pixel" style={{ fontSize: 8, color: 'var(--green-bright)', marginBottom: 12 }}>
             省份热度 Top5

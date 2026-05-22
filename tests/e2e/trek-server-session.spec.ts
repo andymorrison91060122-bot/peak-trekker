@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import {
   backdateTrekSessionForTest,
   buildTrekTestTrackPoints,
-  countApprovedCheckinsForSession,
+  countVerifiedCheckinsForSession,
   createGpsCheckinViaApi,
   deleteTestMountainById,
   dismissActivationChecklistIfPresent,
@@ -179,7 +179,7 @@ test.describe('trek server session', () => {
       expect(second.status, JSON.stringify(second.body)).toBe(200)
       expect(second.body.duplicated).toBe(true)
       expect(second.body.checkinId).toBe(first.body.checkinId)
-      await expect.poll(() => countApprovedCheckinsForSession(sessionId)).toBe(1)
+      await expect.poll(() => countVerifiedCheckinsForSession(sessionId)).toBe(1)
     } finally {
       await finishSession(page, sessionId)
     }
@@ -208,7 +208,7 @@ test.describe('trek server session', () => {
       expect(checkinIds[0]).toMatch(UUID_PATTERN)
       expect(checkinIds[1]).toBe(checkinIds[0])
       expect([first.body.duplicated, second.body.duplicated].filter(Boolean)).toHaveLength(1)
-      await expect.poll(() => countApprovedCheckinsForSession(sessionId)).toBe(1)
+      await expect.poll(() => countVerifiedCheckinsForSession(sessionId)).toBe(1)
     } finally {
       await finishSession(page, sessionId)
     }

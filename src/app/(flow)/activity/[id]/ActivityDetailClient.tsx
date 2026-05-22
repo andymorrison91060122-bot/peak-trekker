@@ -57,7 +57,6 @@ export type ActivityDetailViewModel = {
   summitAt: string | null
   sourceType: CheckinSource
   sourceLabelType: SourceLabelProps['type']
-  status: 'pending' | 'approved' | 'rejected'
   isSummit: boolean
   hasMeaningfulActivityData: boolean
   mountain: {
@@ -873,7 +872,7 @@ function ActivityPhotoLightbox({
   const safeIndex = Math.min(Math.max(activeIndex, 0), Math.max(photos.length - 1, 0))
   const activePhoto = photos[safeIndex]
   const touchStartXRef = useRef<number | null>(null)
-  const deleteValidation = getActivityPhotoDeleteValidation({ status: 'approved', isDeleting })
+  const deleteValidation = getActivityPhotoDeleteValidation({ isDeleting })
 
   function goToOffset(offset: number) {
     if (isDeleting || photos.length <= 1) return
@@ -1025,7 +1024,6 @@ function MemoryNote({
   const noteValidation = getActivityNoteValidation({
     draftNote,
     savedNote,
-    status: activity.status,
     isSaving,
   })
   const counterColor = noteValidation.isOverLimit ? 'var(--color-error)' : 'var(--color-on-surface-variant)'
@@ -1495,7 +1493,6 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
     const validation = getActivityNoteValidation({
       draftNote,
       savedNote,
-      status: activity.status,
       isSaving: isSavingNote,
     })
     if (!validation.canSave || noteSaveInFlightRef.current) return
@@ -1550,7 +1547,6 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
 
   async function handleDeletePhoto(photo: ActivityPhotoViewModel) {
     const validation = getActivityPhotoDeleteValidation({
-      status: activity.status,
       isDeleting: isDeletingPhoto,
     })
 
@@ -1606,7 +1602,6 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
     const validation = getActivityPhotoUploadValidation({
       currentPhotoCount: photos.length,
       selectedFileCount: selectedFiles.length,
-      status: activity.status,
       isUploading: isUploadingPhotos,
     })
 

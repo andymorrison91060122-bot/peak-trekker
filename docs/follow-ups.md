@@ -598,7 +598,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 - **sub-sprint 2**: backfill 历史 status 数据 + UI gate 拆除 + `isSummit` / Profile / Archive 口径切到 `verified_at` / `completionStatus`，并 folding FU-30。
 - **sub-sprint 3**: 应用层死代码清理（`review-queue.ts` + 孤儿组件 + Trek dead query + `ReviewQueueRecord` type + CSS）与 share card poster guard 拆除。
 - **sub-sprint 4**: 应用层 `checkins.status` 引用全清 + `admin/checkins` 路由/API 删除 + `isSummit` / 山行 count / community gating 切到 `verified_at` + DB migration 编码（`DROP COLUMN` + RLS 简化 + RPC 重写）。
-- **生产 schema 未应用**: migration 文件已 commit 但未在 V3 期间执行；等 Vercel deploy 完成后通过 Codex Supabase MCP 应用并验证。
+- **生产 schema 已应用 (2026-05-22)**: Vercel 部署完成后通过 Supabase MCP `apply_migration` 应用并验证 column gone / RLS simplified / RPC rewritten / index dropped / constraint dropped (详见 v0.30 entry); Tooling deviation: remote `schema_migrations` version timestamp 为 apply 运行时生成 (`20260522104503`), 与 repo 文件名 timestamp prefix (`20260522045459`) 不一致, name + SQL body 一致, cosmetic only。
 - **关闭 commit**: `29f8f51` / `7ea0ff4`
 - **merge commit**: `15bd36c`
 - **关闭时间**: 2026-05-22
@@ -942,7 +942,8 @@ FU-42 sub-sprint 4 · close 整个 FU-42 umbrella · checkins.status 三态字�
 - **准入**: lint 0e/10w · node test 246p · build PASS · strong-coupling e2e 4 specs / 7 tests pass · 用户视觉验收 5 个场景全过 (Profile head / Archive isSummit chip / Activity Detail pending / `/admin/checkins` 404 / Trek summit verify)。
 - **提交分桶**: app code refactor commit `29f8f51` / migration deploy-gated commit `7ea0ff4` / docs v0.30 commit（本条）。
 - Active 23 → 22 · Closed 31 → 32 · 关闭 FU-42 整个 umbrella (sub-sprint 1+2+3+4)。
-- **已知偏差**: 生产 schema 尚未 apply migration；需在 V3 推 main 后等 Vercel 部署完成，然后通过 Codex Supabase MCP 单独执行 migration 并验证 column gone / RLS simplified / RPC rewritten。
+- **生产 schema 已应用 (2026-05-22)**: Vercel 部署 `main@17a8f2e` 完成 (state=READY) 后通过 Supabase MCP `apply_migration` 应用 `drop_checkins_status_finalize_fu42`, success=true; post-apply 验证全通过 — `checkins.status` column 已删 / `checkins_select` RLS 简化为 owner+admin 无 status 分支 / `verify_and_record_checkin` RPC 已重写 (含 verified_at / ranking_weight / completion_status, 无 status / approved 字符串) / `idx_checkins_status_source` 已删 / `checkins_status_check` constraint 已删; smoke `SELECT COUNT(*) FROM checkins WHERE verified_at IS NOT NULL` = 568; RPC `authenticated` 仍 EXECUTE 可调用。
+- **Tooling deviation**: Supabase MCP `apply_migration` 在远端 `schema_migrations` 记录的 version 为运行时生成的 `20260522104503`, 与 repo 文件名前缀 `20260522045459` 不一致; migration name 与 SQL body 一致; supabase CLI 用 migration name 做 unique key 而非 timestamp prefix, 影响仅 cosmetic, 不重复 apply 不破坏跨机器 sync。
 
 v0.8 机械化清单第十七次实战。
 

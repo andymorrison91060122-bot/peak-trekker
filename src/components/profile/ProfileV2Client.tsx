@@ -29,7 +29,6 @@ export type ProfileV2Summary = {
 
 export type ProfileV2TripPreview = {
   checkinId: string
-  status: string | null
   completionStatus?: 'complete' | 'incomplete' | null
   sourceType: CheckinSource
   mountainName: string

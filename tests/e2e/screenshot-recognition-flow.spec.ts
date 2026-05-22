@@ -150,13 +150,13 @@ test('screenshot recognition flow writes an uploaded activity and opens activity
 
   const { data, error } = await getSupabaseAdminClient()
     .from('checkins')
-    .select('id, source, status, mountain_id, distance_meters, duration_seconds, max_elevation_meters, elevation_gain_meters')
+    .select('id, source, verified_at, mountain_id, distance_meters, duration_seconds, max_elevation_meters, elevation_gain_meters')
     .eq('id', checkinId)
     .single()
 
   expect(error).toBeNull()
   expect(data?.source).toBe('screenshot_recognition')
-  expect(data?.status).toBe('approved')
+  expect(data?.verified_at).toBeTruthy()
   expect(data?.mountain_id).toBeTruthy()
   expect(data?.distance_meters).toBe(5900)
   expect(data?.duration_seconds).toBe(7200)

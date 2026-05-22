@@ -186,7 +186,7 @@ export async function getActivityDetail({
     sourceLabel: buildCommunitySourceLabel(sourceType),
     recordSourceLabel: isHistoricalPhoto ? '补签记录' : isUploadedData ? '上传数据' : 'GPS 记录',
     summitStatusLabel: isHistoricalPhoto ? '历史补签通过' : isTrackImport ? '轨迹导入通过' : isScreenshotRecognition ? '截图识别通过' : '已核验登顶',
-    verificationStatusLabel: isHistoricalPhoto ? '补签审核通过' : isUploadedData ? '上传数据' : 'GPS 核验通过',
+    verificationStatusLabel: isHistoricalPhoto ? '照片补签' : isUploadedData ? '上传数据' : 'GPS 核验通过',
     mountain: {
       ...record.mountain,
       coverImage: record.mountain.coverImage ?? null,

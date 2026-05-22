@@ -211,15 +211,15 @@ export async function POST(request: NextRequest) {
 
     const checkinSelectVariants = [
       `
-        id, user_id, type, source, status, photo_url, poster_url, session_id,
+        id, user_id, type, source, photo_url, poster_url, session_id,
         mountains(name)
       `,
       `
-        id, user_id, type, status, photo_url, poster_url,
+        id, user_id, type, photo_url, poster_url,
         mountains(name)
       `,
       `
-        id, user_id, type, status, photo_url,
+        id, user_id, type, photo_url,
         mountains(name)
       `,
     ]
@@ -261,7 +261,6 @@ export async function POST(request: NextRequest) {
       user_id: string
       type: 'gps' | 'photo'
       source?: CheckinSource | null
-      status: 'pending' | 'approved' | 'rejected'
       photo_url: string | null
       poster_url?: string | null
       session_id?: string | null
@@ -273,9 +272,6 @@ export async function POST(request: NextRequest) {
     }
     if (typedCheckin.user_id !== user.id) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 })
-    }
-    if (typedCheckin.status !== 'approved') {
-      return NextResponse.json({ error: 'only approved records can be published' }, { status: 422 })
     }
 
     const sourceType = resolveCheckinSource({ source: typedCheckin.source, type: typedCheckin.type })

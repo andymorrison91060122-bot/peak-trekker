@@ -10,9 +10,10 @@ type ServerSupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient
 
 type Relation<T> = T | T[] | null
 
-type ApprovedCheckinQueryRow = {
+type VerifiedCheckinQueryRow = {
   user_id: string
   created_at: string
+  verified_at: string | null
   mountains: Relation<{ difficulty: string | null }>
   profiles: Relation<{
     id: string
@@ -39,9 +40,10 @@ type ProvinceUserRankingRow = {
   rank: number
 }
 
-const APPROVED_CHECKIN_SELECT = `
+const VERIFIED_CHECKIN_SELECT = `
   user_id,
   created_at,
+  verified_at,
   mountains(difficulty),
   profiles(id, username, province, province_code)
 `
@@ -69,7 +71,7 @@ function buildCompetitionRanks<T>(
   })
 }
 
-function normalizeApprovedRows(rows: ApprovedCheckinQueryRow[]): NormalizedCheckinRow[] {
+function normalizeVerifiedRows(rows: VerifiedCheckinQueryRow[]): NormalizedCheckinRow[] {
   return rows.flatMap((row) => {
     const mountain = unwrapRelation(row.mountains)
     const profile = unwrapRelation(row.profiles)
@@ -89,20 +91,20 @@ function normalizeApprovedRows(rows: ApprovedCheckinQueryRow[]): NormalizedCheck
   })
 }
 
-async function fetchApprovedCheckinsForMonth(
+async function fetchVerifiedCheckinsForMonth(
   supabase: ServerSupabaseClient,
   year: number,
   month: number
 ): Promise<NormalizedCheckinRow[]> {
   const { start, end } = getMonthBoundary(year, month)
   const pageSize = 1000
-  const rows: ApprovedCheckinQueryRow[] = []
+  const rows: VerifiedCheckinQueryRow[] = []
 
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await supabase
       .from('checkins')
-      .select(APPROVED_CHECKIN_SELECT)
-      .eq('status', 'approved')
+      .select(VERIFIED_CHECKIN_SELECT)
+      .not('verified_at', 'is', null)
       .gte('created_at', start)
       .lt('created_at', end)
       .order('created_at', { ascending: true })
@@ -111,12 +113,12 @@ async function fetchApprovedCheckinsForMonth(
     if (error) throw error
     if (!data?.length) break
 
-    rows.push(...(data as ApprovedCheckinQueryRow[]))
+    rows.push(...(data as VerifiedCheckinQueryRow[]))
 
     if (data.length < pageSize) break
   }
 
-  return normalizeApprovedRows(rows)
+  return normalizeVerifiedRows(rows)
 }
 
 function aggregateProvinceRows(rows: NormalizedCheckinRow[]): ProvinceRankingRow[] {
@@ -206,7 +208,7 @@ function aggregateProvinceUserRows(
 
 export async function listProvinceMonthlyRankings(year: number, month: number): Promise<ProvinceRankingRow[]> {
   const supabase = await createSupabaseServerClient()
-  const rows = await fetchApprovedCheckinsForMonth(supabase, year, month)
+  const rows = await fetchVerifiedCheckinsForMonth(supabase, year, month)
   return aggregateProvinceRows(rows)
 }
 
@@ -225,7 +227,7 @@ export async function getUserMonthlyContribution(
   if (error) throw error
   if (!profile?.province || !profile.province_code) return null
 
-  const rows = await fetchApprovedCheckinsForMonth(supabase, year, month)
+  const rows = await fetchVerifiedCheckinsForMonth(supabase, year, month)
   const provinceRows = aggregateProvinceUserRows(rows, profile.province)
   const currentUser = provinceRows.find((row) => row.userId === userId)
 
@@ -254,6 +256,6 @@ export async function getProvinceUserRankings(
   month: number
 ): Promise<Array<{ userId: string; nickname: string; total_score: number; summit_count: number; rank: number }>> {
   const supabase = await createSupabaseServerClient()
-  const rows = await fetchApprovedCheckinsForMonth(supabase, year, month)
+  const rows = await fetchVerifiedCheckinsForMonth(supabase, year, month)
   return aggregateProvinceUserRows(rows, province).slice(0, 50)
 }

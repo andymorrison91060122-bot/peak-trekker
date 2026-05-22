@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CommunityPostViewModel, PostVisibility, PublishableRecord } from '@/types'
+import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import {
   buildCommunityMetrics,
   buildCommunityPostViewModel,
@@ -46,7 +47,6 @@ type RawCommunityPostRow = {
     mountain_id?: string | null
     type: string
     source?: string | null
-    status: string | null
     note: string | null
     session_id?: string | null
     created_at: string | null
@@ -91,24 +91,24 @@ const COMMUNITY_POST_SELECT_VARIANTS = [
   `
     id, user_id, checkin_id, content, poster_url, like_count, created_at, is_featured,
     profiles(id, username, province, license_level, mountain_count, avatar_url),
-    checkins(id, mountain_id, type, source, status, note, session_id, created_at, photo_url, poster_url, verified_at, mountains(id, name, altitude, province, difficulty, cover_image, gallery_images, route_preview_image, route_preview_image_url))
+    checkins(id, mountain_id, type, source, note, session_id, created_at, photo_url, poster_url, verified_at, mountains(id, name, altitude, province, difficulty, cover_image, gallery_images, route_preview_image, route_preview_image_url))
   `,
   `
     id, user_id, checkin_id, content, poster_url, like_count, created_at, is_featured,
     profiles(id, username, province, license_level, mountain_count, avatar_url),
-    checkins(id, mountain_id, type, status, note, created_at, photo_url, poster_url, mountains(id, name, altitude, province, difficulty))
+    checkins(id, mountain_id, type, note, created_at, photo_url, poster_url, mountains(id, name, altitude, province, difficulty))
   `,
   `
     id, user_id, checkin_id, content, poster_url, like_count, created_at,
     profiles(id, username, province, license_level, mountain_count),
-    checkins(id, mountain_id, type, status, note, created_at, photo_url, mountains(id, name, altitude, province, difficulty))
+    checkins(id, mountain_id, type, note, created_at, photo_url, mountains(id, name, altitude, province, difficulty))
   `,
 ] as const
 
 const FEATURED_POST_SELECT_CLAUSE = `
   id, user_id, checkin_id, content, poster_url, like_count, created_at, is_featured,
   profiles(id, username, province, license_level, mountain_count, avatar_url),
-  checkins!inner(id, mountain_id, type, source, status, note, created_at, photo_url, poster_url, mountains(id, name, altitude, province, difficulty, cover_image, gallery_images, route_preview_image, route_preview_image_url))
+  checkins!inner(id, mountain_id, type, source, note, created_at, photo_url, poster_url, mountains(id, name, altitude, province, difficulty, cover_image, gallery_images, route_preview_image, route_preview_image_url))
 `
 
 function firstRelation<T>(value: T | T[] | null | undefined) {
@@ -138,14 +138,13 @@ async function loadSessionMap(supabase: AnySupabase, sessionIds: string[]) {
 }
 
 async function fetchCommunityPostRows({
-  supabase,
   applyQuery,
   single = false,
 }: {
-  supabase: AnySupabase
   applyQuery: (query: PostQueryLike) => PostQueryLike
   single?: boolean
 }) {
+  const readSupabase = createSupabaseAdminClient()
   let lastResult:
     | {
         data: RawCommunityPostRow[] | RawCommunityPostRow | null
@@ -154,7 +153,7 @@ async function fetchCommunityPostRows({
     | null = null
 
   for (const selectClause of COMMUNITY_POST_SELECT_VARIANTS) {
-    let query = supabase.from('posts').select(selectClause) as unknown as PostQueryLike
+    let query = readSupabase.from('posts').select(selectClause) as unknown as PostQueryLike
     query = applyQuery(query)
 
     const result = (await (
@@ -185,15 +184,14 @@ async function fetchCommunityPostRows({
 }
 
 async function fetchFeaturedCommunityPostRows({
-  supabase,
   mountainId,
   limit,
 }: {
-  supabase: AnySupabase
   mountainId: string
   limit: number
 }) {
-  const result = await supabase
+  const readSupabase = createSupabaseAdminClient()
+  const result = await readSupabase
     .from('posts')
     .select(FEATURED_POST_SELECT_CLAUSE)
     .eq('is_featured', true)
@@ -327,7 +325,6 @@ export async function listCommunityPosts({
 }) {
   const [{ data: posts }, { data: userLikes }] = await Promise.all([
     fetchCommunityPostRows({
-      supabase,
       applyQuery: (query) => query.order('created_at', { ascending: false }).limit(limit),
     }),
     viewerId ? supabase.from('likes').select('post_id').eq('user_id', viewerId) : Promise.resolve({ data: [] as Array<{ post_id: string }> }),
@@ -381,7 +378,6 @@ export async function listCommunityPosts({
         checkin: {
           note: checkin.note,
           source: sourceType,
-          status: checkin.status,
           session_id: checkin.session_id,
           created_at: checkin.created_at,
         },
@@ -404,7 +400,6 @@ export async function listUserCommunityPosts({
 }) {
   const [{ data: posts }, { data: userLikes }] = await Promise.all([
     fetchCommunityPostRows({
-      supabase,
       applyQuery: (query) => query.eq('user_id', userId).order('created_at', { ascending: false }),
     }),
     supabase.from('likes').select('post_id').eq('user_id', userId),
@@ -455,7 +450,6 @@ export async function listUserCommunityPosts({
           checkin: {
             note: checkin.note,
             source: sourceType,
-            status: checkin.status,
             session_id: checkin.session_id,
             created_at: checkin.created_at,
           },
@@ -479,7 +473,6 @@ export async function listCommunityPostsByAuthor({
 }) {
   const [{ data: posts }, { data: userLikes }] = await Promise.all([
     fetchCommunityPostRows({
-      supabase,
       applyQuery: (query) => query.eq('user_id', authorUserId).order('created_at', { ascending: false }),
     }),
     viewerId ? supabase.from('likes').select('post_id').eq('user_id', viewerId) : Promise.resolve({ data: [] as Array<{ post_id: string }> }),
@@ -534,7 +527,6 @@ export async function listCommunityPostsByAuthor({
           checkin: {
             note: checkin.note,
             source: sourceType,
-            status: checkin.status,
             session_id: checkin.session_id,
             created_at: checkin.created_at,
           },
@@ -557,13 +549,11 @@ export async function listFeaturedPostsByMountain({
   limit?: number
 }) {
   const featuredRows = await fetchFeaturedCommunityPostRows({
-    supabase,
     mountainId,
     limit,
   })
 
   const rawPosts = featuredRows ?? ((await fetchCommunityPostRows({
-    supabase,
     applyQuery: (query) => query.eq('checkins.mountain_id', mountainId).order('created_at', { ascending: false }).limit(Math.max(limit * 6, 30)),
   })).data ?? []) as RawCommunityPostRow[]
 
@@ -620,7 +610,6 @@ export async function listFeaturedPostsByMountain({
           checkin: {
             note: checkin.note,
             source: sourceType,
-            status: checkin.status,
             created_at: checkin.created_at,
           },
           mountain,
@@ -640,7 +629,6 @@ export async function listAdminCommunityPosts({
   limit?: number
 }) {
   const { data: posts } = await fetchCommunityPostRows({
-    supabase,
     applyQuery: (query) => query.order('created_at', { ascending: false }).limit(limit),
   })
 
@@ -680,12 +668,11 @@ export async function listAdminCommunityPosts({
         liked: false,
         viewerId: null,
         author: firstRelation(post.profiles),
-        checkin: {
-          note: checkin.note,
-          source: sourceType,
-          status: checkin.status,
-          session_id: checkin.session_id,
-          created_at: checkin.created_at,
+          checkin: {
+            note: checkin.note,
+            source: sourceType,
+            session_id: checkin.session_id,
+            created_at: checkin.created_at,
         },
         mountain,
         session: checkin.session_id ? sessionMap.get(checkin.session_id) ?? null : null,
@@ -769,7 +756,6 @@ export async function getCommunityPostDetail({
 }) {
   const [{ data: post }, { data: userLikes }] = await Promise.all([
     fetchCommunityPostRows({
-      supabase,
       applyQuery: (query) => query.eq('id', postId),
       single: true,
     }),
@@ -823,12 +809,11 @@ export async function getCommunityPostDetail({
     liked: Boolean(userLikes?.length),
     viewerId,
     author: firstRelation(typedPost.profiles),
-    checkin: {
-      note: checkin.note,
-      source: sourceType,
-      status: checkin.status,
-      session_id: checkin.session_id,
-      created_at: checkin.created_at,
+      checkin: {
+        note: checkin.note,
+        source: sourceType,
+        session_id: checkin.session_id,
+        created_at: checkin.created_at,
     },
     mountain,
     session: checkin.session_id ? sessionMap.get(checkin.session_id) ?? null : null,
@@ -844,9 +829,9 @@ export async function listPublishableRecords({
   userId: string
 }) {
   const checkinSelectVariants = [
-    'id, type, source, status, created_at, note, photo_url, poster_url, verified_at, session_id, mountains(id, name, altitude, province, difficulty, cover_image, gallery_images, route_preview_image, route_preview_image_url)',
-    'id, type, status, created_at, note, photo_url, poster_url, mountains(id, name, altitude, province, difficulty)',
-    'id, type, status, created_at, note, photo_url, mountains(id, name, altitude, province, difficulty)',
+    'id, type, source, created_at, note, photo_url, poster_url, verified_at, session_id, mountains(id, name, altitude, province, difficulty, cover_image, gallery_images, route_preview_image, route_preview_image_url)',
+    'id, type, created_at, note, photo_url, poster_url, mountains(id, name, altitude, province, difficulty)',
+    'id, type, created_at, note, photo_url, mountains(id, name, altitude, province, difficulty)',
   ]
 
   const checkinResult =
@@ -863,7 +848,6 @@ export async function listPublishableRecords({
           .from('checkins')
           .select(selectClause)
           .eq('user_id', userId)
-          .eq('status', 'approved')
           .order('created_at', { ascending: false })
 
         lastResult = result as {
@@ -894,7 +878,6 @@ export async function listPublishableRecords({
     id: string
     type: string
     source?: string | null
-    status: 'approved'
     created_at: string
     note: string | null
     photo_url: string | null
@@ -961,7 +944,6 @@ export async function listPublishableRecords({
       {
         checkinId: checkin.id,
         sourceType,
-        status: 'approved' as const,
         createdAt: checkin.created_at,
         verifiedAt: checkin.verified_at ?? null,
         mountain: {

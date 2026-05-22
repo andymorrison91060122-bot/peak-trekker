@@ -53,7 +53,7 @@ const colorTokens = [
   ['color-outline', '#2f353b', '卡片描边、分隔线、SecondaryButton 描边'],
   ['color-error', '#ef4444', '删除/举报危险态、错误 toast、权限限制警示'],
   ['color-success', '#6ee7a1', '上传成功提示、通过状态、成功 toast'],
-  ['color-warning', '#f59e0b', '待审核提醒、风险提示、警告态标签'],
+  ['color-warning', '#f59e0b', '风险提示、警告态标签'],
 ] as const
 
 class IconButtonErrorBoundary extends Component<

@@ -86,12 +86,12 @@ test('active session prevents clearing confirmed mountain id', () => {
   assert.match(trekClient, /targetMountainId && confirmedMountainId === targetMountainId/)
 })
 
-test('incomplete trek save uses pending status and completion_status marker', () => {
+test('incomplete trek save uses completion_status marker without checkin status', () => {
   assert.match(trekActions, /'finish_incomplete_trek'/)
   assert.match(trekActions, /MIN_INCOMPLETE_TREK_SECONDS\s*=\s*60/)
   assert.match(trekClient, /incompleteRecordMinSeconds/)
   assert.match(trekClient, /formatShortRecordThreshold\(incompleteRecordMinSeconds\)/)
-  assert.match(trekActions, /status:\s*'pending'/)
+  assert.doesNotMatch(trekActions, /status:\s*'pending'/)
   assert.match(trekActions, /completion_status:\s*'incomplete'/)
   assert.match(trekClient, /action:\s*'finish_incomplete_trek'[\s\S]{0,320}testMode:\s*trekTestMode/)
 })

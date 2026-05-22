@@ -8,7 +8,6 @@ import {
 } from './trek-regression.helpers'
 import {
   createHistoricalCheckinViaApi,
-  createPendingHistoricalCheckinViaApi,
   dismissActivationChecklistIfPresent,
   registerFreshUser,
 } from './community.helpers'
@@ -75,7 +74,6 @@ async function updateCheckinTrack(checkinId: string, kind: TrackCase) {
     .update({
       type: 'gps',
       source: 'realtime_gps',
-      status: 'approved',
       track_points: trackPointsForCase(kind),
       distance_meters: kind === 'multi' ? 2800 : 0,
       duration_seconds: kind === 'multi' ? 1800 : 10,
@@ -133,7 +131,7 @@ test.afterEach(async () => {
   await cleanupSeededCheckins()
 })
 
-test('pending historical checkins can generate share card metadata and open the share preview', async ({
+test('historical checkins can generate share card metadata and open the share preview', async ({
   page,
   baseURL,
 }) => {
@@ -143,13 +141,13 @@ test('pending historical checkins can generate share card metadata and open the 
   await registerFreshUser(page, root, { returnTo: '/explore' })
   await dismissActivationChecklistIfPresent(page)
 
-  const pendingCheckinId = await createPendingHistoricalCheckinViaApi(page, HUASHAN.id, `pending-share-${Date.now()}`)
-  SEEDED_CHECKIN_IDS.push(pendingCheckinId)
+  const checkinId = await createHistoricalCheckinViaApi(page, HUASHAN.id, `share-card-${Date.now()}`)
+  SEEDED_CHECKIN_IDS.push(checkinId)
 
   const actionResponse = await page.request.post('/api/trek/actions', {
     data: {
       action: 'generate_share_card',
-      checkinId: pendingCheckinId,
+      checkinId,
       template: 'summit_card',
       renderMode: 'classic_card',
       anchorPosition: 'top',
@@ -159,11 +157,11 @@ test('pending historical checkins can generate share card metadata and open the 
 
   expect(actionResponse.status(), JSON.stringify(actionBody)).toBe(200)
   expect(String(actionBody?.posterUrl ?? '')).toContain('/api/poster?')
-  expect(String(actionBody?.checkinId ?? '')).toBe(pendingCheckinId)
+  expect(String(actionBody?.checkinId ?? '')).toBe(checkinId)
 
-  await page.goto(`/share?checkinId=${pendingCheckinId}`, { waitUntil: 'domcontentloaded' })
+  await page.goto(`/share?checkinId=${checkinId}`, { waitUntil: 'domcontentloaded' })
   await expect(page.getByTestId('share-hero-preview')).toBeVisible({ timeout: 20_000 })
-  await captureOptionalE2EScreenshot(page, 'share-pending-preview.png')
+  await captureOptionalE2EScreenshot(page, 'share-checkin-preview.png')
 })
 
 test('share editor renders empty, single-point, and real track previews without fake fallback routes', async ({

@@ -60,7 +60,6 @@ export type Checkin = {
   mountain_id: string | null
   type: 'gps' | 'photo'
   source?: CheckinSource | null
-  status: 'pending' | 'approved' | 'rejected'
   completion_status?: 'complete' | 'incomplete'
   photo_url: string | null
   latitude: number | null
@@ -222,7 +221,6 @@ export type CommunityPostViewModel = {
 export type PublishableRecord = {
   checkinId: string
   sourceType: CheckinSource
-  status: 'approved'
   createdAt: string
   verifiedAt?: string | null
   mountain: {

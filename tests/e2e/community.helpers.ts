@@ -225,16 +225,16 @@ export async function backdateTrekSessionForTest(sessionId: string, milliseconds
   }
 }
 
-export async function countApprovedCheckinsForSession(sessionId: string) {
+export async function countVerifiedCheckinsForSession(sessionId: string) {
   const supabase = getSupabaseAdminClient()
   const { count, error } = await supabase
     .from('checkins')
     .select('id', { count: 'exact', head: true })
     .eq('session_id', sessionId)
-    .eq('status', 'approved')
+    .not('verified_at', 'is', null)
 
   if (error) {
-    throw new Error(`Failed to count approved checkins for E2E test: ${error.message}`)
+    throw new Error(`Failed to count verified checkins for E2E test: ${error.message}`)
   }
 
   return count ?? 0
@@ -521,7 +521,6 @@ export async function createHistoricalCheckinViaApi(page: Page, mountainId: stri
           mountainId: currentMountainId,
           photoUrl,
           note: currentNote,
-          qaForceApproved: true,
         }),
       })
 
@@ -534,8 +533,8 @@ export async function createHistoricalCheckinViaApi(page: Page, mountainId: stri
     { currentMountainId: mountainId, currentNote: note, photoUrl: createPngDataUrl() }
   )
 
-  if (!response.ok || response.body?.status !== 'approved') {
-    throw new Error(`Failed to seed approved historical check-in: ${JSON.stringify(response.body)}`)
+  if (!response.ok || typeof response.body?.checkinId !== 'string') {
+    throw new Error(`Failed to seed historical check-in: ${JSON.stringify(response.body)}`)
   }
 
   return String(response.body.checkinId)
@@ -592,83 +591,5 @@ export async function createPublishedCommunityPostViaApi(
     checkinId,
     postId: String(payload.postId),
     detailUrl: String(payload.detailUrl ?? `/community/${payload.postId}`),
-  }
-}
-
-export async function createPendingHistoricalCheckinViaApi(page: Page, mountainId: string, note: string) {
-  await page.goto(`/trek?mountainId=${mountainId}`, { waitUntil: 'domcontentloaded' })
-  await dismissActivationChecklistIfPresent(page)
-
-  const response = await page.evaluate(
-    async ({ currentMountainId, currentNote, photoUrl }) => {
-      const res = await fetch('/api/trek/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'submit_historical_checkin',
-          mountainId: currentMountainId,
-          photoUrl,
-          note: currentNote,
-        }),
-      })
-
-      return {
-        ok: res.ok,
-        status: res.status,
-        body: await res.json().catch(() => ({})),
-      }
-    },
-    { currentMountainId: mountainId, currentNote: note, photoUrl: createPngDataUrl() }
-  )
-
-  if (!response.ok || response.body?.status !== 'pending') {
-    throw new Error(`Failed to seed pending historical check-in: ${JSON.stringify(response.body)}`)
-  }
-
-  return String(response.body.checkinId)
-}
-
-export async function createRejectedHistoricalCheckinViaApi(
-  page: Page,
-  mountainId: string,
-  note: string,
-  reviewNote = '照片不清晰，未能识别峰顶环境。'
-) {
-  const response = await page.evaluate(
-    async ({ currentMountainId, currentNote, currentReviewNote, photoUrl }) => {
-      const res = await fetch('/api/trek/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'submit_historical_checkin',
-          mountainId: currentMountainId,
-          photoUrl,
-          note: currentNote,
-          qaForceRejected: true,
-          qaReviewNote: currentReviewNote,
-        }),
-      })
-
-      return {
-        ok: res.ok,
-        status: res.status,
-        body: await res.json().catch(() => ({})),
-      }
-    },
-    {
-      currentMountainId: mountainId,
-      currentNote: note,
-      currentReviewNote: reviewNote,
-      photoUrl: createPngDataUrl(),
-    }
-  )
-
-  if (!response.ok || response.body?.status !== 'rejected') {
-    throw new Error(`Failed to seed rejected historical check-in: ${JSON.stringify(response.body)}`)
-  }
-
-  return {
-    checkinId: String(response.body.checkinId),
-    reviewNote,
   }
 }

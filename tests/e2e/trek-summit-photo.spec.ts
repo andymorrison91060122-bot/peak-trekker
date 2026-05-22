@@ -78,7 +78,7 @@ test('testMode trek can reach summit photo and submit verification with an uploa
   await expect(page.locator('[role="alert"]').filter({ hasText: '登顶核验成功' })).toBeVisible()
 
   const checkin = await fetchCheckinForE2E(checkinId)
-  expect(checkin.status).toBe('approved')
   expect(checkin.completion_status ?? 'complete').toBe('complete')
+  expect(checkin.verified_at).toBeTruthy()
   await expectNoRuntimeIssueBadge(page)
 })

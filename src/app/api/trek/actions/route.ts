@@ -40,7 +40,6 @@ type ActionName =
 
 const SHARE_TEMPLATES: ShareCardTemplate[] = ['trek_snapshot', 'summit_card', 'activity_summary']
 const SHARE_RENDER_MODES: ShareRenderMode[] = ['photo_composite', 'overlay_only', 'classic_card']
-const ENABLE_QA_TEST_HELPERS = process.env.ENABLE_QA_TEST_HELPERS === 'true'
 const MIN_INCOMPLETE_TREK_SECONDS = 60
 const TREK_RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
 const MAX_TREK_PAUSE_ELAPSED_SECONDS = Math.floor(TREK_RESTORE_WINDOW_MS / 1000)
@@ -731,13 +730,13 @@ export async function POST(request: NextRequest) {
       if (isLocalSession) return null
       const { data } = await supabase
         .from('checkins')
-        .select('id, status, completion_status')
+        .select('id, completion_status')
         .eq('session_id', sessionId)
         .order('created_at', { ascending: true })
         .limit(1)
         .maybeSingle()
 
-      return (data as { id?: string; status?: string | null; completion_status?: string | null } | null) ?? null
+      return (data as { id?: string; completion_status?: string | null } | null) ?? null
     }
 
     const markServerSessionFinished = async () => {
@@ -754,7 +753,6 @@ export async function POST(request: NextRequest) {
 
     const buildAlreadyFinishedResponse = async (existingCheckin: {
       id?: string
-      status?: string | null
       completion_status?: string | null
     }) => {
       await markServerSessionFinished()
@@ -763,7 +761,6 @@ export async function POST(request: NextRequest) {
         alreadyFinished: true,
         duplicated: true,
         checkinId: existingCheckin.id ?? null,
-        status: existingCheckin.status ?? 'pending',
         completionStatus: existingCheckin.completion_status ?? 'incomplete',
       })
     }
@@ -797,7 +794,6 @@ export async function POST(request: NextRequest) {
         mountain_id: effectiveMountainId,
         type: 'gps',
         source: 'realtime_gps',
-        status: 'pending',
         completion_status: 'incomplete',
         latitude: lastPoint.lat,
         longitude: lastPoint.lng,
@@ -815,7 +811,7 @@ export async function POST(request: NextRequest) {
         track_name: '未完成 Trek 记录',
         track_points: effectivePoints,
       },
-      'id, status, completion_status'
+      'id, completion_status'
     )
 
     if (createError || !createdCheckin) {
@@ -832,14 +828,12 @@ export async function POST(request: NextRequest) {
 
     const checkin = createdCheckin as unknown as {
       id: string
-      status: string
       completion_status?: string | null
     }
 
     return NextResponse.json({
       ok: true,
       checkinId: checkin.id,
-      status: checkin.status,
       completionStatus: checkin.completion_status ?? 'incomplete',
     })
   }
@@ -889,7 +883,6 @@ export async function POST(request: NextRequest) {
         .from('checkins')
         .select('id')
         .eq('session_id', serverSession.id)
-        .eq('status', 'approved')
         .maybeSingle()
       return NextResponse.json({
         ok: true,
@@ -1022,7 +1015,6 @@ export async function POST(request: NextRequest) {
         .from('checkins')
         .select('id')
         .eq('session_id', serverSession.id)
-        .eq('status', 'approved')
         .maybeSingle()
 
       if (duplicateCheckin) {
@@ -1072,7 +1064,6 @@ export async function POST(request: NextRequest) {
           mountain_id: mountain.id,
           type: 'gps',
           source: 'realtime_gps',
-          status: 'approved',
           latitude: lastPoint.lat,
           longitude: lastPoint.lng,
           note,
@@ -1134,11 +1125,6 @@ export async function POST(request: NextRequest) {
     const mountainId = typeof body?.mountainId === 'string' ? body.mountainId : ''
     const photoUrl = typeof body?.photoUrl === 'string' ? body.photoUrl : ''
     const note = toSafeNote(body?.note)
-    const qaForceApproved =
-      (process.env.NODE_ENV !== 'production' || ENABLE_QA_TEST_HELPERS) && body?.qaForceApproved === true
-    const qaForceRejected =
-      (process.env.NODE_ENV !== 'production' || ENABLE_QA_TEST_HELPERS) && body?.qaForceRejected === true
-    const qaReviewNote = toSafeNote(body?.qaReviewNote)
 
     if (!mountainId || !photoUrl) {
       return NextResponse.json({ error: 'mountainId and photoUrl required' }, { status: 400 })
@@ -1161,31 +1147,22 @@ export async function POST(request: NextRequest) {
         mountain_id: mountainId,
         type: 'photo',
         source: 'historical_photo',
-        status: qaForceApproved ? 'approved' : qaForceRejected ? 'rejected' : 'pending',
         photo_url: photoUrl,
         note,
         ranking_weight: 0,
-        ...(qaForceRejected && qaReviewNote
-          ? {
-              review_note: qaReviewNote,
-              admin_note: qaReviewNote,
-            }
-          : {}),
       },
-      'id, status'
+      'id'
     )
 
     if (error || !checkin) {
       return NextResponse.json({ error: error?.message ?? 'submit historical checkin failed' }, { status: 500 })
     }
 
-    const historicalCheckin = checkin as unknown as { id: string; status: string }
+    const historicalCheckin = checkin as unknown as { id: string }
 
     return NextResponse.json({
       ok: true,
       checkinId: historicalCheckin.id,
-      status: historicalCheckin.status,
-      qaForceApproved,
     })
   }
 
@@ -1209,14 +1186,14 @@ export async function POST(request: NextRequest) {
 
     let checkinResult = await supabase
       .from('checkins')
-      .select('id, user_id, type, source, status, photo_url')
+      .select('id, user_id, type, source, photo_url')
       .eq('id', checkinId)
       .single()
 
     if (checkinResult.error && checkinResult.error.message.includes('source')) {
       checkinResult = await supabase
         .from('checkins')
-        .select('id, user_id, type, status, photo_url')
+        .select('id, user_id, type, photo_url')
         .eq('id', checkinId)
         .single()
     }
@@ -1226,7 +1203,6 @@ export async function POST(request: NextRequest) {
       user_id: string
       type: 'gps' | 'photo'
       source?: string | null
-      status: 'pending' | 'approved' | 'rejected'
       photo_url?: string | null
     } | null
 

@@ -421,12 +421,8 @@ export function normalizeCommunityActionError(message: unknown, fallback: string
     return '只能发布当前登山记录下的素材，请重新选择。'
   }
 
-  if (/至少需要 1 张审核照片/i.test(text)) {
-    return '照片补签必须至少保留 1 张审核照片后才能发布。'
-  }
-
-  if (/only approved records can be published/i.test(text)) {
-    return '只有已通过的有效登山记录才能分享到山友圈。'
+  if (/至少需要 1 张补签照片/i.test(text)) {
+    return '照片补签必须至少保留 1 张补签照片后才能发布。'
   }
 
   return text
@@ -622,7 +618,7 @@ export function validateCommunityAssets({
 }) {
   if (!assets.length) {
     if (sourceType === 'historical_photo' && !checkinPhotoUrl) {
-      return { ok: false as const, message: '照片补签至少需要 1 张审核照片。' }
+      return { ok: false as const, message: '照片补签至少需要 1 张补签照片。' }
     }
     return { ok: true as const }
   }
@@ -631,7 +627,7 @@ export function validateCommunityAssets({
   const imageCount = assets.filter((asset) => asset.type === 'image').length
 
   if (sourceType === 'historical_photo' && imageCount === 0 && !checkinPhotoUrl) {
-    return { ok: false as const, message: '照片补签至少需要 1 张审核照片。' }
+    return { ok: false as const, message: '照片补签至少需要 1 张补签照片。' }
   }
 
   if (videoCount > 1) {
@@ -706,7 +702,6 @@ export function buildCommunityPostViewModel({
   checkin: {
     note?: string | null
     source: CheckinSource
-    status?: string | null
     session_id?: string | null
     created_at?: string | null
   }

@@ -68,12 +68,12 @@ test('activity field policy does not let admin bypass locked trust fields', asyn
   const { ActivityFieldPolicyError, assertActivityUpdatePolicy } = await loadPolicy()
 
   assert.throws(
-    () => assertActivityUpdatePolicy({ distance_meters: 9999 }, { allowedFields: ['status'], ignoredFields: ['id'] }),
+    () => assertActivityUpdatePolicy({ distance_meters: 9999 }, { allowedFields: ['note'], ignoredFields: ['id'] }),
     (error) => matchesPolicyError(error, ActivityFieldPolicyError, 'distance_meters', 'locked_numeric')
   )
 
   assert.throws(
-    () => assertActivityUpdatePolicy({ source: 'realtime_gps' }, { allowedFields: ['status'] }),
+    () => assertActivityUpdatePolicy({ source: 'realtime_gps' }, { allowedFields: ['note'] }),
     (error) => matchesPolicyError(error, ActivityFieldPolicyError, 'source', 'immutable')
   )
 })

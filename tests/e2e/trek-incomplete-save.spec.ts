@@ -59,8 +59,8 @@ test('testMode incomplete trek save persists a pending incomplete checkin after 
   await expect(page).toHaveURL(new RegExp(`/activity/${checkinId}`), { timeout: 20_000 })
 
   const checkin = await fetchCheckinForE2E(checkinId)
-  expect(checkin.status).toBe('pending')
   expect(checkin.completion_status).toBe('incomplete')
+  expect(checkin.verified_at).toBeNull()
   await expectNoRuntimeIssueBadge(page)
 })
 

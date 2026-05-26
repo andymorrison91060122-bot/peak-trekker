@@ -818,7 +818,7 @@ function RouteFootnote({ children }: { children: ReactNode }) {
 
 function RouteTextFallback({ segments }: { segments: RouteSegment[] }) {
   return (
-    <section data-testid="mountain-route-section">
+    <section id="route" data-testid="mountain-route-section">
       <SectionHeader
         title="路线参考"
         right={
@@ -908,7 +908,7 @@ function RouteReferenceSection({ mountain, waypoints }: { mountain: Mountain; wa
     if (segments) return <RouteTextFallback segments={segments} />
 
     return (
-      <section data-testid="mountain-route-section">
+      <section id="route" data-testid="mountain-route-section">
         <SectionHeader title="路线参考" right="暂无 · 不可用" />
         <div style={{ padding: '0 var(--space-4)' }}>
           <EmptyModuleCard
@@ -942,7 +942,7 @@ function RouteReferenceSection({ mountain, waypoints }: { mountain: Mountain; wa
   const summit = points.find((point) => point.tone === 'success') ?? points[points.length - 1]
 
   return (
-    <section data-testid="mountain-route-section">
+    <section id="route" data-testid="mountain-route-section">
       <SectionHeader
         title="路线参考"
         right={
@@ -1223,7 +1223,7 @@ function BottomCTA({
       >
         <SecondaryButton
           as="a"
-          href={isLocked ? '/profile' : hasWaypoints ? '#waypoints' : '#overview'}
+          href={isLocked ? '/profile' : hasWaypoints ? '#waypoints' : '#route'}
         >
           {isLocked ? '去看升级路径' : '查看路线'}
         </SecondaryButton>

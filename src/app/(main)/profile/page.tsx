@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { listUserCommunityPosts } from '@/lib/community-server'
 import { listProfileTrips } from '@/lib/profile-records-server'
 import { getUserMonthlyContribution } from '@/lib/province-ranking-queries'
+import { buildLicenseProgressSummary, syncUserLicenseLevel } from '@/lib/license-progress'
 import ProfileV2Client, {
   type ProfileV2Identity,
   type ProfileV2SharePreview,
@@ -95,6 +96,23 @@ export default async function ProfilePage() {
     getUserMonthlyContribution(user.id, currentMonth.year, currentMonth.month),
   ])
 
+  const storedLicenseLevel = profile?.license_level ?? 'none'
+  const licenseProgress = await syncUserLicenseLevel({
+    supabase,
+    userId: user.id,
+    currentLevel: storedLicenseLevel,
+    records: trips,
+  }).catch(() =>
+    buildLicenseProgressSummary({
+      storedLevel: storedLicenseLevel,
+      records: trips,
+    })
+  )
+  const effectiveProfile = {
+    ...(profile ?? {}),
+    license_level: licenseProgress.effectiveLevel,
+  } as ProfileRow
+
   const shares: ProfileV2SharePreview[] = myPosts.map((post) => ({
     id: post.id,
     checkinId: post.checkinId,
@@ -110,13 +128,14 @@ export default async function ProfilePage() {
         userId: user.id,
         emailName: user.email?.split('@')[0] ?? '登山者',
         joinedAt: user.created_at,
-        profile: (profile ?? null) as ProfileRow | null,
+        profile: effectiveProfile,
       })}
       summary={buildSummary(trips)}
       trips={trips}
       shares={shares}
       provinceContribution={provinceContribution}
       monthLabel={currentMonth.label}
+      licenseProgress={licenseProgress}
     />
   )
 }

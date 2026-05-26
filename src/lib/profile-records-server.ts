@@ -10,6 +10,7 @@ type MountainRelation = {
   name: string | null
   altitude: number | string | null
   province: string | null
+  difficulty?: string | null
   cover_image?: string | null
 }
 
@@ -30,15 +31,15 @@ type ProfileCheckinRow = {
 const PROFILE_TRIP_SELECT_VARIANTS = [
   `
     id, mountain_id, type, source, completion_status, created_at, verified_at, photo_url, poster_url, max_elevation_meters,
-    mountains(id, name, altitude, province, cover_image)
+    mountains(id, name, altitude, province, difficulty, cover_image)
   `,
   `
     id, mountain_id, type, created_at, verified_at, photo_url, max_elevation_meters,
-    mountains(id, name, altitude, province, cover_image)
+    mountains(id, name, altitude, province, difficulty, cover_image)
   `,
   `
     id, mountain_id, type, created_at, photo_url,
-    mountains(id, name, altitude, province, cover_image)
+    mountains(id, name, altitude, province, difficulty, cover_image)
   `,
 ] as const
 
@@ -93,8 +94,11 @@ export async function listProfileTrips({
 
     return {
       checkinId: checkin.id,
+      mountainId: checkin.mountain_id,
       completionStatus: checkin.completion_status ?? 'complete',
       sourceType: resolveCheckinSource({ source: checkin.source, type: checkin.type }),
+      verifiedAt: checkin.verified_at ?? null,
+      difficulty: mountain?.difficulty ?? null,
       mountainName: mountain?.name?.trim() || (hasProof ? '已留证山行' : '未关联山行'),
       province: mountain?.province?.trim() || (hasProof ? '未知地点' : '未留证'),
       createdAt: checkin.verified_at || checkin.created_at,

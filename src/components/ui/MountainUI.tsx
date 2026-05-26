@@ -281,7 +281,6 @@ export function MountainFeatureCard({ mountain }: { mountain: {
   route_preview_image_url?: string | null
   route_thumbnail?: string | null
 }}) {
-  const isLocked = mountain.min_license !== 'none'
   const meta = formatRouteMeta(mountain)
   const heroImage = getMountainHeroImage(mountain) ?? mountain.cover_image
   const routePreviewImage = getMountainRoutePreviewImage(mountain)
@@ -296,7 +295,6 @@ export function MountainFeatureCard({ mountain }: { mountain: {
             </div>
             <div style={{ position: 'absolute', top: 14, left: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <DifficultyBadge level={mountain.difficulty} />
-              {isLocked && <span className="muted-chip">需执照解锁</span>}
             </div>
           </div>
         </div>
@@ -326,7 +324,7 @@ export function MountainFeatureCard({ mountain }: { mountain: {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
             <div className="font-mono" style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-              {isLocked ? `需 ${mountain.min_license} 级登山证` : `${mountain.checkin_count.toLocaleString()} 次真实登顶`}
+              {`${mountain.checkin_count.toLocaleString()} 次真实登顶`}
             </div>
             <div className="font-pixel" style={{ fontSize: 13, color: 'var(--green-bright)' }}>
               查看路线
@@ -357,7 +355,6 @@ export function MountainCard({ mountain }: { mountain: {
   elevation_gain_m?: number | null
   estimated_duration?: string | null
 }}) {
-  const isLocked = mountain.min_license !== 'none'
   const meta = formatRouteMeta(mountain)
   const heroImage = getMountainHeroImage(mountain) ?? mountain.cover_image
   const heroImageCount = getMountainDetailHeroImages(mountain, 3).length
@@ -389,7 +386,7 @@ export function MountainCard({ mountain }: { mountain: {
             </div>
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span className={`muted-chip ${isLocked ? '' : 'active'}`}>{getLicenseRequirementLabel(mountain.min_license)}</span>
+              <span className="muted-chip active">{getLicenseRequirementLabel(mountain.min_license).replace('需要', '建议')}</span>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8 }}>

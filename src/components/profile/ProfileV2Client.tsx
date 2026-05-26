@@ -2,14 +2,16 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { UserContribution } from '@/lib/province-ranking'
+import type { LicenseProgressSummary } from '@/lib/license-progress'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import { MountainIcon } from '@/components/ui/Icons'
 import type { CheckinSource } from '@/types'
 import ProfileAvatarUploader from '@/components/profile/ProfileAvatarUploader'
+import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
 import ProvinceContributionSection from '@/components/profile/ProvinceContributionSection'
 
 export type ProfileV2Identity = {
@@ -29,8 +31,11 @@ export type ProfileV2Summary = {
 
 export type ProfileV2TripPreview = {
   checkinId: string
+  mountainId: string | null
   completionStatus?: 'complete' | 'incomplete' | null
   sourceType: CheckinSource
+  verifiedAt?: string | null
+  difficulty?: string | null
   mountainName: string
   province: string
   createdAt: string
@@ -520,6 +525,7 @@ export default function ProfileV2Client({
   shares,
   provinceContribution,
   monthLabel,
+  licenseProgress,
 }: {
   identity: ProfileV2Identity
   summary: ProfileV2Summary
@@ -527,10 +533,22 @@ export default function ProfileV2Client({
   shares: ProfileV2SharePreview[]
   provinceContribution: UserContribution | null
   monthLabel: string
+  licenseProgress: LicenseProgressSummary
 }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const visibleTrips = useMemo(() => trips.slice(0, 3), [trips])
   const visibleShares = useMemo(() => shares.slice(0, 3), [shares])
   const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
+  const [licenseSheetOpen, setLicenseSheetOpen] = useState(false)
+  const queryRequestsLicenseSheet = searchParams.get('licenseSheet') === '1'
+
+  function closeLicenseSheet() {
+    setLicenseSheetOpen(false)
+    if (searchParams.get('licenseSheet') === '1') {
+      router.replace('/profile', { scroll: false })
+    }
+  }
 
   return (
     <div
@@ -547,6 +565,12 @@ export default function ProfileV2Client({
         joinedAt={identity.joinedAt}
         initialAvatarUrl={identity.avatarUrl}
         licenseLevel={identity.licenseLevel}
+        onLicenseClick={() => setLicenseSheetOpen(true)}
+      />
+      <LicenseProgressSheet
+        open={licenseSheetOpen || queryRequestsLicenseSheet}
+        progress={licenseProgress}
+        onClose={closeLicenseSheet}
       />
       <SummaryTiles summary={summary} />
       <ArchivePreviewSection trips={visibleTrips} />

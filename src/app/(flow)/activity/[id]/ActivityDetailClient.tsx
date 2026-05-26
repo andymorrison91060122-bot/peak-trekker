@@ -286,7 +286,7 @@ function ActivityHero({ activity }: { activity: ActivityDetailViewModel }) {
   const regionParts = [
     activity.mountain.province,
     activity.mountain.region && activity.mountain.region !== activity.mountain.province ? activity.mountain.region : null,
-    `${getDifficultyLevelLabel(activity.mountain.difficulty)}路线`,
+    getDifficultyLevelLabel(activity.mountain.difficulty),
   ].filter(Boolean)
   const regionLine = regionParts.join(' · ')
 

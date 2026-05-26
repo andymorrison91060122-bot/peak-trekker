@@ -4,10 +4,7 @@ import { listFeaturedPostsByMountain } from '@/lib/community-server'
 import { getMountainDetailHeroImages, getMountainRoutePreviewImage } from '@/lib/mountain-media'
 import { listWaypointsByMountain } from '@/lib/waypoints-queries'
 import {
-  getDifficultyLevelLabel,
   getDifficultySuitabilityCopy,
-  getLicenseRequirementLabel,
-  getLockPromptCopy,
 } from '@/lib/license-ui'
 import {
   MapPlaceholder,
@@ -19,15 +16,10 @@ import MountainDetailRecordCTA from '@/components/ui/MountainDetailRecordCTA'
 import MountainDetailToolbarActions from '@/components/ui/MountainDetailToolbarActions'
 import { ActionGlyph, IconActionLink } from '@/components/ui/IconActionButton'
 import MountainFeaturedPostCard from '@/components/community/MountainFeaturedPostCard'
+import DifficultyAdvisory from '@/components/mountain/DifficultyAdvisory'
+import DifficultyChip from '@/components/mountain/DifficultyChip'
 import SanitizedMountainDescription from '@/components/mountain/SanitizedMountainDescription'
 import WaypointsSection from '@/components/mountain/WaypointsSection'
-
-const LICENSE_RANK: Record<string, number> = {
-  none: 0,
-  basic: 1,
-  intermediate: 2,
-  advanced: 3,
-}
 
 function getRouteFacts(mountain: {
   altitude: number
@@ -133,10 +125,7 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
     post.assets.some((asset) => asset.type === 'image' && Boolean(asset.url))
   )
   const userLicense = profileRes.data?.license_level ?? 'none'
-  const isLocked = LICENSE_RANK[userLicense] < LICENSE_RANK[mountain.min_license]
   const requiresLogin = !user
-  const difficultyLabel = getDifficultyLevelLabel(mountain.difficulty)
-  const licenseRequirementLabel = getLicenseRequirementLabel(mountain.min_license)
   const suitabilityLabel = getDifficultySuitabilityCopy(mountain.difficulty)
   const weatherGuidance = getWeatherGuidance(mountain)
   const descriptionHtml =
@@ -166,8 +155,7 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
             images={heroImages}
           />
           <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <span className="muted-chip active">{difficultyLabel}</span>
-            <span className={`muted-chip ${mountain.min_license === 'none' ? 'active' : ''}`}>{licenseRequirementLabel}</span>
+            <DifficultyChip difficulty={mountain.difficulty} />
           </div>
         </div>
 
@@ -186,21 +174,18 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
           </div>
 
           <div className="detail-info-list">
-            <InfoRow label="难度等级" value={difficultyLabel} />
-            <InfoRow label="准入要求" value={licenseRequirementLabel} />
+            <InfoRow label="难度等级" value={getRouteTypeLabel(mountain.difficulty)} />
+            <InfoRow label="准入方式" value="不锁定 · 出发前给出难度提醒" />
             <InfoRow label="适合人群" value={suitabilityLabel} />
           </div>
 
-          {isLocked && (
-            <div className="danger-card" style={{ padding: 14 }}>
-              <div className="section-subtitle" style={{ color: 'color-mix(in oklch, var(--color-error) 58%, var(--color-on-surface))' }}>
-                {getLockPromptCopy(mountain.min_license)}
-              </div>
-            </div>
-          )}
+          <DifficultyAdvisory
+            difficulty={mountain.difficulty}
+            userLicense={userLicense}
+            mountainName={mountain.name}
+          />
 
           <MountainDetailRecordCTA
-            isLocked={isLocked}
             requiresLogin={requiresLogin}
             minLicense={mountain.min_license}
             mountainName={mountain.name}

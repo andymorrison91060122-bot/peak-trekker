@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import { TREK_RULES } from '@/lib/trek-rules-server'
 import { isTrekServerDevBypassAllowed, resolveTrekServerVerificationRules } from '@/lib/trek-verification-rules'
+import { syncUserLicenseLevel } from '@/lib/license-progress'
 import {
   ALLOW_LOCAL_TREK_SESSION,
   LOCAL_FALLBACK_SESSION_PREFIX,
@@ -1106,6 +1107,15 @@ export async function POST(request: NextRequest) {
             mountain,
             userId: user.id,
           })
+
+    try {
+      await syncUserLicenseLevel({
+        supabase,
+        userId: user.id,
+      })
+    } catch (error) {
+      console.warn('license sync after summit verification failed', error)
+    }
 
     return NextResponse.json({
       ok: true,

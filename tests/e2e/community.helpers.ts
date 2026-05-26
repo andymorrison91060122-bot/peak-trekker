@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { expect, type Page } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
+import { getProvinceCode } from '@/lib/provinces'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -87,9 +88,20 @@ export async function registerFreshUser(
   await page.getByPlaceholder('至少6位').fill(password)
   await page.getByRole('button', { name: '下一步 →' }).click()
 
-  await page.getByPlaceholder('你的登山代号').fill(username)
-  await page.locator('select').selectOption(province)
-  await page.getByRole('button', { name: '▶ 创建登山档案' }).click()
+  const profileNameInput = page.getByPlaceholder('你的登山代号')
+  await profileNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
+  if (await profileNameInput.isVisible().catch(() => false)) {
+    await profileNameInput.fill(username)
+    await page.locator('select').selectOption(province)
+    await page.getByRole('button', { name: '▶ 创建登山档案' }).click()
+  } else {
+    await ensureFreshUserAccountForLogin({ email, password, username, province })
+    const loginHref =
+      returnTo === '/explore'
+        ? `${baseURL}/auth/login`
+        : `${baseURL}/auth/login?from=${encodeURIComponent(returnTo)}`
+    await page.goto(loginHref, { waitUntil: 'domcontentloaded' })
+  }
 
   await page.waitForLoadState('domcontentloaded')
   if (/\/auth\/register/.test(page.url())) {
@@ -104,10 +116,21 @@ export async function registerFreshUser(
   }
   if (/\/auth\/login/.test(page.url())) {
     await page.getByPlaceholder('your@email.com').fill(email)
-    await page.getByPlaceholder('••••••••').fill(password)
+    await page.getByPlaceholder(/至少6位|••••••••/).fill(password)
     await page.getByRole('button', { name: '▶ 开始登山' }).click()
+    await page.waitForURL((url) => !/\/auth\/login/.test(url.pathname), { timeout: 30_000 }).catch(() => {})
+  }
+  if (/\/auth\/login/.test(page.url())) {
+    await ensureFreshUserAccountForLogin({ email, password, username, province })
+    await page.getByPlaceholder('your@email.com').fill(email)
+    await page.getByPlaceholder(/至少6位|••••••••/).fill(password)
+    await page.getByRole('button', { name: '▶ 开始登山' }).click()
+    await page.waitForURL((url) => !/\/auth\/login/.test(url.pathname), { timeout: 30_000 }).catch(() => {})
   }
 
+  if (!new RegExp(returnTo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(page.url())) {
+    await page.goto(`${baseURL}${returnTo}`, { waitUntil: 'domcontentloaded' })
+  }
   await expect(page).toHaveURL(new RegExp(returnTo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), { timeout: 60_000 })
   return { email, password, username }
 }
@@ -162,6 +185,87 @@ function getSupabaseAdminClient() {
       autoRefreshToken: false,
     },
   })
+}
+
+async function withOperationTimeout<T>(operation: PromiseLike<T>, label: string, timeoutMs = 8000): Promise<T> {
+  let timeout: NodeJS.Timeout | null = null
+  try {
+    return await Promise.race<T>([
+      Promise.resolve(operation),
+      new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timeout) clearTimeout(timeout)
+  }
+}
+
+async function ensureFreshUserAccountForLogin({
+  email,
+  password,
+  username,
+  province,
+}: {
+  email: string
+  password: string
+  username: string
+  province: string
+}) {
+  const supabase = getSupabaseAdminClient()
+  let createResult: Awaited<ReturnType<typeof supabase.auth.admin.createUser>> | null = null
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      createResult = await withOperationTimeout(
+        supabase.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { username, province },
+        }),
+        'create E2E auth user'
+      )
+      break
+    } catch (error) {
+      if (attempt === 2) throw error
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+  }
+
+  if (createResult?.error && !/already|registered|exists/i.test(createResult.error.message)) {
+    throw new Error(`Failed to seed E2E auth user: ${createResult.error.message}`)
+  }
+
+  let user = createResult?.data.user ?? null
+  if (!user) {
+    const usersResult = await withOperationTimeout(supabase.auth.admin.listUsers(), 'list E2E auth users')
+    if (usersResult.error) {
+      throw new Error(`Failed to resolve seeded E2E auth user: ${usersResult.error.message}`)
+    }
+    user = usersResult.data.users.find((candidate) => candidate.email === email) ?? null
+  }
+
+  if (!user) {
+    throw new Error(`Failed to resolve seeded E2E auth user for ${email}`)
+  }
+
+  const { error } = await withOperationTimeout(
+    supabase.from('profiles').upsert(
+      {
+        id: user.id,
+        username,
+        province,
+        province_code: getProvinceCode(province),
+        license_level: 'none',
+      },
+      { onConflict: 'id' }
+    ),
+    'seed E2E profile'
+  )
+
+  if (error) {
+    throw new Error(`Failed to seed E2E profile: ${error.message}`)
+  }
 }
 
 function offsetCoordinate(latitude: number, longitude: number, distanceMeters: number) {
@@ -415,7 +519,7 @@ export async function createGpsCheckinViaApi(
 export async function getFirstMountain(page: Page, baseURL: string) {
   await page.goto(`${baseURL}/explore`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
-  const firstMountainLink = page.locator('a[href^="/explore/"]').first()
+  const firstMountainLink = page.locator('[data-testid="explore-mountain-card"], a[href^="/mountain/"], a[href^="/explore/"]').first()
   await expect(firstMountainLink).toBeVisible()
   const href = await firstMountainLink.getAttribute('href')
 
@@ -511,30 +615,36 @@ export async function createHistoricalCheckinViaApi(page: Page, mountainId: stri
   await page.goto(`/trek?mountainId=${mountainId}`, { waitUntil: 'domcontentloaded' })
   await dismissActivationChecklistIfPresent(page)
 
-  const response = await page.evaluate(
-    async ({ currentMountainId, currentNote, photoUrl }) => {
-      const res = await fetch('/api/trek/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'submit_historical_checkin',
-          mountainId: currentMountainId,
-          photoUrl,
-          note: currentNote,
-        }),
-      })
+  let response: { ok: boolean; status: number; body: Record<string, unknown> } | null = null
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    response = await page.evaluate(
+      async ({ currentMountainId, currentNote, photoUrl }) => {
+        const res = await fetch('/api/trek/actions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'submit_historical_checkin',
+            mountainId: currentMountainId,
+            photoUrl,
+            note: currentNote,
+          }),
+        })
 
-      return {
-        ok: res.ok,
-        status: res.status,
-        body: await res.json().catch(() => ({})),
-      }
-    },
-    { currentMountainId: mountainId, currentNote: note, photoUrl: createPngDataUrl() }
-  )
+        return {
+          ok: res.ok,
+          status: res.status,
+          body: await res.json().catch(() => ({})),
+        }
+      },
+      { currentMountainId: mountainId, currentNote: note, photoUrl: createPngDataUrl() }
+    )
 
-  if (!response.ok || typeof response.body?.checkinId !== 'string') {
-    throw new Error(`Failed to seed historical check-in: ${JSON.stringify(response.body)}`)
+    if (response.ok || !/fetch failed/i.test(String(response.body?.error ?? ''))) break
+    await page.waitForTimeout(1000)
+  }
+
+  if (!response?.ok || typeof response.body?.checkinId !== 'string') {
+    throw new Error(`Failed to seed historical check-in: ${JSON.stringify(response?.body ?? {})}`)
   }
 
   return String(response.body.checkinId)

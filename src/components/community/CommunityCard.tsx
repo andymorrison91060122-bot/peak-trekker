@@ -20,9 +20,11 @@ function getPostMedia(post: CommunityPostViewModel) {
   return post.assets.filter((asset) => asset.type === 'image' || asset.type === 'video')
 }
 
-function shouldSkipCardNavigation(target: EventTarget | null) {
-  if (!(target instanceof Element)) return false
-  return Boolean(target.closest('a, button, input, textarea, select, video, [data-community-menu-root], [data-community-card-no-nav]'))
+function shouldSkipCardNavigation(event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>) {
+  const interactiveSelector = 'a, button, input, textarea, select, video, [data-community-menu-root], [data-community-card-no-nav]'
+  return event.nativeEvent
+    .composedPath()
+    .some((target) => target instanceof Element && target !== event.currentTarget && target.matches(interactiveSelector))
 }
 
 export default function CommunityCard({
@@ -125,12 +127,22 @@ export default function CommunityCard({
   }
 
   function handleCardClick(event: MouseEvent<HTMLElement>) {
-    if (shouldSkipCardNavigation(event.target)) return
+    if (
+      event.defaultPrevented ||
+      (typeof event.button === 'number' && event.button !== 0) ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return
+    }
+    if (shouldSkipCardNavigation(event)) return
     openDetail()
   }
 
   function handleCardKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (shouldSkipCardNavigation(event.target)) return
+    if (shouldSkipCardNavigation(event)) return
     if (event.key !== 'Enter' && event.key !== ' ') return
     event.preventDefault()
     openDetail()
@@ -143,7 +155,7 @@ export default function CommunityCard({
       role="button"
       tabIndex={0}
       aria-label={`查看${mountain.name}山友圈动态`}
-      onClick={handleCardClick}
+      onClickCapture={handleCardClick}
       onKeyDown={handleCardKeyDown}
       style={{ cursor: 'pointer' }}
     >

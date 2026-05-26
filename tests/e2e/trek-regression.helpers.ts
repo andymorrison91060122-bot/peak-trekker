@@ -99,12 +99,7 @@ export async function completeSummitPhotoFlow(page: Page) {
   await page.getByRole('button', { name: '从这里开始' }).click()
   await expect(page.getByRole('button', { name: '暂停' })).toBeVisible({ timeout: 20_000 })
 
-  await setMockGps(page, {
-    latitude: HUASHAN.latitude,
-    longitude: HUASHAN.longitude,
-    altitude: HUASHAN.altitude,
-    accuracy: 5,
-  })
+  await feedSummitGpsPoints(page)
   await expect(page.getByTestId('trek-near-summit-view')).toBeVisible({ timeout: 20_000 })
   await expect(page.getByText('就绪')).toBeVisible({ timeout: 20_000 })
   await page.getByTestId('trek-near-summit-cta').click()
@@ -128,6 +123,20 @@ export async function completeSummitPhotoFlow(page: Page) {
 
   await expect(page.getByTestId('trek-summit-confirmed-view')).toBeVisible({ timeout: 20_000 })
   return { checkinId, photoName: photo.name }
+}
+
+async function feedSummitGpsPoints(page: Page) {
+  const points = Array.from({ length: 8 }, (_, index) => ({
+    latitude: HUASHAN.latitude - (7 - index) * 0.000004,
+    longitude: HUASHAN.longitude - (7 - index) * 0.000004,
+    altitude: HUASHAN.altitude - (7 - index),
+    accuracy: 5,
+  }))
+
+  for (const point of points) {
+    await setMockGps(page, point)
+    await page.waitForTimeout(150)
+  }
 }
 
 export async function installMutableGeolocation(page: Page, initial: MockGpsPoint) {

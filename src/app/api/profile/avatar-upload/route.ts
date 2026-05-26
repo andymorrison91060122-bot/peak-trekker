@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { describeStorageError, normalizeStorageUploadError } from '@/lib/storage-errors'
 import {
@@ -53,7 +54,8 @@ export async function POST(request: Request) {
 
   const { data } = supabase.storage.from(AVATARS_BUCKET).getPublicUrl(objectPath)
   const avatarUrl = data.publicUrl
-  const { error: updateError } = await supabase
+  const adminSupabase = createSupabaseAdminClient()
+  const { error: updateError } = await adminSupabase
     .from('profiles')
     .update({ avatar_url: avatarUrl })
     .eq('id', user.id)

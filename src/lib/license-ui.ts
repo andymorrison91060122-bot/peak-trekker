@@ -47,11 +47,26 @@ const LICENSE_META: Record<(typeof LICENSE_UI_ORDER)[number], {
   },
 }
 
-const DIFFICULTY_TO_LICENSE_LEVEL: Record<DifficultyLevelValue, LicenseLevelValue> = {
-  beginner: 'none',
-  intermediate: 'basic',
-  advanced: 'intermediate',
-  expert: 'advanced',
+const DIFFICULTY_META: Record<DifficultyLevelValue, {
+  label: string
+  suggestionLabel: string
+}> = {
+  beginner: {
+    label: '入门线',
+    suggestionLabel: '建议无执照阶段可尝试',
+  },
+  intermediate: {
+    label: '进阶线',
+    suggestionLabel: '建议初级及以上',
+  },
+  advanced: {
+    label: '高阶线',
+    suggestionLabel: '建议中级及以上',
+  },
+  expert: {
+    label: '专家线',
+    suggestionLabel: '建议高级',
+  },
 }
 
 function normalizeLicenseLevel(level: string | null | undefined): LicenseLevelValue {
@@ -94,12 +109,12 @@ export function getLicenseColor(level: string | null | undefined) {
 
 export function getDifficultyLevelLabel(level: string | null | undefined) {
   const difficulty = normalizeDifficultyLevel(level)
-  return getLicenseLevelLabel(DIFFICULTY_TO_LICENSE_LEVEL[difficulty])
+  return DIFFICULTY_META[difficulty].label
 }
 
 export function getDifficultyLevelRequirement(level: string | null | undefined) {
   const difficulty = normalizeDifficultyLevel(level)
-  return getLicenseRequirementLabel(DIFFICULTY_TO_LICENSE_LEVEL[difficulty])
+  return DIFFICULTY_META[difficulty].suggestionLabel
 }
 
 export function getDifficultySuitabilityCopy(level: string | null | undefined) {
@@ -124,5 +139,5 @@ export function getLockPromptCopy(level: string | null | undefined) {
   if (normalizedLevel === 'none') {
     return '当前路线无需执照，可以直接开始记录。'
   }
-  return `当前路线${getLicenseRequirementLabel(normalizedLevel)}，可以先完成更低阶段可进入的路线，再回来挑战。`
+  return `当前路线建议${getLicenseLevelLabel(normalizedLevel)}及以上经验；这是提醒，不会阻止你继续记录。`
 }

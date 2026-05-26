@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { DEFAULT_MOUNTAIN_COVER_URL } from '@/lib/default-media'
-import { getLicenseRequirementLabel } from '@/lib/license-ui'
 import { getMountainDetailHeroImages, getMountainHeroImage } from '@/lib/mountain-media'
+import DifficultyChip from '@/components/mountain/DifficultyChip'
 import type { Mountain } from '@/types'
 
 function estimateLength(mountain: Pick<Mountain, 'altitude' | 'length_km'>) {
@@ -10,32 +10,6 @@ function estimateLength(mountain: Pick<Mountain, 'altitude' | 'length_km'>) {
 
 function estimateDuration(mountain: Pick<Mountain, 'altitude' | 'estimated_duration'>) {
   return mountain.estimated_duration ?? `${Math.max(2, Math.min(12, Math.round(mountain.altitude / 650)))}h`
-}
-
-function getExploreRequirementLabel(level: Mountain['min_license']) {
-  switch (level) {
-    case 'basic':
-      return '初级可进'
-    case 'intermediate':
-      return '中级及以上'
-    case 'advanced':
-      return '高级及以上'
-    default:
-      return '无需执照'
-  }
-}
-
-function getExploreDifficultyCopy(level: Mountain['difficulty']) {
-  switch (level) {
-    case 'intermediate':
-      return '进阶线'
-    case 'advanced':
-      return '中级线'
-    case 'expert':
-      return '高级线'
-    default:
-      return '入门线'
-  }
 }
 
 export default function ExploreMountainCard({
@@ -60,9 +34,6 @@ export default function ExploreMountainCard({
   const heroImageCount = getMountainDetailHeroImages(mountain, 3).length
   const distanceKm = estimateLength(mountain)
   const duration = estimateDuration(mountain)
-  const difficultyLabel = getExploreDifficultyCopy(mountain.difficulty)
-  const licenseRequirement = getExploreRequirementLabel(mountain.min_license)
-  const requirementA11yLabel = getLicenseRequirementLabel(mountain.min_license)
 
   return (
     <Link
@@ -101,19 +72,14 @@ export default function ExploreMountainCard({
         <div className="explore-card__body" data-testid="explore-mountain-card-body">
           <div className="explore-card__topline" data-testid="explore-mountain-card-topline">
             <div className="explore-card__title">{mountain.name}</div>
-            <span
-              className={`muted-chip explore-card__primary-tag ${mountain.min_license === 'none' ? 'active' : ''}`}
-              data-testid="explore-mountain-card-requirement"
-              aria-label={`准入要求：${requirementA11yLabel}`}
-            >
-              {licenseRequirement}
-            </span>
           </div>
 
           <div className="explore-card__subline" data-testid="explore-mountain-card-subline">
             <span className="explore-card__location" data-testid="explore-mountain-card-location">{mountain.province}</span>
             <span className="explore-card__subline-separator" aria-hidden="true">·</span>
-            <span className="explore-card__difficulty" data-testid="explore-mountain-card-difficulty">{difficultyLabel}</span>
+            <span data-testid="explore-mountain-card-difficulty" style={{ minWidth: 0 }}>
+              <DifficultyChip difficulty={mountain.difficulty} withSuggestion />
+            </span>
           </div>
 
           <div className="explore-card__metrics" data-testid="explore-mountain-card-metrics">

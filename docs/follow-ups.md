@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-26 · 最新版本记录: v0.31
+> Last Updated: 2026-05-27 · 最新版本记录: v0.32
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`c3a25c5`（Merge FU-46 close · 2026-05-26）
+`f1c5c08`（Merge FU-54 license redesign · 2026-05-27）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动 (候选见 v0.31 末尾推荐 / FU-54 license progress 重设计已准备 design spec)
+待启动 (候选见 v0.32 末尾推荐)
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（21 条）
+## Active Follow-ups（20 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -521,25 +521,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-54 · ProfileLicenseProgressSection 重设计
-
-- **优先级**: P3 上线前
-- **归属阶段**: 阶段 6 后 / 上线前
-- **状态**: 🟢 active
-
-**背景**: FU-46 子 sprint 4 in-sprint patch 删除了 `ProfileV2Client.tsx` 中的 `<ProfileLicenseProgressSection />` render（该 render 在子 sprint 1 commit `880f703` 为通过 e2e case 误恢复，但用户业务上不要这个模块）。源文件 `src/components/profile/ProfileLicenseProgressSection.tsx` 保留，用户希望重设计后再上线。
-
-**实施建议**:
-- 与用户对齐重设计目标（执照进度展示形态 / 等级阈值口径 / 资格判定逻辑 / 入口位置）
-- 重新设计后 render 回 `ProfileV2Client.tsx`
-- 解除 `tests/e2e/debug-access.spec.ts:108` profile license progress 的 `test.fixme`（同时按新设计校准 spec assertions）
-
-**触发来源**: FU-46 子 sprint 4 Phase 4 视觉 review（Issue 2）
-
-**涉及**: `ProfileLicenseProgressSection.tsx` + `ProfileV2Client.tsx` + `debug-access.spec.ts:108`
-
----
-
 ## Known Issues
 
 ### Known Issue · checkin 数据字段写入路径异常 (2026-05-21 FU-11 sprint 期间发现)
@@ -551,7 +532,21 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（33 条）
+## Closed Follow-ups（34 条）
+
+### FU-54 ✅ License Progress 重设计 + License Gate 解耦
+
+- **关闭原因**: Profile 独立执照进度 section 删除，Profile head 执照 badge 改为可点击入口并打开底部抽屉；升级算法从海拔 tier 改为 difficulty-based GPS 有效记录；Explore / Mountain Detail / Trek 的 license hard gate 拆除，改为 advisory-only；`debug-access.spec.ts` 与 `app.spec.ts` 中 FU-54 retained fixme 解除。
+- **算法口径**: 保留 repo 现有 difficulty 模型 `beginner / intermediate / advanced / expert`；`none → basic` = 3 座 beginner+ GPS 有效记录，`basic → intermediate` = 3 座 intermediate+，`intermediate → advanced` = 3 座 advanced+（expert 计入 advanced+）；sync 只向上更新 `profiles.license_level`，不降级。
+- **UI 落地**: 新增 `LicenseProgressSheet` / `DifficultyChip` / `DifficultyAdvisory`；删除 `ProfileLicenseProgressSection.tsx` 与 `LockModal.tsx`；`/profile?licenseSheet=1` 可直接打开执照进度抽屉；advisory CTA “继续”始终为主操作，不阻止记录。
+- **文档同步**: `docs/target-prd.md` §7.1、`docs/ui-interaction-spec.md` §10.6、`src/lib/faq-content.ts` `license-upgrade` 均改为 advisory-not-gate 口径。
+- **验证**: lint 0 errors / 9 existing warnings；node test 250 passed；build PASS；FU-54 strong-coupling e2e subset 38 passed；375px visual evidence saved at `/tmp/fu54-review/` with `hasHorizontalOverflow=false` for captured scenes。
+- **已知旁路**: 额外 community cross-check 中 `community feed shows altitude-first...` card body click 仍停留在 `/community`；该路径不属于 FU-54 touched surface，未纳入本 FU 修复，作为后续候选排查项记录。
+- **关闭 commit**: `6dfdf2c` / `d5c320f` / `948493b` / `6bf3805` / `4a6750d` / `14bd963`
+- **merge commit**: `f1c5c08`
+- **关闭时间**: 2026-05-27
+
+---
 
 ### FU-46 ✅ e2e baseline rot 系统性清理 (umbrella · sub-sprint 1+2+3+4 + close sprint 全闭环)
 
@@ -906,6 +901,23 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.32（2026-05-27）
+
+FU-54 close · License Progress 重设计 + License Gate 解耦 + Difficulty Advisory 收尾
+
+- **实施**: 27 files changed across merge, +1060 / -749；新增 `LicenseProgressSheet` / `DifficultyChip` / `DifficultyAdvisory` / `license-progress.ts` / `license-progress.test.ts`；删除 `ProfileLicenseProgressSection.tsx` + `LockModal.tsx`。
+- **License Progress**: Profile head license badge 成为抽屉入口；底部抽屉展示 4 rung（none/basic/intermediate/advanced）、当前进度、`N / 3`、算法说明与 FAQ 链接；支持 `/profile?licenseSheet=1` deep link。
+- **算法切换**: 从海拔 tier (1000/2000/4000m) 切到 difficulty 系数；保留现有 repo difficulty 模型 `beginner / intermediate / advanced / expert`；GPS 有效记录要求 owner checkin complete + verified_at + mountain linked + realtime GPS/legacy gps source；monotonic sync 只向上写 `profiles.license_level`。
+- **License Gate 解耦**: `/explore/[id]`、`MountainDetailClient`、`TrekClient`、`CheckinButton`、`MountainDetailRecordCTA` 拆除 hard lock；高于当前等级时显示 `DifficultyAdvisory`，但主操作始终可继续。
+- **Difficulty UI**: `DifficultyChip` 适配四档 difficulty glyph；与 license rung 视觉区分（四段升序条 vs 执照阶梯）。
+- **Docs / FAQ**: `docs/target-prd.md` §7.1、`docs/ui-interaction-spec.md` §10.6、`src/lib/faq-content.ts` license-upgrade 均同步为 advisory-not-restriction。
+- **测试与视觉证据**: lint 0e/9w · node test 250p · build PASS · FU-54 strong-coupling e2e subset 38 passed；视觉证据 `/tmp/fu54-review/phase*/` + metrics `/tmp/fu54-review/final/metrics.json`（375px, captured scenes `hasHorizontalOverflow=false`）。
+- **已知旁路**: 额外 community cross-check 的一条 feed card body click 仍未进入 detail（停留 `/community`）；未归因到 FU-54 touched code，留作后续候选排查，不阻塞 FU-54 close。
+- **用户视觉验收**: 由用户触发继续 Phase 7；Codex 保留截图证据，不自下视觉验收结论。
+- **提交分桶**: 6 feature commits + merge commit `f1c5c08` + docs v0.32 closeout commit。
+- Active 21 → 20 · Closed 33 → 34
+- v0.8 机械化清单第二十次实战
 
 ### v0.31（2026-05-26）
 

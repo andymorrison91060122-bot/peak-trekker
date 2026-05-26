@@ -559,7 +559,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 - **sub-sprint 1-4 历史进度**: 已修 18 + FU-44 obsolete cleanup 5 (v0.25-v0.30 records)。
 - **close sprint v0.31**: 处理剩余 38 quarantine + 4 BUG fix + 协议正式撤销。
 - **协议变更**: v0.15 引入的 V3 preflight 全量 e2e gate 在本 FU close 时**正式撤销 (revoked)** (详见 v0.31 entry)。
-- **BUG #4 production migration 未应用**: `supabase/migrations/20260526190604_fix_profiles_avatar_rls.sql` 已 commit 但未在 V3 期间执行；跟 FU-42 同范式 deploy-gated, post-V3 通过 Supabase MCP 单独应用 + verify。
+- **BUG #4 production migration 已应用 (2026-05-26)**: Vercel 部署完成后通过 Supabase MCP `apply_migration` 应用并验证 10 个 user-editable 字段 UPDATE grants 添加 / is_admin 受保护 / RLS owner-scoped 不变 (详见 v0.31 entry); Tooling deviation: remote version timestamp 为 apply 运行时生成, 与 repo 文件名 timestamp 不一致, name + SQL body 一致, cosmetic only。
 - **关闭 commit**: `fa21cc8` / `ed4904f` / `4de953f` / `4fb55e1` / `1975915` / `84984fe` / `29a5c2b`
 - **merge commit**: `c3a25c5`
 - **关闭时间**: 2026-05-26
@@ -925,7 +925,8 @@ FU-46 close · e2e baseline rot 系统性清理收尾 + 4 个 in-sprint BUG fix 
 - **协议撤销**: 2026-05-26 用户决策。docs v0.15 引入的 "V3 preflight 全量 e2e gate" 协议在 FU-46 close 时**正式撤销 (revoked)**。后续 sprint preflight 中 e2e 部分仅跑强关联子集 spec，不再升级为全量。理由: 全量 e2e 资源 / 时间成本与价值不对等；强关联子集 + 视觉验收已覆盖业务变更的实际验证需求。
 - **替代协议**: V3 preflight 含 lint + node test + build + 强关联子集 e2e + 用户视觉验收。已记入 memory `feedback_full_e2e_terminated_after_fu46.md`。
 - **历史归档**: FU-46 跑的完整全量是该协议的 unique 收尾 + quarantine debt 归零，不绑定未来 gate 启用。
-- **已知偏差**: BUG #4 production migration 尚未 apply；需 V3 推 main 后等 Vercel deploy 完成，然后通过 Supabase MCP 单独执行 migration + verify (跟 FU-42 同范式)。
+- **BUG #4 production migration 已应用 (2026-05-26)**: Vercel 部署 `main@92b4e89` 完成 (state=READY, deployment_id=dpl_JB8EMuUufdEKgnSLT4L16iY7HxRq) 后通过 Supabase MCP `apply_migration` 应用 `fix_profiles_avatar_rls`, success=true; post-apply 验证全通过 — profiles 表 10 个 user-editable 字段 (含 `avatar_url`) UPDATE grant 已添加给 authenticated role / `is_admin` 与敏感字段仍受保护 (0 grants) / `profiles_update` RLS owner-scoped 不变 / smoke `SELECT COUNT(*) FROM profiles WHERE avatar_url IS NOT NULL` = 16。
+- **Tooling deviation**: Supabase MCP `apply_migration` 在远端 `schema_migrations` 记录的 version 为运行时生成的 `20260526133859`, 与 repo 文件名前缀 `20260526190604` 不一致; migration name 与 SQL body 一致; 跟 FU-42 sub-sprint 4 deploy step 同范式 cosmetic 行为, 不影响跨机器 sync。
 - **用户视觉验收**: PASS (15 个验收点全过)。
 - Active 22 → 21 · Closed 32 → 33
 - v0.8 机械化清单第十九次实战

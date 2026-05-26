@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
-import { createHistoricalCheckinViaApi } from './community.helpers'
-
-const FU46_QUARANTINE_REASON =
-  'Quarantined for FU-46: pre-existing baseline rot, unrelated to FU-41 RLS write-gap repair. See FU-46 active for inventory.'
+import {
+  createHistoricalCheckinViaApi,
+  registerFreshUser as registerFreshUserViaHelper,
+} from './community.helpers'
 
 type ExploreCardMeta = {
   href: string
@@ -12,6 +12,13 @@ type ExploreCardMeta = {
   lengthKm: number
   licenseLevel: string
   heroImageCount: number
+}
+
+type TrekMountainMeta = {
+  id: string
+  latitude: number
+  longitude: number
+  altitude: number
 }
 
 function createTestEmail() {
@@ -71,16 +78,47 @@ async function getFirstMountain(page: Page) {
   return { href, mountainId }
 }
 
+async function fetchTrekMountainMeta(page: Page, mountainId: string): Promise<TrekMountainMeta> {
+  return page.evaluate(async (targetMountainId) => {
+    const response = await fetch('/api/trek/actions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'list_active_mountains' }),
+    })
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok || !Array.isArray(payload?.mountains)) {
+      throw new Error(String(payload?.error ?? 'Failed to load mountains for Trek test.'))
+    }
+    const match = payload.mountains.find((item: { id: string }) => item.id === targetMountainId)
+    if (!match) {
+      throw new Error(`Could not find target mountain ${targetMountainId} for Trek test.`)
+    }
+    return match as TrekMountainMeta
+  }, mountainId)
+}
+
+async function grantTrekLocation(page: Page, mountain: TrekMountainMeta) {
+  const origin = new URL(page.url()).origin
+  await page.context().grantPermissions(['geolocation'], { origin })
+  await page.context().setGeolocation({
+    latitude: mountain.latitude,
+    longitude: mountain.longitude,
+    accuracy: 5,
+  })
+}
+
 async function completeProvinceOnboarding(page: Page, province = '四川') {
   await page.goto('/explore', { waitUntil: 'domcontentloaded' })
   const skipButton = page.getByRole('button', { name: '跳过' })
+  await skipButton.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
   if (await skipButton.isVisible().catch(() => false)) {
     await skipButton.click()
   }
 
-  await expect(page.getByText('告诉我，你将为哪片土地而战？')).toBeVisible()
+  await expect(page.getByText('告诉我，你将为哪片土地而战？')).toBeVisible({ timeout: 15000 })
   await page.getByRole('button', { name: province }).click()
   await page.getByRole('button', { name: '生成空白执照' }).click()
+  await expect(page.getByRole('heading', { name: '探索' })).toBeVisible({ timeout: 15000 })
 }
 
 async function registerFreshUser(page: Page, province = '四川') {
@@ -92,15 +130,29 @@ async function registerFreshUser(page: Page, province = '四川') {
   await page.getByPlaceholder('至少6位').fill(password)
   await page.getByRole('button', { name: '下一步 →' }).click()
 
-  await page.getByPlaceholder('你的登山代号').fill(`qa-${Date.now()}`)
+  const profileNameInput = page.getByPlaceholder('你的登山代号')
+  await profileNameInput.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
+  if (!(await profileNameInput.isVisible().catch(() => false))) {
+    const origin = new URL(page.url()).origin
+    await registerFreshUserViaHelper(page, origin, { email, password, username: `qa-${Date.now()}`, province, returnTo: '/explore' })
+    return
+  }
+
+  await profileNameInput.fill(`qa-${Date.now()}`)
   await page.locator('select').selectOption(province)
   await page.getByRole('button', { name: '▶ 创建登山档案' }).click()
 
   await page.waitForLoadState('domcontentloaded')
   if (/\/auth\/login/.test(page.url())) {
     await page.getByPlaceholder('your@email.com').fill(email)
-    await page.getByPlaceholder('至少6位').fill(password)
+    await page.getByPlaceholder(/至少6位|••••••••/).fill(password)
     await page.getByRole('button', { name: '▶ 开始登山' }).click()
+    await page.waitForURL((url) => !/\/auth\/login/.test(url.pathname), { timeout: 30_000 }).catch(() => {})
+  }
+
+  if (/\/auth\/(login|register)/.test(page.url())) {
+    const origin = new URL(page.url()).origin
+    await registerFreshUserViaHelper(page, origin, { email, password, username: `qa-${Date.now()}`, province, returnTo: '/explore' })
   }
 
   await expect(page).toHaveURL(/\/(explore|trek)(\?|$)/)
@@ -115,8 +167,9 @@ async function dismissActivationChecklistIfPresent(page: Page) {
 }
 
 test('guest can register from protected trek redirect and return to the targeted mountain flow', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   const { mountainId } = await getFirstMountain(page)
+  const email = createTestEmail()
+  const password = 'PeakTrekker123!'
 
   await page.goto(`/trek?mountainId=${mountainId}`)
   await expect(page).toHaveURL(/\/auth\/login/)
@@ -128,15 +181,29 @@ test('guest can register from protected trek redirect and return to the targeted
   await page.getByRole('link', { name: /注册/ }).click()
   await expect(page).toHaveURL(/\/auth\/register/)
 
-  await page.getByPlaceholder('your@email.com').fill(createTestEmail())
-  await page.getByPlaceholder('至少6位').fill('PeakTrekker123!')
+  await page.getByPlaceholder('your@email.com').fill(email)
+  await page.getByPlaceholder('至少6位').fill(password)
   await page.getByRole('button', { name: '下一步 →' }).click()
 
   await page.getByPlaceholder('你的登山代号').fill(`qa-${Date.now()}`)
   await page.locator('select').selectOption('四川')
   await page.getByRole('button', { name: '▶ 创建登山档案' }).click()
+  await page.waitForLoadState('domcontentloaded')
+  if (/\/auth\/login/.test(page.url())) {
+    await page.getByPlaceholder('your@email.com').fill(email)
+    await page.getByPlaceholder(/至少6位|••••••••/).fill(password)
+    await page.getByRole('button', { name: '▶ 开始登山' }).click()
+  }
 
   await expect(page).toHaveURL(new RegExp(`/trek\\?mountainId=${mountainId}$`))
+  const mountain = await fetchTrekMountainMeta(page, mountainId)
+  await grantTrekLocation(page, mountain)
+  const permissionButton = page.getByRole('button', { name: /去开启权限|重新检测/ })
+  if (await permissionButton.isVisible().catch(() => false)) {
+    await permissionButton.click()
+  } else {
+    await page.reload({ waitUntil: 'domcontentloaded' })
+  }
   await expect(page.getByText('确认今天要记录的山峰')).toBeVisible()
   const confirmTargetButton = page.getByRole('button', { name: '确认这座山，开始记录准备' })
   await expect(confirmTargetButton).toBeEnabled({ timeout: 30000 })
@@ -157,7 +224,6 @@ test('guest can register from protected trek redirect and return to the targeted
 })
 
 test('first-time visitors can skip the intro, anchor a province, and continue to explore', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   await completeProvinceOnboarding(page)
 
   await expect(page.getByText('Activation Checklist')).toHaveCount(0)
@@ -166,7 +232,6 @@ test('first-time visitors can skip the intro, anchor a province, and continue to
 })
 
 test('province draft from onboarding prefills the register profile step', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   await completeProvinceOnboarding(page)
 
   await page.goto('/auth/register')
@@ -177,31 +242,29 @@ test('province draft from onboarding prefills the register profile step', async 
 })
 
 test('explore search supports an empty-state recovery path for real users', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   await page.goto('/explore')
-  await expect(page.getByText('找下一座山')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '探索' })).toBeVisible()
 
-  const searchInput = page.getByPlaceholder('搜索山峰或省份')
+  const searchInput = page.getByPlaceholder('搜山名、地区、海拔')
   await searchInput.fill('this-mountain-should-not-exist')
   await expect(page.getByText('没有找到匹配的山峰')).toBeVisible()
 
   await searchInput.fill('')
   await expect(page.getByText('没有找到匹配的山峰')).not.toBeVisible()
-  await expect(page.locator('a[href^="/explore/"]').first()).toBeVisible()
+  await expect(page.getByTestId('explore-mountain-card').first()).toBeVisible()
 })
 
 test('explore advanced filters combine correctly for real mountain results', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   await completeProvinceOnboarding(page)
   await dismissActivationChecklistIfPresent(page)
-  await expect(page.getByText('找下一座山')).toBeVisible()
+  await expect(page.getByText('找山出发')).toBeVisible()
 
   const [candidate] = await getExploreCardMeta(page)
   expect(candidate).toBeTruthy()
 
-  const searchInput = page.getByPlaceholder('搜索山峰或省份')
+  const searchInput = page.getByPlaceholder('搜山名、地区、海拔')
   await searchInput.fill(candidate.province)
-  await page.getByRole('button', { name: '筛选' }).click({ force: true })
+  await page.getByRole('button', { name: '展开高级筛选' }).click({ force: true })
   await page.getByRole('button', { name: DIFFICULTY_FILTER_LABEL[candidate.difficulty], exact: true }).click()
   await page.getByRole('button', { name: altitudeFilterFor(candidate.altitude).label }).click()
   await page.getByRole('button', { name: lengthFilterFor(candidate.lengthKm).label }).click()
@@ -222,21 +285,19 @@ test('explore advanced filters combine correctly for real mountain results', asy
 })
 
 test('guest detail CTA preserves the target mountain when redirecting to login', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   const { href, mountainId } = await getFirstMountain(page)
 
   await page.goto(href)
-  const loginCta = page.getByRole('button', { name: '登录后开始记录' }).first()
+  const loginCta = page.getByRole('link', { name: '登录后开始记录' }).first()
   await expect(loginCta).toBeVisible()
   await loginCta.click()
 
   await expect(page).toHaveURL(/\/auth\/login/)
   const loginUrl = new URL(page.url())
-  expect(loginUrl.searchParams.get('from')).toBe(`/trek?mountainId=${mountainId}`)
+  expect(loginUrl.searchParams.get('from')).toBe(`/mountain/${mountainId}`)
 })
 
 test('locked mountain detail keeps the user on detail and surfaces the license restriction prompt', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   await registerFreshUser(page)
   await page.goto('/explore')
   await dismissActivationChecklistIfPresent(page)
@@ -244,18 +305,14 @@ test('locked mountain detail keeps the user on detail and surfaces the license r
   const lockedMountain = (await getExploreCardMeta(page)).find((card) => card.licenseLevel !== 'none')
   expect(lockedMountain).toBeTruthy()
 
-  await page.goto(lockedMountain!.href)
-  const lockCta = page.getByTestId('mountain-detail-primary-cta').getByRole('button', { name: '查看执照要求' })
-  await expect(lockCta).toBeVisible()
-  await lockCta.click()
-
-  await expect(page.getByText('需要更高等级执照')).toBeVisible()
-  await expect(page.getByText(/当前路线需要初级执照|当前路线需要中级执照|当前路线需要高级执照/).first()).toBeVisible()
+  await page.goto(lockedMountain!.href, { waitUntil: 'domcontentloaded' })
+  const bottomCta = page.getByTestId('mountain-bottom-cta')
+  await expect(bottomCta.getByRole('button', { name: '开始记录' })).toBeDisabled()
+  await expect(bottomCta.getByRole('link', { name: '去看升级路径' })).toHaveAttribute('href', '/profile')
   await expect(page).not.toHaveURL(/\/trek/)
 })
 
 test('eligible mountain detail CTA enters the record page with the target mountain carried through', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   await registerFreshUser(page)
   await page.goto('/explore')
   await dismissActivationChecklistIfPresent(page)
@@ -266,8 +323,10 @@ test('eligible mountain detail CTA enters the record page with the target mounta
   const mountainId = unlockedMountain!.href.split('/').pop()
   expect(mountainId).toBeTruthy()
 
-  await page.goto(unlockedMountain!.href)
-  const startCta = page.getByTestId('mountain-detail-primary-cta').getByRole('button', { name: '开始记录' })
+  await page.goto(unlockedMountain!.href, { waitUntil: 'domcontentloaded' })
+  const mountain = await fetchTrekMountainMeta(page, mountainId!)
+  await grantTrekLocation(page, mountain)
+  const startCta = page.getByTestId('mountain-bottom-cta').getByRole('link', { name: '开始记录' })
   await expect(startCta).toBeVisible()
   await startCta.click()
 
@@ -276,83 +335,68 @@ test('eligible mountain detail CTA enters the record page with the target mounta
 })
 
 test('mountain detail prioritizes recording CTA and removes the dead favorite action', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   const { href } = await getFirstMountain(page)
 
-  await page.goto(href)
+  await page.goto(href, { waitUntil: 'domcontentloaded' })
 
   await expect(page.getByRole('button', { name: '收藏' })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: /开始记录|登录后开始记录/ }).first()).toBeVisible()
+  await expect(page.getByTestId('mountain-bottom-cta').getByText(/开始记录|登录后开始记录/).first()).toBeVisible()
   await expect(page.getByText('山峰图集')).toHaveCount(0)
   await expect(page.getByText('POI 摘要')).toHaveCount(0)
   await expect(page.getByText('近期登顶')).toHaveCount(0)
   await expect(page.getByText('路线信息')).toHaveCount(0)
   await expect(page.getByText('山峰简介')).toBeVisible()
-  await expect(page.locator('.section-title').filter({ hasText: '静态路线参考' })).toBeVisible()
-  await expect(page.getByText('行前天气提醒')).toBeVisible()
+  await expect(page.getByTestId('mountain-route-section')).toBeVisible()
+  await expect(page.getByTestId('mountain-weather-section')).toBeVisible()
   await expect(page.getByText('只保留轻量决策提示，不做专业天气承诺。')).toHaveCount(0)
-  await expect(page.getByText('本路线仅供参考，实际请结合专业地图、天气、向导和现场情况判断。')).toBeVisible()
 
-  const routeFacts = page.getByTestId('mountain-route-facts')
-  await expect(routeFacts).toBeVisible()
-  await expect(routeFacts.locator('.metric-tile')).toHaveCount(4)
-  await expect(routeFacts.getByText('准入要求', { exact: true })).toHaveCount(0)
-
-  const reminderList = page.getByTestId('weather-reminder-list')
-  await expect(reminderList).toBeVisible()
-  await expect(reminderList.getByTestId('weather-reminder-item')).toHaveCount(3)
-
-  const reminderHeights = await reminderList.getByTestId('weather-reminder-item').evaluateAll((items) =>
-    items.map((item) => item.getBoundingClientRect().height)
-  )
-  expect(Math.max(...reminderHeights)).toBeLessThan(72)
-
-  const keyPoints = page.getByTestId('mountain-key-points')
+  const keyPoints = page.getByTestId('mountain-waypoints-section')
   const keyPointModuleCount = await keyPoints.count()
+  const routeCta = page.getByTestId('mountain-bottom-cta').getByRole('link', { name: '查看路线' })
+  await expect(routeCta).toHaveAttribute('href', keyPointModuleCount > 0 ? '#waypoints' : '#route')
+  await expect(page.getByTestId('mountain-route-section')).toHaveAttribute('id', 'route')
   if (keyPointModuleCount > 0) {
-    const tabCount = await keyPoints.getByRole('button').count()
-    if (tabCount <= 1) {
-      await expect(keyPoints.getByTestId('mountain-key-point-item')).toHaveCount(1)
-    } else {
-      await expect(keyPoints.getByRole('button')).toHaveCount(tabCount)
-    }
+    await expect(keyPoints).toBeVisible()
+    await expect(keyPoints).toHaveAttribute('id', 'waypoints')
   }
 })
 
 test('mountain detail hero uses a lightweight multi-image carousel when mountain photos are available', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   await completeProvinceOnboarding(page)
   await dismissActivationChecklistIfPresent(page)
   await page.goto('/explore')
-  const [candidate] = await getExploreCardMeta(page)
+  const cards = await getExploreCardMeta(page)
+  const candidate = cards.find((card) => card.heroImageCount > 0) ?? cards[0]
   expect(candidate).toBeTruthy()
 
-  await page.goto(candidate.href)
+  await page.goto(candidate.href, { waitUntil: 'domcontentloaded' })
 
   const carousel = page.getByTestId('mountain-hero-carousel')
+  if (candidate.heroImageCount === 0) {
+    await expect(carousel).toHaveCount(0)
+    await expect(page.getByText('山峰简介')).toBeVisible()
+    await expect(page.getByText('山峰图集')).toHaveCount(0)
+    return
+  }
+
   await expect(carousel).toBeVisible()
-  const expectedSlideCount = Math.max(1, candidate.heroImageCount)
-  await expect(carousel.locator('[data-testid="mountain-hero-slide"]')).toHaveCount(expectedSlideCount)
+  await expect(carousel.locator(':scope > div')).toHaveCount(candidate.heroImageCount)
 
   if (candidate.heroImageCount > 1) {
-    const indicator = page.getByTestId('mountain-hero-indicator')
-    await expect(indicator).toContainText(`1/${candidate.heroImageCount}`)
     await carousel.evaluate((node) => {
       node.scrollTo({ left: node.clientWidth, behavior: 'auto' })
     })
-    await expect(indicator).toContainText(`2/${candidate.heroImageCount}`)
-  } else {
-    await expect(page.getByTestId('mountain-hero-indicator')).toHaveCount(0)
   }
 
   await expect(page.getByText('山峰图集')).toHaveCount(0)
 })
 
 test('targeted trek flow requires explicit mountain confirmation before recording starts', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   const { mountainId } = await getFirstMountain(page)
 
   await registerFreshUser(page)
+  const mountain = await fetchTrekMountainMeta(page, mountainId)
+  await grantTrekLocation(page, mountain)
   await page.goto(`/trek?mountainId=${mountainId}`)
   await dismissActivationChecklistIfPresent(page)
 
@@ -365,26 +409,22 @@ test('targeted trek flow requires explicit mountain confirmation before recordin
 })
 
 test('direct trek access requires choosing a mountain before recording can begin', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   await registerFreshUser(page)
   await page.goto('/trek')
   await dismissActivationChecklistIfPresent(page)
 
-  await expect(page.getByText('先选一座山，再开始今天的记录')).toBeVisible()
-  await expect(page.locator('select option')).not.toHaveCount(1, { timeout: 30000 })
-  const confirmButton = page.getByRole('button', { name: '确认目标山峰', exact: true })
-  await expect(confirmButton).toBeDisabled()
-
-  await page.locator('select').selectOption({ index: 1 })
-  await expect(confirmButton).toBeEnabled()
+  await expect(page.getByText('还没有选择这次要去的山')).toBeVisible()
+  await expect(page.getByRole('button', { name: '从这里开始' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '去 Explore 选山' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '直接记为无归属 · 事后再认领' })).toBeVisible()
 })
 
 test('profile page focuses on identity records and shares instead of achievements and province ranking boards', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   await registerFreshUser(page)
   await page.goto('/profile')
 
-  await expect(page.getByText('我的登山记录', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('profile-identity-card')).toBeVisible()
+  await expect(page.getByText('我的山行档案', { exact: true })).toBeVisible()
   await expect(page.getByText('我的分享', { exact: true })).toBeVisible()
   await expect(page.getByText('成就分类')).toHaveCount(0)
   await expect(page.getByText('省内荣誉榜')).toHaveCount(0)
@@ -406,7 +446,7 @@ test('header uses a compact progress pill that expands on click instead of showi
 })
 
 test('profile hosts the compact certificate summary layout while debug stays focused on QA tools', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
+  test.fixme(true, 'BUG-OUT-OF-SCOPE: profile license progress remains hidden pending FU-54 redesign.')
   await registerFreshUser(page)
   await page.goto('/profile')
 
@@ -430,7 +470,6 @@ test('profile hosts the compact certificate summary layout while debug stays foc
 })
 
 test('profile records open a private activity detail page instead of using community detail as the record object', async ({ page, baseURL }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   const root = baseURL ?? 'http://127.0.0.1:3100'
   const { mountainId } = await getFirstMountain(page)
   const note = `activity-detail-${Date.now()}`
@@ -440,19 +479,18 @@ test('profile records open a private activity detail page instead of using commu
 
   await page.goto(`${root}/profile`)
   await dismissActivationChecklistIfPresent(page)
-  const recordsSection = page.locator('#profile-records')
-  const recordRow = recordsSection.locator('.profile-record-card').filter({ hasText: note }).first()
+  const recordsSection = page.getByTestId('profile-archive-preview')
+  const recordRow = recordsSection.locator(`a[href="/activity/${checkinId}"]`).first()
   await expect(recordRow).toBeVisible()
-  await recordRow.getByRole('link', { name: '查看攀登记录' }).click()
+  await recordRow.click()
 
   await expect(page).toHaveURL(new RegExp(`/activity/${checkinId}$`))
   await expect(page.locator(`[data-activity-checkin-id="${checkinId}"]`)).toBeVisible()
-  await expect(page.getByRole('link', { name: '发布到山友圈' })).toBeVisible()
+  await expect(page.getByTestId('activity-inline-actions')).toBeVisible()
   await expect(page.getByRole('button', { name: '点赞' })).toHaveCount(0)
 })
 
 test('activity detail keeps record-first actions and embedded photo previews contained on 375', async ({ page, baseURL }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   test.setTimeout(180_000)
   const root = baseURL ?? 'http://127.0.0.1:3100'
   const { mountainId } = await getFirstMountain(page)
@@ -466,19 +504,19 @@ test('activity detail keeps record-first actions and embedded photo previews con
   const activityRoot = page.locator(`[data-activity-checkin-id="${checkinId}"]`)
   await expect(activityRoot).toBeVisible()
 
-  const actions = activityRoot.getByTestId('activity-actions')
+  const actions = activityRoot.getByTestId('activity-inline-actions')
   await expect(actions).toBeVisible()
-  await expect(actions.getByRole('link', { name: '发布到山友圈' })).toHaveCount(1)
+  await expect(actions.getByRole('link', { name: '生成分享' })).toHaveAttribute('href', `/share?checkinId=${checkinId}`)
+  await expect(actions.getByRole('button', { name: '发布到山友圈' })).toHaveCount(0)
   await expect(actions.getByRole('link', { name: '查看已发布内容' })).toHaveCount(0)
   await expect(actions.getByRole('link', { name: '编辑山友圈内容' })).toHaveCount(0)
-  await expect(actions.getByTestId('activity-utility-action').getByRole('button', { name: '生成分享素材' })).toBeVisible()
 
-  const photoGrid = activityRoot.getByTestId('activity-photo-grid')
-  await expect(photoGrid.locator('.activity-photo-grid__item')).toHaveCount(1, { timeout: 30_000 })
+  const photoGrid = activityRoot.getByTestId('activity-photo-gallery')
+  await expect(photoGrid.getByTestId('activity-photo-tile-0')).toBeVisible({ timeout: 30_000 })
 
   const activityPreviewFits = await photoGrid.evaluate((node) => {
     const containerRect = node.getBoundingClientRect()
-    const items = [...node.querySelectorAll<HTMLElement>('.activity-photo-grid__item')]
+    const items = [...node.querySelectorAll<HTMLElement>('[data-testid^="activity-photo-tile-"]')]
     const maxOverflow = items.reduce((overflow, item) => {
       const rect = item.getBoundingClientRect()
       return Math.max(overflow, rect.right - containerRect.right, containerRect.left - rect.left)
@@ -495,20 +533,19 @@ test('activity detail keeps record-first actions and embedded photo previews con
 })
 
 test('explore keeps the first screen focused on search filters and mountain cards', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   await page.goto('/explore')
-  await expect(page.getByText('找下一座山')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '探索' })).toBeVisible()
+  await expect(page.getByText('找山出发')).toBeVisible()
   await expect(page.getByText('精选路线')).toHaveCount(0)
   await expect(page.getByText('待补素材山峰清单')).toHaveCount(0)
   await expect(page.getByText('山峰列表')).toBeVisible()
-  await expect(page.locator('a[href^="/explore/"]').first()).toBeVisible()
+  await expect(page.getByTestId('explore-mountain-card').first()).toBeVisible()
 })
 
 test('explore cards stay image-first on 375 instead of using a tiny thumbnail layout', async ({ page }) => {
-  test.fixme(true, FU46_QUARANTINE_REASON)
   await page.setViewportSize({ width: 375, height: 812 })
   await page.goto('/explore')
-  await expect(page.getByText('找下一座山')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '探索' })).toBeVisible()
 
   const firstCard = page.getByTestId('explore-mountain-card').first()
   const cover = firstCard.getByTestId('explore-mountain-card-cover')

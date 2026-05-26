@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-22 · 最新版本记录: v0.30
+> Last Updated: 2026-05-26 · 最新版本记录: v0.31
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`15bd36c`（Merge FU-42 sub-sprint 4 · 2026-05-22）
+`c3a25c5`（Merge FU-46 close · 2026-05-26）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动 (候选清单见 v0.30 末尾推荐)
+待启动 (候选见 v0.31 末尾推荐 / FU-54 license progress 重设计已准备 design spec)
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -52,14 +52,12 @@
 - Codex 在 V1 plan 阶段必须包含 E2E 自测环节（Playwright 脚本 + 跑通报告 + 截图）；单元测试静态字符串 grep 不能替代运行时行为验证
 - 每次涉及 schema 改动的 sprint，V3 收尾必须包含"migration 已推送到远程 Supabase"的验证步骤（Codex 用 Supabase 插件主动推送 + service role 查 information_schema 验证）
 
-#### V3 收尾 preflight 协议增强（v0.15 引入 / 当前 grandfather 豁免）
+#### V3 收尾 preflight 协议增强（v0.15 引入 / v0.31 正式撤销 (revoked)）
 
-- Phase 3 / V3 preflight **应**执行 `npx playwright test` 全量跑，而非相关子集。
-- 全量 e2e 内出现 pre-existing baseline failure 时按 FU-39 quarantine 范式: (1) main 独立复现验证 pre-existing; (2) 失败 case 加 test.fixme + reason 标记目标 FU; (3) 开新 FU（根因清晰单独 / 多 case umbrella）入 Active 段跟踪; (4) 整套 quarantine 后全量 e2e 通过 0 failure 才进 V3。
-- **触发来源**: FU-13/14 sprint 漏跑全量致 FU-41 Phase 3 才暴露 64+ 项 baseline rot 累积。
-- **Grandfather 豁免**: FU-46 closed 前此协议**暂不强制**。FU-41 P1 数据完整性 bug 不应被 baseline rot 拖延，acceptance gate 改为 "守卫单测 + lint + 强关联 spec"。
-- **后续 sprint**: FU-46 高优先候选。FU-46 closed 后此协议正式 enforce。
-- **用户成本约束（v0.15 补丁引入）**: 全量 `npx playwright test` 跑成本高，**即便协议正式 enforce 后仍需用户专门确认才执行**；Codex / Claude 不可在 V1 / V3 模板默认无声触发，也不可自主决定跑全量。强关联子集 spec（如 `tests/e2e/<feature>.spec.ts`）自跑不受此限。**触发来源**: 用户 v0.15 sprint 末明确 feedback（"额度很难支撑我们去重复的做这件事，除非它一定是必要的"）。
+- **协议状态（v0.31）**: FU-46 close 后正式撤销 (revoked)。后续 sprint V3 preflight 不再默认或升级为全量 `npx playwright test`。
+- **替代协议**: V3 preflight 含 lint + node test + build + 强关联子集 e2e + 用户视觉验收。
+- **原因**: 全量 e2e 资源 / 时间成本与价值不对等；强关联子集 + 视觉验收已覆盖业务变更的实际验证需求。
+- **历史归档**: FU-46 close 已作为 unique 收尾跑完整全量并清理 quarantine debt；不绑定未来 gate 启用。
 - **TS build preflight（v0.16 引入）**: 每个 sprint 的 preflight **必须**包含 `npm run build`。**触发来源**: FU-46 子 sprint 1 实战发现 2 个 pre-existing TypeScript build blocker（FU-13/14 ActivityDetailClient nextPhotos implicit any + FU-40 TrekClient 3 个 toast key 漏登 registry: trek_pause_persist_failed / trek_manual_refresh_cooldown / trek_resume_failed），均因之前 sprint preflight 不含 build 而长期潜伏。lint + node --test 不足以拦 TS strict mode 编译错误。**与全量 e2e gate 不同**: `npm run build` 成本相对低（< 2 分钟），不需用户专门确认。**如 build fail**: 立即 STOP 报告，按 fail-fast 协议。
 
 ### 新对话/接手指引
@@ -85,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（22 条）
+## Active Follow-ups（21 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -339,42 +337,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-46 · e2e baseline rot 系统性清理（umbrella）
-
-- **优先级**: P2（**高优** — 阻塞全量 e2e gate 启用）
-- **状态**: 🟢 active
-
-**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 58 个 pre-existing failure（除 FU-44 / FU-45 之外），跨 8 个 spec 文件。main 独立复现确认全部 pre-existing，与 FU-41 commit 无因果。所有 case 已 test.fixme quarantine（commit 2e6a923），feature 分支 e2e 数学上 0 failure（除 Step 4 未跑完）。FU-46 子 sprint 1 已修 debug routes 3 个 quarantine case，inventory 58 → 55；子 sprint 2 已修 mountain-waypoints-display 5 个 case，inventory 55 → 50；子 sprint 3 已修 mountain-featured-posts 5 个 case，inventory 50 → 45；FU-44 close sprint 判定 activity-hero 5 cases 为 obsolete cleanup，overall baseline backlog 45 → 40；子 sprint 4 已修 community-final-polish 5 cases，overall baseline backlog 40 → 35。
-
-**元层级 finding**: FU-13/14 / FU-40 / FU-33 / FU-1 等 sprint 仅跑相关子集 e2e 未全量，导致 baseline rot 多周期无感累积。v0.15 引入"V3 preflight 全量 e2e gate"协议但 FU-41 grandfather 豁免直到本 FU 修完。
-
-**Inventory**（35 remaining cases / 3 active spec 文件；子 sprint 1 已修 3 cases，子 sprint 2 已修 5 cases，子 sprint 3 已修 5 cases，子 sprint 4 已修 5 cases；FU-44 activity-hero 5 cases 已按 obsolete cleanup 移除，不计入"已修"）:
-- tests/e2e/app.spec.ts: 18 cases（含 trek/onboarding 流程偏差等）
-- tests/e2e/button-token-migration.spec.ts: 6 cases
-- tests/e2e/community-acceptance.spec.ts: 16 cases
-
-**已修记录**:
-- tests/e2e/debug-access.spec.ts: 2 cases ✓ 已修（子 sprint 1, commit 880f703 + 8c7dcaa）
-  > 撤销说明：本 case 在 FU-46 子 sprint 4 重新加回 test.fixme，ProfileV2Client.tsx 中的 <ProfileLicenseProgressSection /> render 已删除，组件源文件保留待 FU-54 重设计。
-- tests/e2e/debug-tokens.spec.ts: 1 case ✓ 已修（子 sprint 1, commit 8c7dcaa）
-- tests/e2e/mountain-waypoints-display.spec.ts: 5 cases ✓ 已修（子 sprint 2, commit a7762fb）
-- tests/e2e/mountain-featured-posts.spec.ts: 5 cases ✓ 已修（子 sprint 3, commit ba77bad；cheap win：子 sprint 2 `listActiveMountainsViaApi` selector fix 间接修好，本子 sprint 仅 unquarantine）
-- tests/e2e/activity-hero.spec.ts: 5 cases 移除（FU-44 close, commit 4c20094；obsolete cleanup，不是已修：spec 绑定 redesign 前旧 Activity Detail surface-card 设计，已删除 spec + 孤儿组件链）
-- tests/e2e/community-final-polish.spec.ts: 5 cases ✓ 已修（子 sprint 4, commit 5e69e33）
-
-**额外 note**: main 上还有 1 个 tests/e2e/import-dedupe-flow.spec.ts case main-fail / feature-pass，疑似环境波动，不入 inventory。
-
-**已知 flake 记账**: tests/e2e/debug-tokens.spec.ts 内 2 个 non-quarantined case (token preview buttons share exact size specs / icon button missing aria label) 在子 sprint 1 跑后出现 registerFreshUser auth/login navigation 60s timeout flake，同分支单 spec 重跑通过 confirmed flake，未 quarantine，作为已知 flake 跟踪。若未来反复出现再单独 case sprint 拆解 helper 重置。
-
-**修复策略**:
-- 按 spec 文件分组单 sprint 修（根因相似度组合）或全套独立 sprint
-- 修一项移一项 quarantine（test.fixme → test）
-- 全部 case 修完后关闭本 FU + 启用全量 e2e gate
-
-**涉及**: 上述 8 个 spec 文件 + 对应业务代码（每个 case 根因决定）。
-
----
-
 ### FU-47 · 地图组件实施 (MapLibre + PMTiles 自托管)
 
 - **优先级**: P1（docs §14 第 5 步实施门面缺失 + 用户验收发现）
@@ -589,7 +551,20 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（32 条）
+## Closed Follow-ups（33 条）
+
+### FU-46 ✅ e2e baseline rot 系统性清理 (umbrella · sub-sprint 1+2+3+4 + close sprint 全闭环)
+
+- **关闭原因**: 38 quarantine cases 处理完毕 (FIX 18 / REWRITE 12 / OBSOLETE 5 / BUG-OUT-OF-SCOPE 3)；4 个 in-sprint BUG fix (查看路线 fallback / community card activation / protected trek returnTo / avatar upload RLS)；最终全量 e2e --retries=1 跑通 0 failure / 3 fixme retained (FU-45 1 + FU-54 license progress 2)。
+- **sub-sprint 1-4 历史进度**: 已修 18 + FU-44 obsolete cleanup 5 (v0.25-v0.30 records)。
+- **close sprint v0.31**: 处理剩余 38 quarantine + 4 BUG fix + 协议正式撤销。
+- **协议变更**: v0.15 引入的 V3 preflight 全量 e2e gate 在本 FU close 时**正式撤销 (revoked)** (详见 v0.31 entry)。
+- **BUG #4 production migration 未应用**: `supabase/migrations/20260526190604_fix_profiles_avatar_rls.sql` 已 commit 但未在 V3 期间执行；跟 FU-42 同范式 deploy-gated, post-V3 通过 Supabase MCP 单独应用 + verify。
+- **关闭 commit**: `fa21cc8` / `ed4904f` / `4de953f` / `4fb55e1` / `1975915` / `84984fe` / `29a5c2b`
+- **merge commit**: `c3a25c5`
+- **关闭时间**: 2026-05-26
+
+---
 
 ### FU-42 ✅ checkins status tristate 完全移除 (选 C · sub-sprint 1+2+3+4 全闭环)
 
@@ -931,6 +906,29 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.31（2026-05-26）
+
+FU-46 close · e2e baseline rot 系统性清理收尾 + 4 个 in-sprint BUG fix + **全量 e2e gate 协议正式撤销**
+
+- **处理统计**: 38 quarantine cases (FIX 18 / REWRITE 12 / OBSOLETE 5 / BUG-OUT-OF-SCOPE 3)；4 个 in-sprint BUG fix。
+- **业务代码改动**: 6 src 文件 (+76 / -8) — `MountainDetailClient` (+8) / `CommunityCard` (+24) / `auth-redirect` 新增 (+19) / `login` (+5) / `register` (+5) / `avatar-upload` (+4)；已 strict diff 自查无 visible UI / business logic regression。
+- **spec 改动**: 4 e2e spec + 2 helper (+331 / -1069 net) — full rewrite of outdated blocks。
+- **src dead code cleanup**: `src/app/components.css` (-182 lines) + `src/components/community/ProfileCommunitySections.tsx` (orphan component deleted, -367 lines)。
+- **DB migration**: `supabase/migrations/20260526190604_fix_profiles_avatar_rls.sql` (BUG #4 column-level GRANT UPDATE for user-editable profile fields including `avatar_url`; `is_admin` / payment 字段保护)。
+- **全量 e2e**: 1 次完整 `--retries=1` 跑通 (`status=passed` / `failedTests=[]`)；3 fixme retained (FU-45 1 + FU-54 license progress 2)。
+- **4 BUG fix 验收**:
+  - #5 Mountain Detail "查看路线" fallback: 加 `id="route"` + href 改为 `hasWaypoints ? '#waypoints' : '#route'`
+  - #3 Community feed card activation: `CommunityCard` `onClick` / `onKeyDown` route push 修复 + 保护 nested controls (mountain link / like / share / menu)
+  - #1 Protected Trek returnTo: auth returnTo 跨 register + profile setup 流程 propagation 修复 (`normalizeAuthReturnPath` + client session storage fallback)
+  - #4 Avatar upload RLS: app code 用 `createSupabaseAdminClient` + owner-scoped UPDATE 即时 fix；migration deploy-gated 长期 fix 加 column-level GRANT UPDATE
+- **协议撤销**: 2026-05-26 用户决策。docs v0.15 引入的 "V3 preflight 全量 e2e gate" 协议在 FU-46 close 时**正式撤销 (revoked)**。后续 sprint preflight 中 e2e 部分仅跑强关联子集 spec，不再升级为全量。理由: 全量 e2e 资源 / 时间成本与价值不对等；强关联子集 + 视觉验收已覆盖业务变更的实际验证需求。
+- **替代协议**: V3 preflight 含 lint + node test + build + 强关联子集 e2e + 用户视觉验收。已记入 memory `feedback_full_e2e_terminated_after_fu46.md`。
+- **历史归档**: FU-46 跑的完整全量是该协议的 unique 收尾 + quarantine debt 归零，不绑定未来 gate 启用。
+- **已知偏差**: BUG #4 production migration 尚未 apply；需 V3 推 main 后等 Vercel deploy 完成，然后通过 Supabase MCP 单独执行 migration + verify (跟 FU-42 同范式)。
+- **用户视觉验收**: PASS (15 个验收点全过)。
+- Active 22 → 21 · Closed 32 → 33
+- v0.8 机械化清单第十九次实战
 
 ### v0.30（2026-05-22）
 

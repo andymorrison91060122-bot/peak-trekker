@@ -5,20 +5,14 @@ import { useRouter } from 'next/navigation'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
 import type { Waypoint, WaypointType } from '@/lib/waypoints'
 import { getRouteSegments, type RouteSegment } from '@/lib/mountain-route-segments'
-import { getLicenseRequirementLabel, getLicenseShortLabel } from '@/lib/license-ui'
+import { getDifficultySuitabilityCopy } from '@/lib/license-ui'
 import { BackIcon, CheckIcon, MoreIcon, PinIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
 import { HelpTrigger } from '@/components/help/HelpTrigger'
-import Chip from '@/components/ui/Chip'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import WeatherSection from '@/components/mountain/WeatherSection'
-
-const LICENSE_RANK: Record<User['license_level'], number> = {
-  none: 0,
-  basic: 1,
-  intermediate: 2,
-  advanced: 3,
-}
+import DifficultyAdvisory from '@/components/mountain/DifficultyAdvisory'
+import DifficultyChip from '@/components/mountain/DifficultyChip'
 
 type MountainDetailClientProps = {
   mountain: Mountain
@@ -39,21 +33,6 @@ function getRouteFacts(mountain: Mountain) {
     length: mountain.length_km ?? Number(Math.max(4.2, Math.min(26, mountain.altitude / 260)).toFixed(1)),
     gain: mountain.elevation_gain_m ?? Math.max(320, Math.round(mountain.altitude * 0.68)),
     duration: mountain.estimated_duration ?? `${Math.max(2, Math.min(12, Math.round(mountain.altitude / 650)))}h`,
-  }
-}
-
-function getRouteTypeLabel(level: Mountain['difficulty']) {
-  switch (level) {
-    case 'beginner':
-      return '入门线'
-    case 'intermediate':
-      return '进阶线'
-    case 'advanced':
-      return '长线挑战线'
-    case 'expert':
-      return '高海拔挑战线'
-    default:
-      return '经典线'
   }
 }
 
@@ -309,13 +288,11 @@ function DecisionRow({
 function HeroSection({
   mountain,
   heroImages,
-  routeTypeLabel,
   onBack,
   onShare,
 }: {
   mountain: Mountain
   heroImages: string[]
-  routeTypeLabel: string
   onBack: () => void
   onShare: () => void
 }) {
@@ -461,8 +438,7 @@ function HeroSection({
         }}
       >
         <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-          <Chip active>{getLicenseRequirementLabel(mountain.min_license)}</Chip>
-          <Chip>{routeTypeLabel}</Chip>
+          <DifficultyChip difficulty={mountain.difficulty} />
         </div>
         <h1
           style={{
@@ -500,21 +476,26 @@ function DecisionSection({
   mountain,
   userLicense,
   requiresLogin,
-  isLocked,
 }: {
   mountain: Mountain
   userLicense: User['license_level']
   requiresLogin: boolean
-  isLocked: boolean
 }) {
   const season = getSeasonDecision(mountain)
-  const currentLabel = getLicenseShortLabel(userLicense)
-  const requiredLabel = getLicenseShortLabel(mountain.min_license)
+  const suitabilityCopy = getDifficultySuitabilityCopy(mountain.difficulty)
 
   return (
     <section data-testid="mountain-decision-section">
       <SectionHeader title="这座山适不适合你" />
       <div style={{ padding: '0 var(--space-4)' }}>
+        <div style={{ marginBottom: 'var(--space-3)' }}>
+          <DifficultyAdvisory
+            difficulty={mountain.difficulty}
+            userLicense={userLicense}
+            mountainName={mountain.name}
+            compact={requiresLogin}
+          />
+        </div>
         <div
           style={{
             background: 'var(--color-surface-variant)',
@@ -524,12 +505,12 @@ function DecisionSection({
           }}
         >
           <DecisionRow
-            tone={requiresLogin ? 'neutral' : isLocked ? 'warn' : 'ok'}
-            label={requiresLogin ? '登录后查看等级匹配' : isLocked ? '你的等级还不够' : '你的等级达到要求'}
+            tone="ok"
+            label={requiresLogin ? '登录后可开始记录' : '始终可以继续记录'}
             sub={
               requiresLogin
-                ? `${getLicenseRequirementLabel(mountain.min_license)} · 登录后可判断是否适合出发`
-                : `你当前 ${currentLabel} · 本山需要 ${requiredLabel} 及以上`
+                ? '需要登录来保存 GPS 记录，但难度不会锁定入口'
+                : suitabilityCopy
             }
             helpAnchor="license.license-tiers"
           />
@@ -1188,12 +1169,10 @@ function FeaturedSection({ posts }: { posts: CommunityPostViewModel[] }) {
 function BottomCTA({
   mountain,
   requiresLogin,
-  isLocked,
   hasWaypoints,
 }: {
   mountain: Mountain
   requiresLogin: boolean
-  isLocked: boolean
   hasWaypoints: boolean
 }) {
   const loginHref = `/auth/login?from=${encodeURIComponent(`/mountain/${mountain.id}`)}`
@@ -1223,19 +1202,13 @@ function BottomCTA({
       >
         <SecondaryButton
           as="a"
-          href={isLocked ? '/profile' : hasWaypoints ? '#waypoints' : '#route'}
+          href={hasWaypoints ? '#waypoints' : '#route'}
         >
-          {isLocked ? '去看升级路径' : '查看路线'}
+          查看路线
         </SecondaryButton>
-        {isLocked && !requiresLogin ? (
-          <PrimaryButton disabled style={{ opacity: 0.45 }}>
-            开始记录
-          </PrimaryButton>
-        ) : (
-          <PrimaryButton as="a" href={primaryHref}>
-            {requiresLogin ? '登录后开始记录' : '开始记录'}
-          </PrimaryButton>
-        )}
+        <PrimaryButton as="a" href={primaryHref}>
+          {requiresLogin ? '登录后开始记录' : '开始记录'}
+        </PrimaryButton>
       </div>
     </div>
   )
@@ -1251,8 +1224,6 @@ export default function MountainDetailClient({
 }: MountainDetailClientProps) {
   const router = useRouter()
   const routeFacts = getRouteFacts(mountain)
-  const routeTypeLabel = getRouteTypeLabel(mountain.difficulty)
-  const isLocked = !requiresLogin && LICENSE_RANK[userLicense] < LICENSE_RANK[mountain.min_license]
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -1294,7 +1265,6 @@ export default function MountainDetailClient({
       <HeroSection
         mountain={mountain}
         heroImages={heroImages}
-        routeTypeLabel={routeTypeLabel}
         onBack={handleBack}
         onShare={handleShare}
       />
@@ -1325,7 +1295,6 @@ export default function MountainDetailClient({
         mountain={mountain}
         userLicense={userLicense}
         requiresLogin={requiresLogin}
-        isLocked={isLocked}
       />
 
       <WeatherSection mountain={mountain} />
@@ -1336,7 +1305,6 @@ export default function MountainDetailClient({
       <BottomCTA
         mountain={mountain}
         requiresLogin={requiresLogin}
-        isLocked={isLocked}
         hasWaypoints={waypoints.length > 0}
       />
     </div>

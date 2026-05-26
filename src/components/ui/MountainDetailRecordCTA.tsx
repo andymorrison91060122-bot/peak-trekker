@@ -4,14 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import CheckinButton from '@/components/ui/CheckinButton'
 
 export default function MountainDetailRecordCTA({
-  isLocked,
   requiresLogin,
   minLicense,
   mountainName,
   altitude,
   mountainId,
 }: {
-  isLocked: boolean
   requiresLogin: boolean
   minLicense: string
   mountainName: string
@@ -44,7 +42,6 @@ export default function MountainDetailRecordCTA({
     <>
       <div ref={mainButtonRef} data-testid="mountain-detail-primary-cta">
         <CheckinButton
-          isLocked={isLocked}
           requiresLogin={requiresLogin}
           minLicense={minLicense}
           mountainName={mountainName}
@@ -58,7 +55,6 @@ export default function MountainDetailRecordCTA({
         <div className="bottom-action-bar-shell">
           <div className="surface-card bottom-action-bar">
             <CheckinButton
-              isLocked={isLocked}
               requiresLogin={requiresLogin}
               minLicense={minLicense}
               mountainName={mountainName}

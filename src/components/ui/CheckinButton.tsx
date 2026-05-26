@@ -1,12 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import LockModal from '@/components/ui/LockModal'
 import { normalizeAuthReturnPath } from '@/lib/auth-redirect'
 
 export default function CheckinButton({
-  isLocked,
   requiresLogin,
   minLicense,
   mountainName,
@@ -14,7 +11,6 @@ export default function CheckinButton({
   mountainId,
   label,
 }: {
-  isLocked: boolean
   requiresLogin: boolean
   minLicense: string
   mountainName: string
@@ -22,9 +18,11 @@ export default function CheckinButton({
   mountainId?: string
   label?: string
 }) {
-  const [showModal, setShowModal] = useState(false)
   const router = useRouter()
   const returnTo = normalizeAuthReturnPath(mountainId ? `/trek?mountainId=${mountainId}` : '/trek', '/trek')
+  void minLicense
+  void mountainName
+  void altitude
 
   if (requiresLogin) {
     return (
@@ -38,45 +36,16 @@ export default function CheckinButton({
     )
   }
 
-  if (!isLocked) {
-    return (
-      <button
-        onClick={() => router.push(mountainId ? `/trek?mountainId=${mountainId}` : '/trek')}
-        className="primary-btn"
-        style={{
-          width: '100%',
-          justifyContent: 'center',
-        }}
-      >
-        {label || '开始记录'}
-      </button>
-    )
-  }
-
   return (
-    <>
-      <button
-        onClick={() => setShowModal(true)}
-        className="secondary-btn"
-        style={{
-          width: '100%',
-          justifyContent: 'center',
-          borderColor: 'rgba(239,68,68,0.24)',
-          background: 'rgba(239,68,68,0.1)',
-          color: 'color-mix(in oklch, var(--color-error) 45%, var(--color-on-surface))',
-        }}
-      >
-        查看执照要求
-      </button>
-
-      {showModal && (
-        <LockModal
-          mountainName={mountainName}
-          altitude={altitude}
-          minLicense={minLicense}
-          onClose={() => setShowModal(false)}
-        />
-      )}
-    </>
+    <button
+      onClick={() => router.push(mountainId ? `/trek?mountainId=${mountainId}` : '/trek')}
+      className="primary-btn"
+      style={{
+        width: '100%',
+        justifyContent: 'center',
+      }}
+    >
+      {label || '开始记录'}
+    </button>
   )
 }

@@ -27,6 +27,7 @@ import AltitudeBar from '@/components/ui/AltitudeBar'
 import IconButton from '@/components/ui/IconButton'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
+import DifficultyAdvisory from '@/components/mountain/DifficultyAdvisory'
 import { HelpTrigger } from '@/components/help/HelpTrigger'
 import {
   BackIcon,
@@ -58,7 +59,6 @@ type TrekViewState =
   | 'loading'
   | 'permissionDenied'
   | 'noMountain'
-  | 'restricted'
   | 'preStart'
   | 'live'
   | 'gpsWeak'
@@ -66,13 +66,6 @@ type TrekViewState =
   | 'nearSummit'
   | 'summitPhoto'
   | 'summitConfirmed'
-
-const LICENSE_RANK: Record<User['license_level'], number> = {
-  none: 0,
-  basic: 1,
-  intermediate: 2,
-  advanced: 3,
-}
 
 const APPROACH_RADIUS = TREK_RULES.defaultApproachRadiusM
 const SUMMIT_RADIUS = TREK_RULES.defaultSummitRadiusM
@@ -1274,12 +1267,9 @@ export default function TrekClient({
   const isTrackingActive = status === 'locating' || status === 'tracking' || status === 'approach_alert'
   const isSummitPhotoFlow = status === 'summit_photo'
   const isSummitFlow = isSummitPhotoFlow || status === 'summit_verified' || status === 'card_preview' || status === 'shared'
-  const activeMountainForGate = targetMountain ?? selectedMountain ?? suggestedMountain
+  const activeMountainForAdvisory = targetMountain ?? selectedMountain ?? suggestedMountain
   const hasNoMountainTarget =
-    !mountainsLoading && !targetMountainId && !selectedMountainId && !confirmedMountainId && !activeMountainForGate
-  const isRestricted =
-    !!activeMountainForGate &&
-    LICENSE_RANK[userLicense] < LICENSE_RANK[activeMountainForGate.min_license]
+    !mountainsLoading && !targetMountainId && !selectedMountainId && !confirmedMountainId && !activeMountainForAdvisory
   const needsTargetConfirmation = !targetMountain
   const hasIncomingTarget = Boolean(targetMountainId)
   const preflightTitle = hasIncomingTarget
@@ -1404,21 +1394,19 @@ export default function TrekClient({
       ? 'permissionDenied'
       : hasNoMountainTarget
         ? 'noMountain'
-        : isRestricted
-          ? 'restricted'
-          : isSummitPhotoFlow
-            ? 'summitPhoto'
-            : isSummitFlow
-              ? 'summitConfirmed'
-              : isPaused && isTrackingActive
-                ? 'paused'
-                : gpsWeak
-                  ? 'gpsWeak'
-                  : status === 'approach_alert'
-                    ? 'nearSummit'
-                    : isTrackingActive
-                      ? 'live'
-                      : 'preStart'
+        : isSummitPhotoFlow
+          ? 'summitPhoto'
+          : isSummitFlow
+            ? 'summitConfirmed'
+            : isPaused && isTrackingActive
+              ? 'paused'
+              : gpsWeak
+                ? 'gpsWeak'
+                : status === 'approach_alert'
+                  ? 'nearSummit'
+                  : isTrackingActive
+                    ? 'live'
+                    : 'preStart'
   const activeMountain = targetMountain ?? selectedMountain ?? suggestedMountain
   const summitMountain = nearbyMountain ?? targetMountain ?? activeMountain
   const targetAltitude = targetMountain?.altitude ?? activeMountain?.altitude ?? 0
@@ -1702,40 +1690,44 @@ export default function TrekClient({
         />
       ) : viewState === 'noMountain' ? (
         <NoMountainView onPick={() => router.push('/explore')} onUnassigned={showManualPlaceholder} />
-      ) : viewState === 'restricted' ? (
-        <RestrictedView
-          mountain={activeMountainForGate}
-          userLicense={userLicense}
-          onChangeMountain={() => router.push('/explore')}
-          onUpgrade={() => router.push('/profile')}
-        />
       ) : viewState === 'preStart' ? (
-        <PreStartView
-          clock={preStartClock}
-          needsTargetConfirmation={needsTargetConfirmation}
-          preflightTitle={preflightTitle}
-          selectedMountain={selectedMountain}
-          suggestedMountain={suggestedMountain}
-          effectiveSelectedMountainId={effectiveSelectedMountainId}
-          mountains={mountains}
-          preflightActionLabel={preflightActionLabel}
-          onMountainChange={setSelectedMountainId}
-          onConfirmTarget={confirmTargetMountain}
-          activeMountain={activeMountain}
-          gps={gps}
-          gpsError={gpsError}
-          prepGpsStatus={prepGpsStatus}
-          prepGpsRetryCount={prepGpsRetryCount}
-	          allowWeakGpsStart={allowWeakGpsStart}
-	          trekTestMode={trekTestMode}
-	          verificationRules={verificationRules}
-	          referenceMapProgress={referenceMapProgress}
-          referenceMapVariant={referenceMapVariant}
-          canStart={Boolean(targetMountain) && (prepGpsStatus === 'ready' || allowWeakGpsStart)}
-          onStart={startTrek}
-          onRetryGps={handleManualGpsRetry}
-          onOpenMountain={(mountainId) => router.push(`/mountain/${encodeURIComponent(mountainId)}`)}
-        />
+        <>
+          {activeMountainForAdvisory ? (
+            <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-2)' }}>
+              <DifficultyAdvisory
+                difficulty={activeMountainForAdvisory.difficulty}
+                userLicense={userLicense}
+                mountainName={activeMountainForAdvisory.name}
+              />
+            </div>
+          ) : null}
+          <PreStartView
+            clock={preStartClock}
+            needsTargetConfirmation={needsTargetConfirmation}
+            preflightTitle={preflightTitle}
+            selectedMountain={selectedMountain}
+            suggestedMountain={suggestedMountain}
+            effectiveSelectedMountainId={effectiveSelectedMountainId}
+            mountains={mountains}
+            preflightActionLabel={preflightActionLabel}
+            onMountainChange={setSelectedMountainId}
+            onConfirmTarget={confirmTargetMountain}
+            activeMountain={activeMountain}
+            gps={gps}
+            gpsError={gpsError}
+            prepGpsStatus={prepGpsStatus}
+            prepGpsRetryCount={prepGpsRetryCount}
+            allowWeakGpsStart={allowWeakGpsStart}
+            trekTestMode={trekTestMode}
+            verificationRules={verificationRules}
+            referenceMapProgress={referenceMapProgress}
+            referenceMapVariant={referenceMapVariant}
+            canStart={Boolean(targetMountain) && (prepGpsStatus === 'ready' || allowWeakGpsStart)}
+            onStart={startTrek}
+            onRetryGps={handleManualGpsRetry}
+            onOpenMountain={(mountainId) => router.push(`/mountain/${encodeURIComponent(mountainId)}`)}
+          />
+        </>
 	      ) : viewState === 'gpsWeak' ? (
 	        <GpsWeakView
 	          altitude={lastValidAltitudeM ?? displayAltitude}
@@ -3325,91 +3317,6 @@ function PermissionDeniedView({
   )
 }
 
-function RestrictedView({
-  mountain,
-  userLicense,
-  onChangeMountain,
-  onUpgrade,
-}: {
-  mountain: Mountain | null | undefined
-  userLicense: User['license_level']
-  onChangeMountain: () => void
-  onUpgrade: () => void
-}) {
-  const requiredLabel = mountain ? licenseShortLabel(mountain.min_license) : '更高等级'
-  const currentLabel = licenseShortLabel(userLicense)
-
-  return (
-    <div>
-      <MountainContext mountain={mountain} />
-      <div style={{ padding: 'var(--space-4) var(--space-4) 0' }}>
-        <div
-          style={{
-            background: 'var(--color-surface-variant)',
-            border: '1px solid color-mix(in srgb, var(--color-error) 35%, transparent)',
-            borderRadius: 14,
-            padding: 'var(--space-4)',
-            textAlign: 'center',
-          }}
-        >
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: 'color-mix(in srgb, var(--color-error) 12%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--color-error) 30%, transparent)',
-              color: 'var(--color-error)',
-              margin: '0 auto var(--space-3)',
-              display: 'grid',
-              placeItems: 'center',
-            }}
-          >
-            <WarnIcon size={24} />
-          </div>
-          <div style={{ fontSize: 'var(--font-title-m-size)', lineHeight: 'var(--font-title-m-line)', fontWeight: 700 }}>
-            等级不够 · 无法开始记录
-          </div>
-          <div
-            style={{
-              fontSize: 'var(--font-label-s-size)',
-              lineHeight: 1.6,
-              color: 'var(--color-on-surface-variant)',
-              marginTop: 'var(--space-2)',
-            }}
-          >
-            {mountain?.name ?? '这座山'} 需要 {requiredLabel}{'\u00A0'}及以上登山等级。<br />
-            你当前为 {currentLabel}。这是硬性限制，不是建议。
-          </div>
-          <div
-            style={{
-              marginTop: 14,
-              padding: '10px 12px',
-              background: 'color-mix(in srgb, var(--color-on-surface) 3%, transparent)',
-              border: '1px solid var(--color-outline)',
-              borderRadius: 10,
-              fontSize: 'var(--font-label-s-size)',
-              lineHeight: 1.55,
-              color: 'var(--color-on-surface)',
-              textAlign: 'left',
-            }}
-          >
-            <span style={{ fontWeight: 700 }}>下一步：</span>完成任一 5000m+ 山行（哈巴雪山 · 四姑娘大峰 · 雪宝顶）即可晋级。
-          </div>
-        </div>
-      </div>
-      <BottomActionBar>
-        <SecondaryButton style={{ width: '100%' }} onClick={onChangeMountain}>
-          换一座山
-        </SecondaryButton>
-        <PrimaryButton style={{ width: '100%' }} onClick={onUpgrade}>
-          查看升级路径
-        </PrimaryButton>
-      </BottomActionBar>
-    </div>
-  )
-}
-
 function LoadingView() {
   return (
     <div>
@@ -4768,17 +4675,6 @@ function difficultyLabel(value: Mountain['difficulty'] | null | undefined) {
     expert: '专家线',
   }
   return value ? labels[value] : '路线待确认'
-}
-
-function licenseShortLabel(value: User['license_level'] | Mountain['min_license'] | null | undefined) {
-  const labels: Record<User['license_level'], string> = {
-    none: '无执照',
-    basic: '初级',
-    intermediate: '中级',
-    advanced: '高级',
-  }
-  if (value === 'basic' || value === 'intermediate' || value === 'advanced') return labels[value]
-  return labels.none
 }
 
 function isTrackingRuntimeActive(status: TrekStatus) {

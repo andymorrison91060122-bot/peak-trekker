@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { isMissingStorageError } from '@/lib/storage-errors'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import IconButton from '@/components/ui/IconButton'
-import { getLicenseShortLabel } from '@/lib/license-ui'
+import { getLicenseLevelLabel } from '@/lib/license-ui'
+import { LicenseTierGlyph } from '@/components/profile/LicenseProgressSheet'
 
 const AVATAR_TOAST_STORAGE_KEY = 'peak-trekker:avatar-uploaded'
 const AVATAR_STATUS_STORAGE_KEY = 'peak-trekker:avatar-status'
@@ -16,6 +17,7 @@ export default function ProfileAvatarUploader({
   province,
   initialAvatarUrl,
   licenseLevel,
+  onLicenseClick,
 }: {
   userId: string
   username: string
@@ -23,6 +25,7 @@ export default function ProfileAvatarUploader({
   joinedAt: string
   initialAvatarUrl: string | null
   licenseLevel: string
+  onLicenseClick?: () => void
 }) {
   const router = useRouter()
   const { showToast } = useAppToast()
@@ -229,22 +232,30 @@ export default function ProfileAvatarUploader({
               {username}
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', minWidth: 0, flexWrap: 'wrap' }}>
-              <span
+              <button
+                type="button"
+                data-testid="profile-license-badge"
+                aria-label={`查看执照进度，当前${getLicenseLevelLabel(licenseLevel)}`}
+                onClick={onLicenseClick}
                 className="pt-label-s"
                 style={{
                   minHeight: 24,
                   display: 'inline-flex',
                   alignItems: 'center',
+                  gap: 'var(--space-1)',
                   borderRadius: 'var(--radius-pill)',
-                  padding: '0 var(--space-3)',
+                  padding: '0 var(--space-2)',
                   color: 'var(--color-success)',
                   border: '1px solid color-mix(in srgb, var(--color-success) 28%, transparent)',
                   background: 'color-mix(in srgb, var(--color-success) 12%, transparent)',
                   whiteSpace: 'nowrap',
+                  cursor: onLicenseClick ? 'pointer' : 'default',
                 }}
               >
-                {getLicenseShortLabel(licenseLevel)}登山
-              </span>
+                <LicenseTierGlyph level={licenseLevel} size={13} />
+                <span>{getLicenseLevelLabel(licenseLevel)}</span>
+                <span aria-hidden="true" style={{ color: 'var(--color-on-surface-variant)' }}>›</span>
+              </button>
               <span
                 className="pt-label-s"
                 style={{

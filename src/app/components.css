@@ -1390,86 +1390,6 @@
   flex-wrap: wrap;
 }
 
-.profile-license-summary {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.profile-license-summary__card {
-  padding: 10px;
-  display: grid;
-  gap: 4px;
-}
-
-.profile-license-summary__value {
-  font-size: 18px;
-  line-height: 1.12;
-  font-weight: 800;
-  color: var(--text-primary);
-}
-
-.profile-license-summary__meta {
-  font-size: 12px;
-  line-height: 1.45;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.profile-license-progress {
-  position: relative;
-  width: 100%;
-  height: 8px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: color-mix(in srgb, var(--color-on-surface) 10%, transparent);
-}
-
-.profile-license-progress__bar {
-  height: 100%;
-  border-radius: inherit;
-  background: var(--color-primary);
-}
-
-.profile-license-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.profile-license-grid__card {
-  padding: 8px;
-  min-height: 0;
-  display: grid;
-  gap: 4px;
-}
-
-.profile-license-grid__header {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: center;
-}
-
-.profile-license-grid__title {
-  font-size: 14px;
-  line-height: 1.15;
-  font-weight: 800;
-}
-
-.profile-license-grid__status {
-  font-size: 10px;
-  line-height: 1.3;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.profile-license-grid__copy {
-  font-size: 10.5px;
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
-
 .trek-photo-checkin {
   display: grid;
   gap: var(--space-3);
@@ -3764,9 +3684,6 @@
     padding: 9px 10px;
   }
 
-  .profile-license-grid__card {
-    padding: 7px;
-  }
   .activity-detail__metric-grid {
     gap: var(--space-2);
   }

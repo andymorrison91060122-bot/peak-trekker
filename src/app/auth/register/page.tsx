@@ -8,7 +8,7 @@ import {
   setIntroSeen,
   setProvinceDraft,
 } from '@/lib/onboarding'
-import { normalizeAuthReturnPath } from '@/lib/auth-redirect'
+import { clearClientAuthReturnPath, resolveClientAuthReturnPath } from '@/lib/auth-redirect'
 import { PROVINCES, getProvinceCode } from '@/lib/provinces'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -23,7 +23,7 @@ function RegisterPageContent() {
   const [loading, setLoading] = useState(false)
   const searchParams = useSearchParams()
   const supabase = createSupabaseBrowserClient()
-  const returnTo = normalizeAuthReturnPath(searchParams.get('from'), '/explore')
+  const returnTo = resolveClientAuthReturnPath(searchParams.get('from'), '/explore')
 
   useEffect(() => {
     const draftProvince = getProvinceDraft()
@@ -91,6 +91,7 @@ function RegisterPageContent() {
       } catch (err) {
         console.error('Profile sync failed during register:', err)
       }
+      clearClientAuthReturnPath()
       window.location.assign(returnTo)
       return
     }

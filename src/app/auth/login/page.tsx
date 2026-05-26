@@ -4,7 +4,7 @@ import { Suspense, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { normalizeAuthReturnPath } from '@/lib/auth-redirect'
+import { clearClientAuthReturnPath, resolveClientAuthReturnPath } from '@/lib/auth-redirect'
 
 function LoginPageContent() {
   const [email, setEmail] = useState('')
@@ -13,7 +13,7 @@ function LoginPageContent() {
   const [loading, setLoading] = useState(false)
   const searchParams = useSearchParams()
   const supabase = createSupabaseBrowserClient()
-  const returnTo = normalizeAuthReturnPath(searchParams.get('from'), '/explore')
+  const returnTo = resolveClientAuthReturnPath(searchParams.get('from'), '/explore')
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -23,6 +23,7 @@ function LoginPageContent() {
     if (error) {
       setError(error.message === 'Invalid login credentials' ? '邮箱或密码错误' : error.message)
     } else {
+      clearClientAuthReturnPath()
       window.location.assign(returnTo)
       return
     }

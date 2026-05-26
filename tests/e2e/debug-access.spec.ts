@@ -102,12 +102,14 @@ test.afterAll(async () => {
 })
 
 test('profile page shows license progress while keeping debug tools out of the formal profile', async ({ page, baseURL }) => {
-  test.fixme(true, 'licensed-progress hidden pending redesign · FU-54')
-
   const root = baseURL ?? 'http://127.0.0.1:3100'
 
   await registerFreshUser(page, root, { returnTo: '/profile' })
-  await expect(page.getByText('执照进度', { exact: true })).toBeVisible()
+  const badge = page.getByTestId('profile-license-badge')
+  await expect(badge).toBeVisible()
+  await badge.click()
+  await expect(page.getByTestId('license-progress-sheet')).toBeVisible()
+  await expect(page.getByTestId('license-progress-rung')).toHaveCount(4)
   await expect(page.getByText('开发/管理员工具')).toHaveCount(0)
   await expect(page.getByText('打开 onboarding 回归清单页')).toHaveCount(0)
 })

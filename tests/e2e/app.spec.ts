@@ -52,10 +52,10 @@ function lengthFilterFor(lengthKm: number) {
 }
 
 const DIFFICULTY_FILTER_LABEL: Record<string, string> = {
-  beginner: '无执照',
-  intermediate: '初级',
-  advanced: '中级',
-  expert: '高级',
+  beginner: '入门线',
+  intermediate: '进阶线',
+  advanced: '高阶线',
+  expert: '专家线',
 }
 
 async function getFirstMountain(page: Page) {
@@ -159,6 +159,20 @@ async function registerFreshUser(page: Page, province = '四川') {
 }
 
 async function dismissActivationChecklistIfPresent(page: Page) {
+  const introSkipButton = page.getByRole('button', { name: '跳过' })
+  await introSkipButton.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {})
+  if (await introSkipButton.isVisible().catch(() => false)) {
+    await introSkipButton.click()
+  }
+
+  const provincePrompt = page.getByText('告诉我，你将为哪片土地而战？')
+  await provincePrompt.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {})
+  if (await provincePrompt.isVisible().catch(() => false)) {
+    await page.getByRole('button', { name: '四川' }).click()
+    await page.getByRole('button', { name: '生成空白执照' }).click()
+    await expect(provincePrompt).not.toBeVisible({ timeout: 10000 })
+  }
+
   const dismissButton = page.getByRole('button', { name: '先自己逛逛' })
   if (await dismissButton.isVisible().catch(() => false)) {
     await dismissButton.click()
@@ -297,18 +311,19 @@ test('guest detail CTA preserves the target mountain when redirecting to login',
   expect(loginUrl.searchParams.get('from')).toBe(`/mountain/${mountainId}`)
 })
 
-test('locked mountain detail keeps the user on detail and surfaces the license restriction prompt', async ({ page }) => {
+test('higher difficulty mountain detail gives advisory while keeping record CTA enabled', async ({ page }) => {
   await registerFreshUser(page)
   await page.goto('/explore')
   await dismissActivationChecklistIfPresent(page)
 
-  const lockedMountain = (await getExploreCardMeta(page)).find((card) => card.licenseLevel !== 'none')
-  expect(lockedMountain).toBeTruthy()
+  const advisoryMountain = (await getExploreCardMeta(page)).find((card) => card.difficulty !== 'beginner')
+  expect(advisoryMountain).toBeTruthy()
 
-  await page.goto(lockedMountain!.href, { waitUntil: 'domcontentloaded' })
+  await page.goto(advisoryMountain!.href, { waitUntil: 'domcontentloaded' })
   const bottomCta = page.getByTestId('mountain-bottom-cta')
-  await expect(bottomCta.getByRole('button', { name: '开始记录' })).toBeDisabled()
-  await expect(bottomCta.getByRole('link', { name: '去看升级路径' })).toHaveAttribute('href', '/profile')
+  await expect(page.getByTestId('difficulty-advisory')).toBeVisible()
+  await expect(bottomCta.getByRole('link', { name: '开始记录' })).toHaveAttribute('href', `/trek?mountainId=${advisoryMountain!.href.split('/').pop()}`)
+  await expect(bottomCta.getByRole('link', { name: '查看路线' })).toBeVisible()
   await expect(page).not.toHaveURL(/\/trek/)
 })
 
@@ -446,21 +461,23 @@ test('header uses a compact progress pill that expands on click instead of showi
 })
 
 test('profile hosts the compact certificate summary layout while debug stays focused on QA tools', async ({ page }) => {
-  test.fixme(true, 'BUG-OUT-OF-SCOPE: profile license progress remains hidden pending FU-54 redesign.')
   await registerFreshUser(page)
   await page.goto('/profile')
 
-  await expect(page.getByText('执照进度', { exact: true })).toBeVisible()
-  await expect(page.getByText('当前执照', { exact: true }).first()).toBeVisible()
-  await expect(page.getByText('下一阶段', { exact: true }).first()).toBeVisible()
-  await expect(page.getByTestId('profile-license-summary').locator('[data-license-summary-card]')).toHaveCount(2)
-  await expect(page.locator('[data-license-card]')).toHaveCount(4)
-  await expect(page.locator('[data-license-card][data-license-state="current"]')).toHaveCount(1)
+  const badge = page.getByTestId('profile-license-badge')
+  await expect(badge).toBeVisible()
+  await badge.click()
 
-  const ladderFits = await page.getByTestId('profile-license-grid').evaluate((node) => node.scrollWidth <= node.clientWidth + 1)
+  const sheet = page.getByTestId('license-progress-sheet')
+  await expect(sheet).toBeVisible()
+  await expect(sheet.getByTestId('license-progress-current')).toBeVisible()
+  await expect(sheet.getByTestId('license-progress-rung')).toHaveCount(4)
+  await expect(sheet.getByTestId('license-progress-algorithm')).toContainText('GPS')
+
+  const ladderFits = await sheet.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)
   expect(ladderFits).toBeTruthy()
 
-  const cardHeights = await page.locator('[data-license-card]').evaluateAll((items) =>
+  const cardHeights = await sheet.getByTestId('license-progress-rung').evaluateAll((items) =>
     items.map((item) => item.getBoundingClientRect().height)
   )
   expect(Math.max(...cardHeights)).toBeLessThan(160)
@@ -563,8 +580,7 @@ test('explore cards stay image-first on 375 instead of using a tiny thumbnail la
   await expect(firstCard.getByTestId('explore-mountain-card-location')).toBeVisible()
   await expect(firstCard.getByTestId('explore-mountain-card-difficulty')).toBeVisible()
   await expect(firstCard.getByTestId('explore-mountain-card-metrics')).toBeVisible()
-  await expect(firstCard.getByTestId('explore-mountain-card-requirement')).toBeVisible()
-  await expect(body.locator('.muted-chip')).toHaveCount(1)
+  await expect(firstCard.getByTestId('difficulty-chip')).toBeVisible()
   await expect(firstCard.getByTestId('explore-mountain-card-metrics').locator('.metric-label')).toHaveCount(3)
 
   const bodyBox = await body.boundingBox()

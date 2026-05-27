@@ -161,13 +161,13 @@ export function deriveLicenseLevelFromRecords(records: LicenseProgressRecord[]):
 function getRequirementCopy(level: LicenseLevel) {
   switch (level) {
     case 'basic':
-      return '3 座 beginner 及以上 GPS 有效记录'
+      return '3 座 入门线 及以上 GPS 记录'
     case 'intermediate':
-      return '3 座 intermediate 及以上 GPS 有效记录'
+      return '3 座 进阶线 及以上 GPS 记录'
     case 'advanced':
-      return '3 座 advanced 及以上 GPS 有效记录'
+      return '3 座 高阶线 及以上 GPS 记录 (含专家线)'
     default:
-      return '开始积累 GPS 有效记录'
+      return '开始积累 GPS 记录'
   }
 }
 

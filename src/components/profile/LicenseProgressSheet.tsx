@@ -25,22 +25,44 @@ export function LicenseTierGlyph({
   size?: number
 }) {
   const safeLevel = LICENSE_PROGRESS_ORDER.includes(level as LicenseLevel) ? (level as LicenseLevel) : 'none'
-  const activeIndex = LICENSE_PROGRESS_ORDER.indexOf(safeLevel)
+  const activeSegments = {
+    none: 0,
+    basic: 2,
+    intermediate: 3,
+    advanced: 4,
+  } satisfies Record<LicenseLevel, number>
+  const heights = [4, 7, 10, 13]
 
   return (
-    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      {LICENSE_PROGRESS_ORDER.map((_, index) => (
-        <rect
-          key={index}
-          x={1 + index * 3}
-          y={11 - index * 2.5}
-          width="2"
-          height={1 + index * 2.5}
-          rx="0.4"
-          fill={index <= activeIndex ? 'var(--color-success)' : 'var(--color-outline)'}
+    <span
+      aria-hidden="true"
+      style={{
+        width: size,
+        height: size,
+        display: 'inline-flex',
+        alignItems: 'flex-end',
+        gap: Math.max(1, Math.round(size / 7)),
+        flex: `0 0 ${size}px`,
+      }}
+    >
+      {heights.map((height, index) => (
+        <span
+          key={height}
+          style={{
+            width: Math.max(2, Math.round(size / 7)),
+            height: Math.max(2, Math.round((height / 14) * size)),
+            borderRadius: 2,
+            background: index < activeSegments[safeLevel]
+              ? 'var(--color-success)'
+              : 'color-mix(in srgb, var(--color-success) 10%, transparent)',
+            border: index < activeSegments[safeLevel]
+              ? '0'
+              : '1px solid color-mix(in srgb, var(--color-success) 38%, var(--color-outline))',
+            boxSizing: 'border-box',
+          }}
         />
       ))}
-    </svg>
+    </span>
   )
 }
 
@@ -102,20 +124,20 @@ function Rung({
       </div>
       <div style={{ minWidth: 0, flex: '1 1 auto', display: 'grid', gap: 'var(--space-1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-2)', alignItems: 'baseline' }}>
-          <div className="pt-label-l" style={{ color: 'var(--color-on-surface)', fontWeight: isCurrent ? 700 : 600 }}>
+          <div style={{ color: 'var(--color-on-surface)', fontSize: 14, lineHeight: 1.35, fontWeight: isCurrent ? 600 : 500 }}>
             {getLicenseLevelLabel(level)}
           </div>
           {isCurrent && progress.nextLevel ? (
-            <div className="pt-label-s font-mono" style={{ color: 'var(--color-success)' }}>
+            <div className="font-mono" style={{ color: 'var(--color-success)', fontSize: 11, lineHeight: 1.3, letterSpacing: 0 }}>
               {progress.qualifiedCount} / 3
             </div>
           ) : (
-            <div className="pt-label-s" style={{ color: 'var(--color-on-surface-variant)' }}>
+            <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 11, lineHeight: 1.3 }}>
               {isDone ? '已达成' : '后续'}
             </div>
           )}
         </div>
-        <div className="pt-label-s" style={{ color: 'var(--color-on-surface-variant)', lineHeight: 1.55 }}>
+        <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 11, lineHeight: 1.55 }}>
           {rung?.requirement}
         </div>
         {isCurrent && progress.nextLevel ? (
@@ -156,19 +178,30 @@ export default function LicenseProgressSheet({
   if (!open) return null
 
   const currentLabel = getLicenseLevelLabel(progress.effectiveLevel)
-  const topTier = progress.effectiveLevel === 'advanced'
 
   return (
     <ModalShell
       title="执照进度"
-      description={topTier ? '当前已是最高等级' : getNextCopy(progress)}
       onClose={onClose}
       mode="sheet"
       closeControl="icon"
+      hideHeaderCopy
       maxWidth={480}
-      bodyStyle={{ display: 'grid', gap: 'var(--space-4)' }}
+      bodyStyle={{ display: 'grid', gap: 'var(--space-4)', paddingTop: 'var(--space-1)' }}
     >
       <div data-testid="license-progress-sheet" style={{ display: 'grid', gap: 'var(--space-4)' }}>
+        <div
+          className="font-mono"
+          style={{
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 10,
+            lineHeight: 1.2,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+          }}
+        >
+          执照 · LICENSE
+        </div>
         <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
           <div
             style={{
@@ -185,10 +218,22 @@ export default function LicenseProgressSheet({
             <LicenseTierGlyph level={progress.effectiveLevel} size={20} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <div className="pt-title-l" data-testid="license-progress-current" style={{ color: 'var(--color-on-surface)' }}>
+            <div
+              data-testid="license-progress-current"
+              style={{
+                color: 'var(--color-on-surface)',
+                fontSize: 22,
+                lineHeight: 1.2,
+                fontWeight: 600,
+                letterSpacing: '-0.015em',
+              }}
+            >
               {currentLabel}
             </div>
-            <div className="pt-body-s" data-testid="license-progress-next" style={{ color: 'var(--color-on-surface-variant)' }}>
+            <div
+              data-testid="license-progress-next"
+              style={{ color: 'var(--color-on-surface-variant)', fontSize: 13, lineHeight: 1.6, marginTop: 4 }}
+            >
               {getNextCopy(progress)}
             </div>
           </div>
@@ -201,7 +246,6 @@ export default function LicenseProgressSheet({
         </div>
 
         <div
-          className="pt-label-s"
           data-testid="license-progress-algorithm"
           style={{
             border: '1px solid var(--color-outline)',
@@ -209,20 +253,29 @@ export default function LicenseProgressSheet({
             padding: 'var(--space-3)',
             color: 'var(--color-on-surface-variant)',
             background: 'var(--color-surface-variant)',
-            lineHeight: 1.6,
+            fontSize: 11.5,
+            lineHeight: 1.55,
           }}
         >
-          每一级都按对应难度或更高难度的有效 GPS 记录计算：beginner → basic，intermediate → intermediate，advanced / expert → advanced。
+          每完成 3 座对应难度（或更高）的有效 GPS 记录即可升级。入门线、进阶线、高阶线会逐级点亮；专家线记录会计入高级目标。
         </div>
 
         <Link
-          href="/faq#license.license-upgrade"
+          href="/faq?anchor=license.license-upgrade"
           data-testid="license-progress-learn-more"
-          className="secondary-btn"
-          style={{ textDecoration: 'none', justifyContent: 'center' }}
+          style={{
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 13,
+            lineHeight: 1.4,
+            textDecoration: 'none',
+            display: 'inline-flex',
+            justifyContent: 'center',
+            minHeight: 32,
+            alignItems: 'center',
+          }}
           onClick={onClose}
         >
-          了解更多
+          了解更多 →
         </Link>
       </div>
     </ModalShell>

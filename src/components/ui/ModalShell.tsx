@@ -17,6 +17,7 @@ export default function ModalShell({
   zIndex = 120,
   panelStyle,
   bodyStyle,
+  hideHeaderCopy = false,
 }: {
   title: string
   description?: string
@@ -30,6 +31,7 @@ export default function ModalShell({
   zIndex?: number
   panelStyle?: CSSProperties
   bodyStyle?: CSSProperties
+  hideHeaderCopy?: boolean
 }) {
   return (
     <div
@@ -49,11 +51,17 @@ export default function ModalShell({
         style={{ maxWidth, ...panelStyle }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="modal-header" data-layout={layout}>
-          <div className="modal-header__copy">
-            <div className="modal-title">{title}</div>
-            {description ? <div className="modal-description">{description}</div> : null}
-          </div>
+        <div
+          className="modal-header"
+          data-layout={layout}
+          data-copy-hidden={hideHeaderCopy ? 'true' : undefined}
+        >
+          {!hideHeaderCopy ? (
+            <div className="modal-header__copy">
+              <div className="modal-title">{title}</div>
+              {description ? <div className="modal-description">{description}</div> : null}
+            </div>
+          ) : null}
           {layout === 'share-sheet' || closeControl === 'icon' ? (
             <IconButton
               icon="close"

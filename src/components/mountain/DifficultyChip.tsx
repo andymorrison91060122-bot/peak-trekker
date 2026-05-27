@@ -33,21 +33,35 @@ function normalizeDifficulty(value: string | null | undefined): Mountain['diffic
 }
 
 function DifficultyGlyph({ level }: { level: number }) {
+  const heights = [4, 7, 10, 13]
+
   return (
-    <svg width="18" height="14" viewBox="0 0 18 14" fill="none" aria-hidden="true">
-      {[0, 1, 2, 3].map((index) => (
-        <rect
-          key={index}
-          x={1 + index * 4}
-          y={11 - index * 2.4}
-          width="2.8"
-          height={3 + index * 2.4}
-          rx="0.7"
-          fill={index < level ? 'var(--color-success)' : 'var(--color-outline)'}
-          opacity={index < level ? 1 : 0.72}
+    <span
+      aria-hidden="true"
+      style={{
+        width: 18,
+        height: 14,
+        display: 'inline-flex',
+        alignItems: 'flex-end',
+        gap: 2,
+        flex: '0 0 18px',
+      }}
+    >
+      {heights.map((height, index) => (
+        <span
+          key={height}
+          style={{
+            width: 3,
+            height,
+            borderRadius: 2,
+            background: index < level ? 'var(--color-success)' : 'transparent',
+            border: index < level ? '0' : '1px solid var(--color-outline)',
+            opacity: index < level ? 1 : 0.72,
+            boxSizing: 'border-box',
+          }}
         />
       ))}
-    </svg>
+    </span>
   )
 }
 
@@ -60,6 +74,7 @@ export default function DifficultyChip({
 }) {
   const normalized = normalizeDifficulty(difficulty)
   const meta = DIFFICULTY_META[normalized]
+  const compactBeginner = normalized === 'beginner'
 
   return (
     <span
@@ -79,9 +94,9 @@ export default function DifficultyChip({
         maxWidth: '100%',
       }}
     >
-      <DifficultyGlyph level={meta.level} />
+      {!compactBeginner ? <DifficultyGlyph level={meta.level} /> : null}
       <span className="pt-label-s">{meta.label}</span>
-      {withSuggestion ? (
+      {withSuggestion && !compactBeginner ? (
         <>
           <span className="pt-label-s" aria-hidden="true" style={{ color: 'var(--color-on-surface-variant)' }}>·</span>
           <span className="pt-label-s" style={{ color: 'var(--color-on-surface-variant)', overflow: 'hidden', textOverflow: 'ellipsis' }}>

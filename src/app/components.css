@@ -373,6 +373,10 @@
   padding: 18px 18px 0;
 }
 
+.modal-header[data-copy-hidden='true'] {
+  justify-content: flex-end;
+}
+
 .modal-header[data-layout='share-sheet'] {
   gap: var(--space-3);
   padding: var(--space-4) var(--space-4) 0;

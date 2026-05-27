@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-27 · 最新版本记录: v0.32
+> Last Updated: 2026-05-27 · 最新版本记录: v0.33
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`f1c5c08`（Merge FU-54 license redesign · 2026-05-27）
+`392c7b6`（Merge FU-49 · 2026-05-27）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动 (候选见 v0.32 末尾推荐)
+待启动 (候选见 v0.33 末尾推荐)
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（20 条）
+## Active Follow-ups（19 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -381,38 +381,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-49 · (main)/explore/[id] mountain detail + MountainCard 孤儿组件 obsolete cleanup
-
-- **优先级**: P2（dead code 清理，不阻塞业务）
-- **归属阶段**: 阶段 5 / 阶段 6
-- **状态**: 🟢 active
-
-**背景**: FU-48 sprint 实施前调研发现 `src/app/(main)/explore/[id]/page.tsx` + `src/components/ui/MountainUI.tsx` 中的 MountainCard / MountainCardLarge 跳 `/explore/<id>` 是孤儿状态：
-- ExploreMountainCard (`src/components/ui/ExploreMountainCard.tsx:69`) 跳 `/mountain/<id>` 是用户实际访问主路径，已 import 在 `(main)/explore/ExploreClient.tsx`
-- MountainCard / MountainCardLarge in `MountainUI.tsx` grep 0 hit 业务 import，是孤儿组件
-- `(main)/explore/[id]/page.tsx` 仅 e2e spec / 孤儿卡片假设入口，无真实用户访问
-
-与 FU-44 close (activity-hero obsolete cleanup) 同范式。
-
-**实施建议**:
-- 删除 `(main)/explore/[id]/page.tsx`
-- 删除 MountainCard / MountainCardLarge from `MountainUI.tsx`（grep 验证无外部 import）
-- 删除仅旧版引用的 dead CSS
-- **关键依赖**: `mountain-waypoints-display.spec.ts` (FU-46 子 sprint 2 已修) + `mountain-featured-posts.spec.ts` (FU-46 子 sprint 3 已修) 走 `/explore/<id>`，需:
-  · 选 (a): 改 spec URL 为 `/mountain/<id>`，验证 testid 在新版 `(flow)/mountain/[id]/MountainDetailClient.tsx` 是否齐全（waypoint-display-* / mountain-featured-posts-section / etc）— 大概率部分缺失需补 testid
-  · 选 (b): 这两个 spec 也 obsolete cleanup（标 FU-49 删除），与 FU-44 activity-hero 同范式 — 但 FU-46 inventory 完成进度回退（-10 cases）
-  · 选 (c): 添加 `/explore/<id>` → `/mountain/<id>` redirect，保留 spec 路径但页面不存在 — 最小改动但有 magic
-  · 具体方向由 V1 Phase 1 探索决定
-
-**涉及**:
-- `src/app/(main)/explore/[id]/page.tsx` 删除
-- `src/components/ui/MountainUI.tsx` MountainCard + MountainCardLarge 删除
-- 可能 `src/app/components.css` 删除关联 dead CSS
-- `tests/e2e/mountain-waypoints-display.spec.ts` 改 URL 或 obsolete
-- `tests/e2e/mountain-featured-posts.spec.ts` 改 URL 或 obsolete
-
----
-
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
 - **优先级**: P1（上线门禁项 — 阻塞正式上线，但当前阶段不实施）
@@ -532,7 +500,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（34 条）
+## Closed Follow-ups（35 条）
 
 ### FU-54 ✅ License Progress 重设计 + License Gate 解耦
 
@@ -544,6 +512,17 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 - **已知旁路**: 额外 community cross-check 中 `community feed shows altitude-first...` card body click 仍停留在 `/community`；该路径不属于 FU-54 touched surface，未纳入本 FU 修复，作为后续候选排查项记录。
 - **关闭 commit**: `6dfdf2c` / `d5c320f` / `948493b` / `6bf3805` / `4a6750d` / `14bd963`
 - **merge commit**: `f1c5c08`
+- **关闭时间**: 2026-05-27
+
+---
+
+### FU-49 ✅ (main)/explore/[id] mountain detail + 孤儿组件 obsolete cleanup
+
+- **关闭原因**: legacy `/explore/[id]` 路由 + MountainCard / MountainFeatureCard / WaypointsSection / PixelMountainBg / TopoFrame / 旧 AltitudeBar / MapPlaceholder 等孤儿组件全部清理; 真实生产路由 `/mountain/[id]` 保留; mountain-waypoints-display + mountain-featured-posts 2 spec URL 切到 `/mountain/${id}` + 断言重写为 timeline UI / 精选攻略口径。
+- **风险策略实战**: FU-49 是 codex-risk-behavior-policy 固化后第一个 sprint, Codex 严格执行 B1/B2 (Phase 4 STOP 等 user 验收), B4/B6/B12 (issue-level 浏览器截图证据), B7 (audit.md ledger 实时维护), B13 (5+ deviation 全部透明披露), 与 FU-54 close 跳过 STOP 直接 V3 的违规形成对比。
+- **额外 deviation 透明披露 (audit.md + final-acceptance.md C 段)**: MountainCardLarge 不存在 / MountainFeatureCard 孤儿一并删除 / WaypointsSection 孤儿删除 (293 行) / 4 个额外孤儿组件 cleanup / CSS exclusive selectors 删除但保留 `.mountain-card` `.mountain-featured-posts*` / waypoints spec 断言改 timeline UI / featured posts spec 改精选攻略+href。
+- **关闭 commit**: `bcab285` / `087d4d5`
+- **merge commit**: `392c7b6`
 - **关闭时间**: 2026-05-27
 
 ---
@@ -901,6 +880,20 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.33（2026-05-27）
+
+FU-49 close · (main)/explore/[id] mountain detail + 孤儿组件 obsolete cleanup
+
+- 处理统计: 删除 6 个孤儿文件 + 路由 + CSS; spec URL 切换 + 断言重写; 总 diff +68 / -1046。
+- 删除文件: `src/app/(main)/explore/[id]/page.tsx` (269) + `src/components/mountain/WaypointsSection.tsx` (293) + 部分 MountainUI exports。
+- 修改文件: `src/components/ui/MountainUI.tsx` (保留 SectionHeader / DifficultyBadge / MountainImagePlaceholder) + `src/app/components.css` (保留 `.mountain-card` / `.mountain-featured-posts*`) + 2 e2e spec。
+- 准入: lint 0e/8w · node test 4p · build PASS + 路由列表 `/explore/[id]` 已移除 · 强关联子集 e2e 43p/1s · git diff --check clean。
+- 用户视觉验收: PASS (6 验收点全过)。
+- **协议红线实战**: 严格遵守 codex-risk-behavior-policy B1/B2 (Phase 4 STOP) / B4/B6/B12 (issue-level 截图) / B7 (实时 ledger) / B13 (transparent deviation), Codex 输出后正确 STOP 等用户验收, 与 FU-54 close 直接 V3 形成范式对比。
+- 关闭 commit: `bcab285` / `087d4d5` · merge commit: `392c7b6`
+- Active 20 → 19 · Closed 34 → 35
+- v0.8 机械化清单第二十次实战
 
 ### v0.32（2026-05-27）
 

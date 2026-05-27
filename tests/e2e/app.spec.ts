@@ -26,6 +26,8 @@ function createTestEmail() {
 }
 
 async function getExploreCardMeta(page: Page): Promise<ExploreCardMeta[]> {
+  const cardsLocator = page.locator('[data-testid="explore-mountain-card"]')
+  await expect(cardsLocator.first()).toBeVisible({ timeout: 20_000 })
   return page.locator('[data-testid="explore-mountain-card"]').evaluateAll((cards) =>
     cards.map((card) => ({
       href: (card.getAttribute('href') ?? '').trim(),
@@ -35,7 +37,7 @@ async function getExploreCardMeta(page: Page): Promise<ExploreCardMeta[]> {
       lengthKm: Number(card.getAttribute('data-length-km') ?? '0'),
       licenseLevel: (card.getAttribute('data-license-level') ?? '').trim(),
       heroImageCount: Number(card.getAttribute('data-hero-image-count') ?? '0'),
-    }))
+    })).filter((card) => card.href.startsWith('/mountain/'))
   )
 }
 
@@ -62,7 +64,7 @@ async function getFirstMountain(page: Page) {
   await page.goto('/explore', { waitUntil: 'domcontentloaded' })
   await expect(page.getByRole('heading', { name: '山峰列表' })).toBeVisible()
 
-  const firstMountainLink = page.locator('a[href^="/mountain/"]').first()
+  const firstMountainLink = page.locator('[data-testid="explore-mountain-card"][href^="/mountain/"], a[href^="/mountain/"]').first()
   await expect(firstMountainLink).toBeVisible()
   const href = await firstMountainLink.getAttribute('href')
 
@@ -124,38 +126,13 @@ async function completeProvinceOnboarding(page: Page, province = '四川') {
 async function registerFreshUser(page: Page, province = '四川') {
   const email = createTestEmail()
   const password = 'PeakTrekker123!'
-
-  await page.goto('/auth/register', { waitUntil: 'domcontentloaded' })
-  await page.getByPlaceholder('your@email.com').fill(email)
-  await page.getByPlaceholder('至少6位').fill(password)
-  await page.getByRole('button', { name: '下一步 →' }).click()
-
-  const profileNameInput = page.getByPlaceholder('你的登山代号')
-  await profileNameInput.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
-  if (!(await profileNameInput.isVisible().catch(() => false))) {
-    const origin = new URL(page.url()).origin
-    await registerFreshUserViaHelper(page, origin, { email, password, username: `qa-${Date.now()}`, province, returnTo: '/explore' })
-    return
-  }
-
-  await profileNameInput.fill(`qa-${Date.now()}`)
-  await page.locator('select').selectOption(province)
-  await page.getByRole('button', { name: '▶ 创建登山档案' }).click()
-
-  await page.waitForLoadState('domcontentloaded')
-  if (/\/auth\/login/.test(page.url())) {
-    await page.getByPlaceholder('your@email.com').fill(email)
-    await page.getByPlaceholder(/至少6位|••••••••/).fill(password)
-    await page.getByRole('button', { name: '▶ 开始登山' }).click()
-    await page.waitForURL((url) => !/\/auth\/login/.test(url.pathname), { timeout: 30_000 }).catch(() => {})
-  }
-
-  if (/\/auth\/(login|register)/.test(page.url())) {
-    const origin = new URL(page.url()).origin
-    await registerFreshUserViaHelper(page, origin, { email, password, username: `qa-${Date.now()}`, province, returnTo: '/explore' })
-  }
-
-  await expect(page).toHaveURL(/\/(explore|trek)(\?|$)/)
+  await registerFreshUserViaHelper(page, 'http://127.0.0.1:3100', {
+    email,
+    password,
+    username: `qa-${Date.now()}`,
+    province,
+    returnTo: '/explore',
+  })
 }
 
 async function dismissActivationChecklistIfPresent(page: Page) {

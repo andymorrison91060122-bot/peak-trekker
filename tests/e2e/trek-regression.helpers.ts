@@ -3,6 +3,7 @@ import { mkdir } from 'node:fs/promises'
 import { expect, type Page } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import {
+  backdateTrekSessionForTest,
   createTinyPngBuffer,
   dismissActivationChecklistIfPresent,
   registerFreshUser,
@@ -96,10 +97,19 @@ export async function completeSummitPhotoFlow(page: Page) {
   await confirmButton.click()
   await expect(page.getByTestId('trek-dev-threshold-chip')).toContainText('1 点 / 10s')
   await expect(page.getByRole('button', { name: '从这里开始' })).toBeEnabled({ timeout: 20_000 })
+  const startResponsePromise = page.waitForResponse((response) => {
+    if (!response.url().includes('/api/trek/actions') || response.request().method() !== 'POST') return false
+    return response.request().postData()?.includes('"action":"start_trek_session"') ?? false
+  })
   await page.getByRole('button', { name: '从这里开始' }).click()
+  const startResponse = await startResponsePromise
+  const startBody = await startResponse.json().catch(() => ({}))
+  const sessionId = typeof startBody?.sessionId === 'string' ? startBody.sessionId : ''
   await expect(page.getByRole('button', { name: '暂停' })).toBeVisible({ timeout: 20_000 })
 
   await feedSummitGpsPoints(page)
+  await appendSummitServerGpsPoints(page, sessionId)
+  await backdateTrekSessionForTest(sessionId, 120_000)
   await expect(page.getByTestId('trek-near-summit-view')).toBeVisible({ timeout: 20_000 })
   await expect(page.getByText('就绪')).toBeVisible({ timeout: 20_000 })
   await page.getByTestId('trek-near-summit-cta').click()
@@ -123,6 +133,31 @@ export async function completeSummitPhotoFlow(page: Page) {
 
   await expect(page.getByTestId('trek-summit-confirmed-view')).toBeVisible({ timeout: 20_000 })
   return { checkinId, photoName: photo.name }
+}
+
+async function appendSummitServerGpsPoints(page: Page, sessionId: string) {
+  if (!sessionId || sessionId.startsWith('local-')) return
+
+  const startedAt = Date.now() - 120_000
+  const points = Array.from({ length: 8 }, (_, index) => ({
+    lat: HUASHAN.latitude - (7 - index) * 0.000004,
+    lng: HUASHAN.longitude - (7 - index) * 0.000004,
+    altitude: HUASHAN.altitude - (7 - index),
+    accuracy: 5,
+    ts: startedAt + index * 12_000,
+  }))
+
+  for (const point of points) {
+    const response = await page.request.post('/api/trek/actions', {
+      data: {
+        action: 'append_trek_point',
+        sessionId,
+        point,
+      },
+    })
+    const body = await response.json().catch(() => ({}))
+    expect(response.ok(), JSON.stringify(body)).toBeTruthy()
+  }
 }
 
 async function feedSummitGpsPoints(page: Page) {

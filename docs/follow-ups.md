@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-27 · 最新版本记录: v0.33
+> Last Updated: 2026-05-27 · 最新版本记录: v0.34
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`392c7b6`（Merge FU-49 · 2026-05-27）
+`3b74bce`（Merge FU-43 · 2026-05-27）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动 (候选见 v0.33 末尾推荐)
+待启动 (候选见 v0.34 末尾推荐)
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（19 条）
+## Active Follow-ups（18 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -298,28 +298,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-43 · archive 卡片 hero 状态标签可读性增强
-
-- **优先级**: P2
-- **归属阶段**: 阶段 3 / 阶段 5
-- **状态**: 🟢 active
-
-**背景**: FU-13/14 sprint 视觉验收用户反馈，archive 页（山行档案）trip 列表卡片左上角 "已登顶/未登顶" + 右上角 "已留证/未留证" chip 叠在 hero 照片之上，当照片亮色或高对比度时 chip 文字看不清。
-
-**现状**: src/app/(flow)/archive/ArchiveClient.tsx:534 / 560
-
-**实施建议**:
-- 卡片 hero 上方加固定渐变遮罩（如 linear-gradient(180deg, rgba(0,0,0,0.45) 0%, transparent 50%)）
-- chip 背景 backdrop-filter blur + 半透明深色背景
-- chip 文字加 text-shadow 兜底
-- 不动 chip 逻辑或数据，仅视觉层增强
-
-**涉及**:
-- src/app/(flow)/archive/ArchiveClient.tsx
-- src/app/components.css (新增 chip overlay 样式)
-
----
-
 ### FU-45 · admin-mountain-edit e2e baseline 失败：rich text 重复渲染
 
 - **优先级**: P2
@@ -500,7 +478,18 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（35 条）
+## Closed Follow-ups（36 条）
+
+### FU-43 ✅ archive 卡片 hero 状态标签可读性增强
+
+- 关闭原因: archive 山行卡片 hero 上 chip (已登顶/未登顶 + 已留证/未留证) 在亮色 hero 照片上文字看不清的问题修复; 改 TripMedia 顶部 scrim 渐变 (旧单层 36%→transparent→88% 改双层 78%→58%→18%→transparent + transparent→88%) + 新增 ArchiveMediaChipShell glass wrapper (backdrop-filter blur(10px) saturate(1.08) + 半透明深色背景 + border + textShadow + boxShadow 多重兜底); 加 3 个 testid (archive-trip-media / archive-trip-chip-summit / archive-trip-chip-proof) 便于后续 spec coverage
+- **风险策略实战**: FU-43 是 codex-risk-behavior-policy 固化后第 2 个 sprint, Codex 全程严格执行 B1/B2 (Phase 3 STOP 等 user 验收, 因 context budget 风险主动 2 次 STOP), B4/B6/B12 (5 个验收场景 BEFORE/AFTER + 2 cross-check 截图 + chip bounding boxes metrics), B7 (audit.md 实时), B13 (临时 QA 数据使用 + visual-seed.json + cleanup 主动 disclose)
+- 改动范围: 仅 src/app/(flow)/archive/ArchiveClient.tsx (1 文件 +40/-5); 不改全局 Chip 组件; 不引入新 design token (复用现有 color-mix + CSS variables)
+- 准入: lint 0e/8w · build PASS · node test 19p · playwright app.spec 22p · git diff --check clean · 5+2 用户视觉验收点全过
+- 关闭 commit: `e8fce12` · merge commit: `3b74bce`
+- 关闭时间: 2026-05-27
+
+---
 
 ### FU-54 ✅ License Progress 重设计 + License Gate 解耦
 
@@ -880,6 +869,19 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.34（2026-05-27）
+
+FU-43 close · archive 卡片 hero 状态标签可读性增强
+
+- 处理: TripMedia 顶部双层 scrim 渐变加强 + ArchiveMediaChipShell glass wrapper (backdrop-blur + 半透明深色 + border + textShadow 多重兜底) + 3 个 testid 加 (archive-trip-media / archive-trip-chip-summit / archive-trip-chip-proof)
+- 改动: src/app/(flow)/archive/ArchiveClient.tsx (1 文件 +40/-5)
+- 准入: lint 0e/8w · build PASS · node test 19p · playwright app.spec 22p · git diff --check clean
+- 用户视觉验收: PASS (5 主验收点 + 2 cross-check 全过, 亮 hero / 暗 hero / 占位 hero / 无回归 explore-card + mountain-detail chip)
+- **协议红线实战**: FU-43 是 codex-risk-behavior-policy 固化后第 2 个 sprint, Codex 严格执行 B1/B2/B4/B5/B6/B7/B8/B12/B13, 因 context budget 风险主动 STOP 2 次 (Phase 0 audit 前 + Phase 3 final-acceptance 后), 跟 FU-49 一起作为 risk policy 持续落地样板
+- 关闭 commit: `e8fce12` · merge commit: `3b74bce`
+- Active 19 → 18 · Closed 35 → 36
+- v0.8 机械化清单第二十一次实战
 
 ### v0.33（2026-05-27）
 

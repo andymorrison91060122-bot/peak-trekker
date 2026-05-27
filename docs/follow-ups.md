@@ -916,6 +916,7 @@ FU-54 close · License Progress 重设计 + License Gate 解耦 + Difficulty Adv
 - **已知旁路**: 额外 community cross-check 的一条 feed card body click 仍未进入 detail（停留 `/community`）；未归因到 FU-54 touched code，留作后续候选排查，不阻塞 FU-54 close。
 - **用户视觉验收**: 由用户触发继续 Phase 7；Codex 保留截图证据，不自下视觉验收结论。
 - **提交分桶**: 6 feature commits + merge commit `f1c5c08` + docs v0.32 closeout commit。
+- **in-sprint visual patch (2026-05-27)**: 用户视觉验收发现 11 个视觉 / UX 瑕疵（字号层级 / 中文文案 / glyph 渲染 / FAQ 内容 / 入门线 chip 简化 / advisory 交互），已在 main 直接 commit + push 修复。无功能 break，跟 FU-42 / FU-46 BUG fix 同范式 in-sprint patch。Active 20 / Closed 34 数字不变。
 - Active 21 → 20 · Closed 33 → 34
 - v0.8 机械化清单第二十次实战
 

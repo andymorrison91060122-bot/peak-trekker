@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-27 · 最新版本记录: v0.34
+> Last Updated: 2026-05-27 · 最新版本记录: v0.35
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`3b74bce`（Merge FU-43 · 2026-05-27）
+`4363376`（Merge FU-53 · 2026-05-27）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动 (候选见 v0.34 末尾推荐)
+FU-56 紧接启动 (7 个已知 e2e fail 系统修复 · FU-53 sprint 期间识别)
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（18 条）
+## Active Follow-ups（17 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -445,28 +445,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-53 · SharePosterButton (legacy) obsolete cleanup
-
-- **优先级**: P2
-- **归属阶段**: FU-44 范式 / 阶段 6 后续 cleanup
-- **状态**: 🟢 active
-
-**背景**: 老版"分享 sheet"组件 `src/components/ui/SharePosterButton.tsx` 已被 `/share` 路由的新分享编辑器（`src/app/(flow)/share/ShareClient.tsx`）取代，但调用方未清理：
-- `src/app/(main)/share-card-lab/page.tsx`（debug 入口）
-- `src/components/profile/ProfileCommunitySections.tsx:185`（"分享素材 / 默认先给你最适合直接发出的推荐预览"）
-
-**实施建议**:
-- 删除 `SharePosterButton.tsx` + 所有 import 引用
-- 改 `ProfileCommunitySections.tsx:185` 走新 `/share` 或移除入口
-- 删 `share-card-lab` debug 页面（或改造为 `ShareClient` 演示）
-- 跑 grep 确认 `SharePosterButton` 0 hit
-
-**触发来源**: FU-46 子 sprint 4 Phase 4 视觉 review（Issue 1）
-
-**涉及**: `SharePosterButton.tsx` + `share-card-lab/page.tsx` + `ProfileCommunitySections.tsx`
-
----
-
 ## Known Issues
 
 ### Known Issue · checkin 数据字段写入路径异常 (2026-05-21 FU-11 sprint 期间发现)
@@ -478,7 +456,21 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（36 条）
+## Closed Follow-ups（37 条）
+
+### FU-53 ✅ SharePosterButton (legacy) obsolete cleanup
+
+- **关闭原因**: legacy `src/components/ui/SharePosterButton.tsx` (937 行) + `/share-card-lab` debug 路由删除；`ModalShell layout='share-sheet'` 死分支与 `.share-sheet*` / `modal[data-layout='share-sheet']` CSS 清理；debug / onboarding QA 中 `/share-card-lab` 入口删除；`OnboardingModal` 不再为 deleted route 做 suppression；`app.spec.ts` / `community-final-polish.spec.ts` / `button-token-migration.spec.ts` 中 5 个 legacy share-sheet e2e block obsolete cleanup。
+- **生产 share 保留**: `/share` 真实生产编辑器 (`src/app/(flow)/share/ShareClient.tsx` + `page.tsx`) 未改业务逻辑；`rg "SharePosterButton|share-card-lab|share-sheet" src tests` 为 0 live hits；route list 已无 `/share-card-lab` 且 `/share` 保留。
+- **视觉 / 浏览器证据**: 375px 本地截图覆盖 `/share` production editor、`/share-card-lab` 404 删除态、Profile share section、Activity Detail `生成分享` CTA；metrics 记录 `horizontalOverflow=false` 与 key text probes。
+- **准入**: lint 0e/6w · node test 26p · build PASS · git diff --check clean · FU-45 为唯一剩余 `test.fixme`；强关联 e2e subset 中 FU-53 touched coverage 通过，但整体子集暴露 7 个非 FU-53 fail。
+- **已紧接 register FU-56 跟踪 7 fail 修复**: FU-56 作为 FU-53 close 紧接 next sprint 启动, 利用 FU-53 sprint 现场调研上下文直接修复. 不积累 baseline rot, 跟 FU-46 BUG #1 in-sprint patch 范式同 (但 7 cases 集中处理)。
+- **deviation 透明披露**: 初始 scope 只点名 `SharePosterButton` + `share-card-lab`; audit 额外发现 debug / onboarding QA links、onboarding suppression、5 个 active legacy e2e blocks、ModalShell share-sheet layout 与 CSS 均为同源死代码并同步清理。`ProfileCommunitySections.tsx` 已在更早 patch 删除, 本 sprint 无 action。
+- **关闭 commit**: `bec80d4`
+- **merge commit**: `4363376`
+- **关闭时间**: 2026-05-27
+
+---
 
 ### FU-43 ✅ archive 卡片 hero 状态标签可读性增强
 
@@ -869,6 +861,21 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.35（2026-05-27）
+
+FU-53 close · SharePosterButton (legacy) + share-card-lab debug 入口 obsolete cleanup
+
+- 处理: 删除 legacy `SharePosterButton.tsx` (937 行) + `/share-card-lab` debug route；清理 debug / onboarding QA 入口、`OnboardingModal` suppression、`ModalShell layout='share-sheet'` 死分支、`.share-sheet*` 与 `modal[data-layout='share-sheet']` CSS。
+- e2e cleanup: `app.spec.ts` / `community-final-polish.spec.ts` / `button-token-migration.spec.ts` 中 5 个 legacy share-sheet / share-card-lab test block obsolete 删除；生产 share coverage 保留在 `/share` 相关 spec。
+- 改动: 10 files changed, 5 insertions(+), 1376 deletions(-)；删除 2 文件 (`src/components/ui/SharePosterButton.tsx`, `src/app/(main)/share-card-lab/page.tsx`)。
+- 准入: lint 0e/6w · node test 26p · build PASS · `git diff --check` clean · `rg "SharePosterButton|share-card-lab|share-sheet" src tests` 0 live hits · FU-45 为唯一 `test.fixme`。
+- 浏览器证据: 375px 本地截图覆盖 `/share` production editor、`/share-card-lab` 404 删除态、Profile share section、Activity Detail `生成分享` CTA；metrics 记录 `horizontalOverflow=false`。
+- 用户视觉验收: PASS (生产 `/share` / deleted route / profile share section / activity share CTA 验收点全过)。
+- **7 个非 FU-53 e2e fail 紧接 register FU-56 立即修复**: 用户决策 FU-53 close 紧接 next sprint 启动 FU-56, 利用 FU-53 sprint 现场调研上下文直接修复, 不积累成 baseline rot. 不违反 risk policy A5/B8 (FU-56 是已知 7 case 收口, 非 umbrella scan). 详情见 FU-53 ✅ Closed entry。
+- 关闭 commit: `bec80d4` · merge commit: `4363376`
+- Active 18 → 17 · Closed 36 → 37
+- v0.8 机械化清单第二十二次实战
 
 ### v0.34（2026-05-27）
 

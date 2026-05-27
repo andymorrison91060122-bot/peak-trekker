@@ -11,7 +11,6 @@ export default function ModalShell({
   children,
   footer,
   mode = 'dialog',
-  layout = 'default',
   closeControl = 'action',
   maxWidth = 560,
   zIndex = 120,
@@ -26,7 +25,6 @@ export default function ModalShell({
   children: ReactNode
   footer?: ReactNode
   mode?: 'dialog' | 'sheet'
-  layout?: 'default' | 'share-sheet'
   closeControl?: 'action' | 'icon'
   maxWidth?: number
   zIndex?: number
@@ -42,20 +40,17 @@ export default function ModalShell({
       aria-label={title}
       className="modal-overlay"
       data-mode={mode}
-      data-layout={layout}
       style={{ zIndex }}
       onClick={onClose}
     >
       <div
         className="surface-card modal-panel"
         data-mode={mode}
-        data-layout={layout}
         style={{ maxWidth, ...panelStyle }}
         onClick={(event) => event.stopPropagation()}
       >
         <div
           className="modal-header"
-          data-layout={layout}
           data-copy-hidden={hideHeaderCopy ? 'true' : undefined}
           style={headerContent ? { alignItems: 'center' } : undefined}
         >
@@ -67,7 +62,7 @@ export default function ModalShell({
               {description ? <div className="modal-description">{description}</div> : null}
             </div>
           ) : null}
-          {layout === 'share-sheet' || closeControl === 'icon' ? (
+          {closeControl === 'icon' ? (
             <IconButton
               icon="close"
               ariaLabel="关闭"
@@ -79,12 +74,12 @@ export default function ModalShell({
           )}
         </div>
 
-        <div className="modal-body" data-layout={layout} style={bodyStyle}>
+        <div className="modal-body" style={bodyStyle}>
           {children}
         </div>
 
         {footer ? (
-          <div className="modal-footer" data-layout={layout}>
+          <div className="modal-footer">
             {footer}
           </div>
         ) : null}

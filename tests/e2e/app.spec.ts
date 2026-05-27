@@ -592,58 +592,6 @@ test('explore cards stay image-first on 375 instead of using a tiny thumbnail la
   expect(cardBox!.height).toBeLessThan(360)
 })
 
-test('share card lab opens as a preview-first share sheet with lightweight mode switching', async ({ page }) => {
-  await registerFreshUser(page)
-  await page.goto('/share-card-lab')
-
-  const shareButton = page.getByRole('button', { name: '生成分享素材' }).first()
-  await expect(shareButton).toBeVisible()
-  await shareButton.click()
-
-  await expect(page.getByText('分享素材', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '推荐' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '结果卡' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '透明水印' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '分享', exact: true })).toBeVisible({ timeout: 30_000 })
-  await expect(page.getByRole('button', { name: '下载', exact: true })).toBeVisible({ timeout: 30_000 })
-
-  await page.getByRole('button', { name: '结果卡' }).click()
-  await expect(page.getByText('不依赖现场照片，直接生成简洁结果卡。')).toBeVisible()
-
-  await page.getByRole('button', { name: '透明水印' }).click()
-  await expect(page.getByText('透明背景预览，适合导出后在外部工具继续叠加。')).toBeVisible()
-
-  await page.getByRole('button', { name: '推荐' }).click()
-  const uploadInput = page.locator('input[type="file"]').first()
-  await uploadInput.setInputFiles({
-    name: 'summit-photo.png',
-    mimeType: 'image/png',
-    buffer: Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wm0WZ0AAAAASUVORK5CYII=',
-      'base64'
-    ),
-  })
-  await expect(page.getByText('已优先使用现场照片合成分享图，打开后就能直接分享。')).toBeVisible()
-  await expect(page.getByRole('button', { name: '分享', exact: true })).toBeVisible({ timeout: 30_000 })
-  await page.getByRole('button', { name: '更多操作' }).click()
-  await expect(page.getByRole('button', { name: '下载透明水印' })).toBeVisible()
-})
-
-test('share card lab uses upgraded background copy and surfaces generation failures through global toast', async ({ page }) => {
-  await registerFreshUser(page)
-  await page.goto('/share-card-lab')
-
-  await page.route('**/api/poster*', async (route) => {
-    await route.abort('failed')
-  }, { times: 1 })
-
-  await page.getByRole('button', { name: '生成分享素材' }).first().click()
-  await expect(
-    page.locator('[role="alert"]').filter({ hasText: '生成分享图失败，请稍后重试。' })
-  ).toBeVisible()
-  await expect(page.getByText('生成失败', { exact: true })).toHaveCount(0)
-})
-
 test('poster preview supports classic card, photo composite, and transparent overlay modes', async ({ request }) => {
   const cases = [
     { template: 'summit_card', renderMode: 'overlay_only' },

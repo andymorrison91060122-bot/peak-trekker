@@ -193,7 +193,7 @@ export const FAQ_GROUPS: FaqGroup[] = [
         id: 'license-upgrade',
         anchor: 'license.license-upgrade',
         q: '怎么提升执照等级',
-        a: '执照按难度计算: 完成 3 座 beginner 难度及以上 GPS 有效记录升入初级; 完成 3 座 intermediate 难度及以上 GPS 有效记录升入中级; 完成 3 座 advanced 难度及以上 GPS 有效记录升入高级,expert 会计入高级目标。\n\n难度只作推荐,不限制你登任何山。升级路径以已经完成的真实 GPS 山行为依据,不能靠答题或买课程跳级。',
+        a: '你的执照等级由你完成的 GPS 有效登山记录数 + 山峰难度决定。\n\n- 无执照 → 初级: 完成 3 座入门线（含进阶线 / 高阶线 / 专家线）山的有效 GPS 记录\n- 初级 → 中级: 完成 3 座进阶线（含高阶线 / 专家线）山的有效 GPS 记录\n- 中级 → 高级: 完成 3 座高阶线（含专家线）山的有效 GPS 记录\n\n执照只是经验信号，不限制你登任何山。',
       },
       {
         id: 'season-window',

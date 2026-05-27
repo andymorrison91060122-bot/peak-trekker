@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import {
   createGpsCheckinViaApi,
   createHistoricalCheckinViaApi,
@@ -53,20 +53,6 @@ async function createPublishedPostForCheckin(
   return {
     detailUrl: `${baseURL}${String(payload?.detailUrl ?? '')}`,
   }
-}
-
-async function readComputedMetrics(locator: Locator) {
-  return locator.evaluateAll((nodes) =>
-    nodes.map((node) => {
-      const style = window.getComputedStyle(node as HTMLElement)
-      return {
-        height: style.height,
-        borderRadius: style.borderRadius,
-        paddingLeft: style.paddingLeft,
-        paddingRight: style.paddingRight,
-      }
-    })
-  )
 }
 
 test('profile identity header stays compact without a duplicated activity jump button', async ({ page, baseURL }) => {
@@ -176,29 +162,4 @@ test('community detail keeps only record actions outside the source card and mov
   } finally {
     await secondContext.close()
   }
-})
-
-test('share sheet footer aligns token buttons and keeps the more icon accessible', async ({ page, baseURL }) => {
-  test.setTimeout(180_000)
-  const root = baseURL ?? 'http://127.0.0.1:3100'
-
-  await page.setViewportSize({ width: 375, height: 812 })
-  await registerFreshUser(page, root, { returnTo: '/share-card-lab' })
-  await page.goto(`${root}/share-card-lab`)
-  await page.getByRole('button', { name: '生成分享素材' }).first().click()
-
-  const dialog = page.getByRole('dialog', { name: '分享素材' })
-  const footer = dialog.getByTestId('share-sheet-footer-actions')
-  const downloadButton = footer.getByRole('button', { name: '下载' })
-  const shareButton = footer.getByRole('button', { name: '分享' })
-  const moreButton = footer.getByRole('button', { name: '更多操作' })
-
-  await expect(downloadButton).toBeVisible()
-  await expect(shareButton).toBeVisible()
-  await expect(moreButton).toBeVisible()
-  await expect(moreButton).toHaveAttribute('aria-label', '更多操作')
-
-  const metrics = await readComputedMetrics(footer.locator('button'))
-  expect(metrics.length).toBeGreaterThanOrEqual(3)
-  expect(new Set(metrics.map((item) => item.height)).size).toBe(1)
 })

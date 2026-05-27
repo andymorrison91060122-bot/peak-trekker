@@ -56,9 +56,6 @@ export default async function OnboardingQAPage() {
           <Link href="/community-qa" className="secondary-btn" style={{ textDecoration: 'none', minHeight: 42, padding: '0 14px' }}>
             社区人工验收
           </Link>
-          <Link href="/share-card-lab" className="secondary-btn" style={{ textDecoration: 'none', minHeight: 42, padding: '0 14px' }}>
-            分享实验室
-          </Link>
         </div>
       </div>
 

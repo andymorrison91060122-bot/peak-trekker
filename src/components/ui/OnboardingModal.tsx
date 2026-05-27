@@ -43,7 +43,7 @@ export default function OnboardingModal({
   const interactedRef = useRef(false)
   const provinceSyncRef = useRef<string | null>(null)
   const supportsEntryFlow = pathname === '/explore'
-  const suppressOnboardingUI = pathname === '/onboarding-qa' || pathname === '/share-card-lab'
+  const suppressOnboardingUI = pathname === '/onboarding-qa'
 
   const [ready, setReady] = useState(false)
   const [phase, setPhase] = useState<OnboardingPhase>('done')

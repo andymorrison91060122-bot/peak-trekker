@@ -534,6 +534,40 @@ function ProofChip({ hasProof }: { hasProof: boolean }) {
   return hasProof ? <Chip tone="success">● 已留证</Chip> : <Chip>● 未留证</Chip>
 }
 
+function ArchiveMediaChipShell({
+  children,
+  side,
+  testId,
+}: {
+  children: ReactNode
+  side: 'left' | 'right'
+  testId: string
+}) {
+  const sidePosition: CSSProperties = side === 'left' ? { left: 10 } : { right: 10 }
+
+  return (
+    <div
+      data-testid={testId}
+      style={{
+        position: 'absolute',
+        top: 10,
+        ...sidePosition,
+        display: 'inline-flex',
+        padding: 2,
+        borderRadius: 'var(--radius-pill)',
+        border: '1px solid color-mix(in srgb, var(--color-on-surface) 18%, transparent)',
+        background: 'color-mix(in srgb, var(--color-surface) 74%, transparent)',
+        boxShadow: '0 8px 20px color-mix(in srgb, var(--color-surface) 60%, transparent)',
+        textShadow: '0 1px 2px color-mix(in srgb, var(--color-surface) 88%, transparent)',
+        WebkitBackdropFilter: 'blur(10px) saturate(1.08)',
+        backdropFilter: 'blur(10px) saturate(1.08)',
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
 function TripMedia({ trip }: { trip: ArchiveTripViewModel }) {
   const background = trip.photoUrl
     ? `url("${trip.photoUrl}") center 35% / cover no-repeat`
@@ -541,6 +575,7 @@ function TripMedia({ trip }: { trip: ArchiveTripViewModel }) {
 
   return (
     <div
+      data-testid="archive-trip-media"
       style={{
         position: 'relative',
         height: 140,
@@ -553,15 +588,15 @@ function TripMedia({ trip }: { trip: ArchiveTripViewModel }) {
           position: 'absolute',
           inset: 0,
           background:
-            'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 36%, transparent) 0%, transparent 35%, color-mix(in srgb, var(--color-surface) 88%, transparent) 100%)',
+            'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 78%, transparent) 0%, color-mix(in srgb, var(--color-surface) 58%, transparent) 22%, color-mix(in srgb, var(--color-surface) 18%, transparent) 48%, transparent 62%), linear-gradient(180deg, transparent 42%, color-mix(in srgb, var(--color-surface) 88%, transparent) 100%)',
         }}
       />
-      <div style={{ position: 'absolute', top: 10, left: 10 }}>
+      <ArchiveMediaChipShell side="left" testId="archive-trip-chip-summit">
         {trip.isSummit ? <Chip tone="success">● 已登顶</Chip> : <Chip tone="warn">● 未登顶</Chip>}
-      </div>
-      <div style={{ position: 'absolute', top: 10, right: 10 }}>
+      </ArchiveMediaChipShell>
+      <ArchiveMediaChipShell side="right" testId="archive-trip-chip-proof">
         <ProofChip hasProof={trip.hasProof} />
-      </div>
+      </ArchiveMediaChipShell>
       <div
         style={{
           position: 'absolute',

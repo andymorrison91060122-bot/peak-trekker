@@ -28,6 +28,8 @@ import IconButton from '@/components/ui/IconButton'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import DifficultyAdvisory from '@/components/mountain/DifficultyAdvisory'
+import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
+import type { LicenseProgressSummary } from '@/lib/license-progress'
 import { HelpTrigger } from '@/components/help/HelpTrigger'
 import {
   BackIcon,
@@ -151,9 +153,11 @@ type RestoredTrekSession = {
 export default function TrekClient({
   userProvince,
   userLicense,
+  licenseProgress,
 }: {
   userProvince: string | null
   userLicense: User['license_level']
+  licenseProgress: LicenseProgressSummary
 }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
   const router = useRouter()
@@ -165,6 +169,7 @@ export default function TrekClient({
     [searchParams]
   )
   const [storedTrekTestMode, setStoredTrekTestMode] = useState(false)
+  const [licenseSheetOpen, setLicenseSheetOpen] = useState(false)
   const trekTestMode = queryTrekTestMode || storedTrekTestMode
 
   useEffect(() => {
@@ -1698,6 +1703,7 @@ export default function TrekClient({
                 difficulty={activeMountainForAdvisory.difficulty}
                 userLicense={userLicense}
                 mountainName={activeMountainForAdvisory.name}
+                onShowLicenseSheet={() => setLicenseSheetOpen(true)}
               />
             </div>
           ) : null}
@@ -1829,6 +1835,11 @@ export default function TrekClient({
         style={{ display: 'none' }}
         aria-hidden="true"
         tabIndex={-1}
+      />
+      <LicenseProgressSheet
+        open={licenseSheetOpen}
+        progress={licenseProgress}
+        onClose={() => setLicenseSheetOpen(false)}
       />
     </TrekShell>
   )

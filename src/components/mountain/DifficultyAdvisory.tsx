@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import type { Mountain, User } from '@/types'
 import {
   compareLicenseLevels,
@@ -27,14 +28,17 @@ export default function DifficultyAdvisory({
   userLicense,
   mountainName,
   onContinue,
+  onShowLicenseSheet,
   compact = false,
 }: {
   difficulty: Mountain['difficulty'] | string | null | undefined
   userLicense: User['license_level'] | string | null | undefined
   mountainName?: string
   onContinue?: () => void
+  onShowLicenseSheet?: () => void
   compact?: boolean
 }) {
+  const [dismissed, setDismissed] = useState(false)
   const normalizedDifficulty = normalizeDifficulty(difficulty)
   const recommendedLicense = getRecommendedLicenseForDifficulty(normalizedDifficulty)
   const currentLicense = (userLicense === 'basic' || userLicense === 'intermediate' || userLicense === 'advanced')
@@ -42,7 +46,7 @@ export default function DifficultyAdvisory({
     : 'none'
   const gap = compareLicenseLevels(recommendedLicense, currentLicense)
 
-  if (gap <= 0) return null
+  if (gap <= 0 || dismissed) return null
 
   const recommendedLabel = getLicenseLevelLabel(recommendedLicense)
   const currentLabel = getLicenseLevelLabel(currentLicense)
@@ -112,13 +116,27 @@ export default function DifficultyAdvisory({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 'var(--space-2)' }}>
-        <PrimaryButton type="button" onClick={onContinue}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: onShowLicenseSheet ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)',
+          gap: 'var(--space-2)',
+        }}
+      >
+        <PrimaryButton
+          type="button"
+          onClick={() => {
+            setDismissed(true)
+            onContinue?.()
+          }}
+        >
           我了解 · 继续
         </PrimaryButton>
-        <SecondaryButton as="a" href="/profile?licenseSheet=1">
-          看我的等级
-        </SecondaryButton>
+        {onShowLicenseSheet ? (
+          <SecondaryButton type="button" onClick={onShowLicenseSheet}>
+            看我的等级
+          </SecondaryButton>
+        ) : null}
       </div>
     </div>
   )

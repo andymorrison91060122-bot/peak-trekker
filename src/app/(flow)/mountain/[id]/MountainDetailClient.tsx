@@ -13,10 +13,13 @@ import SecondaryButton from '@/components/ui/SecondaryButton'
 import WeatherSection from '@/components/mountain/WeatherSection'
 import DifficultyAdvisory from '@/components/mountain/DifficultyAdvisory'
 import DifficultyChip from '@/components/mountain/DifficultyChip'
+import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
+import type { LicenseProgressSummary } from '@/lib/license-progress'
 
 type MountainDetailClientProps = {
   mountain: Mountain
   userLicense: User['license_level']
+  licenseProgress: LicenseProgressSummary
   requiresLogin: boolean
   waypoints: Waypoint[]
   featuredPosts: CommunityPostViewModel[]
@@ -476,10 +479,12 @@ function DecisionSection({
   mountain,
   userLicense,
   requiresLogin,
+  onShowLicenseSheet,
 }: {
   mountain: Mountain
   userLicense: User['license_level']
   requiresLogin: boolean
+  onShowLicenseSheet?: () => void
 }) {
   const season = getSeasonDecision(mountain)
   const suitabilityCopy = getDifficultySuitabilityCopy(mountain.difficulty)
@@ -494,6 +499,7 @@ function DecisionSection({
             userLicense={userLicense}
             mountainName={mountain.name}
             compact={requiresLogin}
+            onShowLicenseSheet={requiresLogin ? undefined : onShowLicenseSheet}
           />
         </div>
         <div
@@ -1217,6 +1223,7 @@ function BottomCTA({
 export default function MountainDetailClient({
   mountain,
   userLicense,
+  licenseProgress,
   requiresLogin,
   waypoints,
   featuredPosts,
@@ -1224,6 +1231,7 @@ export default function MountainDetailClient({
 }: MountainDetailClientProps) {
   const router = useRouter()
   const routeFacts = getRouteFacts(mountain)
+  const [licenseSheetOpen, setLicenseSheetOpen] = useState(false)
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -1295,6 +1303,7 @@ export default function MountainDetailClient({
         mountain={mountain}
         userLicense={userLicense}
         requiresLogin={requiresLogin}
+        onShowLicenseSheet={() => setLicenseSheetOpen(true)}
       />
 
       <WeatherSection mountain={mountain} />
@@ -1306,6 +1315,11 @@ export default function MountainDetailClient({
         mountain={mountain}
         requiresLogin={requiresLogin}
         hasWaypoints={waypoints.length > 0}
+      />
+      <LicenseProgressSheet
+        open={licenseSheetOpen}
+        progress={licenseProgress}
+        onClose={() => setLicenseSheetOpen(false)}
       />
     </div>
   )

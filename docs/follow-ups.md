@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-27 · 最新版本记录: v0.35
+> Last Updated: 2026-05-28 · 最新版本记录: v0.36
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`4363376`（Merge FU-53 · 2026-05-27）
+`13bc4f4`（Merge FU-56 · 2026-05-28）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-FU-56 紧接启动 (7 个已知 e2e fail 系统修复 · FU-53 sprint 期间识别)
+待启动 (候选见 v0.36 末尾推荐 / FU-55 页面埋点待 register)
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -456,7 +456,27 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（37 条）
+## Closed Follow-ups（38 条）
+
+### FU-56 ✅ e2e helper / spec rot 系统修复 (7 个已知 fail · FU-53 sprint 期间识别 · 一次性 in-sprint register+close)
+
+- **关闭原因**: FU-53 sprint 期间识别的 7 个 e2e fail 集中收口修复。6 fail 修 + 1 fail 归 flake (transparent disclose)。改动范围严格限定 test/helper 层 (4 文件 +80/-71), **0 src 业务代码改动**。
+- **7 fail 处理对照**:
+  · #1 app.spec.ts:183 protected trek returnTo — **reclassify: 非真业务 regression, 实际 helper timing 假设 rot**。controlled repro + helper hardening 后 reproducible path 已 stable pass；真业务 returnTo flow 由 FU-46 BUG #1 patch (commit 84984fe) 已正确修，本 sprint 无需改 src/auth。用户视觉验收 PASS 完整 returnTo flow (guest entry → register → return to mountain)。
+  · #2 #3 app.spec.ts:330/463 auth helper rot — registerFreshUser() 改 service-role seed + 真实 login UI + bounded navigation retry。避免 UI sign-up fixture timing-sensitive 假设，也避免混淆 fixture setup rot 与真业务 returnTo flow (B9 边界明确)。
+  · #4 app.spec.ts:490 explore helper rot — getExploreCardMeta() / first mountain lookup 等当前 `[data-testid="explore-mountain-card"]` + canonical `/mountain/` hrefs。
+  · #5 button-token-migration.spec.ts:58 FU-54 漏修 spec rot — assertion 改 profile-license-badge + 当前 aria label (从旧 `无执照登山` 改 FU-54 license badge wording)。
+  · #6 share-preview-track.spec.ts:167 cleanup TypeError fetch failed — **归 non-reproducible flake (8 次执行均 pass + --repeat-each=3 pass + subset pass)**。透明 disclose 不掩盖。
+  · #7 trek-complete-page.spec.ts:11 trek helper threshold rot — completeSummitPhotoFlow() 加 server session id + 8 GPS points + 加 session backdate (FU-46 BUG #5 范式不同 helper)。
+- **风险策略实战 (FU-49 + FU-43 + FU-53 之后第 4 个完美 sprint)**: Codex 严格执行 B1/B2 (Phase 4 STOP), B4/B6/B12 (5 张 issue-level 截图 + metrics 集中 #1 真业务 flow), B7 (audit.md 实时), B8 (不跑全量 e2e), B9 (scope 严格限 7 known fail + helper boundary 不混业务), B13 (#1 reclassification + #6 flake + #2/#3 helper boundary 三项主动 disclose)。
+- **关键 audit-driven finding (B13)**: #1 reclassify 是 Codex audit 后发现的实际根因, 不硬凑 src/auth 改动来"显得修了" — risk policy A3/B6/B13 完美实战。
+- 准入: lint 0e/6w · build PASS · node test 250p · 强关联子集 e2e 26 passed · git diff --check clean · 0 src 改动。
+- 用户视觉验收: PASS (3 checkpoint 全过, 含 protected trek returnTo 完整 flow + trek startup + mountain detail cross-check)。
+- 关闭 commit: `b5a1690` / `3d90203` / `bd62a60`
+- merge commit: `13bc4f4`
+- 关闭时间: 2026-05-28
+
+---
 
 ### FU-53 ✅ SharePosterButton (legacy) obsolete cleanup
 
@@ -861,6 +881,20 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.36（2026-05-28）
+
+FU-56 close · e2e helper/spec rot 系统修复 (7 个已知 fail · 一次性 in-sprint register+close)
+
+- 处理: 6 fail 修 + 1 fail 归 flake (transparent disclose)；改动严格限 test/helper 层 (4 文件 +80/-71), **0 src 业务代码改动**。
+- **关键 audit-driven finding**: #1 protected trek returnTo reclassify 为 helper timing rot 而非真业务 regression — controlled repro + helper hardening 后已 stable pass, 不需改 src/auth (FU-46 BUG #1 patch 已正确修真业务)。
+- 各 fail 修复: #2/#3 auth helper service-role seed + 真实 login UI / #4 explore helper 等当前 testid + canonical href / #5 button-token assertion FU-54 license badge / #6 8 次执行均 pass 归 flake disclose / #7 trek helper 加 8 GPS points + session backdate。
+- 准入: lint 0e/6w · build PASS · node test 250p · 强关联子集 26p · git diff --check clean。
+- 用户视觉验收: PASS (3 checkpoint 全过)。
+- **协议红线实战**: FU-56 是 codex-risk-behavior-policy 固化后第 4 个完美 sprint (FU-49 + FU-43 + FU-53 + FU-56 连续样板)。主动 disclose #1 reclassification + #6 flake + helper/业务边界 = B13 完美实战。
+- 关闭 commit: `b5a1690` / `3d90203` / `bd62a60` · merge commit: `13bc4f4`
+- **数字特殊**: Active 17 不变 (FU-56 sprint 内 register+close 净变化 = 0) · Closed 37 → 38
+- v0.8 机械化清单第二十三次实战
 
 ### v0.35（2026-05-27）
 

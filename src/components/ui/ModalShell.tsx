@@ -18,6 +18,7 @@ export default function ModalShell({
   panelStyle,
   bodyStyle,
   hideHeaderCopy = false,
+  headerContent,
 }: {
   title: string
   description?: string
@@ -32,6 +33,7 @@ export default function ModalShell({
   panelStyle?: CSSProperties
   bodyStyle?: CSSProperties
   hideHeaderCopy?: boolean
+  headerContent?: ReactNode
 }) {
   return (
     <div
@@ -55,8 +57,11 @@ export default function ModalShell({
           className="modal-header"
           data-layout={layout}
           data-copy-hidden={hideHeaderCopy ? 'true' : undefined}
+          style={headerContent ? { alignItems: 'center' } : undefined}
         >
-          {!hideHeaderCopy ? (
+          {headerContent ? (
+            <div className="modal-header__copy">{headerContent}</div>
+          ) : !hideHeaderCopy ? (
             <div className="modal-header__copy">
               <div className="modal-title">{title}</div>
               {description ? <div className="modal-description">{description}</div> : null}

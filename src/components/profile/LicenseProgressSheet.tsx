@@ -185,16 +185,14 @@ export default function LicenseProgressSheet({
       onClose={onClose}
       mode="sheet"
       closeControl="icon"
-      hideHeaderCopy
       maxWidth={480}
       bodyStyle={{ display: 'grid', gap: 'var(--space-4)', paddingTop: 'var(--space-1)' }}
-    >
-      <div data-testid="license-progress-sheet" style={{ display: 'grid', gap: 'var(--space-4)' }}>
+      headerContent={(
         <div
           className="font-mono"
           style={{
             color: 'var(--color-on-surface-variant)',
-            fontSize: 10,
+            fontSize: 14,
             lineHeight: 1.2,
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
@@ -202,40 +200,27 @@ export default function LicenseProgressSheet({
         >
           执照 · LICENSE
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+      )}
+    >
+      <div data-testid="license-progress-sheet" style={{ display: 'grid', gap: 'var(--space-4)' }}>
+        <div style={{ minWidth: 0 }}>
           <div
+            data-testid="license-progress-current"
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid color-mix(in srgb, var(--color-success) 30%, transparent)',
-              display: 'grid',
-              placeItems: 'center',
-              background: 'color-mix(in srgb, var(--color-success) 10%, transparent)',
-              flex: '0 0 42px',
+              color: 'var(--color-on-surface)',
+              fontSize: 22,
+              lineHeight: 1.2,
+              fontWeight: 600,
+              letterSpacing: '-0.015em',
             }}
           >
-            <LicenseTierGlyph level={progress.effectiveLevel} size={20} />
+            {currentLabel}
           </div>
-          <div style={{ minWidth: 0 }}>
-            <div
-              data-testid="license-progress-current"
-              style={{
-                color: 'var(--color-on-surface)',
-                fontSize: 22,
-                lineHeight: 1.2,
-                fontWeight: 600,
-                letterSpacing: '-0.015em',
-              }}
-            >
-              {currentLabel}
-            </div>
-            <div
-              data-testid="license-progress-next"
-              style={{ color: 'var(--color-on-surface-variant)', fontSize: 13, lineHeight: 1.6, marginTop: 4 }}
-            >
-              {getNextCopy(progress)}
-            </div>
+          <div
+            data-testid="license-progress-next"
+            style={{ color: 'var(--color-on-surface-variant)', fontSize: 13, lineHeight: 1.6, marginTop: 4 }}
+          >
+            {getNextCopy(progress)}
           </div>
         </div>
 
@@ -243,21 +228,6 @@ export default function LicenseProgressSheet({
           {LICENSE_PROGRESS_ORDER.map((level) => (
             <Rung key={level} level={level} progress={progress} />
           ))}
-        </div>
-
-        <div
-          data-testid="license-progress-algorithm"
-          style={{
-            border: '1px solid var(--color-outline)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-3)',
-            color: 'var(--color-on-surface-variant)',
-            background: 'var(--color-surface-variant)',
-            fontSize: 11.5,
-            lineHeight: 1.55,
-          }}
-        >
-          每完成 3 座对应难度（或更高）的有效 GPS 记录即可升级。入门线、进阶线、高阶线会逐级点亮；专家线记录会计入高级目标。
         </div>
 
         <Link

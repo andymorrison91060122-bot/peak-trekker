@@ -472,7 +472,8 @@ test('profile hosts the compact certificate summary layout while debug stays foc
   await expect(sheet).toBeVisible()
   await expect(sheet.getByTestId('license-progress-current')).toBeVisible()
   await expect(sheet.getByTestId('license-progress-rung')).toHaveCount(4)
-  await expect(sheet.getByTestId('license-progress-algorithm')).toContainText('GPS')
+  await expect(sheet.getByTestId('license-progress-algorithm')).toHaveCount(0)
+  await expect(sheet.getByTestId('license-progress-learn-more')).toHaveAttribute('href', '/faq?anchor=license.license-upgrade')
 
   const ladderFits = await sheet.evaluate((node) => node.scrollWidth <= node.clientWidth + 1)
   expect(ladderFits).toBeTruthy()

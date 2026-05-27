@@ -34,6 +34,10 @@ export default function ExploreMountainCard({
   const heroImageCount = getMountainDetailHeroImages(mountain, 3).length
   const distanceKm = estimateLength(mountain)
   const duration = estimateDuration(mountain)
+  const normalizedDifficulty =
+    mountain.difficulty === 'intermediate' || mountain.difficulty === 'advanced' || mountain.difficulty === 'expert'
+      ? mountain.difficulty
+      : 'beginner'
 
   return (
     <Link
@@ -76,9 +80,11 @@ export default function ExploreMountainCard({
 
           <div className="explore-card__subline" data-testid="explore-mountain-card-subline">
             <span className="explore-card__location" data-testid="explore-mountain-card-location">{mountain.province}</span>
-            <span className="explore-card__subline-separator" aria-hidden="true">·</span>
+            {normalizedDifficulty === 'beginner' ? null : (
+              <span className="explore-card__subline-separator" aria-hidden="true">·</span>
+            )}
             <span data-testid="explore-mountain-card-difficulty" style={{ minWidth: 0 }}>
-              <DifficultyChip difficulty={mountain.difficulty} withSuggestion />
+              <DifficultyChip difficulty={normalizedDifficulty} withSuggestion />
             </span>
           </div>
 

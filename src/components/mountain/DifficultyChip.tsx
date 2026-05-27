@@ -2,12 +2,11 @@ import type { Mountain } from '@/types'
 
 const DIFFICULTY_META: Record<Mountain['difficulty'], {
   label: string
-  suggestion: string
+  suggestion?: string
   level: number
 }> = {
   beginner: {
     label: '入门线',
-    suggestion: '建议无执照阶段可尝试',
     level: 1,
   },
   intermediate: {
@@ -96,7 +95,7 @@ export default function DifficultyChip({
     >
       {!compactBeginner ? <DifficultyGlyph level={meta.level} /> : null}
       <span className="pt-label-s">{meta.label}</span>
-      {withSuggestion && !compactBeginner ? (
+      {withSuggestion && !compactBeginner && meta.suggestion ? (
         <>
           <span className="pt-label-s" aria-hidden="true" style={{ color: 'var(--color-on-surface-variant)' }}>·</span>
           <span className="pt-label-s" style={{ color: 'var(--color-on-surface-variant)', overflow: 'hidden', textOverflow: 'ellipsis' }}>

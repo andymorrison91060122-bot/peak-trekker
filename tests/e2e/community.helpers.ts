@@ -34,6 +34,25 @@ export function createTinyPngBuffer() {
   return Buffer.from(createPngDataUrl().replace(/^data:image\/png;base64,/, ''), 'base64')
 }
 
+async function gotoDomContentLoadedWithRetry(page: Page, url: string) {
+  let lastError: unknown = null
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await page.waitForLoadState('domcontentloaded', { timeout: 2000 }).catch(() => {})
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+      return
+    } catch (error) {
+      lastError = error
+      const message = error instanceof Error ? error.message : String(error)
+      if (!/ERR_ABORTED|frame was detached|Navigation failed|Target page/.test(message)) {
+        throw error
+      }
+      await page.waitForTimeout(500 * (attempt + 1))
+    }
+  }
+  throw lastError
+}
+
 export async function createSolidColorPngBuffer({
   width = 240,
   height = 360,
@@ -83,43 +102,19 @@ export async function registerFreshUser(
     province?: string
   } = {}
 ) {
-  await page.goto(`${baseURL}/auth/register?from=${encodeURIComponent(returnTo)}`, { waitUntil: 'domcontentloaded' })
+  await ensureFreshUserAccountForLogin({ email, password, username, province })
+
+  const loginHref =
+    returnTo === '/explore'
+      ? `${baseURL}/auth/login`
+      : `${baseURL}/auth/login?from=${encodeURIComponent(returnTo)}`
+  await gotoDomContentLoadedWithRetry(page, loginHref)
+  await expect(page.getByPlaceholder('your@email.com')).toBeVisible({ timeout: 15_000 })
   await page.getByPlaceholder('your@email.com').fill(email)
-  await page.getByPlaceholder('至少6位').fill(password)
-  await page.getByRole('button', { name: '下一步 →' }).click()
+  await page.getByPlaceholder(/至少6位|••••••••/).fill(password)
+  await page.getByRole('button', { name: '▶ 开始登山' }).click()
+  await page.waitForURL((url) => !/\/auth\/login/.test(url.pathname), { timeout: 30_000 }).catch(() => {})
 
-  const profileNameInput = page.getByPlaceholder('你的登山代号')
-  await profileNameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
-  if (await profileNameInput.isVisible().catch(() => false)) {
-    await profileNameInput.fill(username)
-    await page.locator('select').selectOption(province)
-    await page.getByRole('button', { name: '▶ 创建登山档案' }).click()
-  } else {
-    await ensureFreshUserAccountForLogin({ email, password, username, province })
-    const loginHref =
-      returnTo === '/explore'
-        ? `${baseURL}/auth/login`
-        : `${baseURL}/auth/login?from=${encodeURIComponent(returnTo)}`
-    await page.goto(loginHref, { waitUntil: 'domcontentloaded' })
-  }
-
-  await page.waitForLoadState('domcontentloaded')
-  if (/\/auth\/register/.test(page.url())) {
-    await page.waitForURL((url) => !/\/auth\/register/.test(url.pathname), { timeout: 60_000 }).catch(() => {})
-  }
-  if (/\/auth\/register/.test(page.url())) {
-    const loginHref =
-      returnTo === '/explore'
-        ? `${baseURL}/auth/login`
-        : `${baseURL}/auth/login?from=${encodeURIComponent(returnTo)}`
-    await page.goto(loginHref, { waitUntil: 'domcontentloaded' })
-  }
-  if (/\/auth\/login/.test(page.url())) {
-    await page.getByPlaceholder('your@email.com').fill(email)
-    await page.getByPlaceholder(/至少6位|••••••••/).fill(password)
-    await page.getByRole('button', { name: '▶ 开始登山' }).click()
-    await page.waitForURL((url) => !/\/auth\/login/.test(url.pathname), { timeout: 30_000 }).catch(() => {})
-  }
   if (/\/auth\/login/.test(page.url())) {
     await ensureFreshUserAccountForLogin({ email, password, username, province })
     await page.getByPlaceholder('your@email.com').fill(email)
@@ -129,7 +124,7 @@ export async function registerFreshUser(
   }
 
   if (!new RegExp(returnTo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(page.url())) {
-    await page.goto(`${baseURL}${returnTo}`, { waitUntil: 'domcontentloaded' })
+    await gotoDomContentLoadedWithRetry(page, `${baseURL}${returnTo}`)
   }
   await expect(page).toHaveURL(new RegExp(returnTo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), { timeout: 60_000 })
   return { email, password, username }

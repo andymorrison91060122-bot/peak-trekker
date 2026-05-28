@@ -1,4 +1,5 @@
 import type {
+  AnalyticsCohortKey,
   AnalyticsDashboardData,
   AnalyticsRangeKey,
   AnalyticsRangeOption,
@@ -13,6 +14,7 @@ import type {
   TrekCompletionMetrics,
   UserBehaviorMetrics,
 } from './types'
+import { ANALYTICS_COHORT_OPTIONS, NEW_USER_THRESHOLD_DAYS } from './constants.ts'
 
 const DAY_MS = 86_400_000
 
@@ -25,6 +27,7 @@ export const ANALYTICS_RANGE_OPTIONS: AnalyticsRangeOption[] = [
 ]
 
 const RANGE_OPTION_MAP = new Map(ANALYTICS_RANGE_OPTIONS.map((option) => [option.key, option]))
+const COHORT_OPTION_MAP = new Map(ANALYTICS_COHORT_OPTIONS.map((option) => [option.key, option]))
 
 export function normalizeAnalyticsRangeKey(value: string | number | undefined | null): AnalyticsRangeKey {
   if (value === 'today' || value === 'all_time') return value
@@ -34,8 +37,17 @@ export function normalizeAnalyticsRangeKey(value: string | number | undefined | 
   return '30d'
 }
 
+export function normalizeAnalyticsCohortKey(value: string | undefined | null): AnalyticsCohortKey {
+  if (value === 'new' || value === 'returning' || value === 'anonymous') return value
+  return 'all'
+}
+
 function getRangeOption(rangeKey: AnalyticsRangeKey) {
   return RANGE_OPTION_MAP.get(rangeKey) ?? RANGE_OPTION_MAP.get('30d')!
+}
+
+function getCohortOption(cohortKey: AnalyticsCohortKey) {
+  return COHORT_OPTION_MAP.get(cohortKey) ?? COHORT_OPTION_MAP.get('all')!
 }
 
 function startOfLocalDay(date: Date) {
@@ -109,6 +121,51 @@ function metricDelta(current: number, previous: number | null): MetricDelta {
 
 function uniqueCount(values: Array<string | null | undefined>) {
   return new Set(values.filter(Boolean)).size
+}
+
+function cohortActorId(row: AnalyticsEventRow, cohortKey: AnalyticsCohortKey) {
+  if (cohortKey === 'anonymous') return row.user_id ? null : row.session_id
+  return row.user_id ?? row.session_id
+}
+
+function firstRegisterMap(fullHistory: AnalyticsEventRow[]) {
+  const registrations = new Map<string, number>()
+  for (const row of fullHistory) {
+    if (row.event_name !== 'auth.register_complete' || !row.user_id) continue
+    const time = new Date(row.server_ts).getTime()
+    if (!Number.isFinite(time)) continue
+    const previous = registrations.get(row.user_id)
+    if (previous === undefined || time < previous) registrations.set(row.user_id, time)
+  }
+  return registrations
+}
+
+export function partitionByCohort(
+  events: AnalyticsEventRow[],
+  cohort: AnalyticsCohortKey | string = 'all',
+  fullHistory: AnalyticsEventRow[] = events,
+  now = new Date(),
+): AnalyticsEventRow[] {
+  const cohortKey = normalizeAnalyticsCohortKey(cohort)
+  if (cohortKey === 'all') return events
+  if (cohortKey === 'anonymous') return events.filter((row) => !row.user_id)
+
+  const firstRegisters = firstRegisterMap(fullHistory)
+  const thresholdMs = NEW_USER_THRESHOLD_DAYS * DAY_MS
+  const nowTime = now.getTime()
+
+  return events.filter((row) => {
+    if (!row.user_id) return false
+    const firstRegisterAt = firstRegisters.get(row.user_id)
+    if (firstRegisterAt === undefined) return cohortKey === 'returning'
+    const accountAgeMs = nowTime - firstRegisterAt
+    const isNew = accountAgeMs <= thresholdMs
+    return cohortKey === 'new' ? isNew : !isNew
+  })
+}
+
+function countCohortActors(events: AnalyticsEventRow[], cohortKey: AnalyticsCohortKey) {
+  return uniqueCount(events.map((row) => cohortActorId(row, cohortKey)))
 }
 
 function dayLabel(value: string) {
@@ -582,17 +639,25 @@ export function buildAnalyticsDashboardData(
   range: AnalyticsRangeKey | number = '30d',
   schemaReady = true,
   now = new Date(),
+  cohort: AnalyticsCohortKey | string = 'all',
+  fullHistory: AnalyticsEventRow[] = events,
 ): AnalyticsDashboardData {
   const rangeKey = normalizeAnalyticsRangeKey(range)
+  const cohortKey = normalizeAnalyticsCohortKey(cohort)
   const option = getRangeOption(rangeKey)
-  const currentEvents = filterEventsForAnalyticsRange(events, rangeKey, now)
-  const previousEvents = previousEventsForAnalyticsRange(events, rangeKey, now)
+  const cohortOption = getCohortOption(cohortKey)
+  const currentEvents = partitionByCohort(filterEventsForAnalyticsRange(events, rangeKey, now), cohortKey, fullHistory, now)
+  const previousEvents = partitionByCohort(previousEventsForAnalyticsRange(events, rangeKey, now), cohortKey, fullHistory, now)
   return {
     generatedAt: new Date().toISOString(),
     schemaReady,
     rangeKey,
     rangeLabel: option.label,
     rangeDays: option.days,
+    cohortKey,
+    cohortLabel: cohortOption.label,
+    cohortActorCount: countCohortActors(currentEvents, cohortKey),
+    cohortEventCount: currentEvents.length,
     deltas: buildDashboardDeltas(currentEvents, previousEvents, rangeKey),
     overview: buildOverviewMetrics(currentEvents),
     userBehavior: buildUserBehaviorMetrics(currentEvents),

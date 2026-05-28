@@ -15,6 +15,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { NEW_USER_THRESHOLD_DAYS } from '@/lib/analytics/constants'
 import type { AnalyticsDashboardData, MetricDelta, SeriesPoint } from '@/lib/analytics/types'
 
 type AdminAnalyticsClientProps = {
@@ -162,6 +163,34 @@ function FormulaDisclosure({ title, children }: { title: string; children: React
       <summary>{title}</summary>
       <div>{children}</div>
     </details>
+  )
+}
+
+function CohortSummary({ data }: { data: AnalyticsDashboardData }) {
+  const isAnonymous = data.cohortKey === 'anonymous'
+  const description = data.cohortKey === 'all'
+    ? '全部用户 / 匿名访客'
+    : data.cohortKey === 'new'
+      ? `注册 ≤ ${NEW_USER_THRESHOLD_DAYS} 天`
+      : data.cohortKey === 'returning'
+        ? `注册 > ${NEW_USER_THRESHOLD_DAYS} 天或历史 identified 用户`
+        : '未注册 / 仅 session'
+
+  return (
+    <div className="analytics-cohort-block" data-testid="admin-analytics-cohort-banner">
+      {data.cohortKey !== 'all' ? (
+        <div className="analytics-cohort-banner">
+          当前 cohort: {data.cohortLabel} ({description}) · 共 {data.cohortActorCount} 个{isAnonymous ? ' session' : ' actor'} / {data.cohortEventCount} 个事件
+        </div>
+      ) : (
+        <div className="analytics-cohort-banner subtle">
+          当前 cohort: 全部用户 · 共 {data.cohortActorCount} 个 actor / {data.cohortEventCount} 个事件
+        </div>
+      )}
+      <FormulaDisclosure title="cohort 划分说明">
+        新用户 = 首次 auth.register_complete 距当前时间 ≤ {NEW_USER_THRESHOLD_DAYS} 天; 老用户 = 首次注册 &gt; {NEW_USER_THRESHOLD_DAYS} 天, 或 FU-55 上线前已有 user_id 但 full-history 里没有注册事件的 legacy identified actor; 匿名访客 = user_id 为空且仅有 session_id。匿名 → 注册后的 identity stitching 不在本 sprint 处理。
+      </FormulaDisclosure>
+    </div>
   )
 }
 
@@ -585,6 +614,25 @@ export default function AdminAnalyticsClient({ data }: AdminAnalyticsClientProps
           color: var(--color-warning);
           border-color: color-mix(in srgb, var(--color-warning) 38%, transparent);
         }
+        .analytics-cohort-block {
+          display: grid;
+          gap: 10px;
+          margin-bottom: 14px;
+        }
+        .analytics-cohort-banner {
+          padding: 11px 13px;
+          border: 1px solid color-mix(in srgb, var(--green-bright) 38%, transparent);
+          background: color-mix(in srgb, var(--green-bright) 8%, var(--bg-card));
+          color: var(--green-bright);
+          font-family: var(--font-mono);
+          font-size: 12px;
+          line-height: 1.55;
+        }
+        .analytics-cohort-banner.subtle {
+          color: var(--text-muted);
+          border-color: var(--border-color);
+          background: color-mix(in srgb, var(--bg-card) 78%, transparent);
+        }
         .analytics-score-pill {
           display: inline-flex;
           align-items: center;
@@ -729,6 +777,7 @@ export default function AdminAnalyticsClient({ data }: AdminAnalyticsClientProps
           events schema 尚未在当前环境迁移，dashboard 正在显示空态。V3 需要 deploy-gated migration 后再看真实数据。
         </div>
       ) : null}
+      <CohortSummary data={data} />
       <div className="analytics-tabs" role="tablist" aria-label="analytics tabs">
         {tabs.map((tab) => (
           <button

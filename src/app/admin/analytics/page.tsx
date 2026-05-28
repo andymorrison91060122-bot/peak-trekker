@@ -1,10 +1,11 @@
 import AdminAnalyticsClient from './AdminAnalyticsClient'
-import { ANALYTICS_RANGE_OPTIONS, buildAnalyticsDashboardData, normalizeAnalyticsRangeKey } from '@/lib/analytics/kpis'
-import type { AnalyticsEventRow, AnalyticsRangeKey } from '@/lib/analytics/types'
+import { ANALYTICS_COHORT_OPTIONS } from '@/lib/analytics/constants'
+import { ANALYTICS_RANGE_OPTIONS, buildAnalyticsDashboardData, normalizeAnalyticsCohortKey, normalizeAnalyticsRangeKey } from '@/lib/analytics/kpis'
+import type { AnalyticsCohortKey, AnalyticsEventRow, AnalyticsRangeKey } from '@/lib/analytics/types'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 type AdminAnalyticsPageProps = {
-  searchParams?: Promise<{ range?: string; fu55Demo?: string }>
+  searchParams?: Promise<{ range?: string; cohort?: string; fu55Demo?: string }>
 }
 
 function demoEvent(
@@ -49,8 +50,55 @@ function buildDemoEvents(): AnalyticsEventRow[] {
     row.session_id = identified ? `session-${actorId}` : actorId
     events.push(row)
   }
+  const addIdentifiedEvent = (
+    index: number,
+    userId: string,
+    event_name: string,
+    properties: Record<string, unknown> = {},
+    event_type: AnalyticsEventRow['event_type'] = 'business',
+    daysAgo = 0,
+  ) => {
+    const row = demoEvent(index, event_name, properties, event_type, daysAgo)
+    row.user_id = userId
+    row.session_id = `session-${userId}`
+    events.push(row)
+  }
   for (let index = 0; index < 28; index += 1) {
     events.push(demoEvent(index, 'page_view', {}, 'page_view', index % 14))
+  }
+  for (let index = 0; index < 10; index += 1) {
+    const userId = `demo-new-user-${index + 1}`
+    const registerDaysAgo = index % 6
+    const activityDaysAgo = index % 5
+    addIdentifiedEvent(800 + index * 10, userId, 'auth.register_complete', { cohort: 'new' }, 'auth', registerDaysAgo)
+    addIdentifiedEvent(801 + index * 10, userId, 'page_view', { cohort: 'new' }, 'page_view', activityDaysAgo)
+    addIdentifiedEvent(802 + index * 10, userId, 'business.mountain_view', { mountain_id: index % 2 === 0 ? 'huashan' : 'taishan' }, 'business', activityDaysAgo)
+    if (index < 7) addIdentifiedEvent(803 + index * 10, userId, 'business.trek_start', { session_id: `new-trek-${index}`, mountain_id: 'huashan' }, 'business', activityDaysAgo)
+    if (index < 4) addIdentifiedEvent(804 + index * 10, userId, 'business.trek_complete', { session_id: `new-trek-${index}`, mountain_id: 'huashan', duration_seconds: 6900 + index * 180 }, 'business', activityDaysAgo)
+    if (index < 5) addIdentifiedEvent(805 + index * 10, userId, 'business.share_template_generate', { template_id: 'clean_vertical', success: true }, 'business', activityDaysAgo)
+    if (index < 3) addIdentifiedEvent(806 + index * 10, userId, 'paid_attempt.high_quality_share', { feature_id: 'high_quality_share', current_state: index === 0 ? 'gate_engaged' : 'gate_shown' }, 'paid_attempt', activityDaysAgo)
+  }
+  for (let index = 0; index < 10; index += 1) {
+    const userId = `demo-returning-user-${index + 1}`
+    const registerDaysAgo = 15 + index
+    const activityDaysAgo = index % 8
+    addIdentifiedEvent(950 + index * 10, userId, 'auth.register_complete', { cohort: 'returning' }, 'auth', registerDaysAgo)
+    addIdentifiedEvent(951 + index * 10, userId, 'page_view', { cohort: 'returning' }, 'page_view', activityDaysAgo)
+    addIdentifiedEvent(952 + index * 10, userId, 'business.mountain_view', { mountain_id: index % 2 === 0 ? 'huashan' : 'wudang' }, 'business', activityDaysAgo)
+    if (index < 8) addIdentifiedEvent(953 + index * 10, userId, 'business.trek_start', { session_id: `returning-trek-${index}`, mountain_id: 'wudang' }, 'business', activityDaysAgo)
+    if (index < 6) addIdentifiedEvent(954 + index * 10, userId, 'business.trek_complete', { session_id: `returning-trek-${index}`, mountain_id: 'wudang', duration_seconds: 8400 + index * 240 }, 'business', activityDaysAgo)
+    if (index < 8) addIdentifiedEvent(955 + index * 10, userId, 'paid_attempt.premium_route_pack', { feature_id: 'premium_route_pack', current_state: index < 3 ? 'gate_engaged' : index < 5 ? 'gate_dismissed' : 'gate_shown' }, 'paid_attempt', activityDaysAgo)
+    if (index < 4) addIdentifiedEvent(956 + index * 10, userId, 'business.screenshot_recognize_complete', { provider: 'xiaomi_v2_omni', success: true, duration_ms: 1500 + index * 120, cost_cny: 0 }, 'business', activityDaysAgo)
+  }
+  for (let index = 0; index < 8; index += 1) {
+    const row = demoEvent(1100 + index, index < 4 ? 'business.share_link_open' : 'paid_attempt.anonymous_gate', {
+      template_id: 'watermark_minimal',
+      feature_id: 'anonymous_trial',
+      current_state: index < 6 ? 'gate_shown' : 'gate_dismissed',
+    }, index < 4 ? 'business' : 'paid_attempt', index % 5)
+    row.user_id = null
+    row.session_id = `anon-cohort-session-${index + 1}`
+    events.push(row)
   }
   const templates = ['clean_vertical', 'summit_story', 'strava_simple', 'watermark_minimal']
   templates.forEach((templateId, index) => {
@@ -171,6 +219,7 @@ function buildDemoEvents(): AnalyticsEventRow[] {
 export default async function AdminAnalyticsPage({ searchParams }: AdminAnalyticsPageProps) {
   const params = await searchParams
   const rangeKey: AnalyticsRangeKey = normalizeAnalyticsRangeKey(params?.range)
+  const cohortKey: AnalyticsCohortKey = normalizeAnalyticsCohortKey(params?.cohort)
   const demoMode = process.env.NODE_ENV !== 'production' && params?.fu55Demo === '1'
   const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
@@ -178,16 +227,25 @@ export default async function AdminAnalyticsPage({ searchParams }: AdminAnalytic
     .select('id,user_id,session_id,event_type,event_name,properties,page_path,referrer,user_agent,client_ts,server_ts')
     .order('server_ts', { ascending: false })
     .limit(5000)
+  const { data: registrationHistory, error: registrationError } = await supabase
+    .from('events')
+    .select('id,user_id,session_id,event_type,event_name,properties,page_path,referrer,user_agent,client_ts,server_ts')
+    .eq('event_name', 'auth.register_complete')
+    .order('server_ts', { ascending: true })
+    .limit(10000)
 
-  const schemaReady = !error || demoMode
-  if (error) {
+  const schemaReady = (!error && !registrationError) || demoMode
+  if (error || registrationError) {
     console.warn('[admin analytics] events read skipped', {
-      code: error.code,
-      message: error.message,
+      code: error?.code ?? registrationError?.code,
+      message: error?.message ?? registrationError?.message,
     })
   }
 
-  const dashboardData = buildAnalyticsDashboardData(demoMode ? buildDemoEvents() : (data ?? []) as AnalyticsEventRow[], rangeKey, schemaReady)
+  const demoEvents = demoMode ? buildDemoEvents() : null
+  const events = demoEvents ?? (data ?? []) as AnalyticsEventRow[]
+  const fullHistory = demoEvents ?? ([...((data ?? []) as AnalyticsEventRow[]), ...((registrationHistory ?? []) as AnalyticsEventRow[])])
+  const dashboardData = buildAnalyticsDashboardData(events, rangeKey, schemaReady, new Date(), cohortKey, fullHistory)
 
   return (
     <div data-testid="admin-analytics-page">
@@ -196,13 +254,13 @@ export default async function AdminAnalyticsPage({ searchParams }: AdminAnalytic
           {'// ANALYTICS'}
         </h1>
         <div style={{ fontFamily: 'Share Tech Mono', fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          自托管事件分析 · {dashboardData.rangeLabel}窗口 · {new Date(dashboardData.generatedAt).toLocaleString('zh-CN')}
+          自托管事件分析 · {dashboardData.rangeLabel}窗口 · {dashboardData.cohortLabel} · {new Date(dashboardData.generatedAt).toLocaleString('zh-CN')}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
           {ANALYTICS_RANGE_OPTIONS.map((range) => (
             <a
               key={range.key}
-              href={`/admin/analytics?range=${range.key}${demoMode ? '&fu55Demo=1' : ''}`}
+              href={`/admin/analytics?range=${range.key}&cohort=${cohortKey}${demoMode ? '&fu55Demo=1' : ''}`}
               className="secondary-btn"
               style={{
                 minHeight: 34,
@@ -215,6 +273,26 @@ export default async function AdminAnalyticsPage({ searchParams }: AdminAnalytic
               }}
             >
               {range.label}
+            </a>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }} data-testid="admin-analytics-cohort-selector">
+          {ANALYTICS_COHORT_OPTIONS.map((cohort) => (
+            <a
+              key={cohort.key}
+              href={`/admin/analytics?range=${rangeKey}&cohort=${cohort.key}${demoMode ? '&fu55Demo=1' : ''}`}
+              className="secondary-btn"
+              style={{
+                minHeight: 34,
+                height: 34,
+                padding: '0 12px',
+                textDecoration: 'none',
+                fontSize: 12,
+                borderColor: cohort.key === cohortKey ? 'var(--green-bright)' : undefined,
+                color: cohort.key === cohortKey ? 'var(--green-bright)' : undefined,
+              }}
+            >
+              {cohort.label}
             </a>
           ))}
         </div>

@@ -1,4 +1,4 @@
-import { ANALYTICS_EVENT_TYPES } from './constants'
+import { ANALYTICS_COHORT_OPTIONS, ANALYTICS_EVENT_TYPES } from './constants'
 
 export type AnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number]
 
@@ -28,12 +28,15 @@ export type AnalyticsEventRow = {
 }
 
 export type AnalyticsRangeKey = 'today' | '7d' | '30d' | '90d' | 'all_time'
+export type AnalyticsCohortKey = (typeof ANALYTICS_COHORT_OPTIONS)[number]['key']
 
 export type AnalyticsRangeOption = {
   key: AnalyticsRangeKey
   label: string
   days: number | null
 }
+
+export type AnalyticsCohortOption = (typeof ANALYTICS_COHORT_OPTIONS)[number]
 
 export type MetricDelta = {
   current: number
@@ -47,6 +50,10 @@ export type AnalyticsDashboardData = {
   rangeKey: AnalyticsRangeKey
   rangeLabel: string
   rangeDays: number | null
+  cohortKey: AnalyticsCohortKey
+  cohortLabel: string
+  cohortActorCount: number
+  cohortEventCount: number
   deltas: AnalyticsDashboardDeltas
   overview: OverviewMetrics
   userBehavior: UserBehaviorMetrics

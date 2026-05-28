@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-28 · 最新版本记录: v0.39
+> Last Updated: 2026-05-28 · 最新版本记录: v0.40
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`abfbb1b`（Merge FU-55 · 2026-05-28）
+`4f8acee`（Merge FU-59 · 2026-05-28）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动 (候选见 v0.39 末尾推荐)
+待启动 (候选见 v0.40 末尾推荐)
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（20 条）
+## Active Follow-ups（19 条）
 
 ### FU-57 · 激活漏斗深度 (10 步细分)
 
@@ -111,21 +111,6 @@
   · `admin/analytics` 每个 tab sub-block 增 cohort selector (新/老/全)。
   · 各 cohort 单独漏斗 + 留存 + 付费 attempt。
 - **不在 scope**: 不动埋点; 仅 dashboard query + UI 改造。
-- **触发来源**: FU-55 patch v1 Claude 专业补充建议, user PASS。
-
----
-
-### FU-59 · 付费功能 ranking + 付费意愿评分
-
-- **优先级**: P1 (商业化决策)
-- **归属阶段**: 阶段 6 / 上线前 / 商业化准备
-- **状态**: 🟢 active
-- **背景**: FU-55 dashboard 付费潜力 tab 显示 paid_attempt 总次数和高潜力用户, 但看不出**哪个付费 feature 最有 product-market fit**。商业化优先级决策需要 (a) per-feature ranking (各 feature 触发次数 + engaged 比例) + (b) per-user 付费意愿评分 (聚合多次触发 + engaged 模式 → 0-100 score)。
-- **实施建议**:
-  · `src/lib/analytics/kpis.ts` 加 paid feature ranking + intent score 算法。
-  · `admin/analytics` 付费潜力 tab 新 2 个 sub-block: per-feature ranking 表 (触发次数 / 用户数 / engaged 率 / 综合 score) 与高意愿用户列表 (按 intent score 排序 top 50)。
-  · intent score 公式在 Plan 阶段细化, 例如 `total_attempts * w1 + engaged_count * w2 + feature_diversity * w3`。
-- **不在 scope**: 不接收支付 / 不开商业化 (商业化机制独立 FU)。
 - **触发来源**: FU-55 patch v1 Claude 专业补充建议, user PASS。
 
 ---
@@ -472,7 +457,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（42 条）
+## Closed Follow-ups（43 条）
 
 ### FU-55 ✅ 自托管页面埋点 + admin dashboard 可视化
 
@@ -498,6 +483,28 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 - **merge commit**: `abfbb1b`
 - **关闭时间**: 2026-05-28
 - **风险落地**: codex-risk-behavior-policy 连续 7 个 sprint 0 红线违反 (FU-49 / FU-43 / FU-53 / FU-56 / FU-47(b) / FU-47(c) / FU-55), 含本 sprint production migration apply 严格 deploy-gated。
+
+---
+
+### FU-59 ✅ 付费功能 ranking + 付费意愿评分
+
+- **关闭原因**: FU-59 sprint 落地 `admin/analytics` 付费潜力 tab 商业化决策 dashboard 扩展: 付费功能 ranking 表 + 高意愿用户 top 50 + 透明算法说明 in-UI。Phase 0-6 一次性完成无 patch 轮 (user 视觉验收 PASS)。
+- **关键设计决策**:
+  · per-feature ranking 公式: attempt 40% (scale) + users 30% (coverage) + engagement 30% (吸引力) + 5 级 tie-break + max-normalize 防止单极端值主导。
+  · user intent score 公式: frequency 30% + engagement 35% (最强 intent 信号占比最高) + diversity 20% + recency 15% + cap values (12/5/3) + 5 段 recency 函数。
+  · actor id = `user_id ?? session_id` (anonymous + identified 含, 不 backward attribution, FU-58 cohort 处理)。
+  · masked actor id 显示 (8 char 前缀), 完整信息去 `/admin/users` 搜。
+  · 算法说明 open-by-default collapsible in-UI, 透明展示加权 logic 避免 black box 决策。
+  · 5 时间窗口 (today/7d/30d/90d/all_time) 全部 sub-blocks 跟随 filtered event set, 无需专门处理。
+  · 不动 `events` 表 schema / 埋点 SDK / API endpoint (仅 KPI 算法 + UI 扩展)。
+- **B13 透明披露**:
+  · scores 是 MVP 决策启发, 非 revenue / pricing model。
+  · 跨 window 局限性: scores 仅同 window 内可比。
+  · anonymous + identified actor 不 stitch (FU-58 处理)。
+  · demo placeholder feature_ids (`paid_feature_tbd_a` 等), production 真实数据取决 paid_attempt 量。
+  · FU-59 仅衍生 metrics from FU-55 events, 不新加埋点。
+  · `cost_cny` 仍是 placeholder 0 (FU-55 B13, provider pricing 独立 FU)。
+- **风险落地**: codex-risk-behavior-policy 连续 8 个 sprint 0 红线违反 (FU-49 / FU-43 / FU-53 / FU-56 / FU-47(b) / FU-47(c) / FU-55 / FU-59)。
 
 ---
 
@@ -995,6 +1002,16 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.40（2026-05-28）
+
+FU-59 close。
+
+- 付费功能 ranking + 付费意愿评分 dashboard 扩展完成。
+- 主要落地: `src/lib/analytics/kpis.ts` ranking + intent score 算法 (权重 + tie-break + cap values + recency 5 段函数) + `PaidPotentialMetrics` 扩 `featureRanking` + `highIntentUsers` + `admin/analytics` 付费潜力 tab 2 新 sub-blocks (付费功能 Ranking + 高意愿用户 Top 50) + 算法说明 in-UI 透明展示 + masked actor id + 5 时间窗口跟随 + demo 数据扩 3 features + 4 actor patterns + 2 新 node test (`analytics-paid-feature-ranking-sql` + `analytics-paid-intent-score-sql`)。
+- 不动 `events` 表 / 埋点 SDK / API endpoint (仅衍生 metrics from FU-55)。
+- codex-risk-behavior-policy 连续 8 个 sprint 0 红线违反。
+- Active 20 → 19 · Closed 42 → 43
 
 ### v0.39（2026-05-28）
 

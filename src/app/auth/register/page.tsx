@@ -12,6 +12,8 @@ import { clearClientAuthReturnPath, resolveClientAuthReturnPath } from '@/lib/au
 import { PROVINCES, getProvinceCode } from '@/lib/provinces'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { attributionProperties, clearShareAttribution } from '@/lib/analytics/attribution'
+import { trackEvent, trackEventNow } from '@/lib/analytics/client'
 
 function RegisterPageContent() {
   const [step, setStep] = useState<1 | 2>(1)
@@ -38,6 +40,11 @@ function RegisterPageContent() {
 
     setLoading(true)
     setError('')
+    trackEvent({
+      event_type: 'auth',
+      event_name: 'auth.register_attempt',
+      properties: { return_to: returnTo },
+    })
 
     const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
     if (signUpError) {
@@ -91,12 +98,44 @@ function RegisterPageContent() {
       } catch (err) {
         console.error('Profile sync failed during register:', err)
       }
+      if (activeUserId) {
+        await trackEventNow({
+          event_type: 'auth',
+          event_name: 'auth.register_complete',
+          properties: { return_to: returnTo },
+        })
+        const attribution = attributionProperties(activeUserId)
+        if (attribution) {
+          await trackEventNow({
+            event_type: 'business',
+            event_name: 'business.share_link_register_attribution',
+            properties: attribution,
+          })
+          clearShareAttribution()
+        }
+      }
       clearClientAuthReturnPath()
       window.location.assign(returnTo)
       return
     }
 
     await syncProfile()
+    if (activeUserId) {
+      await trackEventNow({
+        event_type: 'auth',
+        event_name: 'auth.register_complete',
+        properties: { return_to: returnTo, login_required: true },
+      })
+      const attribution = attributionProperties(activeUserId)
+      if (attribution) {
+        await trackEventNow({
+          event_type: 'business',
+          event_name: 'business.share_link_register_attribution',
+          properties: attribution,
+        })
+        clearShareAttribution()
+      }
+    }
     const loginHref =
       returnTo === '/explore'
         ? '/auth/login?registered=1'

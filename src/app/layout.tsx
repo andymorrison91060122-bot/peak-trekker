@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
+import AnalyticsPageView from "@/components/analytics/AnalyticsPageView";
 import HelpSheetProvider from "@/components/help/HelpSheetProvider";
 import "./globals.css";
 
@@ -21,7 +23,12 @@ export default function RootLayout({
   return (
     <html lang="zh">
       <body className="antialiased">
-        <HelpSheetProvider>{children}</HelpSheetProvider>
+        <HelpSheetProvider>
+          <Suspense fallback={null}>
+            <AnalyticsPageView />
+          </Suspense>
+          {children}
+        </HelpSheetProvider>
       </body>
     </html>
   );

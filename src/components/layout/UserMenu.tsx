@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import IconActionButton, { ActionGlyph, IconActionLink } from '@/components/ui/IconActionButton'
+import { trackEventNow } from '@/lib/analytics/client'
 
 const LICENSE_ICON: Record<string, string> = {
   none: '○',
@@ -34,6 +35,7 @@ export default function UserMenu({
   const progressRef = useRef<HTMLDivElement | null>(null)
 
   async function handleLogout() {
+    await trackEventNow({ event_type: 'auth', event_name: 'auth.logout' })
     await supabase.auth.signOut()
     router.push('/explore')
     router.refresh()

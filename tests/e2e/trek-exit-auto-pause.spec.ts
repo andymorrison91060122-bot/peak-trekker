@@ -146,12 +146,12 @@ test('duplicate incomplete finish requests are idempotent and UI still navigates
   })
 
   const sessionId = await startTracking(page)
-  await expect(page.locator('body')).toContainText(/0:00:1[0-9]/, { timeout: 20_000 })
+  await expect.poll(() => readElapsedSeconds(page), { timeout: 75_000 }).toBeGreaterThanOrEqual(60)
   await page.getByRole('button', { name: '暂停' }).click()
   const finishButton = page.getByRole('button', { name: '结束并保存' })
   await expect(finishButton).toBeVisible({ timeout: 10_000 })
 
-  const elapsedAtPause = Math.max(11, await readElapsedSeconds(page))
+  const elapsedAtPause = Math.max(60, await readElapsedSeconds(page))
   const firstFinish = await postIncompleteFinish(page, sessionId, elapsedAtPause)
   expect(firstFinish.response.status(), JSON.stringify(firstFinish.body)).toBe(200)
   const checkinId = String(firstFinish.body?.checkinId ?? '')

@@ -5,6 +5,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { clearClientAuthReturnPath, resolveClientAuthReturnPath } from '@/lib/auth-redirect'
+import { trackEvent, trackEventNow } from '@/lib/analytics/client'
 
 function LoginPageContent() {
   const [email, setEmail] = useState('')
@@ -19,10 +20,20 @@ function LoginPageContent() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    trackEvent({
+      event_type: 'auth',
+      event_name: 'auth.login_attempt',
+      properties: { return_to: returnTo },
+    })
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setError(error.message === 'Invalid login credentials' ? '邮箱或密码错误' : error.message)
     } else {
+      await trackEventNow({
+        event_type: 'auth',
+        event_name: 'auth.login_complete',
+        properties: { return_to: returnTo },
+      })
       clearClientAuthReturnPath()
       window.location.assign(returnTo)
       return

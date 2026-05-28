@@ -9,12 +9,12 @@ import {
   chooseCommunityCoverAsset,
   COMMUNITY_MAX_IMAGE_COUNT,
   formatCommunityDate,
-  formatCommunityDuration,
   normalizeCommunityActionError,
   prioritizeCommunityAssets,
   serializeCommunityPostPayload,
 } from '@/lib/community'
 import { describeStorageError, isMissingStorageError, normalizeStorageUploadError } from '@/lib/storage-errors'
+import { trackEvent } from '@/lib/analytics/client'
 import {
   buildCheckinPhotoObjectPath,
   CHECKIN_PHOTOS_BUCKET,
@@ -316,6 +316,20 @@ export default function PublishEditorClient({
         if (!response.ok) {
           throw new Error(String(data?.error ?? '发布失败，请稍后重试。'))
         }
+
+        trackEvent({
+          event_type: 'business',
+          event_name: 'business.community_post_create',
+          properties: {
+            post_id: typeof data.postId === 'string' ? data.postId : existingPostId,
+            checkin_id: checkinId,
+            mountain_id: record.mountain.id,
+            source: sourceType,
+            mode: data.mode === 'updated' ? 'updated' : 'created',
+            visibility,
+            asset_count: assets.length,
+          },
+        })
 
         const nextUrl = `/activity/${checkinId}?published=1&mode=${data.mode === 'updated' ? 'updated' : 'created'}`
 

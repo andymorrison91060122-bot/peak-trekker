@@ -7,6 +7,7 @@ import type { UserContribution } from '@/lib/province-ranking'
 import type { LicenseProgressSummary } from '@/lib/license-progress'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
+import { trackEventNow } from '@/lib/analytics/client'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import { MountainIcon } from '@/components/ui/Icons'
 import type { CheckinSource } from '@/types'
@@ -488,6 +489,7 @@ function LogoutLink() {
   async function handleLogout() {
     setPending(true)
     try {
+      await trackEventNow({ event_type: 'auth', event_name: 'auth.logout' })
       await createSupabaseBrowserClient().auth.signOut()
       router.push('/explore')
       router.refresh()

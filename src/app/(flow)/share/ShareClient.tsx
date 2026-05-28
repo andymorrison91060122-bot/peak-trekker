@@ -12,6 +12,7 @@ import {
   ShareIcon,
 } from '@/components/ui/Icons'
 import { HelpTrigger } from '@/components/help/HelpTrigger'
+import { trackEvent } from '@/lib/analytics/client'
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 import { buildShareTrackPath, type ShareTrackPreview } from '@/lib/share-track-preview'
 
@@ -182,6 +183,24 @@ function downloadBlob(blob: Blob, fileName: string) {
   anchor.click()
   anchor.remove()
   URL.revokeObjectURL(url)
+}
+
+function buildShareAttributionUrl({
+  checkinId,
+  template,
+  currentUserId,
+}: {
+  checkinId?: string
+  template: TemplateId
+  currentUserId?: string | null
+}) {
+  if (typeof window === 'undefined') return { shareLinkId: crypto.randomUUID(), url: '' }
+  const shareLinkId = crypto.randomUUID()
+  const target = new URL(checkinId ? `/activity/${checkinId}` : '/explore', window.location.origin)
+  target.searchParams.set('ref', shareLinkId)
+  target.searchParams.set('template', template)
+  if (currentUserId) target.searchParams.set('source', currentUserId)
+  return { shareLinkId, url: target.toString() }
 }
 
 function noop() {}
@@ -2262,11 +2281,13 @@ export default function ShareClient({
   checkinId,
   paywallEnabled = false,
   premiumUnlocked = true,
+  currentUserId = null,
 }: {
   initialData?: ShareActivityData | null
   checkinId?: string
   paywallEnabled?: boolean
   premiumUnlocked?: boolean
+  currentUserId?: string | null
 }) {
   const router = useRouter()
   const photoInputRef = useRef<HTMLInputElement | null>(null)
@@ -2297,7 +2318,38 @@ export default function ShareClient({
 
   function showPremiumExportHint() {
     if (!premiumPreviewLocked) return
+    trackHighQualityShareGate('gate_shown')
     setExportError('当前为预览版，解锁后可导出无水印版本')
+  }
+
+  function trackHighQualityShareGate(currentState: 'gate_shown' | 'gate_dismissed' | 'gate_engaged') {
+    trackEvent({
+      event_type: 'paid_attempt',
+      event_name: 'paid_attempt.high_quality_share',
+      properties: {
+        feature_id: selectedTemplate,
+        current_state: currentState,
+      },
+    })
+  }
+
+  function dismissPremiumExportHint() {
+    trackHighQualityShareGate('gate_dismissed')
+    setExportError(null)
+  }
+
+  function engagePremiumExportHint() {
+    trackHighQualityShareGate('gate_engaged')
+    window.alert('付费功能即将上线')
+  }
+
+  function handleSelectTemplate(template: TemplateId) {
+    setSelectedTemplate(template)
+    trackEvent({
+      event_type: 'business',
+      event_name: 'business.share_template_select',
+      properties: { template_id: template },
+    })
   }
 
   async function renderPosterBlob(options: { transparent?: boolean } = {}) {
@@ -2305,6 +2357,7 @@ export default function ShareClient({
       throw new Error('缺少活动记录，无法生成分享图')
     }
 
+    const startedAt = performance.now()
     const response = await fetch('/api/share/render', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2325,9 +2378,28 @@ export default function ShareClient({
     })
 
     if (!response.ok) {
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.share_template_generate',
+        properties: {
+          template_id: selectedTemplate,
+          success: false,
+          generate_duration_ms: Math.round(performance.now() - startedAt),
+        },
+      })
       throw new Error('分享图生成失败，请稍后再试')
     }
 
+    trackEvent({
+      event_type: 'business',
+      event_name: 'business.share_template_generate',
+      properties: {
+        template_id: selectedTemplate,
+        success: true,
+        generate_duration_ms: Math.round(performance.now() - startedAt),
+        transparent: Boolean(options.transparent),
+      },
+    })
     return response.blob()
   }
 
@@ -2354,6 +2426,11 @@ export default function ShareClient({
     try {
       const blob = await renderPosterBlob()
       downloadBlob(blob, `peak-trekker-${selectedTemplate}.png`)
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.share_template_download',
+        properties: { template_id: selectedTemplate, transparent: false },
+      })
     } catch (error) {
       setExportError(error instanceof Error ? error.message : '分享图生成失败，请稍后再试')
     } finally {
@@ -2368,13 +2445,29 @@ export default function ShareClient({
     try {
       const blob = await renderPosterBlob()
       const file = new File([blob], 'peak-trekker.png', { type: 'image/png' })
+      const { shareLinkId, url } = buildShareAttributionUrl({ checkinId, template: selectedTemplate, currentUserId })
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.share_link_create',
+        properties: {
+          template_id: selectedTemplate,
+          share_link_id: shareLinkId,
+          source_user_id: currentUserId,
+        },
+      })
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           title: `${activityData.mountainName ?? 'Peak Trekker'} ${formatNumber(activityData.altitude)}m`,
+          url,
           files: [file],
         })
       } else {
         downloadBlob(blob, `peak-trekker-${selectedTemplate}.png`)
+        trackEvent({
+          event_type: 'business',
+          event_name: 'business.share_template_download',
+          properties: { template_id: selectedTemplate, transparent: false, fallback: 'download' },
+        })
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return
@@ -2413,6 +2506,11 @@ export default function ShareClient({
     setExportingAction('save')
     try {
       downloadBlob(transparentBlob, `peak-trekker-${selectedTemplate}-transparent.png`)
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.share_template_download',
+        properties: { template_id: selectedTemplate, transparent: true },
+      })
     } finally {
       setExportingAction(null)
     }
@@ -2423,13 +2521,30 @@ export default function ShareClient({
     setExportingAction('share')
     try {
       const file = new File([transparentBlob], 'peak-trekker-transparent.png', { type: 'image/png' })
+      const { shareLinkId, url } = buildShareAttributionUrl({ checkinId, template: selectedTemplate, currentUserId })
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.share_link_create',
+        properties: {
+          template_id: selectedTemplate,
+          share_link_id: shareLinkId,
+          source_user_id: currentUserId,
+          transparent: true,
+        },
+      })
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           title: `${activityData.mountainName ?? 'Peak Trekker'} 透明水印`,
+          url,
           files: [file],
         })
       } else {
         downloadBlob(transparentBlob, `peak-trekker-${selectedTemplate}-transparent.png`)
+        trackEvent({
+          event_type: 'business',
+          event_name: 'business.share_template_download',
+          properties: { template_id: selectedTemplate, transparent: true, fallback: 'download' },
+        })
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return
@@ -2498,13 +2613,13 @@ export default function ShareClient({
         </div>
       </section>
       {premiumPreviewLocked ? (
-        <UnlockHintBar onClick={() => window.alert('付费功能即将上线')} />
+        <UnlockHintBar onClick={engagePremiumExportHint} />
       ) : null}
 
       <ThumbnailRow
         selectedTemplate={selectedTemplate}
         data={activityData}
-        onSelectTemplate={setSelectedTemplate}
+        onSelectTemplate={handleSelectTemplate}
         paywallEnabled={paywallEnabled}
         premiumUnlocked={premiumUnlocked}
       />
@@ -2520,13 +2635,34 @@ export default function ShareClient({
         <div
           role="status"
           style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 'var(--space-3)',
             margin: 'var(--space-3) var(--space-5) 0',
             color: 'var(--color-error)',
             fontSize: 'var(--font-label-m-size)',
             lineHeight: 'var(--font-label-m-line)',
           }}
         >
-          {exportError}
+          <span>{exportError}</span>
+          <button
+            type="button"
+            onClick={dismissPremiumExportHint}
+            aria-label="关闭付费提示"
+            style={{
+              flex: '0 0 auto',
+              minHeight: 32,
+              border: '1px solid color-mix(in srgb, var(--color-error) 36%, transparent)',
+              borderRadius: 'var(--radius-full)',
+              background: 'transparent',
+              color: 'var(--color-error)',
+              padding: '0 var(--space-3)',
+              fontSize: 'var(--font-label-s-size)',
+            }}
+          >
+            知道了
+          </button>
         </div>
       ) : null}
       <ActionBar exportingAction={exportingAction} onSave={handleSave} onShare={handleShare} />

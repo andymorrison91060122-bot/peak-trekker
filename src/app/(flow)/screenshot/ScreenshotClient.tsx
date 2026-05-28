@@ -8,6 +8,7 @@ import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import ModalShell from '@/components/ui/ModalShell'
 import { BackIcon, CameraIcon, CheckIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
+import { trackEvent } from '@/lib/analytics/client'
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
 const PROCESSING_MIN_DURATION_MS = 2000
@@ -96,6 +97,15 @@ const EMPTY_EDITABLE_FIELDS: EditableFields = {
 
 function wait(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+async function buildContentHash(file: File) {
+  try {
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer())
+    return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+  } catch {
+    return `${file.name}:${file.size}:${file.lastModified}`
+  }
 }
 
 function readImagePreview(file: File) {
@@ -322,6 +332,12 @@ function buildInitialFieldToggles(fields: ParsedScreenshotFields): FieldToggles 
     location: hasParsedField(fields, 'location'),
     speed: hasParsedField(fields, 'speed'),
   }
+}
+
+function recognizedFieldKeys(fields: ParsedScreenshotFields) {
+  return FIELD_CONFIGS
+    .map((field) => field.key)
+    .filter((key) => hasParsedField(fields, key))
 }
 
 function validationTone(fields: ParsedScreenshotFields) {
@@ -2139,7 +2155,7 @@ function SuccessScreen({
   )
 }
 
-function UpgradeSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+function UpgradeSheet({ open, onClose, onEngage }: { open: boolean; onClose: () => void; onEngage: () => void }) {
   if (!open) return null
 
   return (
@@ -2152,7 +2168,7 @@ function UpgradeSheet({ open, onClose }: { open: boolean; onClose: () => void })
       footer={
         <PrimaryButton
           onClick={() => {
-            onClose()
+            onEngage()
             window.alert('付费方案即将上线。')
           }}
         >
@@ -2182,6 +2198,9 @@ export default function ScreenshotClient() {
   const albumInputRef = useRef<HTMLInputElement | null>(null)
   const cameraInputRef = useRef<HTMLInputElement | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const recognizeContentHashRef = useRef<string | null>(null)
+  const recognizedFieldsRef = useRef<string[]>([])
+  const editedFieldsRef = useRef<Set<string>>(new Set())
 
   const [step, setStep] = useState<ScreenshotStep>('upload')
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -2260,6 +2279,19 @@ export default function ScreenshotClient() {
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
+    const contentHash = await buildContentHash(file)
+    recognizeContentHashRef.current = contentHash
+    recognizedFieldsRef.current = []
+    editedFieldsRef.current = new Set()
+    const startedAt = performance.now()
+    trackEvent({
+      event_type: 'business',
+      event_name: 'business.screenshot_recognize_start',
+      properties: {
+        provider: 'tencent_ocr',
+        content_hash: contentHash,
+      },
+    })
 
     try {
       const formData = new FormData()
@@ -2290,6 +2322,22 @@ export default function ScreenshotClient() {
         throw Object.assign(new Error('这张截图暂时无法识别，请换一张再试。'), { kind: 'file' as RecognizeErrorKind })
       }
 
+      const fieldsRecognized = recognizedFieldKeys(payload.parsedFields)
+      recognizedFieldsRef.current = fieldsRecognized
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.screenshot_recognize_complete',
+        properties: {
+          provider: payload.ocrSource ? `tencent_ocr_${payload.ocrSource}` : 'tencent_ocr',
+          duration_ms: Math.round(performance.now() - startedAt),
+          input_tokens: null,
+          output_tokens: null,
+          cost_cny: 0,
+          fields_recognized: fieldsRecognized,
+          success: true,
+          content_hash: contentHash,
+        },
+      })
       setRecognizeResult({
         ok: true,
         ocrResult: payload.ocrResult,
@@ -2307,6 +2355,16 @@ export default function ScreenshotClient() {
       if (controller.signal.aborted) return
       const kind = (error instanceof Error && 'kind' in error ? error.kind : 'network') as RecognizeErrorKind
       const message = error instanceof Error ? error.message : '这张截图暂时无法识别，请换一张再试。'
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.screenshot_recognize_error',
+        properties: {
+          provider: 'tencent_ocr',
+          error_type: kind,
+          duration_ms: Math.round(performance.now() - startedAt),
+          content_hash: contentHash,
+        },
+      })
       setRecognizeError(readableError(message, kind))
       setAuthRequired(kind === 'auth')
       setStep('upload')
@@ -2318,6 +2376,17 @@ export default function ScreenshotClient() {
   }
 
   function resetPreview() {
+    if (recognizeResult && !submitResult && recognizeContentHashRef.current) {
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.screenshot_recognize_abandon',
+        properties: {
+          last_provider: recognizeResult.ocrSource ? `tencent_ocr_${recognizeResult.ocrSource}` : 'tencent_ocr',
+          fields_recognized: recognizedFieldsRef.current,
+          content_hash: recognizeContentHashRef.current,
+        },
+      })
+    }
     abortRef.current?.abort()
     abortRef.current = null
     setImageFile(null)
@@ -2407,10 +2476,32 @@ export default function ScreenshotClient() {
     setUpgradeSheetOpen(true)
   }
 
+  function trackScreenshotQuotaGate(currentState: 'gate_shown' | 'gate_dismissed' | 'gate_engaged') {
+    trackEvent({
+      event_type: 'paid_attempt',
+      event_name: 'paid_attempt.screenshot_quota_exceeded',
+      properties: {
+        feature_id: 'screenshot_recognition',
+        current_state: currentState,
+      },
+    })
+  }
+
+  function closeUpgradeSheetAsDismissed() {
+    if (upgradeSheetOpen) trackScreenshotQuotaGate('gate_dismissed')
+    setUpgradeSheetOpen(false)
+  }
+
+  function engageUpgradeSheet() {
+    trackScreenshotQuotaGate('gate_engaged')
+    setUpgradeSheetOpen(false)
+  }
+
   function canUseScreenshotQuota() {
     if (quotaState && quotaState.remaining <= 0) {
       setRecognizeError('本月截图识别次数已用完。')
       setAuthRequired(false)
+      trackScreenshotQuotaGate('gate_shown')
       openUpgradeSheet()
       return false
     }
@@ -2428,6 +2519,17 @@ export default function ScreenshotClient() {
   }
 
   function updateField(key: FieldKey, value: string) {
+    if (recognizeContentHashRef.current && recognizedFieldsRef.current.includes(key) && !editedFieldsRef.current.has(key)) {
+      editedFieldsRef.current.add(key)
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.screenshot_recognize_user_edit',
+        properties: {
+          field_edited: key,
+          content_hash: recognizeContentHashRef.current,
+        },
+      })
+    }
     setEditableFields((current) => ({
       ...current,
       [key]: value,
@@ -2435,6 +2537,17 @@ export default function ScreenshotClient() {
   }
 
   function updateDurationPart(part: 'hours' | 'minutes' | 'seconds', value: string) {
+    if (recognizeContentHashRef.current && recognizedFieldsRef.current.includes('duration') && !editedFieldsRef.current.has('duration')) {
+      editedFieldsRef.current.add('duration')
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.screenshot_recognize_user_edit',
+        properties: {
+          field_edited: 'duration',
+          content_hash: recognizeContentHashRef.current,
+        },
+      })
+    }
     setEditableFields((current) => ({
       ...current,
       ...(part === 'hours'
@@ -2472,6 +2585,16 @@ export default function ScreenshotClient() {
       if (!response.ok || !payload.ok || !payload.checkinId) {
         throw new Error(payload.error ?? '活动生成失败，请稍后再试。')
       }
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.activity_create',
+        properties: {
+          source: 'screenshot_recognition',
+          proof_status: 'uploaded',
+          mountain_id: selectedMountainId,
+          checkin_id: payload.checkinId,
+        },
+      })
       setSubmitResult({ ok: true, checkinId: payload.checkinId })
       router.push(`/activity/${payload.checkinId}`)
     } catch (error) {
@@ -2562,7 +2685,7 @@ export default function ScreenshotClient() {
         <SuccessScreen result={recognizeResult} submitResult={submitResult} onViewActivity={handleViewActivity} />
       ) : null}
 
-      <UpgradeSheet open={upgradeSheetOpen} onClose={() => setUpgradeSheetOpen(false)} />
+      <UpgradeSheet open={upgradeSheetOpen} onClose={closeUpgradeSheetAsDismissed} onEngage={engageUpgradeSheet} />
 
       <span
         data-screenshot-file={imageFile?.name ?? ''}

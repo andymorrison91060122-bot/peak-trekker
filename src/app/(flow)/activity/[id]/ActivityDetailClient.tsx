@@ -27,6 +27,7 @@ import {
   getActivityPhotoDeleteValidation,
   getActivityPhotoUploadValidation,
 } from '@/lib/activity-detail-validation'
+import { trackEvent } from '@/lib/analytics/client'
 
 export type ActivityPhotoViewModel = {
   id: string
@@ -1445,6 +1446,20 @@ export default function ActivityDetailClient({ activity, activityMapError = null
   useEffect(() => {
     setPhotos(activity.photos)
   }, [activity.photos])
+
+  useEffect(() => {
+    trackEvent({
+      event_type: 'business',
+      event_name: 'business.activity_view',
+      properties: {
+        checkin_id: activity.id,
+        mountain_id: activity.mountain.id,
+        source: activity.sourceType,
+        proof_status: activity.proofStatus,
+        is_summit: activity.isSummit,
+      },
+    })
+  }, [activity.id, activity.isSummit, activity.mountain.id, activity.proofStatus, activity.sourceType])
 
   useEffect(() => {
     if (lightboxIndex === null) return

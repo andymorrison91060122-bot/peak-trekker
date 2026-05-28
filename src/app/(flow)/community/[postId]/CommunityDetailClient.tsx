@@ -6,6 +6,7 @@ import { startTransition, useEffect, useMemo, useRef, useState, type CSSProperti
 import type { CheckinAsset, CommunityPostMetrics, CommunityPostViewModel, CommunityTrackPreview } from '@/types'
 import { normalizeCommunityActionError } from '@/lib/community'
 import { getSourceLabelType } from '@/lib/source-label-utils'
+import { trackEvent } from '@/lib/analytics/client'
 import { sanitizeCommunityText, sanitizeCommunityUsername } from '@/components/community/communityRender'
 import AuthorStrip from '@/components/community/AuthorStrip'
 import CommunityContentBlock from '@/components/community/CommunityContentBlock'
@@ -771,6 +772,19 @@ export default function CommunityDetailClient({ post }: { post: CommunityPostVie
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pending, post.checkinId, post.isOwner]
   )
+
+  useEffect(() => {
+    trackEvent({
+      event_type: 'business',
+      event_name: 'business.community_post_view',
+      properties: {
+        post_id: post.id,
+        checkin_id: post.checkinId,
+        mountain_id: post.mountain?.id ?? null,
+        source: post.sourceType,
+      },
+    })
+  }, [post.checkinId, post.id, post.mountain?.id, post.sourceType])
 
   useEffect(() => {
     if (!menuOpen) return

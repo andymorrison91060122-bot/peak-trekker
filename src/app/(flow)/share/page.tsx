@@ -200,7 +200,7 @@ export default async function SharePage({
   const checkinId = firstSearchValue(resolvedSearchParams.checkinId)
   const initialData = checkinId ? await loadShareData(checkinId) : null
   const paywallEnabled = isPremiumPaywallEnabled()
-  const userId = paywallEnabled ? await getCurrentUserId() : null
+  const userId = await getCurrentUserId()
   const premiumAccess = paywallEnabled
     ? await checkTemplateAccess('premium-photo-composite', userId)
     : { allowed: true }
@@ -218,6 +218,7 @@ export default async function SharePage({
         checkinId={checkinId}
         paywallEnabled={paywallEnabled}
         premiumUnlocked={premiumAccess.allowed}
+        currentUserId={userId}
       />
     </div>
   )

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
@@ -18,6 +18,7 @@ import DifficultyChip from '@/components/mountain/DifficultyChip'
 import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
 import PmtilesSnapshotMap from '@/components/map/PmtilesSnapshotMap'
 import type { LicenseProgressSummary } from '@/lib/license-progress'
+import { trackEvent } from '@/lib/analytics/client'
 
 type RouteWaypoint = Waypoint & {
   latitude?: number
@@ -1521,6 +1522,21 @@ export default function MountainDetailClient({
     () => (routeMockEnabled ? buildFu47bMockWaypoints(mountain) : waypoints),
     [mountain, routeMockEnabled, waypoints],
   )
+
+  useEffect(() => {
+    trackEvent({
+      event_type: 'business',
+      event_name: 'business.mountain_view',
+      properties: {
+        mountain_id: mountain.id,
+        mountain_name: mountain.name,
+        province: mountain.province,
+        difficulty: mountain.difficulty,
+        altitude_m: mountain.altitude,
+        has_pmtiles: Boolean(getMountainPmtilesAsset(mountain.id)),
+      },
+    })
+  }, [mountain.altitude, mountain.difficulty, mountain.id, mountain.name, mountain.province])
 
   const handleBack = () => {
     if (window.history.length > 1) {

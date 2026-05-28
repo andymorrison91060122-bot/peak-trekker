@@ -15,6 +15,8 @@ import {
   TREK_PREP_GPS_RETRY_MS,
 } from '@/lib/trek-gps-preflight'
 import { TREK_RULES } from '@/lib/trek-rules-client'
+import { TREK_SUMMIT_PROXIMITY_THRESHOLD_M, TREK_TIMEOUT_THRESHOLD_HOURS } from '@/lib/analytics/constants'
+import { trackEvent, trackEventNow } from '@/lib/analytics/client'
 import { checkTrekStartDistance, formatTrekStartDistanceKm } from '@/lib/trek-start-validation'
 import {
   isTrekClientTestModeEnabled,
@@ -84,6 +86,7 @@ const LOCAL_FALLBACK_SESSION_PREFIX = 'local-fallback-session:'
 const INVALID_RECORD_SECONDS = 60
 const ELEVATION_LOOKUP_REFRESH_METERS = 50
 const TREK_TEST_MODE_STORAGE_KEY = 'peak_trekker_trek_test_mode'
+const TREK_ANALYTICS_SESSION_STORAGE_KEY = 'peak_trekker_analytics_active_trek_session'
 
 function formatShortRecordThreshold(seconds: number) {
   if (seconds >= 60 && seconds % 60 === 0) return `${seconds / 60} 分钟`
@@ -150,6 +153,59 @@ type RestoredTrekSession = {
   distanceM: number
   ascentM: number
   maxAltitudeM: number | null
+}
+
+type TrekAnalyticsLocalSession = {
+  sessionId: string
+  mountainId: string | null
+  status: 'tracking' | 'paused'
+  startedAt: string
+  lastActivityAt: string
+  lastAltitudeM: number | null
+  lastDistanceM: number
+  targetAltitudeM: number | null
+}
+
+function readTrekAnalyticsLocalSession(): TrekAnalyticsLocalSession | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(TREK_ANALYTICS_SESSION_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<TrekAnalyticsLocalSession>
+    if (typeof parsed.sessionId !== 'string' || typeof parsed.lastActivityAt !== 'string') return null
+    return {
+      sessionId: parsed.sessionId,
+      mountainId: typeof parsed.mountainId === 'string' ? parsed.mountainId : null,
+      status: parsed.status === 'paused' ? 'paused' : 'tracking',
+      startedAt: typeof parsed.startedAt === 'string' ? parsed.startedAt : parsed.lastActivityAt,
+      lastActivityAt: parsed.lastActivityAt,
+      lastAltitudeM: typeof parsed.lastAltitudeM === 'number' && Number.isFinite(parsed.lastAltitudeM) ? parsed.lastAltitudeM : null,
+      lastDistanceM: typeof parsed.lastDistanceM === 'number' && Number.isFinite(parsed.lastDistanceM) ? Math.max(0, parsed.lastDistanceM) : 0,
+      targetAltitudeM: typeof parsed.targetAltitudeM === 'number' && Number.isFinite(parsed.targetAltitudeM) ? parsed.targetAltitudeM : null,
+    }
+  } catch {
+    return null
+  }
+}
+
+function writeTrekAnalyticsLocalSession(session: TrekAnalyticsLocalSession) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(TREK_ANALYTICS_SESSION_STORAGE_KEY, JSON.stringify(session))
+  } catch {}
+}
+
+function clearTrekAnalyticsLocalSession() {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.removeItem(TREK_ANALYTICS_SESSION_STORAGE_KEY)
+  } catch {}
+}
+
+function staleTrekHoursIdle(session: TrekAnalyticsLocalSession, now = Date.now()) {
+  const lastActivity = new Date(session.lastActivityAt).getTime()
+  if (!Number.isFinite(lastActivity)) return 0
+  return Math.max(0, (now - lastActivity) / (1000 * 60 * 60))
 }
 
 function buildFu47cMapGps(mountain: Mountain | null, mock: Fu47cGpsMock | null): GpsState {
@@ -297,6 +353,8 @@ export default function TrekClient({
   const entryValidationKeyRef = useRef<string | null>(null)
   const entryRedirectFallbackTimerRef = useRef<number | null>(null)
   const activeSessionIdRef = useRef<string | null>(null)
+  const proximityEnteredRef = useRef(false)
+  const proximityEnterAtRef = useRef<number | null>(null)
   const isPausedRef = useRef(false)
   const elevationLookupCoordinateRef = useRef<ElevationCoordinate | null>(null)
   const restoreCheckStartedRef = useRef(false)
@@ -342,7 +400,36 @@ export default function TrekClient({
     trackingTickStartedAtRef.current = null
     startTimeRef.current = 0
     lastSyncRef.current = 0
+    clearTrekAnalyticsLocalSession()
   }, [])
+
+  const emitStaleTrekTimeoutIfNeeded = useCallback(async () => {
+    const stored = readTrekAnalyticsLocalSession()
+    if (!stored) return false
+    const hoursIdle = staleTrekHoursIdle(stored)
+    if (hoursIdle < TREK_TIMEOUT_THRESHOLD_HOURS) return false
+    await trackEventNow({
+      event_type: 'business',
+      event_name: 'business.trek_timeout',
+      properties: {
+        session_id: stored.sessionId,
+        mountain_id: stored.mountainId,
+        last_altitude_m: stored.lastAltitudeM,
+        last_distance_m: stored.lastDistanceM,
+        last_activity_at: stored.lastActivityAt,
+        hours_idle: Number(hoursIdle.toFixed(2)),
+        altitude_progress: stored.lastAltitudeM !== null && stored.targetAltitudeM
+          ? Math.max(0, Math.min(1, stored.lastAltitudeM / stored.targetAltitudeM))
+          : 0,
+      },
+    })
+    clearTrekAnalyticsLocalSession()
+    return true
+  }, [])
+
+  useEffect(() => {
+    void emitStaleTrekTimeoutIfNeeded()
+  }, [emitStaleTrekTimeoutIfNeeded])
 
   useEffect(() => {
     if (
@@ -452,6 +539,29 @@ export default function TrekClient({
 
   const hasGpsAltitude = typeof gps?.altitude === 'number' && Number.isFinite(gps.altitude)
   const currentAltitude = hasGpsAltitude ? Math.round(gps.altitude as number) : queriedElevationM
+
+  const updateTrekAnalyticsLocalSession = useCallback(
+    (sessionStatus: 'tracking' | 'paused' = isPaused ? 'paused' : 'tracking') => {
+      if (!sessionId || !targetMountain) return
+      writeTrekAnalyticsLocalSession({
+        sessionId,
+        mountainId: targetMountain.id,
+        status: sessionStatus,
+        startedAt: new Date(startTimeRef.current || Date.now()).toISOString(),
+        lastActivityAt: new Date().toISOString(),
+        lastAltitudeM: typeof currentAltitude === 'number' ? currentAltitude : null,
+        lastDistanceM: Math.round(distanceKm * 1000),
+        targetAltitudeM: targetMountain.altitude,
+      })
+    },
+    [currentAltitude, distanceKm, isPaused, sessionId, targetMountain]
+  )
+
+  useEffect(() => {
+    if (!sessionId || !targetMountain) return
+    if (status !== 'locating' && status !== 'tracking' && status !== 'approach_alert') return
+    updateTrekAnalyticsLocalSession(isPaused ? 'paused' : 'tracking')
+  }, [currentAltitude, distanceKm, gps, isPaused, sessionId, status, targetMountain, updateTrekAnalyticsLocalSession])
 
   const runPrepGpsCheck = useCallback(
     async (options: { manual?: boolean; retry?: boolean } = {}) => {
@@ -733,6 +843,40 @@ export default function TrekClient({
     }
 
     setDistanceToTarget(Number.isFinite(closestDistance) ? closestDistance : null)
+    const activeSessionId = activeSessionIdRef.current
+    const isInsideProximity = matched && closestDistance <= TREK_SUMMIT_PROXIMITY_THRESHOLD_M
+
+    if (activeSessionId && matched && isInsideProximity && !proximityEnteredRef.current) {
+      proximityEnteredRef.current = true
+      proximityEnterAtRef.current = Date.now()
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.trek_summit_proximity_enter',
+        properties: {
+          session_id: activeSessionId,
+          mountain_id: matched.id,
+          distance_to_summit_m: Math.round(closestDistance),
+          current_altitude_m: currentAltitude,
+          proximity_threshold_m: TREK_SUMMIT_PROXIMITY_THRESHOLD_M,
+        },
+      })
+    }
+
+    if (activeSessionId && proximityEnteredRef.current && (!matched || !isInsideProximity)) {
+      const enteredAt = proximityEnterAtRef.current
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.trek_summit_proximity_leave',
+        properties: {
+          session_id: activeSessionId,
+          mountain_id: targetMountain?.id ?? null,
+          dwell_seconds: enteredAt ? Math.max(0, Math.round((Date.now() - enteredAt) / 1000)) : 0,
+          manually_marked_summit: false,
+        },
+      })
+      proximityEnteredRef.current = false
+      proximityEnterAtRef.current = null
+    }
 
     if (matched && closestDistance <= SUMMIT_RADIUS) {
       setNearbyMountain(matched)
@@ -749,7 +893,7 @@ export default function TrekClient({
     setNearbyMountain(null)
     setDistanceToTarget(null)
     setStatus('tracking')
-  }, [targetMountain])
+  }, [currentAltitude, targetMountain])
 
   useEffect(() => {
     if (!gps) return
@@ -1035,6 +1179,7 @@ export default function TrekClient({
   }, [callTrekAction, mountainsLoading, restoreActiveTrekSession, sessionId])
 
   async function startTrek() {
+    await emitStaleTrekTimeoutIfNeeded()
     if (!targetMountain) {
       showToast({ key: 'action_blocked', message: '请先确认目标山峰，再开始今天的记录。' })
       return
@@ -1091,13 +1236,36 @@ export default function TrekClient({
     setAscentM(0)
     setCreatedCheckinId(null)
     setSessionId(nextSessionId)
+    proximityEnteredRef.current = false
+    proximityEnterAtRef.current = null
     trackRef.current = []
 	    const startedAt = Date.now()
 	    startTimeRef.current = startedAt
 	    elapsedBeforePauseRef.current = 0
 	    elapsedSecondsRef.current = 0
-	    trackingTickStartedAtRef.current = startedAt
+    trackingTickStartedAtRef.current = startedAt
     lastSyncRef.current = 0
+    writeTrekAnalyticsLocalSession({
+      sessionId: nextSessionId,
+      mountainId: targetMountain.id,
+      status: 'tracking',
+      startedAt: new Date(startedAt).toISOString(),
+      lastActivityAt: new Date(startedAt).toISOString(),
+      lastAltitudeM: typeof currentAltitude === 'number' ? currentAltitude : null,
+      lastDistanceM: 0,
+      targetAltitudeM: targetMountain.altitude,
+    })
+    trackEvent({
+      event_type: 'business',
+      event_name: 'business.trek_start',
+      properties: {
+        session_id: nextSessionId,
+        mountain_id: targetMountain.id,
+        start_lat: gps?.lat ?? null,
+        start_lng: gps?.lng ?? null,
+        start_altitude_m: currentAltitude,
+      },
+    })
     showToast({ key: 'trek_start_success', durationMs: 2500 })
     startTrackingRuntime(nextSessionId)
   }
@@ -1120,6 +1288,21 @@ export default function TrekClient({
           setConfirmedMountainId(targetIdForRetry)
         }
         void finishSession(activeSessionId, 'aborted')
+        trackEvent({
+          event_type: 'business',
+          event_name: 'business.trek_abort',
+          properties: {
+            session_id: activeSessionId,
+            mountain_id: targetMountain?.id ?? targetIdForRetry ?? null,
+            reason: 'user_quit',
+            last_altitude_m: currentAltitude,
+            last_distance_m: Math.round(distanceKm * 1000),
+            duration_seconds: elapsedSeconds,
+            altitude_progress: targetMountain?.altitude && typeof currentAltitude === 'number'
+              ? currentAltitude / targetMountain.altitude
+              : 0,
+          },
+        })
         showToast({
           key: 'trek_record_too_short',
           message: `记录时间过短（不足 ${formatShortRecordThreshold(incompleteRecordMinSeconds)}），不是有效记录。`,
@@ -1160,6 +1343,17 @@ export default function TrekClient({
       resetLiveTrekState()
       showToast({ key: 'trek_record_saved' })
       if (checkinId) {
+        trackEvent({
+          event_type: 'business',
+          event_name: 'business.activity_create',
+          properties: {
+            source: 'realtime_gps',
+            proof_status: 'partial',
+            session_id: activeSessionId,
+            mountain_id: targetMountain.id,
+            checkin_id: checkinId,
+          },
+        })
         window.setTimeout(() => {
           router.push(`/activity/${checkinId}`)
         }, 650)
@@ -1220,8 +1414,47 @@ export default function TrekClient({
       }
 
       setCreatedCheckinId(checkinId)
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.trek_complete',
+        properties: {
+          session_id: sessionId,
+          mountain_id: nearbyMountain?.id ?? targetMountain?.id ?? null,
+          total_distance_m: Math.round(distanceKm * 1000),
+          duration_seconds: elapsedSeconds,
+          max_altitude_m: currentAltitude,
+          marked_summit: true,
+        },
+      })
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.activity_create',
+        properties: {
+          source: 'realtime_gps',
+          proof_status: 'verified',
+          session_id: sessionId,
+          mountain_id: nearbyMountain?.id ?? targetMountain?.id ?? null,
+          checkin_id: checkinId,
+        },
+      })
+      if (proximityEnteredRef.current) {
+        const enteredAt = proximityEnterAtRef.current
+        trackEvent({
+          event_type: 'business',
+          event_name: 'business.trek_summit_proximity_leave',
+          properties: {
+            session_id: sessionId,
+            mountain_id: nearbyMountain?.id ?? targetMountain?.id ?? null,
+            dwell_seconds: enteredAt ? Math.max(0, Math.round((Date.now() - enteredAt) / 1000)) : 0,
+            manually_marked_summit: true,
+          },
+        })
+        proximityEnteredRef.current = false
+        proximityEnterAtRef.current = null
+      }
       setStatus('summit_verified')
       setSessionId(null)
+      clearTrekAnalyticsLocalSession()
       clearTrackingRuntime()
       showToast({ key: 'summit_verify_success', durationMs: 5200 })
     } catch (error) {
@@ -1560,6 +1793,16 @@ export default function TrekClient({
 
       const paused = await persistPauseTrekSession()
       if (!paused) return
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.trek_pause',
+        properties: {
+          mountain_id: targetMountain?.id ?? null,
+          session_id: sessionId,
+          reason: 'background',
+          current_altitude_m: currentAltitude,
+        },
+      })
       elapsedBeforePauseRef.current = elapsedSecondsRef.current
       trackingTickStartedAtRef.current = null
       isPausedRef.current = true
@@ -1568,7 +1811,7 @@ export default function TrekClient({
       popstatePauseGuardRef.current = false
       navigateAwayFromTrek(preferHistoryBack)
     },
-    [clearTrackingRuntime, navigateAwayFromTrek, persistPauseTrekSession, shouldPauseBeforeLeaving]
+    [clearTrackingRuntime, currentAltitude, navigateAwayFromTrek, persistPauseTrekSession, sessionId, shouldPauseBeforeLeaving, targetMountain?.id]
   )
 
   useEffect(() => {
@@ -1687,11 +1930,27 @@ export default function TrekClient({
     clearTrackingRuntime()
     setIsPaused(true)
     await persistPauseTrekSession()
+    updateTrekAnalyticsLocalSession('paused')
+    trackEvent({
+      event_type: 'business',
+      event_name: 'business.trek_pause',
+      properties: {
+        session_id: sessionId,
+        mountain_id: targetMountain?.id ?? null,
+        reason: 'user_button',
+        current_altitude_m: currentAltitude,
+      },
+    })
   }
 
   async function resumeTrek() {
     if (!sessionId) {
       showToast({ key: 'action_blocked', message: '缺少记录会话，请重新开始。' })
+      return
+    }
+    if (await emitStaleTrekTimeoutIfNeeded()) {
+      resetLiveTrekState()
+      showToast({ key: 'action_blocked', message: '上一次记录已长时间无活动，请重新开始。', durationMs: 3200 })
       return
     }
 
@@ -1717,6 +1976,16 @@ export default function TrekClient({
     trackingTickStartedAtRef.current = Date.now()
     isPausedRef.current = false
     setIsPaused(false)
+    updateTrekAnalyticsLocalSession('tracking')
+    trackEvent({
+      event_type: 'business',
+      event_name: 'business.trek_resume',
+      properties: {
+        session_id: sessionId,
+        mountain_id: targetMountain?.id ?? null,
+        gap_seconds: 0,
+      },
+    })
     startTrackingRuntime(sessionId)
   }
 

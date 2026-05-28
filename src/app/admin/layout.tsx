@@ -45,6 +45,7 @@ export default async function AdminLayout({
               { href: '/admin/users', label: '用户' },
               { href: '/admin/mountains', label: '山峰' },
               { href: '/admin/community', label: '社区' },
+              { href: '/admin/analytics', label: '数据' },
             ].map(item => (
               <a
                 key={item.href}

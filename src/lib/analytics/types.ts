@@ -135,6 +135,21 @@ export type PaidPotentialMetrics = {
   totalAttempts: number
   triggeredUsers: number
   highPotentialUsers: Array<{ user_id: string; count: number }>
+  featureRanking: Array<{
+    feature_id: string
+    attemptCount: number
+    uniqueUserCount: number
+    engagementRate: number
+    score: number
+  }>
+  highIntentUsers: Array<{
+    user_id: string
+    intentScore: number
+    totalAttempts: number
+    engagedCount: number
+    featureDiversity: number
+    recentAttemptAt: string | null
+  }>
   perFeatureFunnel: Array<{
     feature_id: string
     shown: number

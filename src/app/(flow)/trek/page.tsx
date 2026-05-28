@@ -10,9 +10,19 @@ import type { User } from '@/types'
 export default async function TrekPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mountainId?: string }>
+  searchParams: Promise<{ mountainId?: string; fu47cMapError?: string | string[]; fu47cGpsMock?: string | string[] }>
 }) {
-  const { mountainId } = await searchParams
+  const { mountainId, fu47cMapError, fu47cGpsMock } = await searchParams
+  const localQaEnabled = process.env.NODE_ENV !== 'production'
+  const resolvedGpsMock = Array.isArray(fu47cGpsMock) ? fu47cGpsMock[0] : fu47cGpsMock
+  const safeGpsMock =
+    resolvedGpsMock === 'ready' ||
+    resolvedGpsMock === 'weak' ||
+    resolvedGpsMock === 'live' ||
+    resolvedGpsMock === 'offline'
+      ? resolvedGpsMock
+      : null
+  const forceTrekMapError = localQaEnabled && (Array.isArray(fu47cMapError) ? fu47cMapError[0] === '1' : fu47cMapError === '1')
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -41,6 +51,8 @@ export default async function TrekPage({
           storedLevel: profile?.license_level ?? 'none',
           records: profileTrips,
         })}
+        fu47cMapError={forceTrekMapError}
+        fu47cGpsMock={localQaEnabled ? safeGpsMock : null}
       />
     </AppToastProvider>
   )

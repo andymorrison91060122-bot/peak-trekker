@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-28 · 最新版本记录: v0.38
+> Last Updated: 2026-05-28 · 最新版本记录: v0.39
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`23b5ce4`（Merge FU-47(c) · 2026-05-28）
+`abfbb1b`（Merge FU-55 · 2026-05-28）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动 (候选见 v0.38 末尾推荐 / FU-55 页面埋点待 register; FU-47 全 done 已 close)
+待启动 (候选见 v0.39 末尾推荐)
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -83,7 +83,67 @@
 
 ---
 
-## Active Follow-ups（16 条）
+## Active Follow-ups（20 条）
+
+### FU-57 · 激活漏斗深度 (10 步细分)
+
+- **优先级**: P2
+- **归属阶段**: 阶段 6 / 上线前
+- **状态**: 🟢 active
+- **背景**: FU-55 dashboard 主漏斗 4 步 (访问 → 注册 → 首次 Trek → 分享) 太粗, 看不出新用户在哪个微观环节流失。完整 user journey 应该有 10 步: 访问 → 注册 → 首次浏览山峰 → 首次选山 → 首次 Trek 启动 → 首次 Trek 完成 → 首次 Activity 创建 → 首次分享生成 → 分享 link 被点击 → 通过 link 拉新成功。
+- **实施建议**:
+  · 扩展 `src/lib/analytics/kpis.ts` `buildOverviewMetrics()` 主漏斗算法。
+  · 现有埋点已 ready (`mountain_view` / entry validation / `trek_start` / `trek_complete` / `activity_create` / `share_link` 等)。
+  · `admin/analytics` overview tab 主漏斗 sub-card 改 10 步纵向展示 + 渗透率 + 每步流失原因 sub-table。
+- **不在 scope**: 不新增埋点 (现有事件已完整覆盖)。
+- **触发来源**: FU-55 patch v1 阶段 Claude 专业补充建议, user PASS。
+
+---
+
+### FU-58 · 新老用户分群双轨 dashboard
+
+- **优先级**: P2
+- **归属阶段**: 阶段 6 / 上线前
+- **状态**: 🟢 active
+- **背景**: FU-55 dashboard 全部指标在同一 view 平均化, 没区分新用户 (注册 ≤ 7d) vs 老用户 (≥ 7d)。新用户首日 funnel 和老用户留存行为模式完全不同, 混在一起看是噪声。上线前判断"产品真正激活新用户"必须双轨。
+- **实施建议**:
+  · `src/lib/analytics/kpis.ts` 加用户分群参数 (`cohort: 'new' | 'returning' | 'all'`)。
+  · `admin/analytics` 每个 tab sub-block 增 cohort selector (新/老/全)。
+  · 各 cohort 单独漏斗 + 留存 + 付费 attempt。
+- **不在 scope**: 不动埋点; 仅 dashboard query + UI 改造。
+- **触发来源**: FU-55 patch v1 Claude 专业补充建议, user PASS。
+
+---
+
+### FU-59 · 付费功能 ranking + 付费意愿评分
+
+- **优先级**: P1 (商业化决策)
+- **归属阶段**: 阶段 6 / 上线前 / 商业化准备
+- **状态**: 🟢 active
+- **背景**: FU-55 dashboard 付费潜力 tab 显示 paid_attempt 总次数和高潜力用户, 但看不出**哪个付费 feature 最有 product-market fit**。商业化优先级决策需要 (a) per-feature ranking (各 feature 触发次数 + engaged 比例) + (b) per-user 付费意愿评分 (聚合多次触发 + engaged 模式 → 0-100 score)。
+- **实施建议**:
+  · `src/lib/analytics/kpis.ts` 加 paid feature ranking + intent score 算法。
+  · `admin/analytics` 付费潜力 tab 新 2 个 sub-block: per-feature ranking 表 (触发次数 / 用户数 / engaged 率 / 综合 score) 与高意愿用户列表 (按 intent score 排序 top 50)。
+  · intent score 公式在 Plan 阶段细化, 例如 `total_attempts * w1 + engaged_count * w2 + feature_diversity * w3`。
+- **不在 scope**: 不接收支付 / 不开商业化 (商业化机制独立 FU)。
+- **触发来源**: FU-55 patch v1 Claude 专业补充建议, user PASS。
+
+---
+
+### FU-60 · 来源 + 设备分群 dashboard
+
+- **优先级**: P2
+- **归属阶段**: 阶段 6 / 上线前
+- **状态**: 🟢 active
+- **背景**: FU-55 埋点已收集 referrer + user_agent 但 dashboard 没用。知道哪个渠道带量大 (referrer 分布) + 各设备 (iOS / Android / Desktop) 行为差异, 对营销 + 产品定位都有价值。
+- **实施建议**:
+  · `src/lib/analytics/kpis.ts` 加 referrer 分类算法 (直接 / 微信 / Google / 朋友圈 / 等)。
+  · `ua-parser-js` 或类似轻量库解析 user_agent → device type。
+  · `admin/analytics` 用户行为 tab 加 2 sub-block: 来源分布饼图 + per-source 留存对比; 设备分布 (iOS / Android / Desktop) + 各设备完成 Trek 率。
+- **不在 scope**: 不动埋点; 仅 dashboard query + 第三方 lib 集成。
+- **触发来源**: FU-55 patch v1 Claude 专业补充建议, user PASS。
+
+---
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -412,7 +472,34 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（41 条）
+## Closed Follow-ups（42 条）
+
+### FU-55 ✅ 自托管页面埋点 + admin dashboard 可视化
+
+- **关闭原因**: FU-55 sprint 落地完整数据观测体系: Supabase `events` 表 (jsonb properties) + 客户端埋点 SDK (`sendBeacon` / fire-and-forget / anonymous cookie `pt_anon_sid` / attribution cookie `pt_attribution_link_id`) + `/api/analytics/event` API + `admin/analytics` dashboard 5 tabs + Recharts 可视化。Phase 0-6 + patch v1 (K-factor + 环比同比 delta + 渗透率 + today/all-time + DAU cohort + 水印模板 sub-cards + 总花费) + patch v2 (paid_attempt funnel 3 state + Trek timeout 被动检测) 三轮 in-sprint 闭环后 user 视觉验收 PASS。
+- **关键设计决策**:
+  · 选型路径 E 自建 (国内访问 + 数据自主 + 已有 admin 集成 + 隐私合规简单), 不接 GA/PostHog/Plausible。
+  · 单 `events` 表 JSONB schema (MVP, 未来流量上来加 daily aggregates)。
+  · 匿名访客 `session_id` cookie (`pt_anon_sid` 30d), 流量漏斗完整含匿名 → 注册转化。
+  · share `?ref=<share_link_id>` attribution chain 完整端到端: link create → cookie 写入 → register hook 读 cookie → emit register_attribution event → cookie 清除。支撑 K-factor 病毒系数计算。
+  · 5 tab dashboard: 概览 (DAU/funnel/K-factor/留存) + 用户行为 (山峰/Trek/Activity/Community/水印模板) + 付费潜力 + 模型评测 (5 项核心 KPI: success/hallucination 启发式/latency/cost placeholder/correction) + 运营成本。
+  · 时间窗口: 今日 / 7天 / 30天 / 90天 / 历史累计 5 option + 环比同比 delta。
+  · Trek 中断 / 完成 + summit_proximity_enter/leave 完整事件链支持 "差点登顶 near_miss_rate" 指标。
+- **Production migration apply (A9/B10/B11)**: Vercel production deployment `dpl_EeWzW62CoMZPxUHK2rqzwPxobr52` for merge commit `abfbb1b` reached READY before database mutation。Baseline read confirmed `public.events` absent; transaction dry-run returned `fu55_events_dry_run_ok`; `apply_migration` `20260528093000_create_events_table` succeeded; read verification confirmed 11 columns, 4 business indexes + primary key, RLS enabled, policies `events_insert_anon_authenticated` / `events_select_admin`, and 0 rows after apply。
+- **B13 透明披露**:
+  · production migration 严格 deploy-gated apply (本 V3 阶段执行): Vercel READY → baseline read → dry-run → apply → read verify。
+  · `cost_cny` 当前固定 0 (provider pricing 集成由独立 FU 处理)。
+  · `hallucination_rate` 启发式定义 (`user_edit / complete`), 严谨 ground truth 评测留独立 FU。
+  · per-provider OCR 对比 (腾讯 OCR vs 小米 v2-omni) 是 short-term 工具, 未来全量切小米后此 sub-block 可 deprecate (独立 FU)。
+  · `trek_timeout` 被动检测 (start/resume 时检查 stale session), 不是主动 emitter。
+- **遗留 / 后续 FU** (本 V3 同步 register): FU-57 激活漏斗深度 10 步细分; FU-58 新老用户分群双轨; FU-59 付费功能 ranking + 付费意愿评分 (P1 商业化决策); FU-60 来源 + 设备分群。
+- **准入**: lint 0e/5w · build PASS · node focused tests 44p · git diff --check clean · FU-45 为唯一剩余 `test.fixme`。
+- **关闭 commit**: `bfc5f16` / `4d5e8c3` / `efb9e1c` / `2ad5f05`
+- **merge commit**: `abfbb1b`
+- **关闭时间**: 2026-05-28
+- **风险落地**: codex-risk-behavior-policy 连续 7 个 sprint 0 红线违反 (FU-49 / FU-43 / FU-53 / FU-56 / FU-47(b) / FU-47(c) / FU-55), 含本 sprint production migration apply 严格 deploy-gated。
+
+---
 
 ### FU-56 ✅ e2e helper / spec rot 系统修复 (7 个已知 fail · FU-53 sprint 期间识别 · 一次性 in-sprint register+close)
 
@@ -908,6 +995,18 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.39（2026-05-28）
+
+FU-55 close + 4 FU register (FU-57/58/59/60)。
+
+- 自托管 `events` 埋点 + `admin/analytics` 5 tab dashboard 完成 (Phase 0-6 + 2 轮 in-sprint patch)。
+- 主要落地: Supabase `events` 表 JSONB schema + deploy-gated production migration apply + 埋点 SDK (`sendBeacon` / fire-and-forget / `pt_anon_sid` + `pt_attribution_link_id` cookie) + `/api/analytics/event` API + 5 tab dashboard 含 K-factor + 时间窗口 5 option + 环比同比 delta + 渗透率 + 水印模板 sub-cards + paid_attempt 3 state funnel + Trek 中断/timeout 被动检测 + 模型评测 5 项核心 KPI (cost placeholder pending) + 运营成本 + Recharts^3.8.1。
+- 同步 register 4 个 P1/P2 FU: 激活漏斗深度 / 新老用户分群 / 付费功能 ranking + 意愿评分 / 来源+设备分群。
+- Production migration apply: Vercel deployment `dpl_EeWzW62CoMZPxUHK2rqzwPxobr52` READY → baseline 0 rows for `public.events` → transaction dry-run marker `fu55_events_dry_run_ok` → `apply_migration` success → schema/index/RLS/policy/read verification complete。
+- 关闭 commit: `bfc5f16` / `4d5e8c3` / `efb9e1c` / `2ad5f05` · merge commit: `abfbb1b`
+- codex-risk-behavior-policy 连续 7 个 sprint 0 红线违反。
+- Active 16 → 20 · Closed 41 → 42
 
 ### v0.38（2026-05-28）
 

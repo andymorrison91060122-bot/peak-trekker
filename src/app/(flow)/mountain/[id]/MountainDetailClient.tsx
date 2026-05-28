@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
 import type { Waypoint, WaypointType } from '@/lib/waypoints'
 import { getRouteSegments, type RouteSegment } from '@/lib/mountain-route-segments'
+import { getMountainPmtilesAsset, type MapTileAsset } from '@/lib/map/map-assets'
 import { getDifficultySuitabilityCopy } from '@/lib/license-ui'
 import { BackIcon, CheckIcon, MoreIcon, PinIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
 import { HelpTrigger } from '@/components/help/HelpTrigger'
@@ -14,7 +16,13 @@ import WeatherSection from '@/components/mountain/WeatherSection'
 import DifficultyAdvisory from '@/components/mountain/DifficultyAdvisory'
 import DifficultyChip from '@/components/mountain/DifficultyChip'
 import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
+import PmtilesSnapshotMap from '@/components/map/PmtilesSnapshotMap'
 import type { LicenseProgressSummary } from '@/lib/license-progress'
+
+type RouteWaypoint = Waypoint & {
+  latitude?: number
+  longitude?: number
+}
 
 type MountainDetailClientProps = {
   mountain: Mountain
@@ -24,6 +32,8 @@ type MountainDetailClientProps = {
   waypoints: Waypoint[]
   featuredPosts: CommunityPostViewModel[]
   heroImages: string[]
+  routeMockEnabled: boolean
+  forceRouteMapError: boolean
 }
 
 function formatInteger(value: number | null | undefined) {
@@ -37,6 +47,64 @@ function getRouteFacts(mountain: Mountain) {
     gain: mountain.elevation_gain_m ?? Math.max(320, Math.round(mountain.altitude * 0.68)),
     duration: mountain.estimated_duration ?? `${Math.max(2, Math.min(12, Math.round(mountain.altitude / 650)))}h`,
   }
+}
+
+function buildFu47bMockWaypoints(mountain: Mountain): RouteWaypoint[] {
+  const createdAt = '2026-05-28T00:00:00.000Z'
+  const baseAltitude = Math.max(240, Math.round(mountain.altitude * 0.46))
+  const ridgeAltitude = Math.max(baseAltitude + 120, Math.round(mountain.altitude * 0.72))
+  const shoulderAltitude = Math.max(ridgeAltitude + 120, Math.round(mountain.altitude * 0.88))
+
+  return [
+    {
+      id: 'fu47b-mock-gate',
+      mountain_id: mountain.id,
+      type: 'transport',
+      name: '登山口',
+      description: '本地视觉样例点位',
+      elevation: baseAltitude,
+      sort_order: 1,
+      created_at: createdAt,
+      latitude: 34.52962,
+      longitude: 110.09221,
+    },
+    {
+      id: 'fu47b-mock-ridge',
+      mountain_id: mountain.id,
+      type: 'viewpoint',
+      name: '山脊视野点',
+      description: '本地视觉样例点位',
+      elevation: ridgeAltitude,
+      sort_order: 2,
+      created_at: createdAt,
+      latitude: 34.50984,
+      longitude: 110.08058,
+    },
+    {
+      id: 'fu47b-mock-shoulder',
+      mountain_id: mountain.id,
+      type: 'danger',
+      name: '陡坡过渡',
+      description: '本地视觉样例点位',
+      elevation: shoulderAltitude,
+      sort_order: 3,
+      created_at: createdAt,
+      latitude: 34.4959,
+      longitude: 110.08776,
+    },
+    {
+      id: 'fu47b-mock-summit',
+      mountain_id: mountain.id,
+      type: 'viewpoint',
+      name: '山顶',
+      description: '本地视觉样例点位',
+      elevation: mountain.altitude,
+      sort_order: 4,
+      created_at: createdAt,
+      latitude: mountain.latitude,
+      longitude: mountain.longitude,
+    },
+  ]
 }
 
 function getSeasonDecision(mountain: Mountain) {
@@ -888,30 +956,44 @@ function RouteTextFallback({ segments }: { segments: RouteSegment[] }) {
   )
 }
 
-function RouteReferenceSection({ mountain, waypoints }: { mountain: Mountain; waypoints: Waypoint[] }) {
-  if (waypoints.length < 2) {
-    const segments = getRouteSegments(mountain.name)
+function RouteUnavailable() {
+  return (
+    <section id="route" data-testid="mountain-route-section">
+      <SectionHeader title="路线参考" right="暂无 · 不可用" />
+      <div style={{ padding: '0 var(--space-4)' }}>
+        <EmptyModuleCard
+          icon={
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2V6zM9 4v14M15 6v14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          }
+          title="路线参考图暂时不可用"
+          description="地图服务没有响应，你仍可以查看关键点位与海拔信息。"
+        />
+      </div>
+    </section>
+  )
+}
 
-    if (segments) return <RouteTextFallback segments={segments} />
+function buildWaypointRouteSegments(waypoints: Waypoint[]): RouteSegment[] {
+  return waypoints.map((waypoint, index) => ({
+    altitude: waypoint.elevation ?? 0,
+    title:
+      index === 0
+        ? `${waypoint.name} · 起点`
+        : index === waypoints.length - 1
+          ? `${waypoint.name} · 终点`
+          : waypoint.name,
+    description: waypoint.description || waypointTypeLabel(waypoint.type),
+  }))
+}
 
-    return (
-      <section id="route" data-testid="mountain-route-section">
-        <SectionHeader title="路线参考" right="暂无 · 不可用" />
-        <div style={{ padding: '0 var(--space-4)' }}>
-          <EmptyModuleCard
-            icon={
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2V6zM9 4v14M15 6v14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            }
-            title="路线参考图暂时不可用"
-            description="地图服务没有响应，你仍可以查看关键点位与海拔信息。"
-          />
-        </div>
-      </section>
-    )
-  }
+function getFallbackSegments(mountain: Mountain, waypoints: Waypoint[]) {
+  if (waypoints.length >= 2) return buildWaypointRouteSegments(waypoints)
+  return getRouteSegments(mountain.name)
+}
 
+function getRouteOverlayPoints(waypoints: Waypoint[]) {
   const elevations = waypoints
     .map((waypoint) => waypoint.elevation)
     .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
@@ -925,8 +1007,290 @@ function RouteReferenceSection({ mountain, waypoints }: { mountain: Mountain; wa
     const tone = getWaypointTone({ waypoint, highestElevation: maxElevation })
     return { waypoint, x, y, tone }
   })
-  const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ')
-  const summit = points.find((point) => point.tone === 'success') ?? points[points.length - 1]
+
+  return {
+    points,
+    path: points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' '),
+    summit: points.find((point) => point.tone === 'success') ?? points[points.length - 1] ?? null,
+  }
+}
+
+function RouteMapTopControls() {
+  return (
+    <div style={{ position: 'absolute', left: 10, top: 10, zIndex: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '4px 9px',
+          borderRadius: 'var(--radius-pill)',
+          background: 'color-mix(in srgb, var(--color-surface) 76%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--color-on-surface) 16%, transparent)',
+          color: 'var(--color-on-surface-variant)',
+          backdropFilter: 'blur(10px)',
+          fontSize: 'var(--font-label-s-size)',
+          lineHeight: 'var(--font-label-s-line)',
+          fontWeight: 700,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        仅参考路线
+      </span>
+      <HelpTrigger anchor="map.map-no-nav" size={14} style={{ width: 26, height: 26 }} />
+    </div>
+  )
+}
+
+function RouteWaypointStrip({ waypoints }: { waypoints: Waypoint[] }) {
+  const { points } = getRouteOverlayPoints(waypoints)
+
+  return (
+    <div style={{ display: 'flex', gap: 6, padding: '12px 14px 8px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+      {points.map((point) => (
+        <div
+          key={`strip-${point.waypoint.id}`}
+          style={{
+            flex: '0 0 auto',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 10px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--color-outline)',
+            background: 'color-mix(in srgb, var(--color-on-surface) 3%, transparent)',
+            maxWidth: 180,
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 'var(--radius-pill)',
+              flexShrink: 0,
+              background:
+                point.tone === 'success'
+                  ? 'var(--color-success)'
+                  : point.tone === 'warn'
+                    ? 'var(--color-warning)'
+                    : 'var(--color-on-surface-variant)',
+            }}
+          />
+          <span style={{ color: 'var(--color-on-surface)', fontSize: 'var(--font-label-s-size)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {point.waypoint.name}
+          </span>
+          <span style={{ color: 'var(--color-on-surface-variant)', fontFamily: 'var(--font-mono)', fontSize: 10, whiteSpace: 'nowrap' }}>
+            {point.waypoint.elevation === null ? '--' : `${formatInteger(point.waypoint.elevation)}m`}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function RouteSummitOnlyStrip({ mountain }: { mountain: Mountain }) {
+  return (
+    <div style={{ display: 'flex', gap: 6, padding: '12px 14px 8px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+      <div
+        style={{
+          flex: '0 0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '6px 10px',
+          borderRadius: 'var(--radius-sm)',
+          border: '1px solid var(--color-outline)',
+          background: 'color-mix(in srgb, var(--color-on-surface) 3%, transparent)',
+        }}
+      >
+        <span aria-hidden style={{ width: 6, height: 6, borderRadius: 'var(--radius-pill)', background: 'var(--color-success)' }} />
+        <span style={{ color: 'var(--color-on-surface)', fontSize: 'var(--font-label-s-size)', fontWeight: 700 }}>
+          山峰位置
+        </span>
+        <span style={{ color: 'var(--color-on-surface-variant)', fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+          {formatInteger(mountain.altitude)}m
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function getWaypointCoordinate(waypoint: Waypoint): [number, number] | null {
+  const candidate = waypoint as RouteWaypoint
+  if (
+    typeof candidate.longitude === 'number' &&
+    Number.isFinite(candidate.longitude) &&
+    typeof candidate.latitude === 'number' &&
+    Number.isFinite(candidate.latitude)
+  ) {
+    return [candidate.longitude, candidate.latitude]
+  }
+  return null
+}
+
+function addOrReplaceGeoJsonSource(map: MapLibreMap, id: string, data: GeoJSON.GeoJSON) {
+  if (map.getSource(id)) {
+    const source = map.getSource(id) as { setData?: (nextData: GeoJSON.GeoJSON) => void }
+    source.setData?.(data)
+    return
+  }
+  map.addSource(id, {
+    type: 'geojson',
+    data,
+  })
+}
+
+function removeRouteLayerIfPresent(map: MapLibreMap, id: string) {
+  if (map.getLayer(id)) map.removeLayer(id)
+}
+
+function addRouteLayerIfMissing(map: MapLibreMap, layer: Parameters<MapLibreMap['addLayer']>[0]) {
+  if (!map.getLayer(layer.id)) map.addLayer(layer)
+}
+
+function addRouteMapLayers(map: MapLibreMap, mountain: Mountain, waypoints: Waypoint[]) {
+  const prefix = 'fu47b-route'
+  const layers = [
+    `${prefix}-waypoint-labels`,
+    `${prefix}-waypoint-points`,
+    `${prefix}-line`,
+    `${prefix}-summit-label`,
+    `${prefix}-summit-point`,
+  ]
+  layers.forEach((layerId) => removeRouteLayerIfPresent(map, layerId))
+
+  const summitCoordinate: [number, number] = [mountain.longitude, mountain.latitude]
+  const coordinateWaypoints = waypoints.flatMap((waypoint) => {
+    const coordinate = getWaypointCoordinate(waypoint)
+    return coordinate ? [{ waypoint, coordinate }] : []
+  })
+
+  addOrReplaceGeoJsonSource(map, `${prefix}-summit`, {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: summitCoordinate },
+        properties: {
+          label: `顶峰 ${formatInteger(mountain.altitude)}m`,
+        },
+      },
+    ],
+  })
+
+  addRouteLayerIfMissing(map, {
+    id: `${prefix}-summit-point`,
+    type: 'circle',
+    source: `${prefix}-summit`,
+    paint: {
+      'circle-radius': 7,
+      'circle-color': '#7ef0b4',
+      'circle-stroke-color': '#10231b',
+      'circle-stroke-width': 2,
+    },
+  })
+  addRouteLayerIfMissing(map, {
+    id: `${prefix}-summit-label`,
+    type: 'symbol',
+    source: `${prefix}-summit`,
+    layout: {
+      'text-field': ['get', 'label'],
+      'text-font': ['Noto Sans Regular'],
+      'text-size': 12,
+      'text-offset': [0, -1.55],
+      'text-anchor': 'bottom',
+    },
+    paint: {
+      'text-color': '#7ef0b4',
+      'text-halo-color': '#07130f',
+      'text-halo-width': 1.6,
+    },
+  })
+
+  if (coordinateWaypoints.length < 2) return
+
+  addOrReplaceGeoJsonSource(map, `${prefix}-line-source`, {
+    type: 'Feature',
+    geometry: {
+      type: 'LineString',
+      coordinates: coordinateWaypoints.map((point) => point.coordinate),
+    },
+    properties: {},
+  })
+  addOrReplaceGeoJsonSource(map, `${prefix}-waypoints`, {
+    type: 'FeatureCollection',
+    features: coordinateWaypoints.map(({ waypoint, coordinate }) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: coordinate },
+      properties: {
+        label: waypoint.elevation === null ? waypoint.name : `${waypoint.name} · ${formatInteger(waypoint.elevation)}m`,
+        tone: getWaypointTone({
+          waypoint,
+          highestElevation: Math.max(...coordinateWaypoints.map((point) => point.waypoint.elevation ?? 0), mountain.altitude),
+        }),
+      },
+    })),
+  })
+
+  addRouteLayerIfMissing(map, {
+    id: `${prefix}-line`,
+    type: 'line',
+    source: `${prefix}-line-source`,
+    paint: {
+      'line-color': '#7ef0b4',
+      'line-width': 3,
+      'line-opacity': 0.92,
+      'line-dasharray': [2, 2],
+    },
+  })
+  addRouteLayerIfMissing(map, {
+    id: `${prefix}-waypoint-points`,
+    type: 'circle',
+    source: `${prefix}-waypoints`,
+    paint: {
+      'circle-radius': ['case', ['==', ['get', 'tone'], 'success'], 6, 4.5],
+      'circle-color': ['case', ['==', ['get', 'tone'], 'success'], '#7ef0b4', ['==', ['get', 'tone'], 'warn'], '#f7c948', '#d7dde2'],
+      'circle-stroke-color': '#07130f',
+      'circle-stroke-width': 1.5,
+    },
+  })
+  addRouteLayerIfMissing(map, {
+    id: `${prefix}-waypoint-labels`,
+    type: 'symbol',
+    source: `${prefix}-waypoints`,
+    minzoom: 10,
+    layout: {
+      'text-field': ['get', 'label'],
+      'text-font': ['Noto Sans Regular'],
+      'text-size': 10,
+      'text-offset': [0, 1.1],
+      'text-anchor': 'top',
+    },
+    paint: {
+      'text-color': '#eef7f1',
+      'text-halo-color': '#07130f',
+      'text-halo-width': 1.2,
+    },
+  })
+}
+
+function RoutePmtilesCard({
+  mountain,
+  waypoints,
+  asset,
+  forceError,
+  onError,
+}: {
+  mountain: Mountain
+  waypoints: Waypoint[]
+  asset: MapTileAsset
+  forceError: boolean
+  onError: (error: Error) => void
+}) {
+  const hasWaypointRoute = waypoints.length >= 2
+  const handleMapReady = useCallback((map: MapLibreMap) => {
+    addRouteMapLayers(map, mountain, waypoints)
+  }, [mountain, waypoints])
 
   return (
     <section id="route" data-testid="mountain-route-section">
@@ -949,140 +1313,59 @@ function RouteReferenceSection({ mountain, waypoints }: { mountain: Mountain; wa
           }}
         >
           <div style={{ position: 'relative', padding: '14px 14px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    padding: '4px 9px',
-                    borderRadius: 'var(--radius-pill)',
-                    background: 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
-                    border: '1px solid var(--color-outline)',
-                    color: 'var(--color-on-surface-variant)',
-                    fontSize: 'var(--font-label-s-size)',
-                    lineHeight: 'var(--font-label-s-line)',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  仅参考路线
-                </span>
-                <HelpTrigger anchor="map.map-no-nav" size={14} style={{ width: 26, height: 26 }} />
-              </span>
-              <button
-                type="button"
-                style={{
-                  height: 32,
-                  padding: '0 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--color-outline)',
-                  background: 'color-mix(in srgb, var(--color-surface) 68%, transparent)',
-                  color: 'var(--color-on-surface)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: 'var(--font-label-s-size)',
-                  fontWeight: 700,
-                  fontFamily: 'inherit',
-                  cursor: 'pointer',
-                }}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                放大
-              </button>
-            </div>
-            <div
+            <PmtilesSnapshotMap
+              asset={asset}
+              ariaLabel={hasWaypointRoute ? '真实离线底图上的路线参考图' : '真实离线底图上的山峰位置参考图'}
+              forceError={forceError}
+              onMapReady={handleMapReady}
+              onError={onError}
               style={{
-                height: 240,
                 borderRadius: 'var(--radius-lg)',
                 border: '1px solid var(--color-outline)',
-                background: 'color-mix(in srgb, var(--color-surface) 78%, var(--color-surface-variant))',
-                overflow: 'hidden',
               }}
             >
-              <svg viewBox="0 0 320 180" width="100%" height="100%" role="img" aria-label="静态路线参考图">
-                <defs>
-                  <pattern id="route-contour" width="54" height="36" patternUnits="userSpaceOnUse">
-                    <path d="M-8 24 C12 10 30 10 62 24" fill="none" stroke="var(--color-outline)" strokeOpacity="0.42" strokeWidth="1" />
-                  </pattern>
-                </defs>
-                <rect width="320" height="180" fill="url(#route-contour)" opacity="0.9" />
-                <path d={path} fill="none" stroke="var(--color-trail)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="8 8" />
-                {points.map((point, index) => {
-                  const color =
-                    point.tone === 'success'
-                      ? 'var(--color-success)'
-                      : point.tone === 'warn'
-                        ? 'var(--color-warning)'
-                        : 'var(--color-on-surface-variant)'
-                  return (
-                    <g key={point.waypoint.id}>
-                      {index === 0 ? <circle cx={point.x} cy={point.y} r="7" fill="var(--color-surface)" stroke="var(--color-on-surface-variant)" strokeWidth="2" /> : null}
-                      <circle cx={point.x} cy={point.y} r={point.tone === 'success' ? 6 : 4.5} fill={color} />
-                    </g>
-                  )
-                })}
-                {summit ? (
-                  <g>
-                    <path d={`M ${summit.x - 11} ${summit.y - 13} L ${summit.x} ${summit.y - 31} L ${summit.x + 11} ${summit.y - 13} Z`} fill="var(--color-success)" opacity="0.92" />
-                    <text x={Math.min(236, Math.max(12, summit.x - 20))} y={Math.max(16, summit.y - 38)} fill="var(--color-success)" fontSize="10" fontWeight="700" fontFamily="var(--font-mono)">
-                      顶峰 {formatInteger(summit.waypoint.elevation)}m
-                    </text>
-                  </g>
-                ) : null}
-              </svg>
-            </div>
+              <RouteMapTopControls />
+            </PmtilesSnapshotMap>
           </div>
-          <div style={{ display: 'flex', gap: 6, padding: '12px 14px 8px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {points.map((point) => (
-              <div
-                key={`strip-${point.waypoint.id}`}
-                style={{
-                  flex: '0 0 auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '6px 10px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--color-outline)',
-                  background: 'color-mix(in srgb, var(--color-on-surface) 3%, transparent)',
-                  maxWidth: 180,
-                }}
-              >
-                <span
-                  aria-hidden
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 'var(--radius-pill)',
-                    flexShrink: 0,
-                    background:
-                      point.tone === 'success'
-                        ? 'var(--color-success)'
-                        : point.tone === 'warn'
-                          ? 'var(--color-warning)'
-                          : 'var(--color-on-surface-variant)',
-                  }}
-                />
-                <span style={{ color: 'var(--color-on-surface)', fontSize: 'var(--font-label-s-size)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {point.waypoint.name}
-                </span>
-                <span style={{ color: 'var(--color-on-surface-variant)', fontFamily: 'var(--font-mono)', fontSize: 10, whiteSpace: 'nowrap' }}>
-                  {point.waypoint.elevation === null ? '--' : `${formatInteger(point.waypoint.elevation)}m`}
-                </span>
-              </div>
-            ))}
-          </div>
+          {hasWaypointRoute ? <RouteWaypointStrip waypoints={waypoints} /> : <RouteSummitOnlyStrip mountain={mountain} />}
           <div style={{ padding: '0 14px 12px', color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>
-            仅作路线示意 · 不是导航地图，山区请以现场判断为准
+            {hasWaypointRoute
+              ? '仅作路线示意 · 不是导航地图，山区请以现场判断为准'
+              : '暂无关键点位 · 仅展示山峰位置与离线底图，不是导航地图'}
           </div>
         </div>
       </div>
     </section>
   )
+}
+
+function RouteReferenceSection({
+  mountain,
+  waypoints,
+  forceMapError,
+}: {
+  mountain: Mountain
+  waypoints: Waypoint[]
+  forceMapError: boolean
+}) {
+  const asset = getMountainPmtilesAsset(mountain.id)
+  const fallbackSegments = getFallbackSegments(mountain, waypoints)
+  const [mapFailed, setMapFailed] = useState(false)
+
+  if (asset && !mapFailed) {
+    return (
+      <RoutePmtilesCard
+        mountain={mountain}
+        waypoints={waypoints}
+        asset={asset}
+        forceError={forceMapError}
+        onError={() => setMapFailed(true)}
+      />
+    )
+  }
+
+  if (fallbackSegments) return <RouteTextFallback segments={fallbackSegments} />
+  return <RouteUnavailable />
 }
 
 function FeaturedSection({ posts }: { posts: CommunityPostViewModel[] }) {
@@ -1228,10 +1511,16 @@ export default function MountainDetailClient({
   waypoints,
   featuredPosts,
   heroImages,
+  routeMockEnabled,
+  forceRouteMapError,
 }: MountainDetailClientProps) {
   const router = useRouter()
   const routeFacts = getRouteFacts(mountain)
   const [licenseSheetOpen, setLicenseSheetOpen] = useState(false)
+  const displayWaypoints = useMemo(
+    () => (routeMockEnabled ? buildFu47bMockWaypoints(mountain) : waypoints),
+    [mountain, routeMockEnabled, waypoints],
+  )
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -1307,14 +1596,14 @@ export default function MountainDetailClient({
       />
 
       <WeatherSection mountain={mountain} />
-      <RouteReferenceSection mountain={mountain} waypoints={waypoints} />
-      {waypoints.length > 0 ? <WaypointSection waypoints={waypoints} /> : null}
+      <RouteReferenceSection mountain={mountain} waypoints={displayWaypoints} forceMapError={forceRouteMapError} />
+      {displayWaypoints.length > 0 ? <WaypointSection waypoints={displayWaypoints} /> : null}
       {featuredPosts.length > 0 ? <FeaturedSection posts={featuredPosts} /> : null}
 
       <BottomCTA
         mountain={mountain}
         requiresLogin={requiresLogin}
-        hasWaypoints={waypoints.length > 0}
+        hasWaypoints={displayWaypoints.length > 0}
       />
       <LicenseProgressSheet
         open={licenseSheetOpen}

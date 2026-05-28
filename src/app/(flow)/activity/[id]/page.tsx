@@ -15,6 +15,8 @@ type MountainRelation = {
   altitude: number | null
   province: string | null
   difficulty?: string | null
+  latitude?: number | string | null
+  longitude?: number | string | null
   cover_image?: string | null
   gallery_images?: string[] | null
 }
@@ -62,6 +64,8 @@ type CheckinAssetRow = {
 }
 
 type RawTrackPoint = {
+  lat: number | null
+  lng: number | null
   altitude: number | null
   time: string | null
 }
@@ -70,12 +74,12 @@ const CHECKIN_SELECT_FULL = `
   id, user_id, mountain_id, type, source, photo_url, note, session_id, verified_at, created_at,
   distance_meters, duration_seconds, elevation_gain_meters, max_elevation_meters, min_elevation_meters,
   start_time, end_time, track_points,
-  mountains(id, name, altitude, province, difficulty, cover_image, gallery_images)
+  mountains(id, name, altitude, province, difficulty, latitude, longitude, cover_image, gallery_images)
 `
 
 const CHECKIN_SELECT_LEGACY = `
   id, user_id, mountain_id, type, source, photo_url, note, session_id, verified_at, created_at,
-  mountains(id, name, altitude, province, difficulty, cover_image, gallery_images)
+  mountains(id, name, altitude, province, difficulty, latitude, longitude, cover_image, gallery_images)
 `
 
 function firstRelation<T>(value: T | T[] | null | undefined) {
@@ -94,6 +98,8 @@ function parseTrackPoints(value: unknown): RawTrackPoint[] {
   return value.flatMap((item) => {
     if (!item || typeof item !== 'object') return []
     const raw = item as Record<string, unknown>
+    const lat = toNumber(raw.lat) ?? toNumber(raw.latitude) ?? null
+    const lng = toNumber(raw.lng) ?? toNumber(raw.lon) ?? toNumber(raw.longitude) ?? null
     const altitude =
       toNumber(raw.altitude) ??
       toNumber(raw.elevation) ??
@@ -107,9 +113,12 @@ function parseTrackPoints(value: unknown): RawTrackPoint[] {
           ? new Date(raw.ts).toISOString()
           : null
 
-    if (altitude === null && !time) return []
+    const hasValidCoordinate =
+      lat !== null && lng !== null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && !(lat === 0 && lng === 0)
 
-    return [{ altitude, time }]
+    if (altitude === null && !time && !hasValidCoordinate) return []
+
+    return [{ lat: hasValidCoordinate ? lat : null, lng: hasValidCoordinate ? lng : null, altitude, time }]
   })
 }
 
@@ -171,12 +180,26 @@ async function fetchCheckin(supabase: Awaited<ReturnType<typeof createSupabaseSe
   }
 }
 
+type ActivityDetailSearchParams = {
+  fu47bActivityMapError?: string | string[]
+}
+
+function resolveActivityMapError(value: string | string[] | undefined): 'mountain' | null {
+  const resolved = Array.isArray(value) ? value[0] : value
+  if (process.env.NODE_ENV === 'production') return null
+  return resolved === 'mountain' ? resolved : null
+}
+
 export default async function ActivityDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams?: Promise<ActivityDetailSearchParams>
 }) {
   const { id } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const activityMapError = resolveActivityMapError(resolvedSearchParams.fu47bActivityMapError)
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -226,6 +249,11 @@ export default async function ActivityDetailPage({
   const sessionSamples = parseTrackPoints(session?.track_points)
   const checkinSamples = parseTrackPoints(checkin.track_points)
   const trackSamples = sessionSamples.length ? sessionSamples : checkinSamples
+  const trackPoints = trackSamples.flatMap((point) =>
+    point.lat === null || point.lng === null
+      ? []
+      : [{ lat: point.lat, lng: point.lng, altitude: point.altitude, time: point.time }]
+  )
   const elevationSamples = trackSamples.flatMap((point) =>
     point.altitude === null ? [] : [Math.round(point.altitude)]
   )
@@ -284,6 +312,8 @@ export default async function ActivityDetailPage({
       region: mountain?.province ?? '未关联地区',
       coverImage: mountain?.cover_image ?? null,
       difficulty: mountain?.difficulty ?? null,
+      latitude: toNumber(mountain?.latitude),
+      longitude: toNumber(mountain?.longitude),
     },
     metrics: {
       maxAltitudeM: Math.round(maxAltitude),
@@ -295,9 +325,10 @@ export default async function ActivityDetailPage({
     note: checkin.note?.trim() ?? '',
     photos,
     elevationSamples,
+    trackPoints,
     proofStatus,
     recordCount: countResult.count ?? 0,
   }
 
-  return <ActivityDetailClient activity={activity} />
+  return <ActivityDetailClient activity={activity} activityMapError={activityMapError} />
 }

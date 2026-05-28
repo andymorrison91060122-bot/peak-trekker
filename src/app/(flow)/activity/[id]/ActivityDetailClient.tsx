@@ -43,6 +43,13 @@ export type ActivityWaypointViewModel = {
   tone: 'fg' | 'fg2' | 'warning' | 'success'
 }
 
+export type ActivityTrackPointViewModel = {
+  lat: number
+  lng: number
+  altitude: number | null
+  time: string | null
+}
+
 export type ActivityCompanionViewModel = {
   id: string
   name: string
@@ -67,6 +74,8 @@ export type ActivityDetailViewModel = {
     region: string
     coverImage: string | null
     difficulty: string | null
+    latitude: number | null
+    longitude: number | null
   }
   metrics: {
     maxAltitudeM: number
@@ -80,8 +89,14 @@ export type ActivityDetailViewModel = {
   waypoints?: ActivityWaypointViewModel[]
   companions?: ActivityCompanionViewModel[]
   elevationSamples: number[]
+  trackPoints: ActivityTrackPointViewModel[]
   proofStatus: 'confirmed' | 'partial' | 'none'
   recordCount: number
+}
+
+type ActivityDetailClientProps = {
+  activity: ActivityDetailViewModel
+  activityMapError?: 'mountain' | null
 }
 
 const monoStyle: CSSProperties = {
@@ -1399,7 +1414,7 @@ function ActivityInlineActions({ activity }: { activity: ActivityDetailViewModel
   )
 }
 
-export default function ActivityDetailClient({ activity }: { activity: ActivityDetailViewModel }) {
+export default function ActivityDetailClient({ activity, activityMapError = null }: ActivityDetailClientProps) {
   const router = useRouter()
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [savedNote, setSavedNote] = useState(activity.note)
@@ -1705,7 +1720,7 @@ export default function ActivityDetailClient({ activity }: { activity: ActivityD
       />
       {renderedActivity.isSummit ? <SummitReachedCard activity={renderedActivity} /> : <MaxAltitudeCard activity={renderedActivity} />}
       <KeyDataGrid activity={renderedActivity} />
-      <ActivityRouteMap activity={renderedActivity} />
+      <ActivityRouteMap activity={renderedActivity} forceMapError={activityMapError} />
       <RouteSnapshot activity={renderedActivity} />
       <PhotoStrip
         activity={renderedActivity}

@@ -1,6 +1,34 @@
-import type { ActivityDetailViewModel } from '@/app/(flow)/activity/[id]/ActivityDetailClient'
+'use client'
+
+import { useCallback, useMemo, useState } from 'react'
+import type { Map as MapLibreMap } from 'maplibre-gl'
+import type { ActivityDetailViewModel, ActivityTrackPointViewModel } from '@/app/(flow)/activity/[id]/ActivityDetailClient'
+import PmtilesSnapshotMap from '@/components/map/PmtilesSnapshotMap'
+import {
+  getMountainPmtilesAsset,
+  type MapTileAsset,
+  type MapTileBbox,
+} from '@/lib/map/map-assets'
+
+type ProjectedPoint = {
+  x: number
+  y: number
+  altitude: number | null
+  time: string | null
+}
+
+type ProjectedTrace = {
+  d: string | null
+  points: ProjectedPoint[]
+  start: ProjectedPoint
+  end: ProjectedPoint
+  summit: ProjectedPoint
+}
 
 const routeNumberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+const TRACE_FRAME = { width: 343, height: 343, padding: 38 }
+const COORDINATE_EPSILON = 0.0000001
+const ACTIVITY_LAYER_PREFIX = 'fu47b-activity-route'
 
 function formatRouteTime(value: string | null) {
   if (!value) return '--:--'
@@ -9,122 +37,476 @@ function formatRouteTime(value: string | null) {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
-function formatWaypointAltitude(value: number) {
+function formatDistance(value: number) {
   if (value <= 0) return '--'
-  return `${routeNumberFormatter.format(Math.round(value))}m`
+  return `${value.toFixed(value >= 10 ? 0 : 1)} km`
 }
 
-function formatWaypointTime(value: string) {
-  if (/^\d{2}:\d{2}$/.test(value)) return value
-  return formatRouteTime(value)
+function formatDuration(totalSeconds: number) {
+  if (totalSeconds <= 0) return '--'
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  if (hours > 0) return `${hours}h ${String(minutes).padStart(2, '0')}m`
+  return `${minutes}m`
 }
 
-const fallbackWaypoints = [
-  { time: '04:22', name: '大本营 · 出发', altitudeM: 4280, tone: 'fg' as const },
-  { time: '08:48', name: 'C1 高营地 · 短歇', altitudeM: 5100, tone: 'fg2' as const },
-  { time: '11:36', name: '冰雪过渡带 · 结组', altitudeM: 5800, tone: 'warning' as const },
-  { time: '13:24', name: '山顶 · 留证', altitudeM: 6178, tone: 'success' as const },
-]
+function formatAltitude(value: number) {
+  if (value <= 0) return '--'
+  return `${routeNumberFormatter.format(Math.round(value))} m`
+}
 
-export default function ActivityRouteMap({ activity }: { activity: ActivityDetailViewModel }) {
-  const summitTime = formatRouteTime(activity.summitAt)
-  const contourOpacities = [0.28, 0.255, 0.23, 0.205, 0.18, 0.155, 0.13]
-  // TODO: Replace fallback rows with activity.waypoints after the Activity waypoint data contract lands.
-  const waypoints = activity.waypoints?.length ? activity.waypoints : fallbackWaypoints
+function isValidTrackPoint(point: ActivityTrackPointViewModel) {
+  return (
+    Number.isFinite(point.lat) &&
+    Number.isFinite(point.lng) &&
+    point.lat >= -90 &&
+    point.lat <= 90 &&
+    point.lng >= -180 &&
+    point.lng <= 180 &&
+    !(point.lat === 0 && point.lng === 0)
+  )
+}
+
+function sampleTrackPoints(points: ActivityTrackPointViewModel[], maxPoints = 96) {
+  if (points.length <= maxPoints) return points
+  const step = Math.max(1, Math.ceil(points.length / maxPoints))
+  const sampled = points.filter((_, index) => index % step === 0)
+  const lastPoint = points.at(-1)!
+  return sampled.at(-1) === lastPoint ? sampled : [...sampled, lastPoint]
+}
+
+function getGeoTracePoints(points: ActivityTrackPointViewModel[]) {
+  return sampleTrackPoints(points.filter(isValidTrackPoint))
+}
+
+function getSummitTrackPoint(points: ActivityTrackPointViewModel[]) {
+  return points.reduce<ActivityTrackPointViewModel | null>((best, point) => {
+    if (point.altitude === null) return best
+    if (!best || best.altitude === null || point.altitude > best.altitude) return point
+    return best
+  }, null) ?? points[Math.floor(points.length * 0.58)] ?? points.at(-1) ?? null
+}
+
+function addOrReplaceGeoJsonSource(map: MapLibreMap, id: string, data: GeoJSON.GeoJSON) {
+  if (map.getSource(id)) {
+    const source = map.getSource(id) as { setData?: (nextData: GeoJSON.GeoJSON) => void }
+    source.setData?.(data)
+    return
+  }
+  map.addSource(id, {
+    type: 'geojson',
+    data,
+  })
+}
+
+function removeLayerIfPresent(map: MapLibreMap, id: string) {
+  if (map.getLayer(id)) map.removeLayer(id)
+}
+
+function addLayerIfMissing(map: MapLibreMap, layer: Parameters<MapLibreMap['addLayer']>[0]) {
+  if (!map.getLayer(layer.id)) map.addLayer(layer)
+}
+
+function addActivityGeoJsonLayers(map: MapLibreMap, rawPoints: ActivityTrackPointViewModel[]) {
+  const points = getGeoTracePoints(rawPoints)
+  if (!points.length) return
+  const summit = getSummitTrackPoint(points)
+  const start = points[0] ?? null
+  const end = points.at(-1) ?? null
+  const markerFeatures = [
+    start ? { point: start, label: '起', tone: 'start' } : null,
+    summit ? { point: summit, label: `山顶 · ${formatRouteTime(summit.time)}`, tone: 'summit' } : null,
+    end ? { point: end, label: '回营', tone: 'end' } : null,
+  ].filter((feature): feature is { point: ActivityTrackPointViewModel; label: string; tone: string } => Boolean(feature))
+
+  ;[
+    `${ACTIVITY_LAYER_PREFIX}-marker-labels`,
+    `${ACTIVITY_LAYER_PREFIX}-markers`,
+    `${ACTIVITY_LAYER_PREFIX}-line`,
+  ].forEach((layerId) => removeLayerIfPresent(map, layerId))
+
+  if (points.length >= 2) {
+    addOrReplaceGeoJsonSource(map, `${ACTIVITY_LAYER_PREFIX}-line-source`, {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: points.map((point) => [point.lng, point.lat]),
+      },
+      properties: {},
+    })
+  }
+  addOrReplaceGeoJsonSource(map, `${ACTIVITY_LAYER_PREFIX}-markers-source`, {
+    type: 'FeatureCollection',
+    features: markerFeatures.map((feature) => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [feature.point.lng, feature.point.lat],
+      },
+      properties: {
+        label: feature.label,
+        tone: feature.tone,
+      },
+    })),
+  })
+
+  if (points.length >= 2) {
+    addLayerIfMissing(map, {
+      id: `${ACTIVITY_LAYER_PREFIX}-line`,
+      type: 'line',
+      source: `${ACTIVITY_LAYER_PREFIX}-line-source`,
+      paint: {
+        'line-color': '#7ef0b4',
+        'line-width': 3.2,
+        'line-opacity': 0.94,
+      },
+    })
+  }
+  addLayerIfMissing(map, {
+    id: `${ACTIVITY_LAYER_PREFIX}-markers`,
+    type: 'circle',
+    source: `${ACTIVITY_LAYER_PREFIX}-markers-source`,
+    paint: {
+      'circle-radius': ['case', ['==', ['get', 'tone'], 'summit'], 7, 5.5],
+      'circle-color': ['case', ['==', ['get', 'tone'], 'summit'], '#7ef0b4', ['==', ['get', 'tone'], 'start'], '#d7dde2', '#59c48c'],
+      'circle-stroke-color': '#07130f',
+      'circle-stroke-width': 1.7,
+    },
+  })
+  addLayerIfMissing(map, {
+    id: `${ACTIVITY_LAYER_PREFIX}-marker-labels`,
+    type: 'symbol',
+    source: `${ACTIVITY_LAYER_PREFIX}-markers-source`,
+    layout: {
+      'text-field': ['get', 'label'],
+      'text-font': ['Noto Sans Regular'],
+      'text-size': 11,
+      'text-offset': [0, 1.15],
+      'text-anchor': 'top',
+    },
+    paint: {
+      'text-color': '#eef7f1',
+      'text-halo-color': '#07130f',
+      'text-halo-width': 1.4,
+    },
+  })
+}
+
+function projectUnitPoint(x: number, y: number): Pick<ProjectedPoint, 'x' | 'y'> {
+  const usableWidth = TRACE_FRAME.width - TRACE_FRAME.padding * 2
+  const usableHeight = TRACE_FRAME.height - TRACE_FRAME.padding * 2
+  return {
+    x: Number((TRACE_FRAME.padding + Math.max(0, Math.min(1, x)) * usableWidth).toFixed(2)),
+    y: Number((TRACE_FRAME.padding + Math.max(0, Math.min(1, y)) * usableHeight).toFixed(2)),
+  }
+}
+
+function normalizeVisualTrace(points: ActivityTrackPointViewModel[]) {
+  const lats = points.map((point) => point.lat)
+  const lngs = points.map((point) => point.lng)
+  const minLat = Math.min(...lats)
+  const maxLat = Math.max(...lats)
+  const minLng = Math.min(...lngs)
+  const maxLng = Math.max(...lngs)
+  const latRange = maxLat - minLat
+  const lngRange = maxLng - minLng
+
+  return points.map((point) => {
+    const x = lngRange <= COORDINATE_EPSILON ? 0.5 : (point.lng - minLng) / lngRange
+    const y = latRange <= COORDINATE_EPSILON ? 0.5 : (maxLat - point.lat) / latRange
+    return { ...projectUnitPoint(x, y), altitude: point.altitude, time: point.time }
+  })
+}
+
+function normalizeBboxTrace(points: ActivityTrackPointViewModel[], bbox: MapTileBbox) {
+  const lngRange = bbox[2] - bbox[0]
+  const latRange = bbox[3] - bbox[1]
+
+  return points.map((point) => {
+    const x = lngRange <= COORDINATE_EPSILON ? 0.5 : (point.lng - bbox[0]) / lngRange
+    const y = latRange <= COORDINATE_EPSILON ? 0.5 : (bbox[3] - point.lat) / latRange
+    return { ...projectUnitPoint(x, y), altitude: point.altitude, time: point.time }
+  })
+}
+
+function buildProjectedTrace(
+  rawPoints: ActivityTrackPointViewModel[],
+  mode: 'bbox' | 'visual',
+  bbox?: MapTileBbox,
+): ProjectedTrace | null {
+  const points = sampleTrackPoints(rawPoints.filter(isValidTrackPoint))
+  if (!points.length) return null
+
+  const projected = mode === 'bbox' && bbox ? normalizeBboxTrace(points, bbox) : normalizeVisualTrace(points)
+  const start = projected[0]!
+  const end = projected.at(-1)!
+  const summit =
+    projected.reduce<ProjectedPoint | null>((best, point) => {
+      if (point.altitude === null) return best
+      if (!best || best.altitude === null || point.altitude > best.altitude) return point
+      return best
+    }, null) ?? projected[Math.floor(projected.length * 0.58)] ?? end
+
+  return {
+    points: projected,
+    start,
+    end,
+    summit,
+    d: projected.length > 1
+      ? projected.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ')
+      : null,
+  }
+}
+
+function TraceOverlay({
+  trace,
+  summitTime,
+  noMap = false,
+}: {
+  trace: ProjectedTrace | null
+  summitTime: string | null
+  noMap?: boolean
+}) {
+  const fallbackTrace = trace ?? {
+    d: 'M 38 300 Q 88 278 126 252 T 196 186 T 212 150 L 220 158 Q 238 206 282 300',
+    start: { x: 38, y: 300, altitude: null, time: null },
+    end: { x: 282, y: 300, altitude: null, time: null },
+    summit: { x: 212, y: 150, altitude: null, time: summitTime },
+    points: [],
+  }
 
   return (
-    <section className="act-route" data-testid="activity-route-map">
+    <svg
+      className="act-route__svg"
+      viewBox="0 0 343 343"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}
+    >
+      <defs>
+        <linearGradient id="act-route-trace" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stopColor="var(--color-primary)" />
+          <stop offset="100%" stopColor="var(--color-success)" />
+        </linearGradient>
+        <radialGradient id="act-route-no-map-bg" cx="58%" cy="38%" r="60%">
+          <stop offset="0%" stopColor="var(--color-surface-elevated)" />
+          <stop offset="100%" stopColor="var(--color-surface)" />
+        </radialGradient>
+      </defs>
+      {noMap ? (
+        <>
+          <rect width="343" height="343" fill="url(#act-route-no-map-bg)" />
+          {Array.from({ length: 7 }, (_, index) => (
+            <ellipse
+              key={index}
+              cx="200"
+              cy="140"
+              rx={28 + index * 22}
+              ry={16 + index * 12}
+              stroke={`rgba(141,149,155,${0.28 - index * 0.025})`}
+              strokeWidth="1"
+              fill="none"
+            />
+          ))}
+        </>
+      ) : null}
+      {fallbackTrace.d ? (
+        <path
+          className="act-route__trace"
+          d={fallbackTrace.d}
+          stroke="url(#act-route-trace)"
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : null}
+      <circle cx={fallbackTrace.start.x} cy={fallbackTrace.start.y} r="6" className="act-route__marker-start" />
+      <text x={fallbackTrace.start.x + 10} y={fallbackTrace.start.y + 4} className="act-route__marker-label">
+        起
+      </text>
+      <circle cx={fallbackTrace.end.x} cy={fallbackTrace.end.y} r="6" className="act-route__marker-end" />
+      <text x={fallbackTrace.end.x - 28} y={fallbackTrace.end.y + 4} className="act-route__marker-label">
+        回营
+      </text>
+      <path
+        d={`M ${fallbackTrace.summit.x - 8} ${fallbackTrace.summit.y + 4} L ${fallbackTrace.summit.x} ${fallbackTrace.summit.y - 14} L ${fallbackTrace.summit.x + 8} ${fallbackTrace.summit.y + 4} Z`}
+        className="act-route__summit-triangle"
+      />
+      <circle cx={fallbackTrace.summit.x} cy={fallbackTrace.summit.y} r="11" className="act-route__summit-ring" />
+      <text
+        x={Math.min(250, Math.max(16, fallbackTrace.summit.x - 28))}
+        y={Math.max(18, fallbackTrace.summit.y - 28)}
+        className="act-route__summit-label"
+      >
+        山顶 · {formatRouteTime(fallbackTrace.summit.time ?? summitTime)}
+      </text>
+    </svg>
+  )
+}
+
+function MapChrome({ noMap = false }: { noMap?: boolean }) {
+  return (
+    <>
+      <div className="act-route__status-chip">完成轨迹</div>
+      {noMap ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 12,
+            right: 12,
+            bottom: 12,
+            zIndex: 2,
+            padding: '8px 10px',
+            borderRadius: 'var(--radius-md)',
+            background: 'color-mix(in srgb, var(--color-surface) 78%, transparent)',
+            border: '1px solid var(--color-outline)',
+            color: 'var(--color-on-surface-variant)',
+            backdropFilter: 'blur(10px)',
+            fontSize: 'var(--font-label-s-size)',
+            lineHeight: 'var(--font-label-s-line)',
+          }}
+        >
+          仅可预览轨迹
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+function StatStrip({ activity }: { activity: ActivityDetailViewModel }) {
+  const stats = [
+    { label: '总距离', value: formatDistance(activity.metrics.distanceKm) },
+    { label: '用时', value: formatDuration(activity.metrics.durationSeconds) },
+    { label: '最高点', value: formatAltitude(activity.metrics.maxAltitudeM), accent: true },
+  ]
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', borderTop: '1px solid var(--color-outline)' }}>
+      {stats.map((stat, index) => (
+        <div
+          key={stat.label}
+          style={{
+            padding: '12px 10px',
+            textAlign: 'center',
+            borderRight: index === stats.length - 1 ? 'none' : '1px solid var(--color-outline)',
+            minWidth: 0,
+          }}
+        >
+          <div
+            style={{
+              color: stat.accent ? 'var(--color-success)' : 'var(--color-on-surface)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 14,
+              lineHeight: 'var(--font-title-m-line)',
+              fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {stat.value}
+          </div>
+          <div style={{ marginTop: 3, color: 'var(--color-on-surface-variant)', fontSize: 10, lineHeight: 1.25 }}>
+            {stat.label}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function NoMapTraceCard({ trace, summitTime }: { trace: ProjectedTrace | null; summitTime: string | null }) {
+  return (
+    <div
+      className="act-route__map-placeholder"
+      role="img"
+      aria-label="轨迹预览卡片"
+      style={{ height: 'auto', aspectRatio: '1 / 1', background: 'var(--color-surface)' }}
+    >
+      <TraceOverlay trace={trace} summitTime={summitTime} noMap />
+      <MapChrome noMap />
+    </div>
+  )
+}
+
+function MapTraceCard({
+  asset,
+  trace,
+  rawPoints,
+  summitTime,
+  forceError,
+  onError,
+  useGeoJsonTrace,
+}: {
+  asset: MapTileAsset
+  trace: ProjectedTrace | null
+  rawPoints: ActivityTrackPointViewModel[]
+  summitTime: string | null
+  forceError: boolean
+  onError: (error: Error) => void
+  useGeoJsonTrace: boolean
+}) {
+  const handleMapReady = useCallback((map: MapLibreMap) => {
+    if (useGeoJsonTrace) addActivityGeoJsonLayers(map, rawPoints)
+  }, [rawPoints, useGeoJsonTrace])
+
+  return (
+    <PmtilesSnapshotMap
+      asset={asset}
+      ariaLabel="这次活动走过的路线静态快照"
+      forceError={forceError}
+      onMapReady={handleMapReady}
+      onError={onError}
+    >
+      {useGeoJsonTrace ? null : <TraceOverlay trace={trace} summitTime={summitTime} />}
+      <MapChrome />
+    </PmtilesSnapshotMap>
+  )
+}
+
+export default function ActivityRouteMap({
+  activity,
+  forceMapError = null,
+}: {
+  activity: ActivityDetailViewModel
+  forceMapError?: 'mountain' | null
+}) {
+  const mountainAsset = getMountainPmtilesAsset(activity.mountain.id)
+  const [mountainMapFailed, setMountainMapFailed] = useState(false)
+  const forceMountainError = forceMapError === 'mountain'
+  const useMountainAsset = Boolean(mountainAsset && !mountainMapFailed)
+  const summitTime = activity.summitAt
+  const trace = useMemo(
+    () => buildProjectedTrace(activity.trackPoints, useMountainAsset && mountainAsset ? 'bbox' : 'visual', mountainAsset?.bbox),
+    [activity.trackPoints, mountainAsset, useMountainAsset],
+  )
+
+  return (
+    <section className="act-route" data-testid="activity-route-map" data-map-mode={useMountainAsset ? 'mountain-pmtiles' : 'trace-only'}>
       <div className="act-route__section-head">
         <div className="act-route__section-title">走过的路线</div>
         <div className="act-route__section-right">完整轨迹</div>
       </div>
 
       <div className="act-route__card">
-        <div className="act-route__map-placeholder" role="img" aria-label="这次活动走过的路线静态快照">
-          <svg className="act-route__svg" viewBox="0 0 343 200" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-              <radialGradient id="act-route-map-bg" cx="58%" cy="38%" r="60%">
-                <stop offset="0%" stopColor="var(--color-surface-elevated)" />
-                <stop offset="100%" stopColor="var(--color-surface)" />
-              </radialGradient>
-              <linearGradient id="act-route-trace" x1="0" y1="1" x2="1" y2="0">
-                <stop offset="0%" stopColor="var(--color-primary)" />
-                <stop offset="100%" stopColor="var(--color-success)" />
-              </linearGradient>
-            </defs>
-
-            <rect width="343" height="200" fill="url(#act-route-map-bg)" />
-            {contourOpacities.map((opacity, index) => (
-              <ellipse
-                key={opacity}
-                className="act-route__contour"
-                cx="200"
-                cy="86"
-                rx={28 + index * 22}
-                ry={16 + index * 12}
-                stroke={`rgba(141,149,155,${opacity})`}
-                strokeWidth="1"
-                fill="none"
-              />
-            ))}
-
-            <path
-              className="act-route__trace"
-              d="M30 168 Q70 152 100 144 T160 122 T196 90 L200 86 L208 90 Q220 110 240 132 T300 168"
-              stroke="url(#act-route-trace)"
-              strokeWidth="2.6"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-
-            <circle cx="30" cy="168" r="6" className="act-route__marker-start" />
-            <text x="40" y="172" className="act-route__marker-label">
-              起
-            </text>
-
-            <circle cx="300" cy="168" r="6" className="act-route__marker-end" />
-            <text x="278" y="172" className="act-route__marker-label">
-              回营
-            </text>
-
-            <path d="M192 78 L200 60 L208 78 Z" className="act-route__summit-triangle" />
-            <circle cx="200" cy="74" r="11" className="act-route__summit-ring" />
-            <text x="172" y="46" className="act-route__summit-label">
-              山顶 · {summitTime}
-            </text>
-          </svg>
-
-          <div className="act-route__status-chip">完成轨迹</div>
-          <button className="act-route__expand-btn" type="button" aria-label="放大路线地图（暂未开放）">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            放大
-          </button>
-        </div>
-
-        <div className="act-waypoints" data-testid="activity-waypoint-timeline">
-          {waypoints.map((point, index) => (
-            <div className="act-waypoint" key={`${point.time}-${point.name}`}>
-              <div className="act-waypoint__time">{formatWaypointTime(point.time)}</div>
-              <div className="act-waypoint__dot-cell" aria-hidden="true">
-                <span className={`act-waypoint__dot act-waypoint__dot--${point.tone}`} />
-              </div>
-              <div className="act-waypoint__body">
-                <span className="act-waypoint__name">{point.name}</span>
-                <span className="act-waypoint__altitude">{formatWaypointAltitude(point.altitudeM)}</span>
-              </div>
-              {index < waypoints.length - 1 ? <span className="act-waypoint__divider" aria-hidden="true" /> : null}
-            </div>
-          ))}
-        </div>
+        {!useMountainAsset || !mountainAsset ? (
+          <NoMapTraceCard trace={trace} summitTime={summitTime} />
+        ) : (
+          <MapTraceCard
+            asset={mountainAsset}
+            trace={trace}
+            rawPoints={activity.trackPoints}
+            summitTime={summitTime}
+            forceError={forceMountainError}
+            useGeoJsonTrace
+            onError={() => {
+              setMountainMapFailed(true)
+            }}
+          />
+        )}
+        <StatStrip activity={activity} />
       </div>
     </section>
   )

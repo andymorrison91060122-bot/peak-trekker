@@ -600,6 +600,214 @@ P0 前端只显示这些字段即可：
 * 没有把天气能力扩成专业天气产品
 * 没有把实现复杂度拖离当前产品主线
 
+## 15.4 PMTiles per-mountain pipeline
+
+### 15.4.1 本节范围
+
+FU-47(b) 仅落地 Mountain Detail / Activity Detail 对已有 PMTiles 的读取与展示，并产出 per-mountain 生成 pipeline 设计。
+不在本 sprint 内执行 300 山峰全量生成、不上传新增 PMTiles、不改数据库 schema。
+
+### 15.4.2 工具链选型
+
+推荐工具链：
+
+* `tippecanoe`: 从每座山的 30km bbox OSM/GeoJSON 切片生成 z=9-12 `.pmtiles`
+* `pmtiles`: 校验与 inspect 生成结果
+* Node/TS 脚本：从 `mountains.latitude / longitude / altitude` 读取山峰中心点并生成任务清单
+* Supabase Storage CLI / SDK：上传到 `map-tiles` bucket
+
+本地安装建议：
+
+* macOS: `brew install tippecanoe`
+* CI: 用带 `tippecanoe` 的自定义 image 或在 job 开始阶段安装固定版本
+* 所有生成脚本必须输出 manifest，记录 `mountain_id / bbox / zoom / bytes / sha256 / object_path`
+
+### 15.4.3 30km bbox 生成脚本设计
+
+输入：
+
+* `mountains.id`
+* `mountains.name`
+* `mountains.latitude`
+* `mountains.longitude`
+* `mountains.weather_priority_tier`
+
+流程：
+
+1. 以山峰经纬度为中心计算 30km × 30km 正方形 bbox。
+2. 将 bbox 转换为 WGS84 经纬度范围，保留 6 位小数。
+3. 为每座山生成临时裁剪数据。
+4. 调用 `tippecanoe` 输出 z=9-12 PMTiles：
+   * `--minimum-zoom=9`
+   * `--maximum-zoom=12`
+   * `--drop-densest-as-needed`
+   * `--extend-zooms-if-still-dropping`
+   * flavor 使用 dark baseline 对应样式
+5. 运行 `pmtiles inspect` 校验 bbox / minzoom / maxzoom / tile count。
+6. 写入 manifest，供 review / 上传 / 回滚使用。
+
+### 15.4.4 Supabase Storage 命名与上传
+
+Production naming convention:
+
+```text
+basemap/{mountain-slug}-bbox30-z9-12.pmtiles
+```
+
+当前 baseline 示例：
+
+```text
+basemap/huashan-bbox30-z9-12.pmtiles
+```
+
+上传策略：
+
+* bucket: `map-tiles`
+* cache-control: `public, max-age=31536000, immutable`
+* 上传前先比对 manifest 中的 sha256 与 size，避免重复覆盖
+* 新版本若需要替换，优先使用带日期或 hash 的 object path，避免旧客户端缓存错读
+
+### 15.4.5 成本估算
+
+华山 baseline `huashan-bbox30-z9-12.pmtiles` 实测约 649,374 bytes。按 300 座估算：
+
+* Storage: 约 185.8 MiB，叠加 z=7 全国主包约 20.4 MiB，总计约 206 MiB
+* 若每座热门山每月 1,000 次地图打开，单山流量约 619 MiB/月
+* 300 山峰不会均匀达到热门访问量；应结合 `weather_priority_tier` 分批生成和监控带宽
+
+### 15.4.6 Cache invalidation
+
+PMTiles object path 一旦被客户端引用，就按长期缓存处理。失效策略：
+
+* 重大底图替换：生成新 object path，例如 `basemap/huashan-bbox30-z9-12-20260601.pmtiles`
+* `src/lib/map/map-assets.ts` registry 更新到新 path
+* 旧 path 保留至少一个发布周期，避免灰度用户空图
+* Vercel 部署完成后用浏览器验证旧 path / 新 path 均不导致页面崩溃
+
+### 15.4.7 FU-51 上线前 checklist
+
+上线前 pipeline 需逐项确认：
+
+* 生成脚本支持 dry-run，不写 Storage
+* manifest 可人工 review
+* 每个 PMTiles 都有 bbox / zoom / size / sha256
+* Storage 上传支持跳过已存在且 sha256 一致的文件
+* app registry 只登记 production baseline，不登记实验候选
+* Mountain Detail 对无 PMTiles 山不走全国 z=7 兜底
+* Activity Detail 缺 mountain-bbox PMTiles 时走 trace-only（无底图 + SVG fit-bounds trace overlay），不再使用 z=7 背景（见 §15.5.4 v0.3.4）
+* 浏览器证据覆盖 PMTiles ok / text fallback / unavailable / Activity trace-only fallback
+
+---
+
+## 15.5 客户端实施 baseline (FU-47(a) 锁定)
+
+本节定义 per-mountain PMTiles 在 Mountain Detail / Activity Detail / Trek 等所有 product surface 的统一客户端实施规范。FU-47(a) Phase 4 已经过 30km bbox × z=9-12 × dark × 1:1 多轮 visual review 并由用户验收锁定；后续 sprint 接入不允许偏离，偏离需在 plan 中显式说明并经用户 PASS。
+
+### 15.5.1 容器与几何
+
+- 容器 aspect-ratio：1:1（CSS `aspectRatio: '1 / 1'`）
+- 容器需在 mount 前有可测量尺寸；resize 时必须重新走 fit/lock 序列
+- bbox：每座山 30 km × 30 km 正方形，经纬度 envelope 围山峰中心
+- bbox 坐标精度:6 位小数
+
+### 15.5.2 视野初始化与锁定序列
+
+MapLibre Map 实例化后必须按以下 9 步执行（FU-47(a) Phase 4 视觉验过的工作顺序，缺一步均会出现视野错位）：
+
+1. `const camera = map.cameraForBounds(bbox, { padding: 0 })`
+2. `const rawZoom = camera?.zoom`
+3. `const fitZoom = Math.min(rawZoom, asset.maxZoom)`  // 钳制 ≤ asset.maxZoom (= 12)
+4. `map.setMaxBounds(null)`                              // 先解锁
+5. `map.fitBounds(bbox, { padding: 0, animate: false })` // padding 必须为 0
+6. `map.setMinZoom(0)`                                   // 临时置 0
+7. `map.setMaxZoom(asset.maxZoom)`                       // = 12
+8. `map.setMinZoom(fitZoom)`                             // dynamic 下限
+9. `map.setMaxBounds(map.getBounds())`                   // lock post-fit envelope
+
+效果：初始视野精确卡在 30 km bbox 内，用户只能在 `[fitZoom, z=12]` 范围 zoom，pan 拖动不能越过 post-fit envelope。
+
+### 15.5.3 交互模式
+
+product surface 默认全启用以下交互，由用户通过 NavigationControl / 触屏 / 滚轮等方式自由 zoom / pan within envelope：
+
+- `map.scrollZoom.enable()`
+- `map.touchZoomRotate.enable()`
+- `map.doubleClickZoom.enable()`
+- `map.keyboard.enable()`
+- `map.boxZoom.enable()`
+- `map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right')`
+
+NavigationControl 提供原生 +/− 按钮。product surface 由 NavigationControl 唯一承担 zoom UI，**不引入额外的自定义放大按钮**（防止与原生 NavigationControl 视觉冲突，2026-05-28 user 二次验收锁定）。
+
+### 15.5.4 业务叠加层
+
+所有路线 / waypoints / 端点 / pin 必须用 MapLibre GeoJSON source + layer 体系，真实经纬度地理对齐底图。**不允许**用 SVG abstract viewBox overlay 替代（viewBox 抽象坐标不会跟随底图 zoom / pan，会"飘"出真实地理位置）。
+
+最低规范：
+
+- 路线 LineString：`addSource({ type: 'geojson', data: <LineString> })` + line layer
+- 端点（起 / 终）：GeoJSON Points + circle layer + symbol label layer
+- Waypoints：GeoJSON Points + symbol/circle layer，含 elevation 标签
+- 山顶 pin（state b summit-only）：GeoJSON Point + symbol layer（顶峰 + 海拔 label）
+
+**Activity Detail 缺 mountain-bbox PMTiles fallback**：当 activity 关联的 mountain 无 per-mountain PMTiles 或 mountain-bbox PMTiles 运行时失败时，**不再降级到 z=7 全国主包底图**（z=7 全国 bbox 范围过大，trace 视觉比例失真，2026-05-28 user 二次验收明示）。直接走 **trace-only** 模式：
+
+- 深色 topo-like surface + 独立 fit-bounds SVG trace overlay
+- 起 / 山顶 / 回营 SVG markers + 3-stat strip 保留
+- "仅可预览轨迹" 文案
+- 视觉尺寸等同 share poster
+
+z=7 全国主包不作为 Activity Detail 产品 fallback；仅保留在 `src/lib/map/map-assets.ts` 供 `/debug/map-prototype` 等 debug 场景使用。SVG fit-bounds overlay 不挂 MapLibre layer 是为了保持分享海报视觉尺寸（若挂 MapLibre layer 会按底图 zoom 比例压成几像素无法分享）。
+
+### 15.5.5 Layer allowlist
+
+basemap 仅保留 24 层（FU-47(a) Phase 4 视觉验过的最小集）：
+
+background, earth, landcover, landuse_park, landuse_urban_green, landuse_beach, water, water_stream, water_river, roads_major_casing_late, roads_highway_casing_late, roads_major_casing_early, roads_major, roads_highway_casing_early, roads_highway, roads_rail, boundaries_country, boundaries, water_waterway_label, water_label_ocean, earth_label_islands, water_label_lakes, places_region, places_locality, places_country
+
+其余 layer 必须过滤。补充新 layer（例如未来加 contour 等高线）必须新开 sprint 走视觉验收，不允许 silently 扩 allowlist。
+
+### 15.5.6 Flavor
+
+- Default：dark（production 锁定）
+- Debug override：`?flavor=light|black|grayscale|white`（开发态可切，production 不暴露）
+
+### 15.5.7 Resize 处理
+
+监听 window resize → debounce 100-200ms → 重新走 §15.5.2 全 9 步序列。不允许只 fitBounds 不重设 setMaxBounds（会导致 envelope 与新容器尺寸错位）。
+
+### 15.5.8 PMTiles protocol 注册
+
+每个 MapLibre 实例创建前必须 register pmtiles protocol；跨实例必须共享 singleton 防止重复 register 错误：
+
+```
+let pmtilesProtocolRegistered = false
+
+if (!pmtilesProtocolRegistered) {
+  const protocol = new Protocol()
+  try {
+    maplibregl.addProtocol('pmtiles', protocol.tile)
+  } catch (error) {
+    if (!String(error).includes('already exists')) throw error
+  }
+  pmtilesProtocolRegistered = true
+}
+```
+
+### 15.5.9 SSR / Hydration 安全
+
+MapLibre / pmtiles / @protomaps/basemaps 必须 dynamic import 在 client-only boundaries 内，不在 SSR 阶段执行。
+
+任何 query param 驱动的 mode 切换（例如 mock state / forceError）必须在 server 端通过 `searchParams` 提前读取并通过 prop 传给 client，**不允许** client-only `useState(() => readQueryParam())` 在 hydration 后才切换状态（会引发 React hydration mismatch，触发 page error）。
+
+### 15.5.10 Imperative handle / ref
+
+product surface 需要外部按钮触发 zoomIn / zoomOut / fitBounds 时，通过 useImperativeHandle 或 callback ref 暴露 map instance subset（zoomIn / zoomOut / fitBounds）给上层。不允许保留无 onClick 的装饰按钮。
+
+### 15.5.11 偏离声明 (B13 强制)
+
+后续 sprint 实施 PMTiles client 体验时，若需偏离本节任何参数（例如改 padding 非 0 / 改 layer allowlist / 改 interactive 默认值 / 改 fit 序列），必须在 Plan 中显式列偏离点 + 理由 + 视觉对照，由用户在 Plan PASS 阶段决定。silent deviation 等同协议红线违反（codex-risk-behavior-policy B13）。
+
 ---
 
 ## 16. 对其他文档的联动要求
@@ -645,6 +853,27 @@ P0 前端只显示这些字段即可：
 > **地图可控、天气分层、热门优先、长尾可降级、边界清楚。**
 
 Peak Trekker 当前阶段不应该为了“所有山都实时天气”而牺牲主线的稳定性、可控性和上线速度。
+
+### v0.3.5 — 2026-05-28
+
+- §15.5.4 Activity trace-only fallback 文案精简：`底图暂不可用 · 轨迹预览仍可查看` → `仅可预览轨迹`（user 三次验收反馈，更短更直接）。
+
+### v0.3.4 — 2026-05-28
+
+- §15.5.3 product surface 由 NavigationControl 唯一承担 zoom UI；移除"自定义放大按钮必须接 zoomIn"要求（防止与原生控件视觉冲突，user 二次验收反馈）。
+- §15.5.4 Activity Detail 缺 mountain-bbox PMTiles 时**不再降级到 z=7 全国主包**，直接走 trace-only（无底图 + SVG fit-bounds trace overlay），视觉等同 share poster。z=7 全国主包仅保留在 `map-assets.ts` 供 debug 场景。
+- §15.4.7 上线 checklist 同步更新：Activity Detail fallback 描述从 "z=7 背景 + SVG overlay" 改为 "trace-only（无底图 + SVG fit-bounds trace overlay）"；浏览器证据清单从 "z=7 fallback" 改为 "Activity trace-only fallback"。
+
+### v0.3.3 — 2026-05-28
+
+- 新增 §15.5 客户端实施 baseline（FU-47(a) 锁定）：沉淀 30km bbox × z=9-12 × dark × 1:1 的 9 步初始化序列 / 5 项交互 enable + NavigationControl / GeoJSON layer 替代 SVG abstract / 24 个 layer allowlist / resize 重算 / PMTiles protocol singleton / SSR-safe query param / imperative handle 等实施规范。FU-47(b) patch v1 起所有 PMTiles client surface 必须严格遵循。
+- §15.5.4 明确 z=7 national fallback 的 SVG overlay 例外保留，保护分享海报视觉尺寸约束。
+
+### v0.3.2 — 2026-05-28
+
+- FU-47(b): 明确 Mountain Detail / Activity Detail 接入 per-mountain PMTiles 的 runtime 策略。
+- 新增 §15.4 PMTiles per-mountain pipeline：tippecanoe 工具链、30km bbox 生成、Supabase Storage naming、成本估算、cache invalidation 与 FU-51 checklist。
+- 约束同步：Mountain Detail 无 per-mountain PMTiles 时不使用全国 z=7 兜底；Activity Detail z=7 兜底时轨迹必须用独立 fit-bounds overlay 保持可读视觉尺寸。
 
 ### v0.3.1 — 2026-04-29
 

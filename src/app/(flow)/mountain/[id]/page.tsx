@@ -33,8 +33,26 @@ async function loadFeaturedPosts(
   }
 }
 
-export default async function MountainDetailPage({ params }: { params: Promise<{ id: string }> }) {
+type MountainDetailSearchParams = {
+  fu47bRouteMock?: string | string[]
+  fu47bMapError?: string | string[]
+}
+
+function searchFlag(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] === '1' : value === '1'
+}
+
+export default async function MountainDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<MountainDetailSearchParams>
+}) {
   const { id } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const routeMockEnabled = process.env.NODE_ENV !== 'production' && searchFlag(resolvedSearchParams.fu47bRouteMock)
+  const forceRouteMapError = process.env.NODE_ENV !== 'production' && searchFlag(resolvedSearchParams.fu47bMapError)
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -68,6 +86,8 @@ export default async function MountainDetailPage({ params }: { params: Promise<{
       waypoints={sortWaypointsByElevation(waypointsRes)}
       featuredPosts={featuredPosts}
       heroImages={getMountainDetailHeroImages(mountain, 6)}
+      routeMockEnabled={routeMockEnabled}
+      forceRouteMapError={forceRouteMapError}
     />
   )
 }

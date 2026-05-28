@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-28 · 最新版本记录: v0.40
+> Last Updated: 2026-05-28 · 最新版本记录: v0.41
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`4f8acee`（Merge FU-59 · 2026-05-28）
+`30eca40`（Merge FU-58 · 2026-05-28）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动 (候选见 v0.40 末尾推荐)
+待启动 (候选见 v0.41 末尾推荐)
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（19 条）
+## Active Follow-ups（18 条）
 
 ### FU-57 · 激活漏斗深度 (10 步细分)
 
@@ -97,21 +97,6 @@
   · `admin/analytics` overview tab 主漏斗 sub-card 改 10 步纵向展示 + 渗透率 + 每步流失原因 sub-table。
 - **不在 scope**: 不新增埋点 (现有事件已完整覆盖)。
 - **触发来源**: FU-55 patch v1 阶段 Claude 专业补充建议, user PASS。
-
----
-
-### FU-58 · 新老用户分群双轨 dashboard
-
-- **优先级**: P2
-- **归属阶段**: 阶段 6 / 上线前
-- **状态**: 🟢 active
-- **背景**: FU-55 dashboard 全部指标在同一 view 平均化, 没区分新用户 (注册 ≤ 7d) vs 老用户 (≥ 7d)。新用户首日 funnel 和老用户留存行为模式完全不同, 混在一起看是噪声。上线前判断"产品真正激活新用户"必须双轨。
-- **实施建议**:
-  · `src/lib/analytics/kpis.ts` 加用户分群参数 (`cohort: 'new' | 'returning' | 'all'`)。
-  · `admin/analytics` 每个 tab sub-block 增 cohort selector (新/老/全)。
-  · 各 cohort 单独漏斗 + 留存 + 付费 attempt。
-- **不在 scope**: 不动埋点; 仅 dashboard query + UI 改造。
-- **触发来源**: FU-55 patch v1 Claude 专业补充建议, user PASS。
 
 ---
 
@@ -457,7 +442,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（43 条）
+## Closed Follow-ups（44 条）
 
 ### FU-55 ✅ 自托管页面埋点 + admin dashboard 可视化
 
@@ -505,6 +490,33 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
   · FU-59 仅衍生 metrics from FU-55 events, 不新加埋点。
   · `cost_cny` 仍是 placeholder 0 (FU-55 B13, provider pricing 独立 FU)。
 - **风险落地**: codex-risk-behavior-policy 连续 8 个 sprint 0 红线违反 (FU-49 / FU-43 / FU-53 / FU-56 / FU-47(b) / FU-47(c) / FU-55 / FU-59)。
+
+---
+
+### FU-58 ✅ 新老用户分群双轨 dashboard
+
+- **关闭原因**: FU-58 sprint 落地 `admin/analytics` dashboard cohort 过滤轴扩展: 顶部 4 cohort selector (全部 / 新用户 / 老用户 / 匿名访客) + banner + 算法说明 + 5 tab 全部跟随 cohort 过滤。一次性 Phase 6 通过无 patch 轮, user 视觉验收 PASS。
+- **关键设计决策**:
+  · cohort 4 选项: all / new / returning / anonymous, 阈值 `NEW_USER_THRESHOLD_DAYS = 7d`。
+  · 架构选 Option B: `partitionByCohort` utility filter events 在顶层, 9 个现有 `build*` helper signature 不变, 避免大规模 refactor。
+  · `buildAnalyticsDashboardData` 签名扩展 `(events, range, schemaReady, now, cohort='all', fullHistory=events)` 保持旧调用兼容。
+  · cohort 判定基于 actor 全历史 `register_complete` event, 非 window-local。
+  · Legacy identified user (有 `user_id` 但 fullHistory 无 `register_complete`) 归 returning, 避免 FU-55 上线前已注册用户在 dashboard 上消失 (B13 关键 edge case)。
+  · Anonymous cohort: `user_id` null 的事件, actor 按 `session_id` 计。
+  · URL `?cohort=all|new|returning|anonymous` SSR-safe, `page.tsx` server-side 读取。
+  · cohort 切换后 delta 基于同 cohort 上一窗口 (与 FU-55/59 一致)。
+  · 5 tab UI 不动 (Overview/User Behavior/Paid Potential/Model Evaluation/Operational Cost 全部沿用 filtered events)。
+  · 顶部 banner 显示 cohort + 阈值 + actor 数 + 事件数。
+  · cohort 划分说明 collapsible 默认展开, 透明展示 7d 阈值 + 全历史 register + legacy returning + anonymous 不 stitching。
+- **B13 透明披露**:
+  · 7-day threshold 是 MVP 激活启发, 非长期留存模型。
+  · cohort 是 actor-level 全历史属性, 跨 window 不直接可比。
+  · scores/deltas 仅同 cohort + window 内可解释。
+  · anonymous + identified actor 不 stitch (留独立 identity sprint)。
+  · Legacy identified user 归 returning 防丢失历史数据。
+  · Full-history register query 有 practical limit; 高量场景需 daily aggregates 或 profile-derived registration source (独立 FU)。
+  · 不动 `events` 表 schema / 埋点 SDK / API endpoint (仅衍生 metrics from FU-55 + 全历史 register query)。
+- **风险落地**: codex-risk-behavior-policy 连续 9 个 sprint 0 红线违反 (FU-49 / FU-43 / FU-53 / FU-56 / FU-47(b) / FU-47(c) / FU-55 / FU-59 / FU-58)。
 
 ---
 
@@ -1002,6 +1014,16 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.41（2026-05-28）
+
+FU-58 close。
+
+- 新老用户分群双轨 dashboard 完成, 一次性 Phase 6 通过无 patch 轮。
+- 主要落地: `src/lib/analytics/partitionByCohort` + 4 cohort (all/new/returning/anonymous) + 7d 阈值 + 9 helper signature 不变 (顶层接 cohort param) + `buildAnalyticsDashboardData` 签名扩展旧调用兼容 + `AnalyticsCohortKey` types 扩 + cohort selector/banner/默认展开 disclosure + URL SSR-safe `?cohort=` + 5 tab 全部跟随 cohort 过滤 + Legacy identified user 归 returning (避免 FU-55 上线前已注册用户消失) + anonymous 按 `session_id` 计 actor + demo 8-10 new + 8-10 returning + 1 新 SQL test (`analytics-cohort-partition-sql`)。
+- 不动 `events` 表 / 埋点 SDK / API。
+- codex-risk-behavior-policy 连续 9 个 sprint 0 红线违反。
+- Active 19 → 18 · Closed 43 → 44
 
 ### v0.40（2026-05-28）
 

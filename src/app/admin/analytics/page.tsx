@@ -33,6 +33,22 @@ function demoEvent(
 
 function buildDemoEvents(): AnalyticsEventRow[] {
   const events: AnalyticsEventRow[] = []
+  const addPaidDemoEvent = (
+    index: number,
+    featureId: string,
+    currentState: 'gate_shown' | 'gate_dismissed' | 'gate_engaged',
+    actorId: string,
+    daysAgo: number,
+    identified = true,
+  ) => {
+    const row = demoEvent(index, `paid_attempt.${featureId}`, {
+      feature_id: featureId,
+      current_state: currentState,
+    }, 'paid_attempt', daysAgo)
+    row.user_id = identified ? actorId : null
+    row.session_id = identified ? `session-${actorId}` : actorId
+    events.push(row)
+  }
   for (let index = 0; index < 28; index += 1) {
     events.push(demoEvent(index, 'page_view', {}, 'page_view', index % 14))
   }
@@ -109,6 +125,19 @@ function buildDemoEvents(): AnalyticsEventRow[] {
       feature_id: 'screenshot_recognition',
       current_state: 'gate_engaged',
     }, 'paid_attempt', index % 9))
+  }
+  for (let index = 0; index < 50; index += 1) {
+    addPaidDemoEvent(610 + index, 'premium_route_pack', index < 5 ? 'gate_engaged' : index < 12 ? 'gate_dismissed' : 'gate_shown', 'demo-heavy-route-user', index % 11)
+  }
+  for (let index = 0; index < 20; index += 1) {
+    const featureId = ['premium_route_pack', 'offline_map_pack', 'summit_insights'][index % 3]
+    addPaidDemoEvent(680 + index, featureId, index < 10 ? 'gate_engaged' : 'gate_shown', 'demo-multi-feature-explorer', index % 6)
+  }
+  for (let index = 0; index < 3; index += 1) {
+    addPaidDemoEvent(730 + index, 'offline_map_pack', 'gate_shown', 'demo-shallow-tester', 24 + index)
+  }
+  for (let index = 0; index < 3; index += 1) {
+    addPaidDemoEvent(740 + index, 'summit_insights', index === 2 ? 'gate_engaged' : 'gate_shown', 'demo-recent-session-user', 0, false)
   }
   events.push(
     demoEvent(20, 'auth.register_complete', {}, 'auth', 0),

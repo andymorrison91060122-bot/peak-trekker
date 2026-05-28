@@ -97,6 +97,10 @@ function ratio(numerator: number, denominator: number) {
   return denominator > 0 ? Number((numerator / denominator).toFixed(4)) : 0
 }
 
+function round1(value: number) {
+  return Number(value.toFixed(1))
+}
+
 function metricDelta(current: number, previous: number | null): MetricDelta {
   if (previous === null) return { current, previous: null, deltaPct: null }
   if (previous === 0) return { current, previous, deltaPct: current === 0 ? 0 : 1 }
@@ -170,6 +174,10 @@ export function buildOverviewMetrics(events: AnalyticsEventRow[]): OverviewMetri
 
 function actorId(row: AnalyticsEventRow) {
   return row.user_id ?? row.session_id
+}
+
+function paidActorId(row: AnalyticsEventRow) {
+  return actorId(row) || 'unknown'
 }
 
 function buildDauCohort(events: AnalyticsEventRow[]) {
@@ -391,14 +399,106 @@ function buildProviderComparison(provider: string, completeRows: AnalyticsEventR
   }
 }
 
-export function buildPaidPotentialMetrics(events: AnalyticsEventRow[]): PaidPotentialMetrics {
+function buildPaidFeatureRanking(rows: AnalyticsEventRow[]): PaidPotentialMetrics['featureRanking'] {
+  const featureIds = [...new Set(rows.map((row) => asString(properties(row).feature_id)))]
+  const featureStats = featureIds.map((feature_id) => {
+    const featureRows = rows.filter((row) => properties(row).feature_id === feature_id)
+    const attemptCount = featureRows.length
+    const uniqueUserCount = new Set(featureRows.map(paidActorId)).size
+    const shown = featureRows.filter((row) => properties(row).current_state === 'gate_shown').length
+    const engaged = featureRows.filter((row) => properties(row).current_state === 'gate_engaged').length
+    return {
+      feature_id,
+      attemptCount,
+      uniqueUserCount,
+      engagementRate: ratio(engaged, shown),
+      score: 0,
+    }
+  })
+  const maxAttemptCount = Math.max(1, ...featureStats.map((row) => row.attemptCount))
+  const maxUniqueUserCount = Math.max(1, ...featureStats.map((row) => row.uniqueUserCount))
+  return featureStats
+    .map((row) => ({
+      ...row,
+      score: round1(100 * (
+        0.4 * (row.attemptCount / maxAttemptCount)
+        + 0.3 * (row.uniqueUserCount / maxUniqueUserCount)
+        + 0.3 * row.engagementRate
+      )),
+    }))
+    .sort((left, right) => (
+      right.score - left.score
+      || right.engagementRate - left.engagementRate
+      || right.uniqueUserCount - left.uniqueUserCount
+      || right.attemptCount - left.attemptCount
+      || left.feature_id.localeCompare(right.feature_id)
+    ))
+}
+
+function recencyScore(recentAttemptAt: string | null, now: Date) {
+  if (!recentAttemptAt) return 0
+  const recentTime = new Date(recentAttemptAt).getTime()
+  if (!Number.isFinite(recentTime)) return 0
+  const ageDays = Math.max(0, (now.getTime() - recentTime) / DAY_MS)
+  if (ageDays <= 1) return 1
+  if (ageDays <= 7) return 0.85
+  if (ageDays <= 30) return 0.55
+  if (ageDays <= 90) return 0.25
+  return 0.05
+}
+
+function buildPaidIntentUsers(rows: AnalyticsEventRow[], now: Date): PaidPotentialMetrics['highIntentUsers'] {
+  const rowsByActor = new Map<string, AnalyticsEventRow[]>()
+  for (const row of rows) {
+    const id = paidActorId(row)
+    rowsByActor.set(id, [...(rowsByActor.get(id) ?? []), row])
+  }
+  return [...rowsByActor.entries()]
+    .map(([user_id, actorRows]) => {
+      const totalAttempts = actorRows.length
+      const engagedCount = actorRows.filter((row) => properties(row).current_state === 'gate_engaged').length
+      const featureDiversity = new Set(actorRows.map((row) => asString(properties(row).feature_id))).size
+      const recentAttemptAt = actorRows
+        .map((row) => row.server_ts)
+        .filter(Boolean)
+        .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0] ?? null
+      const frequencyScore = Math.min(totalAttempts, 12) / 12
+      const engagementScore = Math.min(engagedCount, 5) / 5
+      const diversityScore = Math.min(featureDiversity, 3) / 3
+      const intentScore = round1(100 * (
+        0.3 * frequencyScore
+        + 0.35 * engagementScore
+        + 0.2 * diversityScore
+        + 0.15 * recencyScore(recentAttemptAt, now)
+      ))
+      return {
+        user_id,
+        intentScore,
+        totalAttempts,
+        engagedCount,
+        featureDiversity,
+        recentAttemptAt,
+      }
+    })
+    .sort((left, right) => (
+      right.intentScore - left.intentScore
+      || right.engagedCount - left.engagedCount
+      || right.totalAttempts - left.totalAttempts
+      || new Date(right.recentAttemptAt ?? 0).getTime() - new Date(left.recentAttemptAt ?? 0).getTime()
+    ))
+    .slice(0, 50)
+}
+
+export function buildPaidPotentialMetrics(events: AnalyticsEventRow[], now = new Date()): PaidPotentialMetrics {
   const rows = events.filter((row) => row.event_type === 'paid_attempt')
-  const userCounts = countBy(rows.map((row) => row.user_id ?? row.session_id))
+  const userCounts = countBy(rows.map(paidActorId))
   const featureIds = [...new Set(rows.map((row) => asString(properties(row).feature_id)))]
   return {
     totalAttempts: rows.length,
     triggeredUsers: userCounts.size,
     highPotentialUsers: [...userCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20).map(([user_id, count]) => ({ user_id, count })),
+    featureRanking: buildPaidFeatureRanking(rows),
+    highIntentUsers: buildPaidIntentUsers(rows, now),
     perFeatureFunnel: featureIds.map((feature_id) => {
       const featureRows = rows.filter((row) => properties(row).feature_id === feature_id)
       const shown = featureRows.filter((row) => properties(row).current_state === 'gate_shown').length
@@ -496,7 +596,7 @@ export function buildAnalyticsDashboardData(
     deltas: buildDashboardDeltas(currentEvents, previousEvents, rangeKey),
     overview: buildOverviewMetrics(currentEvents),
     userBehavior: buildUserBehaviorMetrics(currentEvents),
-    paidPotential: buildPaidPotentialMetrics(currentEvents),
+    paidPotential: buildPaidPotentialMetrics(currentEvents, now),
     modelEvaluation: buildModelEvaluationMetrics(currentEvents),
     operationalCost: buildOperationalCostMetrics(currentEvents),
   }

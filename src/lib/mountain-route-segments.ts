@@ -22,6 +22,23 @@ export const MOUNTAIN_ROUTE_SEGMENTS: Record<string, RouteSegment[]> = {
       description: '裂缝多，结组前行',
     },
   ],
+  泰山: [
+    {
+      altitude: 154,
+      title: '红门 → 中天门',
+      description: '石阶密集，雨后注意湿滑',
+    },
+    {
+      altitude: 847,
+      title: '中天门 → 十八盘',
+      description: '坡度变陡，建议放慢节奏',
+    },
+    {
+      altitude: 1545,
+      title: '十八盘 → 玉皇顶',
+      description: '登顶前台阶连续，注意体力分配',
+    },
+  ],
 }
 
 export function getRouteSegments(mountainId: string): RouteSegment[] | null {

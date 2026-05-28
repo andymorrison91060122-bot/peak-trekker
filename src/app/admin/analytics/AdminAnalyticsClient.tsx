@@ -57,6 +57,24 @@ function seconds(value: number) {
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
 }
 
+function maskActorId(value: string) {
+  if (!value) return '—'
+  return value.length <= 8 ? `${value}…` : `${value.slice(0, 8)}…`
+}
+
+function formatRecentAttempt(value: string | null) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
+}
+
+function scoreTone(value: number) {
+  if (value >= 75) return 'high'
+  if (value >= 45) return 'mid'
+  return 'low'
+}
+
 function nonEmptySeries(rows: SeriesPoint[], fallbackLabel = '暂无') {
   return rows.length ? rows : [{ label: fallbackLabel, value: 0 }]
 }
@@ -113,7 +131,7 @@ function MiniTable({
   rows,
 }: {
   columns: string[]
-  rows: Array<Array<string | number>>
+  rows: Array<Array<React.ReactNode>>
 }) {
   if (!rows.length) return <EmptyRows />
   return (
@@ -124,13 +142,26 @@ function MiniTable({
         </thead>
         <tbody>
           {rows.map((row, index) => (
-            <tr key={`${index}-${row.join('-')}`}>
+            <tr key={index}>
               {row.map((cell, cellIndex) => <td key={`${index}-${cellIndex}`}>{cell}</td>)}
             </tr>
           ))}
         </tbody>
       </table>
     </div>
+  )
+}
+
+function ScorePill({ value, label = value.toFixed(1) }: { value: number; label?: string }) {
+  return <span className={`analytics-score-pill ${scoreTone(value)}`}>{label}</span>
+}
+
+function FormulaDisclosure({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <details className="analytics-formula" open>
+      <summary>{title}</summary>
+      <div>{children}</div>
+    </details>
   )
 }
 
@@ -322,6 +353,39 @@ function PaidPotentialTab({ data }: { data: AnalyticsDashboardData }) {
       <Panel title="高潜用户列表">
         <MiniTable columns={['User / Session', '次数']} rows={paidPotential.highPotentialUsers.map((row) => [row.user_id.slice(0, 16), row.count])} />
       </Panel>
+      <div className="analytics-two-col">
+        <Panel title="付费功能 Ranking" subtitle="按综合 score 判断优先商业化 feature" testId="admin-analytics-paid-ranking">
+          <FormulaDisclosure title="算法说明">
+            Ranking score = 40% 触发规模 + 30% 用户覆盖 + 30% engaged 率。小样本 feature 不会只凭高 engaged 率冲到第一。
+          </FormulaDisclosure>
+          <MiniTable
+            columns={['Feature', 'Attempts', 'Users', 'Engaged', 'Score']}
+            rows={paidPotential.featureRanking.map((row) => [
+              row.feature_id,
+              row.attemptCount,
+              row.uniqueUserCount,
+              percent(row.engagementRate),
+              <ScorePill key={row.feature_id} value={row.score} />,
+            ])}
+          />
+        </Panel>
+        <Panel title="高意愿用户 Top 50" subtitle="仅展示脱敏 actor id, 不暴露 email / 完整 user_id" testId="admin-analytics-paid-intent-users">
+          <FormulaDisclosure title="算法说明">
+            Intent score = 30% frequency + 35% engaged count + 20% feature diversity + 15% recency。匿名 session 与 user_id 暂不做后向合并。
+          </FormulaDisclosure>
+          <MiniTable
+            columns={['Actor', 'Score', 'Attempts', 'Engaged', 'Features', 'Recent']}
+            rows={paidPotential.highIntentUsers.map((row) => [
+              maskActorId(row.user_id),
+              <ScorePill key={row.user_id} value={row.intentScore} />,
+              row.totalAttempts,
+              row.engagedCount,
+              row.featureDiversity,
+              formatRecentAttempt(row.recentAttemptAt),
+            ])}
+          />
+        </Panel>
+      </div>
     </div>
   )
 }
@@ -520,6 +584,51 @@ export default function AdminAnalyticsClient({ data }: AdminAnalyticsClientProps
         .analytics-delta.down {
           color: var(--color-warning);
           border-color: color-mix(in srgb, var(--color-warning) 38%, transparent);
+        }
+        .analytics-score-pill {
+          display: inline-flex;
+          align-items: center;
+          min-width: 46px;
+          justify-content: center;
+          padding: 3px 7px;
+          border: 1px solid var(--border-color);
+          background: color-mix(in srgb, var(--bg-page) 70%, transparent);
+          font-family: var(--font-mono);
+          font-size: 11px;
+          line-height: 1.2;
+        }
+        .analytics-score-pill.high {
+          color: var(--green-bright);
+          border-color: color-mix(in srgb, var(--green-bright) 45%, transparent);
+          background: color-mix(in srgb, var(--green-bright) 10%, var(--bg-page));
+        }
+        .analytics-score-pill.mid {
+          color: var(--color-warning);
+          border-color: color-mix(in srgb, var(--color-warning) 42%, transparent);
+          background: color-mix(in srgb, var(--color-warning) 10%, var(--bg-page));
+        }
+        .analytics-score-pill.low {
+          color: var(--color-error);
+          border-color: color-mix(in srgb, var(--color-error) 38%, transparent);
+          background: color-mix(in srgb, var(--color-error) 8%, var(--bg-page));
+        }
+        .analytics-formula {
+          margin-bottom: 12px;
+          padding: 10px 11px;
+          border: 1px solid color-mix(in srgb, var(--border-color) 76%, transparent);
+          background: color-mix(in srgb, var(--bg-page) 72%, transparent);
+          color: var(--text-muted);
+          font-size: 11px;
+          line-height: 1.55;
+        }
+        .analytics-formula summary {
+          cursor: pointer;
+          color: var(--green-bright);
+          font-family: var(--font-mono);
+          font-size: 11px;
+        }
+        .analytics-formula div {
+          margin-top: 7px;
         }
         .analytics-two-col,
         .analytics-three-col {

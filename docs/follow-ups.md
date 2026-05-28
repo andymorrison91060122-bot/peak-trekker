@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-28 · 最新版本记录: v0.37
+> Last Updated: 2026-05-28 · 最新版本记录: v0.38
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`200dee4`（Merge FU-47(b) · 2026-05-28）
+`23b5ce4`（Merge FU-47(c) · 2026-05-28）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动 (候选见 v0.37 末尾推荐 / FU-55 页面埋点待 register / FU-47(c) Trek 接入待启动)
+待启动 (候选见 v0.38 末尾推荐 / FU-55 页面埋点待 register; FU-47 全 done 已 close)
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（17 条）
+## Active Follow-ups（16 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -315,50 +315,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-47 · 地图组件实施 (MapLibre + PMTiles 自托管)
-
-- **优先级**: P1（docs §14 第 5 步实施门面缺失 + 用户验收发现）
-- **归属阶段**: 阶段 4 / 阶段 5
-- **状态**: 🟡 in-progress
-
-**背景**: docs/map-weather-brief.md §4 / §5 / §14 第 5 步定义了"MapLibre GL JS + PMTiles / Protomaps 自托管 OSM 衍生底图 + 业务 GeoJSON 叠加层"地图方案（已与 Mapbox 方案对比后锁定，理由：大陆访问可控 / 长期 0 费用 / 无 Attribution 限制）。入册时代码层 grep MapLibre / pmtiles / protomaps 0 hit；FU-47(a) 已补齐底图基建 + GeoJSON endpoint + debug demo，但 Mountain Detail / Trek / Activity 仍未接入真实业务页面。
-
-**设计权威（实施时必须读 + 1:1 复刻视觉，不可自由发挥）**:
-- design-system/ui_kits/mobile/WeatherMapModules.jsx 含 3 个地图组件 standalone 设计（line 252-595）:
-  · RouteSnapshotMap (line 252) — Mountain Detail 路线地图，三态 ok / fallback / unavailable
-  · ActivityRouteMap (line 342) — Activity Detail 完整轨迹 + 3-stat strip (距离/时长/最高海拔)
-  · TrekReferenceMap (line 415) — Trek 轻量参考，含 progress / weak / offline 状态
-- 共享 atoms 在同文件：TopoMap (line 197) 等高线渲染基础 / MapWaypointStrip / ReferenceFootnote
-- 配套 showcase frames：MountainDetailRouteUnavailable / MountainDetailRouteFallback / ActivityDetailRouteOnly / TrekReferenceShowcase 等
-
-**业务价值**: 用户进 Mountain Detail 看路线/关键点位需真实地图理解地形；Trek 实时记录需轻量地图反馈位置；Activity Detail 轨迹快照需要真实地理 context。docs §3.1 已明确"地图职责"不承担专业导航，仅作轻量参考。
-
-**子 sprint 进度**:
-- (a) ✅ done: MapLibre + PMTiles 基建落地。最终 baseline 锁定 mountain-bbox local packs（30km × 30km 正方形 + z=9-12 四层 + dark flavor + 1:1 aspect-ratio container），Supabase Storage public object、`/api/mountains/geojson`、`/debug/map-prototype` demo page、10km 华山轨迹验证均完成（merge `0fd292d`）。
-- (b) ✅ done (FU-47(b) close, v0.37): Mountain Detail + Activity Detail 已接入 mountain-bbox PMTiles, 含 4 状态矩阵 + trace-only fallback。详见 Closed FU-47(b) entry。
-- (c) 🟢 next candidate: Trek 轻量参考地图接入 `TrekReferenceMap`，仍遵守"轨迹记录是核心，地图是辅助"定位。
-
-**实施建议**（按 docs §14 第 5 步分解，可拆 3 子 sprint）:
-- (a) ✅ 已完成：MapLibre GL JS 依赖引入 + Protomaps PMTiles 自托管（Supabase Storage public object）+ 业务 GeoJSON 输出接口 + debug demo 验证
-- (b) ✅ 已完成：Mountain Detail + Activity 地图层接入，按 brief §15.5 baseline 落地 RouteReferenceSection 4 状态矩阵 + ActivityRouteMap mountain-bbox PMTiles / trace-only fallback
-- (c) 🟢 next candidate：Trek 轻量交互接入：1:1 复刻 TrekReferenceMap 设计，保持浅 zoom / 轻参考 / 不做专业导航
-
-**不在 scope**:
-- 不做专业导航 / 离线 / 路径纠偏
-- 不接天地图主底图（仅可选影像层，本 FU 内不接）
-- Share Engine 继续走 SVG 静态轨迹（docs §5.1 已定）
-- Explore / Community 不引入重地图（docs §5.1 已定）
-
-**涉及**:
-- 新增 src/components/map/ 地图组件层（MapLibre wrapper + 三个组件 RouteSnapshotMap / ActivityRouteMap / TrekReferenceMap）
-- 新增 src/lib/map/* GeoJSON output service
-- src/app/(main)/explore/[id]/page.tsx 接入 Mountain Detail 地图
-- src/app/(flow)/trek/* 接入 Trek 轻量地图
-- src/components/activity/ActivityRouteMap.tsx 重写为 MapLibre（替换当前 SVG）
-- 部署 PMTiles assets 到 Cloudflare / Supabase storage / 等
-
----
-
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
 - **优先级**: P1（上线门禁项 — 阻塞正式上线，但当前阶段不实施）
@@ -456,7 +412,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（39 条）
+## Closed Follow-ups（41 条）
 
 ### FU-56 ✅ e2e helper / spec rot 系统修复 (7 个已知 fail · FU-53 sprint 期间识别 · 一次性 in-sprint register+close)
 
@@ -838,6 +794,51 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
+### FU-47(c) ✅ Trek 轻量参考地图接入 mountain-bbox PMTiles
+
+- **关闭原因**: FU-47(c) 子 sprint 落地 Trek prep + live mode 接入 mountain-bbox PMTiles 真实底图 + GeoJSON 业务层 + trace-only fallback。Phase 3-6 + 1 轮 in-sprint patch (v1: current dot 加 `当前位置` attached label) 后 user 视觉验收 PASS。
+- **关键设计决策**:
+  · 抽出 `src/components/map/TrekReferenceMap.tsx` 独立组件 (844 行, 含 patch v1 `当前位置` label), 不在 `TrekClient.tsx` 内膨胀 (TrekClient 大幅瘦身 -383 行)。
+  · 复用 FU-47(b) 沉淀的 `PmtilesSnapshotMap` 共享组件, 严格按 brief §15.5 11 子节 baseline (不偏离 9 步 init/lock / 5 手势 enable / NavigationControl / GeoJSON 业务层 / 24 layer allowlist / SSR-safe searchParams / imperative handle / 等)。
+  · GeoJSON 业务层: summit pin + walked trace (live mode 累积) + current GPS dot + accuracy ring + 起点 marker + `当前位置` 文字 label (与 summit pin `顶峰 2154m` 视觉对称)。
+  · Trace-only fallback (与 Activity §15.5.4 同范式): 缺 mountain-bbox PMTiles 或 mountain-bbox 运行时失败 → 深色 surface + SVG fit-bounds trace overlay + summit glyph + current dot, 不走 z=7 全国主包。
+  · SSR-safe QA harness: `fu47cMapError` / `fu47cGpsMock=ready|weak|live|offline` 在 server searchParams 提前读 + `NODE_ENV !== 'production'` gate, 0 production DB / Storage 写入。
+  · brief §15.5 不动: Trek current dot / accuracy ring / `当前位置` label 属于 §15.5.4 GeoJSON 业务层在 Trek 场景的具体实现, 不升级到跨 surface baseline (Plan v2 立场)。
+- **B13 透明披露**:
+  · 截图 harness 用 existing-user magic-link session cookie, 0 DB / Storage / Trek session 写入。
+  · `trek-exit-auto-pause.spec.ts` 撞到 historical threshold drift (11s → 60s server rule), 仅做 test-only sync, 不动 Trek API / 持久化。
+  · live mode mock 数据中段不连续是 visual evidence harness 限制, 生产环境 `watchPosition()` 不受影响, 不本 sprint 修复。
+  · MapLibre paint colors 沿用 FU-47(b) 直接 canvas color, 无新 design token system。
+- **风险落地**: codex-risk-behavior-policy 连续 6 个 sprint 0 红线违反 (FU-49 / FU-43 / FU-53 / FU-56 / FU-47(b) / FU-47(c))。
+- **关闭 commit**: `cf5cee4` / `0d5614f` / `758265c`
+- **merge commit**: `23b5ce4`
+- **关闭时间**: 2026-05-28
+
+---
+
+### FU-47 ✅ 地图组件实施 (MapLibre + PMTiles 自托管)
+
+- **关闭原因**: FU-47 全 3 个子 sprint (a / b / c) 完成。P0 地图能力 production ready。详见各 sub-sprint Closed entry:
+  · FU-47(a) MapLibre + PMTiles mountain-bbox 底图基建。
+  · FU-47(b) Mountain Detail + Activity Detail 接入 mountain-bbox PMTiles。
+  · FU-47(c) Trek 轻量参考地图接入 mountain-bbox PMTiles。
+- **总体落地**:
+  · 共享 `src/components/map/PmtilesSnapshotMap.tsx` + `TrekReferenceMap.tsx` 按 brief §15.5 11 子节 baseline。
+  · per-mountain PMTiles 当前 production 仅华山一座, 全量生成 + pipeline 自动化在 brief §15.4 设计文档, 上线前由 FU-51 checklist 执行。
+  · Mountain Detail 4 状态矩阵 (PMTiles ⊥ waypoints 解耦) + Activity Detail trace-only fallback (不走 z=7) + Trek prep/live mode + GPS 实时 marker + walked trace 累积渲染。
+  · brief v0.3.3 → v0.3.5 累积沉淀 §15.5 客户端实施 baseline。
+- **遗留 / 后续**:
+  · Activity trackPoint 超 mountain-bbox envelope 检测 + auto-fallback trace-only (独立 FU, B13 已披露)。
+  · waypoints 表 schema 加 lat/lng (独立 FU, 影响 Mountain Detail state (a) PMTiles + waypoints≥2 真实数据触发)。
+  · 24 layer allowlist 扩 contour 等高线 (独立 visual review sprint)。
+  · per-mountain PMTiles 全量生成 + 上传 pipeline (FU-51 上线 checklist)。
+- **风险落地**: 连续 3 个子 sprint (a / b / c) 0 红线违反, 累积 brief 规范沉淀, 为 FU-51 上线门禁奠基。
+- **关闭 commit**: sub-sprint entries: FU-47(a) / FU-47(b) / FU-47(c)
+- **merge commit**: `23b5ce4`
+- **关闭时间**: 2026-05-28
+
+---
+
 > **历史跳号编号**：FU-26 在 Pre-3.a sprint 中编号跳号未实际引入；未来新增 FU 不复用此编号，按当前最大编号 +1 顺序分配。
 
 ---
@@ -907,6 +908,17 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.38（2026-05-28）
+
+FU-47(c) close + FU-47 父 entry 整体 close。
+
+- Trek 轻量参考地图接入 mountain-bbox PMTiles 完成 (Phase 3-6 + 1 轮 in-sprint patch)。主要落地: `TrekReferenceMap.tsx` 独立组件 (844 行, 复用 `PmtilesSnapshotMap` baseline) + GeoJSON 业务层 (summit + walked trace + current dot + accuracy ring + `当前位置` label) + trace-only fallback (不走 z=7) + SSR-safe QA harness (`fu47cMapError` / `fu47cGpsMock`) + TrekClient 大幅瘦身。
+- brief §15.5 不动 (Plan v2 立场): Trek current dot / accuracy ring / `当前位置` label 属于 §15.5.4 GeoJSON 业务层在 Trek 场景的具体实现, 不升级到跨 surface baseline。
+- FU-47 父 entry 整体 close: (a)✅ + (b)✅ + (c)✅ 全 3 子 sprint 完成, P0 地图能力 production ready。
+- codex-risk-behavior-policy 连续 6 个 sprint 0 红线违反。
+- 关闭 commit: `cf5cee4` / `0d5614f` / `758265c` · merge commit: `23b5ce4`
+- Active 17 → 16 · Closed 39 → 41
 
 ### v0.37（2026-05-28）
 

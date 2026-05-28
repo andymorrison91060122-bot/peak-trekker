@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-28 · 最新版本记录: v0.36
+> Last Updated: 2026-05-28 · 最新版本记录: v0.37
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`13bc4f4`（Merge FU-56 · 2026-05-28）
+`200dee4`（Merge FU-47(b) · 2026-05-28）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动 (候选见 v0.36 末尾推荐 / FU-55 页面埋点待 register)
+待启动 (候选见 v0.37 末尾推荐 / FU-55 页面埋点待 register / FU-47(c) Trek 接入待启动)
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -335,13 +335,13 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 **子 sprint 进度**:
 - (a) ✅ done: MapLibre + PMTiles 基建落地。最终 baseline 锁定 mountain-bbox local packs（30km × 30km 正方形 + z=9-12 四层 + dark flavor + 1:1 aspect-ratio container），Supabase Storage public object、`/api/mountains/geojson`、`/debug/map-prototype` demo page、10km 华山轨迹验证均完成（merge `0fd292d`）。
-- (b) 🟢 next candidate: Mountain Detail + Activity 实际接入 mountain-bbox PMTiles。按 (a) baseline 方案接入真实 `RouteSnapshotMap` / `ActivityRouteMap`，并设计 300 山峰 PMTiles 自动生成 + 上传 pipeline。
-- (c) 🟢 pending: Trek 轻量参考地图接入 `TrekReferenceMap`，仍遵守"轨迹记录是核心，地图是辅助"定位。
+- (b) ✅ done (FU-47(b) close, v0.37): Mountain Detail + Activity Detail 已接入 mountain-bbox PMTiles, 含 4 状态矩阵 + trace-only fallback。详见 Closed FU-47(b) entry。
+- (c) 🟢 next candidate: Trek 轻量参考地图接入 `TrekReferenceMap`，仍遵守"轨迹记录是核心，地图是辅助"定位。
 
 **实施建议**（按 docs §14 第 5 步分解，可拆 3 子 sprint）:
 - (a) ✅ 已完成：MapLibre GL JS 依赖引入 + Protomaps PMTiles 自托管（Supabase Storage public object）+ 业务 GeoJSON 输出接口 + debug demo 验证
-- (b) Mountain Detail + Activity 地图层接入：1:1 复刻 RouteSnapshotMap / ActivityRouteMap 设计（含 fallback / unavailable 状态）+ GeoJSON 山峰位置 / 路线 / 关键点位 / 风险点叠加 + per-mountain PMTiles pipeline
-- (c) Trek 轻量交互接入：1:1 复刻 TrekReferenceMap 设计，保持浅 zoom / 轻参考 / 不做专业导航
+- (b) ✅ 已完成：Mountain Detail + Activity 地图层接入，按 brief §15.5 baseline 落地 RouteReferenceSection 4 状态矩阵 + ActivityRouteMap mountain-bbox PMTiles / trace-only fallback
+- (c) 🟢 next candidate：Trek 轻量交互接入：1:1 复刻 TrekReferenceMap 设计，保持浅 zoom / 轻参考 / 不做专业导航
 
 **不在 scope**:
 - 不做专业导航 / 离线 / 路径纠偏
@@ -456,7 +456,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（38 条）
+## Closed Follow-ups（39 条）
 
 ### FU-56 ✅ e2e helper / spec rot 系统修复 (7 个已知 fail · FU-53 sprint 期间识别 · 一次性 in-sprint register+close)
 
@@ -812,6 +812,32 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
+### FU-47(b) ✅ Mountain Detail + Activity Detail 接入 mountain-bbox PMTiles
+
+- **关闭原因**: FU-47(b) 子 sprint 落地 Mountain Detail + Activity Detail 实际接入 mountain-bbox PMTiles 真实地图。Phase 3-6 + 三轮 in-sprint patch (v1: §15.5 baseline 对齐 / v2: 自定义按钮 + z=7 fallback 删除 / v3: 文案精简 `仅可预览轨迹`) 后 user 视觉验收 PASS。
+- **关键设计决策**:
+  · brief §15.5 客户端实施 baseline 新建 (v0.3.3): 沉淀 FU-47(a) 锁定的 30km bbox × z=9-12 × dark × 1:1 + 9 步 init/lock + 5 手势 enable + NavigationControl + GeoJSON 业务层 + SSR-safe searchParams + imperative handle + 24 layer allowlist 等 11 子节规范。
+  · Mountain Detail RouteReferenceSection 4 状态矩阵解耦 PMTiles ⊥ waypoints: (a) PMTiles + waypoints≥2: 真实底图 + GeoJSON 路径 + waypoint strip; (b) PMTiles + waypoints<2: 真实底图 + summit pin (华山 production 主 demo); (c) 无 PMTiles + waypoints≥2: 文字 fallback; (d) 无 PMTiles + waypoints<2: unavailable 空卡。Mountain Detail 不走 z=7 兜底。
+  · Activity Detail ActivityRouteMap mode: mountain-bbox PMTiles 存在/成功 → MapLibre + GeoJSON trace + markers; 缺/失败 → trace-only (无底图 + SVG fit-bounds trace + 3-stat strip + `仅可预览轨迹` 文案, 视觉等同 share poster)。z=7 全国主包不作为 Activity Detail 产品 fallback (v0.3.4 user 二次验收明示, 视觉比例失真)。
+  · ActivityDetailViewModel 扩展 trackPoints (lat/lng/altitude/time) 暴露完整 GPS 坐标给 client。
+  · per-mountain PMTiles 当前仅华山 baseline 一座 (production 锁定), 5 demo 山方案因 user "现有库存" 决策选 1 座; 全量生成 + pipeline 自动化留给 FU-47(c) 或独立 sprint。
+  · SSR-safe query params: `fu47bRouteMock` / `fu47bMapError` / `fu47bActivityMapError` 在 server page 通过 searchParams 提前读 + `NODE_ENV !== 'production'` gate, 避免 hydration mismatch。
+  · Activity auth-gap 处理: 不种新 DB row, 用 Supabase admin generateLink + verifyOtp 给 Codex 在 dev screenshot context 模拟登录 user 账号 (已有 activity `3e4927bd`)。0 production DB mutation。
+- **brief 同步**:
+  · v0.3.3: 新增 §15.5 客户端实施 baseline。
+  · v0.3.4: §15.5.3 NavigationControl 唯一承担 zoom UI / §15.5.4 缺 mountain-bbox 时 trace-only / §15.4.7 上线 checklist 同步。
+  · v0.3.5: §15.5.4 trace-only 文案精简 `仅可预览轨迹`。
+- **B13 透明披露**:
+  · v1 实施偏离 FU-47(a) baseline (7/8 项), patch v1 完整修复。
+  · Activity `3e4927bd` 显示 297km 长轨迹超出 mountain-bbox envelope, 属 Known Issue · checkin 0/60 数据写入路径异常下游表现, 不本 sprint 处理。未来独立 FU 加 trackPoint envelope 检测 + auto-fallback trace-only。
+  · 24 layer allowlist 限制部分地形细节 (§15.5.5 锁定), 未来扩 allowlist 需独立 visual review sprint。
+- **风险落地**: codex-risk-behavior-policy 连续 5 个 sprint 0 红线违反 (FU-49 / FU-43 / FU-53 / FU-56 / FU-47(b))。
+- **关闭 commit**: `96f3c5c` / `59a7161` / `a382e03` / `fc4c038`
+- **merge commit**: `200dee4`
+- **关闭时间**: 2026-05-28
+
+---
+
 > **历史跳号编号**：FU-26 在 Pre-3.a sprint 中编号跳号未实际引入；未来新增 FU 不复用此编号，按当前最大编号 +1 顺序分配。
 
 ---
@@ -881,6 +907,17 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.37（2026-05-28）
+
+FU-47(b) close · Mountain Detail + Activity Detail 接入 mountain-bbox PMTiles 真实地图完成 (Phase 3-6 + 3 轮 in-sprint patch)。
+
+- 主要落地: `PmtilesSnapshotMap` 共享 client 组件 (按 brief §15.5 11 子节 baseline) + Mountain Detail `RouteReferenceSection` 4 状态矩阵 (PMTiles ⊥ waypoints 解耦) + Activity Detail mountain-bbox PMTiles GeoJSON trace + trace-only fallback (无 z=7) + `ActivityDetailViewModel.trackPoints` GPS 坐标暴露 + SSR-safe searchParams + Supabase admin auth for screenshot (0 DB mutation)。
+- brief 同步 v0.3.3-0.3.5: §15.5 客户端实施 baseline / §15.5.3 NavigationControl 唯一 / §15.5.4 trace-only fallback / §15.4.7 上线 checklist 同步。
+- FU-47 整体: (a) ✅ done + (b) ✅ done + (c) 🟢 next candidate。
+- risk policy 连续 5 个 sprint 0 红线违反。
+- 关闭 commit: `96f3c5c` / `59a7161` / `a382e03` / `fc4c038` · merge commit: `200dee4`
+- Active 17 不变 · Closed 38 → 39
 
 ### v0.36（2026-05-28）
 

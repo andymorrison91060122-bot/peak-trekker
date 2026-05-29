@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-28 · 最新版本记录: v0.41
+> Last Updated: 2026-05-29 · 最新版本记录: v0.42
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`30eca40`（Merge FU-58 · 2026-05-28）
+`7543809`（Merge FU-57 + FU-60 · 2026-05-29）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动 (候选见 v0.41 末尾推荐)
+待启动
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -83,37 +83,7 @@
 
 ---
 
-## Active Follow-ups（18 条）
-
-### FU-57 · 激活漏斗深度 (10 步细分)
-
-- **优先级**: P2
-- **归属阶段**: 阶段 6 / 上线前
-- **状态**: 🟢 active
-- **背景**: FU-55 dashboard 主漏斗 4 步 (访问 → 注册 → 首次 Trek → 分享) 太粗, 看不出新用户在哪个微观环节流失。完整 user journey 应该有 10 步: 访问 → 注册 → 首次浏览山峰 → 首次选山 → 首次 Trek 启动 → 首次 Trek 完成 → 首次 Activity 创建 → 首次分享生成 → 分享 link 被点击 → 通过 link 拉新成功。
-- **实施建议**:
-  · 扩展 `src/lib/analytics/kpis.ts` `buildOverviewMetrics()` 主漏斗算法。
-  · 现有埋点已 ready (`mountain_view` / entry validation / `trek_start` / `trek_complete` / `activity_create` / `share_link` 等)。
-  · `admin/analytics` overview tab 主漏斗 sub-card 改 10 步纵向展示 + 渗透率 + 每步流失原因 sub-table。
-- **不在 scope**: 不新增埋点 (现有事件已完整覆盖)。
-- **触发来源**: FU-55 patch v1 阶段 Claude 专业补充建议, user PASS。
-
----
-
-### FU-60 · 来源 + 设备分群 dashboard
-
-- **优先级**: P2
-- **归属阶段**: 阶段 6 / 上线前
-- **状态**: 🟢 active
-- **背景**: FU-55 埋点已收集 referrer + user_agent 但 dashboard 没用。知道哪个渠道带量大 (referrer 分布) + 各设备 (iOS / Android / Desktop) 行为差异, 对营销 + 产品定位都有价值。
-- **实施建议**:
-  · `src/lib/analytics/kpis.ts` 加 referrer 分类算法 (直接 / 微信 / Google / 朋友圈 / 等)。
-  · `ua-parser-js` 或类似轻量库解析 user_agent → device type。
-  · `admin/analytics` 用户行为 tab 加 2 sub-block: 来源分布饼图 + per-source 留存对比; 设备分布 (iOS / Android / Desktop) + 各设备完成 Trek 率。
-- **不在 scope**: 不动埋点; 仅 dashboard query + 第三方 lib 集成。
-- **触发来源**: FU-55 patch v1 Claude 专业补充建议, user PASS。
-
----
+## Active Follow-ups（16 条）
 
 ### FU-2 · ui-spec 留证语义文档对齐
 
@@ -442,7 +412,50 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（44 条）
+## Closed Follow-ups（46 条）
+
+### FU-57 ✅ 激活漏斗深度 (10 步细分)
+
+- **关闭原因**: FU-57 sprint 落地 `admin/analytics` Overview 激活漏斗升级, 从 FU-55 的 4 步粗漏斗扩展到 10 步 actor-level 诊断漏斗。FU-57 + FU-60 合并 sprint Phase 0-6 完成, 含 1 个 in-sprint license patch (移除 `ua-parser-js` AGPL 依赖), user 视觉验收 PASS。
+- **关键设计决策**:
+  · 10 步 mapping: 访问 (`page_view`) → 注册 (`auth.register_complete`) → 首次浏览山峰 (`business.mountain_view`) → 首次选山 (`page_view` `/trek?mountainId=` 近似) → Trek 启动 (`business.trek_start`) → Trek 完成 (`business.trek_complete`) → Activity 创建 (`business.activity_create`) → 分享生成 (`business.share_template_generate success=true`) → link 点击 (`business.share_link_open`, actor 优先 `visitor_session_id`) → link 拉新 (`business.share_link_register_attribution`, actor 优先 `new_user_id`)。
+  · 每步按 actor 去重, actor 默认 `user_id ?? session_id`; 每行展示 actor count + 渗透率 + 流失数。
+  · 第 4 步不新增埋点, 用 `/trek?mountainId=` page_view 作为 "首次选山" 近似; 第 5 步才是实际 Trek 启动。
+  · 第 9/10 步是传播边缘诊断, 天然跨 `visitor_session_id` / `new_user_id` 身份边界, 不等同同一 actor 连续生存漏斗。
+  · 默认展开 "10 步漏斗说明" in-UI, 透明披露事件 mapping + actor-level 口径 + 第 4/5/9/10 步边界。
+  · 复用 FU-58 顶层 cohort filter, 10 步漏斗跟随 range + cohort 轴变化。
+- **B13 透明披露**:
+  · 10 步 funnel 是 actor-level stage volume, 非严格 same-actor survival curve。
+  · 第 4 步是 page_path 近似, 后续如需要更严谨可独立新增 `business.mountain_select` 埋点。
+  · 第 9/10 步跨身份边界已在 UI 和 final acceptance 中披露。
+  · 不动 `events` 表 schema / 埋点 SDK / API endpoint。
+- **准入**: lint 0e/5w · build PASS · focused node tests 83p · `analytics-activation-funnel-sql` 新增覆盖 actor dedupe / 10 step mapping / cohort filter · git diff --check clean。
+- **风险落地**: codex-risk-behavior-policy 连续 10 个 sprint 0 红线违反 (含本次用户授权 in-sprint license patch, 非违规)。
+
+---
+
+### FU-60 ✅ 来源 + 设备分群 dashboard
+
+- **关闭原因**: FU-60 sprint 落地 `admin/analytics` User Behavior tab 来源 / 设备分群 dashboard, 让 FU-55 已采集的 `referrer` + `user_agent` 进入可视化决策面。FU-57 + FU-60 合并 sprint Phase 0-6 完成, license patch 后 user 视觉验收 PASS。
+- **关键设计决策**:
+  · 来源分布 6 类 referrer: 直接 / 微信 / 朋友圈 / 百度 / Google / 其他; 同站、空 referrer、localhost、127.0.0.1 归 `直接`。
+  · 来源 sub-block: PieChart + `source × actor count × share × D1/D7/D30 可见历史回访率` 表格 + 默认展开分类说明。
+  · 设备分布 4 类: iOS / Android / Desktop / Other; 输出 `device × actor count × Trek start actors × Trek complete actors × completion rate`。
+  · 设备分类最终采用 ~15 行内联正则, 顺序 iOS → Android → Desktop → Other; iOS 先于 Mac/Desktop 因 iOS UA 含 `mac os x`, Android 先于 Linux/Desktop 因 Android UA 含 `linux`。
+  · in-sprint license patch: 移除 `ua-parser-js@2.0.10` (`AGPL-3.0-or-later`) 依赖, 改内联正则分类; `package.json` / `package-lock.json` 回到 main 基线, 0 新依赖。
+  · 对 demo/test UA, 4 桶分布与原 `ua-parser-js` 输出逐条一致, 0 分桶漂移: iOS 36 / Android 36 / Desktop 38 / Other 15。
+  · 默认展开 "来源分类说明" / "设备分类说明", in-UI 披露 referrer 分类规则和 UA 解析局限。
+  · 复用 FU-58 顶层 cohort filter, 来源/设备 metrics 跟随 range + cohort 轴变化。
+- **B13 透明披露**:
+  · referrer 会被浏览器、隐私设置、微信内嵌页或直接访问丢失; 空/同站统一归 `直接`。
+  · UA 分类是启发式正则, 不做 fingerprinting; 极端/罕见 UA 可能与完整 parser 不同, MVP 统一归 `Other`。
+  · 来源 D1/D7/D30 回访率基于当前 filtered event 可见历史, 高量场景应升级 daily aggregates 或 profile-derived source history。
+  · `ua-parser-js` 因 AGPL license 被移除, 这是用户授权的 in-sprint license patch, 非 scope creep。
+  · 不动 `events` 表 schema / 埋点 SDK / API endpoint。
+- **准入**: lint 0e/5w · build PASS · focused node tests 83p · `analytics-source-device-sql` 新增覆盖 referrer 6 类 / device 4 类 / actor-level Trek completion rate · patch 后 `rg "ua-parser-js|UAParser" src/` 0 命中 · `package.json`/lock 0 diff · git diff --check clean。
+- **风险落地**: codex-risk-behavior-policy 连续 10 个 sprint 0 红线违反 (含本次用户授权 in-sprint license patch, 非违规)。
+
+---
 
 ### FU-55 ✅ 自托管页面埋点 + admin dashboard 可视化
 
@@ -1014,6 +1027,18 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.42（2026-05-29）
+
+FU-57 + FU-60 联合 close。
+
+- FU-57 激活漏斗深度完成: Overview 主漏斗从 4 步升级为 10 步 actor-level 漏斗 (访问 → 注册 → 首次浏览山峰 → 首次选山 `/trek?mountainId=` → Trek 启动 → Trek 完成 → Activity 创建 → 分享生成 `success=true` → link 点击 `visitor_session_id` → link 拉新 `new_user_id`)。
+- FU-60 来源 + 设备分群完成: User Behavior 新增来源分布 (直接 / 微信 / 朋友圈 / 百度 / Google / 其他 + D1/D7/D30 可见历史回访率) 与设备分布 (iOS / Android / Desktop / Other + Trek 完成率)。
+- 主要落地: `src/lib/analytics/kpis.ts` 10-step activation funnel + source/device metrics; `src/lib/analytics/types.ts` Overview/UserBehavior metrics 扩展; `admin/analytics` Overview/User Behavior 新 sub-blocks + 默认展开算法说明; demo 数据扩 10-step funnel + referrer/UA 分布; 新增 `analytics-activation-funnel-sql` / `analytics-source-device-sql` tests。
+- in-sprint license patch: 移除 `ua-parser-js@2.0.10` (`AGPL-3.0-or-later`), 改 ~15 行内联正则设备分类; 对当前 demo/test UA 4 桶分类 0 漂移; `package.json` / `package-lock.json` 回到 main 基线, 0 新依赖。
+- 不动 `events` 表 / 埋点 SDK / API endpoint / map-weather brief。
+- codex-risk-behavior-policy 连续 10 个 sprint 0 红线违反。
+- Active 18 → 16 · Closed 44 → 46
 
 ### v0.41（2026-05-28）
 

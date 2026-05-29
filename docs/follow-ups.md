@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-29 · 最新版本记录: v0.43
+> Last Updated: 2026-05-29 · 最新版本记录: v0.44
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`db7d114`（Merge FU-10 + FU-15 + FU-2 · 2026-05-29）
+`deb61b7`（Merge FU-45 · 2026-05-29）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（13 条）
+## Active Follow-ups（12 条）
 
 ### FU-4 · mountains 华山 vs 西岳华山南峰子峰拆分
 
@@ -254,23 +254,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-45 · admin-mountain-edit e2e baseline 失败：rich text 重复渲染
-
-- **优先级**: P2
-- **状态**: 🟢 active
-
-**背景**: FU-41 sprint Phase 3 全量 e2e 暴露 admin-mountain-edit.spec.ts:111 失败：getByText('新的列表项 1', exact) strict-mode 命中 2 元素。main 独立复现 = pre-existing。
-
-**失败 case 1 个**: admin can edit mountain description with rich text and it renders on mountain detail
-
-**根因 Hypothesis**: rich text 编辑器双写 / preview + view 同时 render / React strict mode 双渲染 / 序列化 round-trip 重复。
-
-**修复建议**: dev server 实测 DOM，是否真重复决定改 selector 还是修编辑器。
-
-**涉及**: tests/e2e/admin-mountain-edit.spec.ts; 可能 src/app/admin/mountains/* 或 rich text 组件。
-
----
-
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
 - **优先级**: P1（上线门禁项 — 阻塞正式上线，但当前阶段不实施）
@@ -368,7 +351,25 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（49 条）
+## Closed Follow-ups（50 条）
+
+### FU-45 ✅ 山峰简介恢复 sanitized 富文本渲染
+
+- **关闭原因**: FU-45 sprint 恢复 FU-49 迁移时被 `cleanDescription` 误 strip 的山峰简介富文本渲染。`/mountain/[id]`「山峰简介」改用 `SanitizedMountainDescription` 渲染管理员富文本 (标题 + 项目符号), user 视觉验收 PASS。
+- **关键设计决策**:
+  · DOMPurify 收紧: `ALLOWED_TAGS` 仅 `h2/h3/h4/p/ul/ol/li/strong/em/b/i/br/span`, `ALLOWED_ATTR` 置空 (剥所有属性), `FORBID_TAGS` 含 `img/a/script/iframe/style` → 禁图片 / 链接 / 脚本 / iframe / 内联样式, 防 XSS。
+  · 移除旧纯文本 strip + 96 字符 line-clamp 折叠; B13: 富文本折叠留后续, 本 sprint 完整渲染 sanitized rich text。
+  · CSS 走 type-system token: `h2 → title-l`, `h3/h4 → title-m`, `p/li → body-m`, `ul=disc`, `ol=decimal`, marker 使用 primary 色。
+  · `admin-mountain-edit.spec.ts` 解除 FU-45 `test.fixme`, 路由 `/explore/{id}` → `/mountain/{id}`, 恢复富文本结构断言 (heading level 2 + bullets, 作用域收紧到 description section)。
+  · 新增 sanitize 配置 node 单测锁 allow / forbid / empty attrs / SSR fallback; admin `RichTextEditor` 不变。
+- **B13 透明披露**:
+  · 方向曾从"纯文本 + 换行"修订为"sanitized 富文本 (无图片)", 按用户修订指令执行。
+  · `dangerouslySetInnerHTML` 仅经 DOMPurify strict config 后使用。
+  · 真实山峰数据批量上传时需做简介渲染二次视觉校验, 并入 300 山峰 pipeline review 环节。
+- **准入**: lint 0e/5w · build PASS · focused node tests 11p · `admin-mountain-edit.spec.ts` 5/5 PASS · 375px/desktop rich text evidence captured · `rg "test.fixme\\(" tests/e2e` 0 matches · git diff --check clean。
+- **风险落地**: codex-risk-behavior-policy 连续 12 个 sprint 0 红线违反。
+
+---
 
 ### FU-10 ✅ "申请收录山峰" toast 占位反馈
 
@@ -1018,6 +1019,19 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.44（2026-05-29）
+
+FU-45 close。
+
+- 山峰简介 sanitized 富文本渲染恢复完成: 修复 FU-49 迁移后 `cleanDescription` 把 admin 富文本简介全部 strip 的 regression, `/mountain/[id]`「山峰简介」重新接回 `SanitizedMountainDescription`。
+- 安全收口: DOMPurify allowlist 锁定 `h2/h3/h4/p/ul/ol/li/strong/em/b/i/br/span`, attributes 全剥离, forbid `img/a/script/iframe/style`; 禁图片 / 链接 / 脚本 / iframe / 内联样式。
+- UI / 测试: CSS 使用 type-system token (`h2 title-l`, `h3/h4 title-m`, `p/li body-m`) + 列表 marker; 解除 `admin-mountain-edit.spec.ts` 的 FU-45 `test.fixme`, 路由 `/explore/{id}` → `/mountain/{id}`, 恢复 heading level 2 + bullets 富文本结构断言; 新增 sanitize 配置 node test。
+- B13: 方向曾从"纯文本"修订为"富文本 (无图片)"; 旧 96 字符 line-clamp 折叠移除, 富文本折叠留后续; 真实山峰数据批量上传时做简介渲染二次视觉校验。
+- codex-risk-behavior-policy 连续 12 个 sprint 0 红线违反。
+- Active 13 → 12 · Closed 49 → 50
+
+---
 
 ### v0.43（2026-05-29）
 

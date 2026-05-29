@@ -109,11 +109,6 @@ test.describe('admin mountain basic info edit', () => {
   })
 
   test('admin can edit mountain description with rich text and it renders on mountain detail', async ({ page, baseURL }) => {
-    test.fixme(
-      true,
-      'Quarantined for FU-45: strict-mode locator violation, rich text renders duplicate elements, pre-existing baseline failure, unrelated to FU-41.',
-    )
-
     const root = baseURL ?? 'http://127.0.0.1:3100'
     await createAdminSession(page, root)
     const { mountainId } = await openFirstMountainEditor(page)
@@ -145,9 +140,11 @@ test.describe('admin mountain basic info edit', () => {
       await expect(page.getByTestId('rich-text-editor-content')).toContainText(heading)
       await expect(page.getByTestId('rich-text-editor-content')).toContainText(bulletOne)
 
-      await page.goto(`${root}/explore/${mountainId}`, { waitUntil: 'domcontentloaded' })
+      await page.goto(`${root}/mountain/${mountainId}`, { waitUntil: 'domcontentloaded' })
       await dismissActivationChecklistIfPresent(page)
-      await expect(page.getByRole('heading', { name: heading, level: 2 })).toBeVisible()
+      const descriptionSection = page.getByTestId('mountain-description-section')
+      await expect(descriptionSection).toBeVisible()
+      await expect(descriptionSection.getByRole('heading', { name: heading, level: 2 })).toBeVisible()
       await expect(page.getByText(bulletOne, { exact: true })).toBeVisible()
       await expect(page.getByText(bulletTwo, { exact: true })).toBeVisible()
     } finally {

@@ -2,8 +2,19 @@
 
 import { useEffect, useState } from 'react'
 
-function stripTags(value: string) {
-  return value.replace(/<[^>]+>/g, '')
+import {
+  getMountainDescriptionSanitizeConfig,
+  MOUNTAIN_DESCRIPTION_ALLOWED_ATTR,
+  MOUNTAIN_DESCRIPTION_ALLOWED_TAGS,
+  MOUNTAIN_DESCRIPTION_FORBID_TAGS,
+  stripTagsForFallback,
+} from './mountain-description-sanitize'
+
+export {
+  MOUNTAIN_DESCRIPTION_ALLOWED_ATTR,
+  MOUNTAIN_DESCRIPTION_ALLOWED_TAGS,
+  MOUNTAIN_DESCRIPTION_FORBID_TAGS,
+  stripTagsForFallback,
 }
 
 export default function SanitizedMountainDescription({
@@ -11,7 +22,7 @@ export default function SanitizedMountainDescription({
 }: {
   html: string
 }) {
-  const fallbackHtml = stripTags(html)
+  const fallbackHtml = stripTagsForFallback(html)
   const [sanitizedHtml, setSanitizedHtml] = useState(fallbackHtml)
 
   useEffect(() => {
@@ -27,7 +38,7 @@ export default function SanitizedMountainDescription({
     import('dompurify')
       .then(({ default: DOMPurify }) => {
         if (!active) return
-        setSanitizedHtml(DOMPurify.sanitize(html))
+        setSanitizedHtml(DOMPurify.sanitize(html, getMountainDescriptionSanitizeConfig()))
       })
       .catch(() => {
         if (!active) return

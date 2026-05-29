@@ -15,6 +15,9 @@ import SecondaryButton from '@/components/ui/SecondaryButton'
 import WeatherSection from '@/components/mountain/WeatherSection'
 import DifficultyAdvisory from '@/components/mountain/DifficultyAdvisory'
 import DifficultyChip from '@/components/mountain/DifficultyChip'
+import SanitizedMountainDescription, {
+  stripTagsForFallback,
+} from '@/components/mountain/SanitizedMountainDescription'
 import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
 import PmtilesSnapshotMap from '@/components/map/PmtilesSnapshotMap'
 import type { LicenseProgressSummary } from '@/lib/license-progress'
@@ -122,13 +125,6 @@ function getSeasonDecision(mountain: Mountain) {
       ? '高海拔路线通常 10–11 月更稳 · 出发前仍需复核天气'
       : '低中海拔路线通常 4–10 月更适合 · 雨季与大风天请谨慎',
   }
-}
-
-function cleanDescription(value: string | null | undefined) {
-  return (value ?? '')
-    .replace(/<[^>]*>/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
 }
 
 function getWaypointTone({
@@ -607,11 +603,10 @@ function DecisionSection({
 }
 
 function DescriptionSection({ description }: { description: string | null | undefined }) {
-  const [expanded, setExpanded] = useState(false)
-  const text = cleanDescription(description)
-  const collapsible = text.length > 96
+  const html = description ?? ''
+  const fallbackText = stripTagsForFallback(html).trim()
 
-  if (!text) return null
+  if (!fallbackText) return null
 
   return (
     <section data-testid="mountain-description-section">
@@ -625,39 +620,7 @@ function DescriptionSection({ description }: { description: string | null | unde
             padding: 14,
           }}
         >
-          <p
-            style={{
-              margin: 0,
-              color: 'var(--color-on-surface)',
-              fontSize: 'var(--font-body-m-size)',
-              lineHeight: '24px',
-              display: collapsible && !expanded ? '-webkit-box' : 'block',
-              WebkitLineClamp: collapsible && !expanded ? 4 : undefined,
-              WebkitBoxOrient: collapsible && !expanded ? 'vertical' : undefined,
-              overflow: collapsible && !expanded ? 'hidden' : undefined,
-            }}
-          >
-            {text}
-          </p>
-          {collapsible ? (
-            <button
-              type="button"
-              onClick={() => setExpanded((value) => !value)}
-              style={{
-                marginTop: 'var(--space-3)',
-                padding: 0,
-                border: 0,
-                background: 'transparent',
-                color: 'var(--color-primary)',
-                fontSize: 'var(--font-label-m-size)',
-                lineHeight: 'var(--font-label-m-line)',
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              {expanded ? '收起' : '展开全部'}
-            </button>
-          ) : null}
+          <SanitizedMountainDescription html={html} />
         </div>
       </div>
     </section>

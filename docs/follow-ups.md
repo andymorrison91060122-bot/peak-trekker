@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-29 · 最新版本记录: v0.46
+> Last Updated: 2026-05-29 · 最新版本记录: v0.47
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`d337d6e`（Merge FU-38 Phase 1 · 2026-05-29）
+`ed67ab1`（Merge FU-5 · 2026-05-29）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（11 条）
+## Active Follow-ups（10 条）
 
 ### FU-4 · mountains 华山 vs 西岳华山南峰子峰拆分
 
@@ -103,20 +103,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 - 删除其一
 
 **涉及**: mountains 表 + 可能影响已有 checkin 引用。
-
----
-
-### FU-5 · premium-vertical-story 路线层后补
-
-- **优先级**: P2
-- **归属阶段**: 阶段 5+ 或独立小任务
-- **状态**: 🟢 active
-
-**背景**: PRD v0.4 锁定 vertical-story 路线层延后实现，当前模板无路线层只有静态 ridge fallback。
-
-**实施建议**: 在 vertical-story 模板加 TrailSvg 渲染层 + 适配 vertical 布局。
-
-**涉及**: `src/lib/share-templates/premium-vertical-story.tsx`
 
 ---
 
@@ -335,7 +321,24 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（51 条）
+## Closed Follow-ups（52 条）
+
+### FU-5 ✅ premium-vertical-story 路线层后补
+
+- **关闭原因**: FU-5 sprint 落地 `premium-vertical-story` 模板真实轨迹层。无图且有 `data.trackPreview` 时渲染真实路线; 无轨迹时保留 `VerticalStoryRidgeSvg` 静态兜底; 有照片时照片路径不变。Phase 0-6 完成后 user 视觉验收 PASS。
+- **关键设计决策**:
+  · 模板内新增 `VerticalStoryTrailSvg`, 复用现有 `buildShareTrackPath` 与 `ShareTemplateData.trackPreview`, 无需新增数据 wiring。
+  · 轨迹层使用方形 frame `{ x: 230, y: 390, width: 620, height: 620, padding: 56 }`, 置于上中背景区, 避开顶部 header 与底部山名 / stats / footer。
+  · 视觉表现为绿色真实路线 + 低透明 glow, 起点空心暗底描边, 终点实心 success; 单点 track 显示 marker-only。
+  · 分支逻辑保持三态: no-photo + track → real trail; no-photo + no-track → ridge fallback; photo → original photo path。
+  · 仅改 `premium-vertical-story` + 2 个强关联测试, 不碰其它模板 / `src/lib/share-track-preview.ts` / 照片路径。
+- **B13 透明披露**:
+  · 轨迹仍使用现有 share-track-preview 归一化, 继承 FU-12 的地理 aspect ratio 拉伸局限; 本 sprint 用方形 frame 规避竖高 frame 的额外拉伸, 全局 aspect 修复留 FU-12。
+  · share editor 小预览不在本 sprint scope, 后续可独立跟踪。
+- **准入**: lint 0e/5w · build PASS · focused node tests `share-render-api` + `share-track-preview` 28p · git diff --check clean · 3 态 PNG evidence 已保存至 `/tmp/fu5-review/phase4/production-data/`。
+- **风险落地**: codex-risk-behavior-policy 连续 15 个 sprint 0 红线违反。
+
+---
 
 ### FU-52 ✅ PMTiles 实验包 cleanup + china-z7 死代码清理
 
@@ -1024,6 +1027,19 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.47（2026-05-29）
+
+FU-5 close。
+
+- `premium-vertical-story` 真实轨迹层落地: 无图且有 `data.trackPreview` 时渲染真实路线层 (`VerticalStoryTrailSvg` + `buildShareTrackPath` + 方形 frame `{x:230,y:390,620×620,padding56}`), 无轨迹时保留 `VerticalStoryRidgeSvg` 兜底, 有照片时照片路径不变。
+- 轨迹视觉放在上中背景区, 起点空心 / 终点实心 + glow, 不遮挡 header / 山名 / stats / footer; share editor 小预览不在本 sprint scope。
+- 关联后续: 本 sprint 仅用方形 frame 规避 vertical-story 额外拉伸, 全局 share-track-preview 地理 aspect ratio 修复仍归 FU-12 (下一项建议)。
+- 准入: lint 0e/5w · build PASS · focused node tests 28p · git diff --check clean · 3 态 visual evidence 完成。
+- codex-risk-behavior-policy 连续 15 个 sprint 0 红线违反。
+- Active 11 → 10 · Closed 51 → 52
+
+---
 
 ### v0.46（2026-05-29）
 

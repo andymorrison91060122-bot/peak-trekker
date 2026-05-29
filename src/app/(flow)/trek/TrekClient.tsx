@@ -1694,6 +1694,13 @@ export default function TrekClient({
   const summitMountain = nearbyMountain ?? targetMountain ?? activeMountain
   const targetAltitude = targetMountain?.altitude ?? activeMountain?.altitude ?? 0
   const displayAltitude = currentAltitude ?? 0
+  const gpsWeakAltitudeLabel = lastValidAltitudeM !== null
+    ? '当前海拔 · 上次 GPS 值'
+    : hasGpsAltitude
+      ? '当前海拔 · GPS 弱信号参考'
+      : currentAltitude !== null
+        ? '当前海拔 · 地形高程参考'
+        : '当前海拔 · 采集中'
   const referenceMapProgress = targetAltitude > 0 && currentAltitude ? clamp01(currentAltitude / targetAltitude) : 0
   const currentAltitudeSub = hasGpsAltitude
     ? undefined
@@ -2066,11 +2073,12 @@ export default function TrekClient({
             onOpenMountain={(mountainId) => router.push(`/mountain/${encodeURIComponent(mountainId)}`)}
           />
         </>
-	      ) : viewState === 'gpsWeak' ? (
-	        <GpsWeakView
-	          altitude={lastValidAltitudeM ?? displayAltitude}
-	          lostMinutes={formatGpsWeakMinutes(gpsWeakStartedAt, gpsWeakClock)}
-	        />
+      ) : viewState === 'gpsWeak' ? (
+        <GpsWeakView
+          altitude={lastValidAltitudeM ?? displayAltitude}
+          altitudeLabel={gpsWeakAltitudeLabel}
+          lostMinutes={formatGpsWeakMinutes(gpsWeakStartedAt, gpsWeakClock)}
+        />
 	      ) : viewState === 'summitPhoto' ? (
 	        <SummitPhotoView
 	          mountain={summitMountain}
@@ -2422,9 +2430,11 @@ function RecDot({ active, tone = 'default' }: { active: boolean; tone?: 'default
 
 function GpsWeakView({
   altitude,
+  altitudeLabel,
   lostMinutes,
 }: {
   altitude: number
+  altitudeLabel: string
   lostMinutes: number
 }) {
   const safeAltitude = Math.max(Math.round(altitude || 0), 0)
@@ -2470,7 +2480,7 @@ function GpsWeakView({
             letterSpacing: '0.12em',
             }}
         >
-          当前海拔 · 暂用上次值
+          {altitudeLabel}
         </div>
         <div style={{ marginTop: 'var(--space-3)', display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 6 }}>
           <div

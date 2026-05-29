@@ -102,4 +102,29 @@ describe('share track preview projection', () => {
     assert.ok((preview?.points.length ?? 0) <= 25)
     assert.deepEqual(preview?.points.at(-1), { x: 1, y: 0 })
   })
+
+  test('projects vertical story tracks into the square upper-middle frame', async () => {
+    const { buildShareTrackPreview, buildShareTrackPath } = await loadTrackPreview()
+    const preview = buildShareTrackPreview([
+      { lat: 34.483, lng: 110.083, ele: 460 },
+      { lat: 34.491, lng: 110.095, ele: 820 },
+      { lat: 34.503, lng: 110.112, ele: 1410 },
+      { lat: 34.512, lng: 110.124, ele: 1990 },
+    ])
+
+    const route = buildShareTrackPath(preview, {
+      x: 230,
+      y: 390,
+      width: 620,
+      height: 620,
+      padding: 56,
+    })
+
+    assert.ok(route?.d)
+    assert.match(route.d, /^M /)
+    for (const point of [route.start, route.end]) {
+      assert.ok(point.x >= 286 && point.x <= 794, `x ${point.x} should stay inside the square frame`)
+      assert.ok(point.y >= 446 && point.y <= 954, `y ${point.y} should stay inside the square frame`)
+    }
+  })
 })

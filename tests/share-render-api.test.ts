@@ -130,6 +130,21 @@ describe('share render API field policy regression', () => {
     assert.doesNotMatch(monoFilmSource, /<TrailSvg/)
   })
 
+  test('premium vertical story uses real track layer before ridge fallback', () => {
+    const verticalStorySource = readSource('../src/lib/share-templates/premium-vertical-story.tsx')
+
+    assert.match(verticalStorySource, /hasShareTrackPoint\(data\.trackPreview\)/)
+    assert.match(verticalStorySource, /<VerticalStoryTrailSvg trackPreview=\{data\.trackPreview\} \/>/)
+    assert.match(verticalStorySource, /<VerticalStoryRidgeSvg \/>/)
+    assert.match(verticalStorySource, /data-testid="premium-vertical-story-trail"/)
+    assert.match(verticalStorySource, /data-real-track="true"/)
+    assert.match(
+      verticalStorySource,
+      /buildShareTrackPath\(trackPreview,\s*\{\s*x:\s*230,\s*y:\s*390,\s*width:\s*620,\s*height:\s*620,\s*padding:\s*56,\s*\}/,
+    )
+    assert.doesNotMatch(verticalStorySource, /\{!photoDataUrl \? <VerticalStoryRidgeSvg \/> : null\}/)
+  })
+
   test('transparent watermark mono-film does not render trail', () => {
     const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
     const monoBranch = transparentSource.match(/function WatermarkMonoFilm[\s\S]*?function WatermarkAltitudeProfile/)?.[0]

@@ -47,6 +47,7 @@ export const FIELD_VALIDATION = {
   elevation_gain: { min: 0, max: 10_000, units: ['m', '米'] },
   altitude: { min: 0, max: 8848, units: ['m', '米'] },
   speed: { min: 0, max: 50, units: ['km/h', '公里/小时', '公里/时', '配速'] },
+  pace: { min: 2, max: 40, units: ['min/km', '分钟/公里', '配速'] },
 } as const
 
 const EXCLUDED_UNITS = /(?:%|bpm|BPM|次\/分|次\/分钟|kcal|千卡|大卡|卡路里|TL|步|步\/分钟|cm|厘米|TSS|心率|消耗|热量|卡)/u
@@ -586,6 +587,30 @@ function parseSpeedToken(token: string, context: string) {
   return value
 }
 
+function parsePaceTokenToMinutes(token: string, context: string) {
+  const paceContext = /平均配速|^配速$|\/km|\/公里|配速/u.test(context)
+  const compactPaceContext = /\/km|\/公里/u.test(context)
+  const paceText = token
+    .trim()
+    .replace(/\s+/gu, '')
+    .replace(/[’′]/gu, "'")
+    .replace(/[”″]/gu, '"')
+  const pace =
+    paceText.match(/^([0-9]{1,2})'([0-9]{2})"?$/u) ??
+    (paceContext ? paceText.match(/^([0-9]{1,2}):([0-9]{2})$/u) : null) ??
+    paceText.match(/^([0-9]{2})([0-9]{2})"$/u) ??
+    (compactPaceContext ? paceText.match(/^0?([0-9]{1,2})([0-9]{2})"?$/u) : null)
+
+  if (!pace) return null
+
+  const minutes = Number(pace[1])
+  const seconds = Number(pace[2])
+  if (!Number.isFinite(minutes) || !Number.isFinite(seconds) || seconds >= 60) return null
+
+  const paceMinutes = roundTo(minutes + seconds / 60, 2)
+  return inRange(paceMinutes, FIELD_VALIDATION.pace.min, FIELD_VALIDATION.pace.max) ? paceMinutes : null
+}
+
 function parseSpeed(lines: Line[]): ParsedScreenshotFields['speed'] {
   const candidates: Candidate<number>[] = []
   const isCorosScreenshot = lines.some((line) => COROS_PATTERN.test(line.text))
@@ -646,6 +671,58 @@ function parseSpeed(lines: Line[]): ParsedScreenshotFields['speed'] {
       targetKeys: isCorosScreenshot || isTwoBuluScreenshot ? ['speed_average'] : ['speed_average', 'pace_average'],
       parseToken: (token, context) =>
         parseSpeedToken(token, `${context}${isCorosScreenshot ? ' COROS' : ''}${isTwoBuluScreenshot ? ' 两步路' : ''}`),
+      baseScore: 120,
+    })
+  )
+
+  const candidate = bestCandidate(candidates)
+  return candidate ? { value: roundTo(candidate.value, 2), raw: candidate.raw } : undefined
+}
+
+function parsePace(lines: Line[]): ParsedScreenshotFields['paceMinPerKm'] {
+  const isCorosScreenshot = lines.some((line) => COROS_PATTERN.test(line.text))
+  const isTwoBuluScreenshot = lines.some((line) => /两步路/u.test(line.text))
+  if (!isCorosScreenshot && !isTwoBuluScreenshot) return undefined
+
+  const candidates: Candidate<number>[] = []
+
+  for (const line of lines) {
+    const isAveragePaceLabel = /平均配速/u.test(line.text)
+    const isPaceLabel = /^配速$/u.test(line.text)
+    if (!isAveragePaceLabel && !isPaceLabel) continue
+    if (/最快配速/u.test(windowText(lines, line.index, 1))) continue
+
+    const parseCandidateLine = (candidateLine: Line) =>
+      parsePaceTokenToMinutes(candidateLine.text, `${line.text} ${windowText(lines, candidateLine.index, 1)}`)
+    const valueLine =
+      valueLineBefore(
+        lines,
+        line.index,
+        (candidateLine) => parseCandidateLine(candidateLine) !== null,
+        6
+      ) ??
+      valueLineAfter(
+        lines,
+        line.index,
+        (candidateLine) => parseCandidateLine(candidateLine) !== null,
+        4
+      )
+    const value = valueLine ? parseCandidateLine(valueLine) : null
+    if (value !== null) {
+      candidates.push({
+        value,
+        raw: `${line.text} ${valueLine?.text ?? ''}`,
+        score: isAveragePaceLabel ? 170 : 145,
+        index: line.index,
+      })
+    }
+  }
+
+  candidates.push(
+    ...tableCandidates({
+      lines,
+      targetKeys: ['pace_average'],
+      parseToken: parsePaceTokenToMinutes,
       baseScore: 120,
     })
   )
@@ -1153,6 +1230,7 @@ export function parseFieldsFromOcr(textBlocks: OcrTextBlock[]): ParsedScreenshot
   const elevationGain = parseElevationGain(lines)
   const date = parseDate(compactText)
   const speed = parseSpeed(lines)
+  const paceMinPerKm = parsePace(lines)
   const location = parseLocation(textBlocks)
 
   return {
@@ -1162,6 +1240,7 @@ export function parseFieldsFromOcr(textBlocks: OcrTextBlock[]): ParsedScreenshot
     ...(elevationGain ? { elevationGain } : {}),
     ...(date ? { date } : {}),
     ...(speed ? { speed } : {}),
+    ...(paceMinPerKm ? { paceMinPerKm } : {}),
     ...(location ? { location } : {}),
     ...knownLayoutOverrides,
   }

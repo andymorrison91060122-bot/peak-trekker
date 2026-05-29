@@ -184,6 +184,7 @@ test('parses-two-bulu-hiking-with-step-count', async () => {
 
   assert.equal(parsed.elevationGain?.value, 551)
   assert.equal(parsed.speed?.value, 1.9)
+  assertNear(parsed.paceMinPerKm?.value, 26.58, 'two-bulu pace', 0.01)
   assert.equal(parsed.elevation?.value, 3556)
 })
 
@@ -217,6 +218,28 @@ test('parses-coros-walking-no-speed-fabrication', async () => {
   const parsed = parseFieldsFromOcr(readRecordedBlocks('coros-walking-6-81-actual'))
 
   assert.equal(parsed.speed, undefined)
+  assertNear(parsed.paceMinPerKm?.value, 7.15, 'coros walking pace', 0.01)
+})
+
+test('parses pace-only COROS compact and colon tokens without speed fabrication', async () => {
+  const { parseFieldsFromOcr } = await loadFieldParser()
+
+  const compact = parseFieldsFromOcr(blocks(['cOrOS', '709', '/km', '平均配速']))
+  assertNear(compact.paceMinPerKm?.value, 7.15, 'compact COROS pace', 0.01)
+  assert.equal(compact.speed, undefined)
+
+  const colon = parseFieldsFromOcr(blocks(['COROS', '7:09', '平均配速']))
+  assertNear(colon.paceMinPerKm?.value, 7.15, 'colon COROS pace', 0.01)
+  assert.equal(colon.speed, undefined)
+})
+
+test('does not parse fastest pace, calories, steps, or duration-like tokens as pace', async () => {
+  const { parseFieldsFromOcr } = await loadFieldParser()
+
+  assert.equal(parseFieldsFromOcr(blocks(['两步路', '15\'46"', '最快配速'])).paceMinPerKm, undefined)
+  assert.equal(parseFieldsFromOcr(blocks(['两步路', '1759', '热量消耗(千卡)', '平均配速'])).paceMinPerKm, undefined)
+  assert.equal(parseFieldsFromOcr(blocks(['两步路', '18108步', '步数', '平均配速'])).paceMinPerKm, undefined)
+  assert.equal(parseFieldsFromOcr(blocks(['COROS', "6:42'54", '平均配速'])).paceMinPerKm, undefined)
 })
 
 test('excludes-step-unit-from-elevation-and-speed', async () => {

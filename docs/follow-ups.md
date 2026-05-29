@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-29 · 最新版本记录: v0.47
+> Last Updated: 2026-05-29 · 最新版本记录: v0.48
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`ed67ab1`（Merge FU-5 · 2026-05-29）
+`d07204a`（Merge FU-12 · 2026-05-29）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（10 条）
+## Active Follow-ups（9 条）
 
 ### FU-4 · mountains 华山 vs 西岳华山南峰子峰拆分
 
@@ -120,22 +120,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 - 运营后台审核 + 入库
 
 **涉及**: 需要后台管理系统，工作量较大，列长期方向。
-
----
-
-### FU-12 · share-track-preview 保留地理 aspect ratio
-
-- **优先级**: P2
-- **归属阶段**: V1.1+ 或阶段 6 后
-- **状态**: 🟢 active
-
-**背景**: 当前归一化把 lat/lng 拉伸填满 0-1 矩形，丢失真实地理 aspect ratio。导致部分模板（如已删除的 mono-film 轨迹层）出现轨迹被压扁。
-
-**实施建议**: 归一化用统一 maxRange 保留 aspect ratio。
-
-**涉及**: `src/lib/share-track-preview.ts`
-
-**风险**: 影响 10 个模板，回归面大。本期不动，mono-film 通过删除轨迹层绕过。
 
 ---
 
@@ -321,7 +305,7 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（52 条）
+## Closed Follow-ups（53 条）
 
 ### FU-5 ✅ premium-vertical-story 路线层后补
 
@@ -337,6 +321,22 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
   · share editor 小预览不在本 sprint scope, 后续可独立跟踪。
 - **准入**: lint 0e/5w · build PASS · focused node tests `share-render-api` + `share-track-preview` 28p · git diff --check clean · 3 态 PNG evidence 已保存至 `/tmp/fu5-review/phase4/production-data/`。
 - **风险落地**: codex-risk-behavior-policy 连续 15 个 sprint 0 红线违反。
+
+---
+
+### FU-12 ✅ share-track-preview 保留地理 aspect ratio
+
+- **关闭原因**: FU-12 sprint 落地 `share-track-preview` 真·地理 aspect ratio 修复。`buildShareTrackPreview()` normalize 加 `cos(midLat)` 纬度修正 (`lngScale = max(cos(midLat * π / 180), 0.1)`), 使用 `range = max(latRange, effLngRange)` + 居中归一化; `projectPoint()` 改为短边统一 scale + 居中 letterbox, 让轨迹米制比例正确且与 frame 形状解耦。
+- **关键设计决策**:
+  · 修复双源失真: 旧 normalize 独立拉伸 x/y, 旧 projectPoint 在非方形 frame 中按 width/height 独立缩放造成二次拉伸。
+  · 6 个轨迹面使用同一条宽轨迹生成证据, route bbox 均保持约 7.73:1 的一致形状; ShareClient 216×290 非方形预览不再纵向拉满。
+  · 真实两步路 GPX (`1232` 点, 采样 `206` 点) 验证: route bbox `117.24×196`, 非方形框正确 letterbox, user 视觉验收确认形状与两步路一致。
+  · 边界严格限定为 `src/lib/share-track-preview.ts` + `tests/share-track-preview.test.ts`; 模板 frame / 渲染 / 照片路径 / `ShareTrackPreview` shape / schema 均 0 改动。
+- **B13 透明披露**:
+  · 本 sprint 使用 degree-space + `cos(midLat)` 局部纬度修正, 不是完整 Web Mercator; 对单条轨迹的小纬度跨度近乎精确, 足以匹配源 App 视觉形状。
+  · 保持地理比例后, 长边 letterbox 会让部分模板中的轨迹不再填满装饰区域; 这是预期行为, 后续如需视觉调大应单独调模板 frame。
+- **准入**: lint 0e/5w · build PASS · focused node tests 29p (`share-track-preview` + `share-render-api`) · git diff --check clean · no full Playwright。
+- **风险落地**: codex-risk-behavior-policy 连续 16 个 sprint 0 红线违反。
 
 ---
 
@@ -1027,6 +1027,20 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.48（2026-05-29）
+
+FU-12 close。
+
+- `share-track-preview` 真·地理 aspect ratio 修复: normalize 加 `cos(midLat)` 纬度修正 + 统一 range 居中归一化, `projectPoint` 改短边统一 scale + 居中 letterbox。
+- 修复双源失真: 旧 normalize 独立 x/y 拉伸 + 旧 projectPoint 在非方形 frame 中二次拉伸; 轨迹米制比例现与 frame 形状解耦。
+- 6 面证据同一轨迹一致 7.73:1; 真实两步路 GPX 在 216×290 非方形框中 route bbox `117.24×196`, user 视觉验收确认形状与两步路一致。
+- 边界: 仅 `share-track-preview.ts` + tests; 模板 frame / 渲染 / 照片路径 / `ShareTrackPreview` shape / schema 0 改动。
+- 准入: lint 0e/5w · build PASS · focused node tests 29p (`share-track-preview` + `share-render-api`) · git diff --check clean · no full Playwright。
+- codex-risk-behavior-policy 连续 16 个 sprint 0 红线违反。
+- Active 10 → 9 · Closed 52 → 53
+
+---
 
 ### v0.47（2026-05-29）
 

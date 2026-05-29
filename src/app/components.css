@@ -559,14 +559,15 @@
 .mountain-description-richtext p,
 .mountain-description-richtext ul,
 .mountain-description-richtext ol,
-.mountain-description-richtext blockquote,
 .mountain-description-richtext h2,
-.mountain-description-richtext h3 {
+.mountain-description-richtext h3,
+.mountain-description-richtext h4 {
   margin: 0;
 }
 
 .mountain-description-richtext h2,
-.mountain-description-richtext h3 {
+.mountain-description-richtext h3,
+.mountain-description-richtext h4 {
   color: var(--color-on-surface);
   font-weight: var(--font-title-m-weight);
 }
@@ -576,24 +577,38 @@
   line-height: var(--font-title-l-line);
 }
 
-.mountain-description-richtext h3 {
+.mountain-description-richtext h3,
+.mountain-description-richtext h4 {
   font-size: var(--font-title-m-size);
   line-height: var(--font-title-m-line);
+}
+
+.mountain-description-richtext p,
+.mountain-description-richtext li {
+  font-size: var(--font-body-m-size);
+  line-height: var(--font-body-m-line);
 }
 
 .mountain-description-richtext ul,
 .mountain-description-richtext ol {
   padding-left: var(--space-5);
+  list-style-position: outside;
+}
+
+.mountain-description-richtext ul {
+  list-style-type: disc;
+}
+
+.mountain-description-richtext ol {
+  list-style-type: decimal;
+}
+
+.mountain-description-richtext li::marker {
+  color: var(--color-primary);
 }
 
 .mountain-description-richtext li + li {
   margin-top: var(--space-1);
-}
-
-.mountain-description-richtext blockquote {
-  border-left: 2px solid var(--color-primary);
-  padding-left: var(--space-3);
-  color: var(--color-on-surface);
 }
 
 .detail-copy--muted {

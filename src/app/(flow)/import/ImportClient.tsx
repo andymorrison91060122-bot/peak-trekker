@@ -12,6 +12,7 @@ import type { ImportedTrackData, MountainMatch } from '@/lib/import/types'
 import Card from '@/components/ui/Card'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import { useHelpSheet } from '@/components/help/useHelpSheet'
+import { useAppToast } from '@/components/ui/AppToastProvider'
 import {
   ArchiveIcon,
   BackIcon,
@@ -3167,6 +3168,7 @@ function ImportSuccess({
 export default function ImportClient() {
   const router = useRouter()
   const { open: openHelpSheet } = useHelpSheet()
+  const { showToast } = useAppToast()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [step, setStep] = useState<ImportStep>('entry')
   const [file, setFile] = useState<File | null>(null)
@@ -3430,6 +3432,15 @@ export default function ImportClient() {
     window.setTimeout(openFilePicker, 0)
   }
 
+  function handleRequestMountain() {
+    showToast({
+      tone: 'info',
+      message: '已收到您的山峰反馈，正式收录流程上线后会优先核实并录入。',
+      durationMs: 4200,
+    })
+    openHelpSheet('start.mountain-not-listed')
+  }
+
   function renderStep() {
     if (step === 'entry') {
       return (
@@ -3557,9 +3568,9 @@ export default function ImportClient() {
       )
     }
 
-	    if (step === 'select_mountain' && parseResult) {
-	      return (
-	        <ImportMountainSelection
+    if (step === 'select_mountain' && parseResult) {
+      return (
+        <ImportMountainSelection
           result={parseResult}
           initialSelectedMountainId={selectedMountainId}
           initialSearchOpen={selectionSearchInitiallyOpen}
@@ -3575,7 +3586,7 @@ export default function ImportClient() {
             }
             setStep('no_match')
           }}
-	          onConfirm={(selection) => {
+          onConfirm={(selection) => {
             if (selection.kind === 'unaffiliated') {
               void handleConfirm(null, 'select_mountain', null)
               return
@@ -3583,11 +3594,11 @@ export default function ImportClient() {
             setSelectedMountainId(selection.mountain.id)
             setSelectedMountainName(selection.mountain.name)
             void handleConfirm(selection.mountain.id, 'select_mountain', selection.mountain.name)
-	          }}
-	          onRequestMountain={() => openHelpSheet('start.mountain-not-listed')}
-	          onLogin={() => router.push(buildLoginHref())}
-	        />
-	      )
+          }}
+          onRequestMountain={handleRequestMountain}
+          onLogin={() => router.push(buildLoginHref())}
+        />
+      )
     }
 
     if (step === 'no_match') {
@@ -3597,17 +3608,17 @@ export default function ImportClient() {
           confirmAuthRequired={confirmAuthRequired}
           onBack={handleBack}
           onStash={() => void handleConfirm(null, 'no_match', null)}
-	          onSearch={() => {
+          onSearch={() => {
             setConfirmError(null)
             setConfirmAuthRequired(false)
             setSelectedMountainId(null)
             setSelectedMountainName(null)
             setSelectionSearchInitiallyOpen(true)
-	            setStep('select_mountain')
-	          }}
-	          onRequestMountain={() => openHelpSheet('start.mountain-not-listed')}
-	          onLogin={() => router.push(buildLoginHref())}
-	        />
+            setStep('select_mountain')
+          }}
+          onRequestMountain={handleRequestMountain}
+          onLogin={() => router.push(buildLoginHref())}
+        />
       )
     }
 

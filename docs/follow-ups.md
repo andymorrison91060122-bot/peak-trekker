@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-29 · 最新版本记录: v0.42
+> Last Updated: 2026-05-29 · 最新版本记录: v0.43
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`7543809`（Merge FU-57 + FU-60 · 2026-05-29）
+`db7d114`（Merge FU-10 + FU-15 + FU-2 · 2026-05-29）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -83,19 +83,7 @@
 
 ---
 
-## Active Follow-ups（16 条）
-
-### FU-2 · ui-spec 留证语义文档对齐
-
-- **优先级**: P2
-- **归属阶段**: 阶段 6 文档对齐
-- **状态**: 🟢 active
-
-**背景**: A1 决策"已留证 = mountain_id IS NOT NULL"语义在 `docs/ui-interaction-spec.md` 中可能仍有不一致表述（如旧的 verification_status / verified_at 引用）。
-
-**实施建议**: grep `verification_status / verified_at / 已留证` 全文，统一为 mountain_id 语义口径。
-
----
+## Active Follow-ups（13 条）
 
 ### FU-4 · mountains 华山 vs 西岳华山南峰子峰拆分
 
@@ -149,24 +137,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-10 · "申请收录山峰" toast 占位反馈
-
-- **优先级**: P2
-- **归属阶段**: A2 增量小任务
-- **状态**: 🟢 active
-
-**背景**: A2 距离校验阻断态 + "附近无山"空态都有"申请收录山峰"按钮，当前点击只跳 FAQ。用户期望按钮文案是"应用型"，点完后发起申请。
-
-**实施建议**:
-- 点击按钮 → 显示 toast："已收到您的山峰反馈，正式收录流程上线后会优先核实并录入。"
-- 保留 FAQ 入口（toast 显示后跳，或 toast 内嵌"了解收录流程"链接）
-
-**涉及**: `src/app/(flow)/import/ImportClient.tsx`
-
-**验收**: 375×812 截图点击按钮后 toast 显示，FAQ 行为不变。
-
----
-
 ### FU-12 · share-track-preview 保留地理 aspect ratio
 
 - **优先级**: P2
@@ -180,20 +150,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 **涉及**: `src/lib/share-track-preview.ts`
 
 **风险**: 影响 10 个模板，回归面大。本期不动，mono-film 通过删除轨迹层绕过。
-
----
-
-### FU-15 · Live 阶段 GPS 弱信号"暂用上次值"文案修正
-
-- **优先级**: P2
-- **归属阶段**: 阶段 3 后续 或独立任务
-- **状态**: 🟢 active
-
-**背景**: Live 阶段 gpsWeak 全屏 UI 显示"暂用上次值 + mountain.altitude 数值"。"暂用上次值"语义错误（实际是目标山峰标称海拔，不是用户测过的值）。
-
-**实施建议**: 改为"目标山峰标称海拔"或"参考海拔（基于山峰库）"。
-
-**涉及**: `src/app/(flow)/trek/TrekClient.tsx` live gpsWeak UI 文案
 
 ---
 
@@ -412,7 +368,42 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（46 条）
+## Closed Follow-ups（49 条）
+
+### FU-10 ✅ "申请收录山峰" toast 占位反馈
+
+- **关闭原因**: FU-10 轻量 bundle 落地 `/import` 两处"申请收录山峰"入口反馈: 距离校验阻断态 + 无匹配空态点击后弹出 toast `已收到您的山峰反馈，正式收录流程上线后会优先核实并录入。`, 同时保留原 `start.mountain-not-listed` help sheet / FAQ 行为。user 视觉验收 PASS。
+- **关键设计决策**:
+  · 两处入口共用 `handleRequestMountain`, 先显示 toast 再打开帮助 sheet。
+  · `/import` 页面级补 `AppToastProvider`, 与 `trek/page.tsx` 同类局部 provider 方式一致; 否则 `useAppToast()` 在该页面会落到 no-op。
+  · `AppToastProvider` z-index 160 高于 HelpSheet z-index 120, toast 与帮助 sheet 可同时可见。
+- **准入**: lint 0e/5w · build PASS · focused node tests 97p · 375px/desktop browser evidence captured · git diff --check clean。
+- **风险落地**: codex-risk-behavior-policy 连续 11 个 sprint 0 红线违反。
+
+---
+
+### FU-15 ✅ Live 阶段 GPS 弱信号"当前海拔"文案修正
+
+- **关闭原因**: FU-15 轻量 bundle 修正 Trek gpsWeak 全屏 UI 的"当前海拔"辅助文案, 从静态 `暂用上次值` 改为 source-aware 四态: `上次 GPS 值` / `GPS 弱信号参考` / `地形高程参考` / `采集中`。user 视觉验收 PASS。
+- **关键设计决策**:
+  · Phase 1 审计确认 tracker 原前提已过时: 当前值不是 `mountain.altitude`, 而是 `lastValidAltitudeM ?? displayAltitude`。
+  · `displayAltitude` 来自当前 GPS altitude 或 Open-Meteo 地形高程查询 fallback, 非山峰库标称海拔。
+  · 因此未采用原建议"目标山峰标称海拔 / 基于山峰库", 改为诚实反映真实数据来源。
+  · 不改 GPS 采样、地形高程查询、Trek 持久化或状态机, 仅调整展示文案。
+- **准入**: lint 0e/5w · build PASS · focused node tests 97p · FU-15 四态文案视觉验收 PASS · git diff --check clean。
+- **B13 透明披露**: 本次关闭同时修正了旧 tracker 的错误事实前提, 不是照搬旧文案。
+
+---
+
+### FU-2 ✅ ui-spec 留证语义文档对齐
+
+- **关闭原因**: FU-2 轻量 bundle Phase 1 独立审计确认 `docs/ui-interaction-spec.md` 已无 `verification_status` / `verified_at` / 旧"已留证=verified"字段语义引用, 文档中的"留证"均为合法产品词。已与"已留证 = `mountain_id IS NOT NULL`"口径对齐, verify-and-close, 0 代码 / 文档改动。
+- **审计证据**:
+  · `rg "verification_status|verified_at|verified|已留证|留证|mountain_id" docs/ui-interaction-spec.md` 未发现 legacy 字段语义。
+  · 命中的"留证"上下文均为产品语言, 如"先有照片，再做留证"、"仅留证"、"完成留证"、"登顶留证"。
+- **B13 透明披露**: FU-2 按当前代码/文档真相关闭, 不为旧 tracker 硬凑改动量。
+
+---
 
 ### FU-57 ✅ 激活漏斗深度 (10 步细分)
 
@@ -1027,6 +1018,19 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.43（2026-05-29）
+
+FU-10 + FU-15 + FU-2 轻量 bundle close。
+
+- FU-10 "申请收录山峰" toast 占位反馈完成: `/import` 两处入口 (距离校验阻断态 + 无匹配空态) 点击后显示 toast `已收到您的山峰反馈，正式收录流程上线后会优先核实并录入。`, 同时保留原 help sheet / FAQ 行为; 共享 `handleRequestMountain`; `/import` 页面级补 `AppToastProvider` 避免 `useAppToast` no-op。
+- FU-15 GPS 弱信号文案完成: Trek gpsWeak 全屏"当前海拔"辅助文案从静态"暂用上次值"改为 source-aware 四态 (上次 GPS 值 / GPS 弱信号参考 / 地形高程参考 / 采集中)。同步修正旧 tracker 过时前提: 当前绑定 `lastValidAltitudeM ?? displayAltitude`, `displayAltitude` 来自当前 GPS 或 Open-Meteo 地形高程, 非 `mountain.altitude`。
+- FU-2 verify-and-close: `docs/ui-interaction-spec.md` 无 `verification_status` / `verified_at` / 旧"已留证=verified"引用, "留证"均为合法产品词, 已对齐"已留证 = mountain_id IS NOT NULL"口径, 0 改动关闭。
+- 准入: lint 0e/5w · build PASS · focused node tests 97p · FU-10 375px/desktop browser evidence · FU-15 四态文案用户视觉验收 PASS · git diff --check clean。
+- codex-risk-behavior-policy 连续 11 个 sprint 0 红线违反。
+- Active 16 → 13 · Closed 46 → 49
+
+---
 
 ### v0.42（2026-05-29）
 

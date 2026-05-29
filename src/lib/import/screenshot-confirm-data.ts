@@ -3,6 +3,8 @@ export const SCREENSHOT_MAX_DISTANCE_METERS = 1_000_000
 export const SCREENSHOT_MAX_ELEVATION_METERS = 8_848
 export const SCREENSHOT_MAX_ELEVATION_GAIN_METERS = 10_000
 export const SCREENSHOT_MAX_SPEED_KMH = 50
+export const SCREENSHOT_MIN_PACE_MIN_PER_KM = 2
+export const SCREENSHOT_MAX_PACE_MIN_PER_KM = 40
 
 export type NormalizedScreenshotData = {
   format: 'screenshot'
@@ -16,6 +18,7 @@ export type NormalizedScreenshotData = {
   elevationLossMeters?: number
   maxElevation?: number
   speedKmh?: number
+  paceMinPerKm?: number
 }
 
 export type NormalizeScreenshotResult =
@@ -66,6 +69,11 @@ export function normalizeScreenshotData(value: unknown): NormalizeScreenshotResu
   const elevationLossMeters = normalizeIntegerInRange(record.elevationLossMeters, 0, SCREENSHOT_MAX_ELEVATION_GAIN_METERS)
   const maxElevation = normalizeIntegerInRange(record.maxElevation, 0, SCREENSHOT_MAX_ELEVATION_METERS)
   const speedKmh = normalizeNumberInRange(record.speedKmh, 0, SCREENSHOT_MAX_SPEED_KMH)
+  const paceMinPerKm = normalizeNumberInRange(
+    record.paceMinPerKm,
+    SCREENSHOT_MIN_PACE_MIN_PER_KM,
+    SCREENSHOT_MAX_PACE_MIN_PER_KM
+  )
 
   return {
     ok: true,
@@ -81,6 +89,7 @@ export function normalizeScreenshotData(value: unknown): NormalizeScreenshotResu
       ...(typeof elevationLossMeters === 'number' ? { elevationLossMeters } : {}),
       ...(typeof maxElevation === 'number' ? { maxElevation } : {}),
       ...(typeof speedKmh === 'number' ? { speedKmh } : {}),
+      ...(typeof paceMinPerKm === 'number' ? { paceMinPerKm } : {}),
     },
   }
 }

@@ -13,10 +13,12 @@ import { trackEvent } from '@/lib/analytics/client'
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
 const PROCESSING_MIN_DURATION_MS = 2000
 const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const SCREENSHOT_MIN_PACE_MIN_PER_KM = 2
+const SCREENSHOT_MAX_PACE_MIN_PER_KM = 40
 
 type ScreenshotStep = 'upload' | 'processing' | 'confirm' | 'submitting' | 'success'
 type RecognizeErrorKind = 'auth' | 'too_large' | 'unsupported' | 'network' | 'file' | 'quota'
-type FieldKey = 'elevation' | 'distance' | 'duration' | 'elevationGain' | 'date' | 'location' | 'speed'
+type FieldKey = 'elevation' | 'distance' | 'duration' | 'elevationGain' | 'date' | 'location' | 'speed' | 'pace'
 
 type RecognizeResult = {
   ok: true
@@ -70,6 +72,7 @@ const FIELD_CONFIGS: FieldConfig[] = [
   { key: 'date', label: '日期', locked: false },
   { key: 'location', label: '地点', locked: false },
   { key: 'speed', label: '速度', locked: false },
+  { key: 'pace', label: '配速', locked: false },
 ]
 
 const EMPTY_FIELD_TOGGLES: FieldToggles = {
@@ -80,6 +83,7 @@ const EMPTY_FIELD_TOGGLES: FieldToggles = {
   date: false,
   location: false,
   speed: false,
+  pace: false,
 }
 
 const EMPTY_EDITABLE_FIELDS: EditableFields = {
@@ -93,6 +97,7 @@ const EMPTY_EDITABLE_FIELDS: EditableFields = {
   date: '',
   location: '',
   speed: '',
+  pace: '',
 }
 
 function wait(ms: number) {
@@ -214,6 +219,7 @@ function buildEditableFields(fields: ParsedScreenshotFields): EditableFields {
     date: hasFieldValue(fields.date) ? fields.date.value : '',
     location: hasFieldValue(fields.location) ? fields.location.value : '',
     speed: hasFieldValue(fields.speed) ? String(fields.speed.value) : '',
+    pace: hasFieldValue(fields.paceMinPerKm) ? formatPaceForInput(fields.paceMinPerKm.value) : '',
   }
 }
 
@@ -222,6 +228,39 @@ function parseNumberInput(value: string) {
   if (!normalized) return undefined
   const numberValue = Number(normalized)
   return Number.isFinite(numberValue) ? numberValue : undefined
+}
+
+function formatPaceForInput(value: number) {
+  const totalSeconds = Math.max(0, Math.round(value * 60))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}'${String(seconds).padStart(2, '0')}"`
+}
+
+function parsePaceInput(value: string) {
+  const normalized = value
+    .trim()
+    .replace(/\s+/gu, '')
+    .replace(/[’′]/gu, "'")
+    .replace(/[”″]/gu, '"')
+  if (!normalized) return undefined
+
+  const paceMatch = normalized.match(/^([0-9]{1,2})[':]([0-9]{2})"?$/u)
+  if (paceMatch) {
+    const minutes = Number(paceMatch[1])
+    const seconds = Number(paceMatch[2])
+    if (!Number.isFinite(minutes) || !Number.isFinite(seconds) || seconds >= 60) return undefined
+    const pace = Math.round((minutes + seconds / 60) * 100) / 100
+    return pace >= SCREENSHOT_MIN_PACE_MIN_PER_KM && pace <= SCREENSHOT_MAX_PACE_MIN_PER_KM ? pace : undefined
+  }
+
+  if (!/^[0-9]+(?:[,.][0-9]+)?$/u.test(normalized)) return undefined
+  const decimalPace = Number(normalized.replace(/,/gu, '.'))
+  return Number.isFinite(decimalPace) &&
+    decimalPace >= SCREENSHOT_MIN_PACE_MIN_PER_KM &&
+    decimalPace <= SCREENSHOT_MAX_PACE_MIN_PER_KM
+    ? decimalPace
+    : undefined
 }
 
 function parseIntegerInput(value: string) {
@@ -250,6 +289,7 @@ function buildScreenshotParsedData(fields: EditableFields, toggles: FieldToggles
     : undefined
   const elevationGain = toggles.elevationGain ? parseNumberInput(fields.elevationGain) : undefined
   const speed = toggles.speed ? parseNumberInput(fields.speed) : undefined
+  const pace = toggles.pace ? parsePaceInput(fields.pace) : undefined
   const date = toggles.date && fields.date.trim() ? fields.date.trim() : undefined
   const location = toggles.location && fields.location.trim() ? fields.location.trim() : undefined
 
@@ -262,6 +302,7 @@ function buildScreenshotParsedData(fields: EditableFields, toggles: FieldToggles
     ...(typeof durationSeconds === 'number' ? { durationSeconds } : {}),
     ...(typeof elevationGain === 'number' ? { elevationGainMeters: Math.round(elevationGain) } : {}),
     ...(typeof speed === 'number' ? { speedKmh: speed } : {}),
+    ...(typeof pace === 'number' ? { paceMinPerKm: pace } : {}),
     ...(date ? { date } : {}),
   }
 }
@@ -300,6 +341,10 @@ function formatFieldValue(fields: ParsedScreenshotFields, key: FieldKey) {
       const field = fields.speed
       return hasFieldValue(field) ? `${field.value} km/h` : '—'
     }
+    case 'pace': {
+      const field = fields.paceMinPerKm
+      return hasFieldValue(field) ? `${formatPaceForInput(field.value)} /km` : '—'
+    }
   }
 }
 
@@ -319,6 +364,8 @@ function hasParsedField(fields: ParsedScreenshotFields, key: FieldKey) {
       return hasFieldValue(fields.location)
     case 'speed':
       return hasFieldValue(fields.speed)
+    case 'pace':
+      return hasFieldValue(fields.paceMinPerKm)
   }
 }
 
@@ -331,6 +378,7 @@ function buildInitialFieldToggles(fields: ParsedScreenshotFields): FieldToggles 
     date: hasParsedField(fields, 'date'),
     location: hasParsedField(fields, 'location'),
     speed: hasParsedField(fields, 'speed'),
+    pace: hasParsedField(fields, 'pace'),
   }
 }
 
@@ -1229,7 +1277,15 @@ function FieldRow({
             value={value}
             onChange={(event) => onChange(event.currentTarget.value)}
             disabled={!config.locked && !on}
-            placeholder={config.key === 'duration' ? '如 2h 30m' : config.key === 'date' ? 'YYYY-MM-DD' : '未识别，可手动填写'}
+            placeholder={
+              config.key === 'duration'
+                ? '如 2h 30m'
+                : config.key === 'date'
+                  ? 'YYYY-MM-DD'
+                  : config.key === 'pace'
+                    ? '如 7\'09"'
+                    : '未识别，可手动填写'
+            }
             style={{
               appearance: 'none',
               border: 'none',

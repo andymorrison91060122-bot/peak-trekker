@@ -36,6 +36,7 @@ export interface ParsedScreenshotFields {
   elevationLoss?: { value: number; raw: string }
   date?: { value: string; raw: string }
   speed?: { value: number; raw: string }
+  paceMinPerKm?: { value: number; raw: string }
   calories?: { value: number; raw: string }
   location?: { value: string; raw: string }
 }

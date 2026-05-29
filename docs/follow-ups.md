@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-29 · 最新版本记录: v0.48
+> Last Updated: 2026-05-30 · 最新版本记录: v0.49
 
 ---
 
@@ -83,28 +83,7 @@
 
 ---
 
-## Active Follow-ups（9 条）
-
-### FU-4 · mountains 华山 vs 西岳华山南峰子峰拆分
-
-- **优先级**: P2
-- **归属阶段**: 阶段 6 后 / 物料补全
-- **状态**: 🟢 active
-
-**背景**: mountains 表里同时存在两条记录：
-- 华山（id `216508c9-ffca-4164-8010-534d8650ee64`, 34.4869, 110.0877, 2154m）
-- 西岳华山南峰（id `7ab4cca8-a681-4f1e-94bc-9032d16d41f7`, 34.4731, 110.0864, 2154m）
-
-altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区，南峰为最高峰子峰），不是独立两座山。用户选错会用错坐标。
-
-**实施建议**: 评估后选一个方向：
-- 合并为一条（保留 id, 删除冗余）
-- 拆分为父子关系（加 parent_id 字段）
-- 删除其一
-
-**涉及**: mountains 表 + 可能影响已有 checkin 引用。
-
----
+## Active Follow-ups（8 条）
 
 ### FU-6 · UGC 山峰收录机制
 
@@ -301,11 +280,30 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 - **现象**: 某些 checkin 数据 (如 activity `7707122f-bebe-4b04-b904-1ad4397b706a`) 的 `checkin.distance_meters` / `checkin.elevation_gain_meters` / `checkin.max_elevation_meters` 字段被写入 0 而非 null；`checkin.duration_seconds` 被写入 60 (1 分钟)。同条 checkin 关联的 session 数据真实 (`distance_m=8300m` / `ascent_m=1465m` / 时长 3h)。
 - **关联现象**: Activity Detail 优先用 checkin 字段 → 显示 `0m / 1m / -- / --`；FU-11 sprint 已加入口 gate 隐藏脏数据活动 publish UI，Activity Detail 数据展示保持真实异常以便用户看到数据问题。
 - **待 root cause 调查**: trek 服务定时写入 / N2C close action / `verify_summit_checkin` RPC 等写入路径中哪一条产生了 0/60 异常值；是否其他 source type (用户上传 / 截图识别) 也有类似问题。
+- **补充发现 (FU-4)**: 另发现 `mountains.checkin_count` 缓存与实际 `checkins` 行数漂移 (华山 cached 153 vs 实际 454 / 421 complete / 196 verified), 同属 checkin 写入 / 统计完整性, 留待数据完整性 audit；非 FU-4 引入。
 - **处理方向**: 后续 sprint 单独调查 (体量未定，可能开新 FU 或并入 FU-42 整体废除 status + 字段写入完整性审计)。
 
 ---
 
-## Closed Follow-ups（53 条）
+## Closed Follow-ups（54 条）
+
+### FU-4 ✅ 删除西岳华山南峰冗余记录
+
+- **关闭原因**: FU-4 sprint 按用户决策删除 `mountains` 冗余记录 `7ab4cca8-a681-4f1e-94bc-9032d16d41f7` (西岳华山南峰), 保留 `216508c9-ffca-4164-8010-534d8650ee64` (华山)。两行海拔同为 2154m、坐标相近, 已判定为同一山峰冗余而非独立山峰。
+- **执行路径**:
+  · Phase 1 先用 Supabase 插件只读 inventory + archive 备份, 并 STOP 等用户审核。
+  · archive 位置: `/tmp/fu4-review/backup/mountain-7ab4cca8-a681-4f1e-94bc-9032d16d41f7.json`, `/tmp/fu4-review/backup/mountain-216508c9-ffca-4164-8010-534d8650ee64-keep-snapshot.json`, `/tmp/fu4-review/backup/reference-rows-7ab4cca8-a681-4f1e-94bc-9032d16d41f7.json`, `/tmp/fu4-review/backup/schema-inventory-and-counts.json`。
+  · 逐表引用计数均为 0: `checkins`, `checkins_archive_20260513`, `mountain_waypoints`, `trek_sessions`, `weather_cache`; `events` text sanity search 也为 0。
+  · 用户审核通过后, Phase 2 在事务内重新校验待删行存在 + 5 张表引用全 0, 随后删除单行; 因零引用, 未做 reassign。
+- **Post-verify**:
+  · `7ab4cca8-a681-4f1e-94bc-9032d16d41f7` 已不存在。
+  · 5 张表无该 id 残留孤儿引用。
+  · 保留目标华山 `216508c9-ffca-4164-8010-534d8650ee64` 行完好, `checkin_count=153` 未动。
+  · 删除结果: `/tmp/fu4-review/final/deletion-result.md`。
+- **B13 透明披露**:
+  · 本 sprint 只删除冗余 mountain 行, 不改业务代码 / schema / 统计缓存。
+  · Phase 1 发现华山 `mountains.checkin_count` 缓存与实际 `checkins` 行数漂移 (153 vs 454 / 421 complete / 196 verified), 已补入 Known Issue; 非 FU-4 引入, 本 sprint 只记录不修。
+- **风险落地**: codex-risk-behavior-policy 连续 17 个 sprint 0 红线违反。
 
 ### FU-5 ✅ premium-vertical-story 路线层后补
 
@@ -1027,6 +1025,19 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.49（2026-05-30）
+
+FU-4 close。
+
+- 删除 `mountains` 冗余记录: `7ab4cca8-a681-4f1e-94bc-9032d16d41f7` (西岳华山南峰), 保留 `216508c9-ffca-4164-8010-534d8650ee64` (华山)。
+- 执行路径: Supabase 插件只读 inventory + `/tmp/fu4-review/backup/` archive → 用户审核通过 → 事务内 precheck → 单行 DELETE → post-verify。
+- 引用处理: `checkins`, `checkins_archive_20260513`, `mountain_waypoints`, `trek_sessions`, `weather_cache` 引用均为 0, 因此不 reassign; post-verify 无孤儿引用, 华山行完好且 `checkin_count=153` 未动。
+- B13: 顺带记录华山 `mountains.checkin_count` 缓存漂移 (153 vs 实际 454 / 421 complete / 196 verified) 到 Known Issue, 只记录不修。
+- codex-risk-behavior-policy 连续 17 个 sprint 0 红线违反。
+- Active 9 → 8 · Closed 53 → 54
+
+---
 
 ### v0.48（2026-05-29）
 

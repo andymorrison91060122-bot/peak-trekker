@@ -28,13 +28,9 @@ describe('map tile asset registry', () => {
     assert.equal(getMountainPmtilesAsset(null), null)
   })
 
-  test('keeps national z7 asset available for debug surfaces', async () => {
-    const { getNationalMapTilesAsset } = await loadMapAssets()
+  test('formats per-mountain PMTiles package sizes', async () => {
+    const { formatMapTilesSize } = await loadMapAssets()
 
-    const asset = getNationalMapTilesAsset()
-
-    assert.equal(asset.objectPath, 'basemap/china-z7-20260519.pmtiles')
-    assert.equal(asset.maxZoom, 7)
-    assert.ok(asset.url.endsWith('/map-tiles/basemap/china-z7-20260519.pmtiles'))
+    assert.equal(formatMapTilesSize(649_374), '0.6 MB')
   })
 })

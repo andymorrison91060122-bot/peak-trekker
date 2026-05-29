@@ -194,10 +194,11 @@ function mapToTopList(counts: Map<string, number>, limit = 10) {
     .map(([label, value]) => ({ label, value }))
 }
 
-function funnelWithConversion(rows: Array<{ step: string; value: number }>) {
+function funnelWithConversion(rows: Array<{ step: string; eventLabel: string; value: number }>) {
   return rows.map((row, index) => ({
     ...row,
     conversionRate: index === 0 ? null : ratio(row.value, rows[index - 1]?.value ?? 0),
+    dropoffCount: index === 0 ? null : Math.max(0, (rows[index - 1]?.value ?? 0) - row.value),
   }))
 }
 
@@ -209,20 +210,13 @@ function dailySeries(events: AnalyticsEventRow[], filter: (row: AnalyticsEventRo
 export function buildOverviewMetrics(events: AnalyticsEventRow[]): OverviewMetrics {
   const users = new Set(events.map((row) => row.user_id).filter(Boolean))
   const sessions = new Set(events.map((row) => row.session_id).filter(Boolean))
-  const started = events.filter((row) => row.event_name === 'business.trek_start').length
-  const shared = events.filter((row) => row.event_name === 'business.share_template_generate').length
   return {
     totalEvents: events.length,
     totalSessions: sessions.size,
     totalUsers: users.size,
     dauSeries: dailySeries(events, (row) => row.event_name === 'page_view'),
     registrationSeries: dailySeries(events, (row) => row.event_name === 'auth.register_complete'),
-    funnel: funnelWithConversion([
-      { step: '访问', value: events.filter((row) => row.event_name === 'page_view').length },
-      { step: '注册', value: events.filter((row) => row.event_name === 'auth.register_complete').length },
-      { step: '首次 Trek', value: started },
-      { step: '分享', value: shared },
-    ]),
+    funnel: buildActivationFunnel(events),
     dauCohort: buildDauCohort(events),
     kFactor: buildKFactorMetrics(events),
     retention: buildRetention(events),
@@ -231,6 +225,65 @@ export function buildOverviewMetrics(events: AnalyticsEventRow[]): OverviewMetri
 
 function actorId(row: AnalyticsEventRow) {
   return row.user_id ?? row.session_id
+}
+
+function actorIdForFunnelStep(row: AnalyticsEventRow, stepIndex: number) {
+  if (stepIndex === 8) return asString(properties(row).visitor_session_id, actorId(row) ?? '')
+  if (stepIndex === 9) return asString(properties(row).new_user_id, actorId(row) ?? '')
+  return actorId(row)
+}
+
+function isTrekSelectionPageView(row: AnalyticsEventRow) {
+  if (row.event_name !== 'page_view') return false
+  const pagePath = row.page_path ?? ''
+  if (!pagePath.includes('/trek') || !pagePath.includes('mountainId=')) return false
+  try {
+    const url = pagePath.startsWith('http') ? new URL(pagePath) : new URL(pagePath, 'https://peak-trekker.local')
+    return url.pathname === '/trek' && Boolean(url.searchParams.get('mountainId'))
+  } catch {
+    return pagePath.startsWith('/trek') && pagePath.includes('mountainId=')
+  }
+}
+
+function buildActivationFunnel(events: AnalyticsEventRow[]): OverviewMetrics['funnel'] {
+  const steps: Array<{
+    step: string
+    eventLabel: string
+    matches: (row: AnalyticsEventRow) => boolean
+  }> = [
+    { step: '访问', eventLabel: 'page_view', matches: (row) => row.event_name === 'page_view' },
+    { step: '注册', eventLabel: 'auth.register_complete', matches: (row) => row.event_name === 'auth.register_complete' },
+    { step: '首次浏览山峰', eventLabel: 'business.mountain_view', matches: (row) => row.event_name === 'business.mountain_view' },
+    { step: '首次选山', eventLabel: 'page_view /trek?mountainId=', matches: isTrekSelectionPageView },
+    { step: '首次 Trek 启动', eventLabel: 'business.trek_start', matches: (row) => row.event_name === 'business.trek_start' },
+    { step: '首次 Trek 完成', eventLabel: 'business.trek_complete', matches: (row) => row.event_name === 'business.trek_complete' },
+    { step: '首次 Activity 创建', eventLabel: 'business.activity_create', matches: (row) => row.event_name === 'business.activity_create' },
+    {
+      step: '首次分享生成',
+      eventLabel: 'business.share_template_generate success=true',
+      matches: (row) => row.event_name === 'business.share_template_generate' && properties(row).success === true,
+    },
+    { step: '分享 link 被点击', eventLabel: 'business.share_link_open', matches: (row) => row.event_name === 'business.share_link_open' },
+    {
+      step: '通过 link 拉新成功',
+      eventLabel: 'business.share_link_register_attribution',
+      matches: (row) => row.event_name === 'business.share_link_register_attribution',
+    },
+  ]
+
+  return funnelWithConversion(steps.map((step, index) => {
+    const actors = new Set<string>()
+    for (const row of events) {
+      if (!step.matches(row)) continue
+      const id = actorIdForFunnelStep(row, index)
+      if (id) actors.add(id)
+    }
+    return {
+      step: step.step,
+      eventLabel: step.eventLabel,
+      value: actors.size,
+    }
+  }))
 }
 
 function paidActorId(row: AnalyticsEventRow) {
@@ -598,12 +651,112 @@ export function buildOperationalCostMetrics(events: AnalyticsEventRow[]): Operat
   }
 }
 
+const SOURCE_ORDER = ['直接', '微信', '朋友圈', '百度', 'Google', '其他']
+const DEVICE_ORDER = ['iOS', 'Android', 'Desktop', 'Other']
+
+function cleanString(value: unknown) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function hostnameFromReferrer(referrer: string) {
+  if (!referrer) return ''
+  try {
+    return new URL(referrer).hostname.toLowerCase()
+  } catch {
+    return referrer.toLowerCase()
+  }
+}
+
+function classifyReferrer(referrer: unknown) {
+  const value = cleanString(referrer).toLowerCase()
+  const hostname = hostnameFromReferrer(value)
+  const haystack = `${value} ${hostname}`
+
+  if (!value || hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('peak-trekker')) return '直接'
+  if (haystack.includes('servicewechat.com') || haystack.includes('pyq') || haystack.includes('moments')) return '朋友圈'
+  if (haystack.includes('wx.qq.com') || haystack.includes('weixin') || haystack.includes('wechat')) return '微信'
+  if (hostname.includes('baidu.com')) return '百度'
+  if (hostname.includes('google.')) return 'Google'
+  return '其他'
+}
+
+function classifyDevice(userAgent: unknown) {
+  const value = cleanString(userAgent).toLowerCase()
+  if (!value) return 'Other'
+  // iOS must be checked before Mac/Desktop because iOS Safari UA contains "mac os x".
+  if (/iphone|ipad|ipod|\bios\b/.test(value)) return 'iOS'
+  // Android must be checked before Linux/Desktop because Android Chrome UA contains "linux".
+  if (/android/.test(value)) return 'Android'
+  if (/macintosh|mac os x|windows|\blinux\b|cros|chrome os/.test(value)) return 'Desktop'
+  return 'Other'
+}
+
+function hasActorEventWithin(events: AnalyticsEventRow[], id: string, startTime: number, minDay: number, maxDay: number) {
+  return events.some((row) => {
+    if (actorId(row) !== id) return false
+    const time = new Date(row.server_ts).getTime()
+    if (!Number.isFinite(time)) return false
+    const delta = time - startTime
+    return delta >= minDay * DAY_MS && delta < maxDay * DAY_MS
+  })
+}
+
+export function buildSourceMetrics(events: AnalyticsEventRow[]): UserBehaviorMetrics['sourceMetrics'] {
+  const sourceActors = new Map<string, Map<string, number>>()
+
+  for (const row of events) {
+    const id = actorId(row)
+    if (!id) continue
+    const source = classifyReferrer(row.referrer)
+    const time = new Date(row.server_ts).getTime()
+    if (!Number.isFinite(time)) continue
+    if (!sourceActors.has(source)) sourceActors.set(source, new Map())
+    const actors = sourceActors.get(source)!
+    const previous = actors.get(id)
+    if (previous === undefined || time < previous) actors.set(id, time)
+  }
+
+  const totalSourceActorAssignments = [...sourceActors.values()].reduce((sum, actors) => sum + actors.size, 0)
+  return SOURCE_ORDER.map((source) => {
+    const actors = sourceActors.get(source) ?? new Map<string, number>()
+    const entries = [...actors.entries()]
+    return {
+      source,
+      actorCount: entries.length,
+      share: ratio(entries.length, totalSourceActorAssignments),
+      d1RetentionRate: ratio(entries.filter(([id, firstAt]) => hasActorEventWithin(events, id, firstAt, 1, 2)).length, entries.length),
+      d7RetentionRate: ratio(entries.filter(([id, firstAt]) => hasActorEventWithin(events, id, firstAt, 7, 8)).length, entries.length),
+      d30RetentionRate: ratio(entries.filter(([id, firstAt]) => hasActorEventWithin(events, id, firstAt, 30, 31)).length, entries.length),
+    }
+  })
+}
+
+export function buildDeviceMetrics(events: AnalyticsEventRow[]): UserBehaviorMetrics['deviceMetrics'] {
+  return DEVICE_ORDER.map((device) => {
+    const deviceRows = events.filter((row) => classifyDevice(row.user_agent) === device)
+    const actorCount = uniqueCount(deviceRows.map(actorId))
+    const startActorIds = new Set(deviceRows.filter((row) => row.event_name === 'business.trek_start').map(actorId).filter(Boolean))
+    const completeActorIds = new Set(deviceRows.filter((row) => row.event_name === 'business.trek_complete').map(actorId).filter(Boolean))
+    const trekStartActors = startActorIds.size
+    const trekCompleteActors = [...startActorIds].filter((id) => completeActorIds.has(id)).length
+    return {
+      device,
+      actorCount,
+      trekStartActors,
+      trekCompleteActors,
+      trekCompletionRate: ratio(trekCompleteActors, trekStartActors),
+    }
+  })
+}
+
 export function buildUserBehaviorMetrics(events: AnalyticsEventRow[]): UserBehaviorMetrics {
   return {
     mountainTop: mapToTopList(countBy(events.filter((row) => row.event_name === 'business.mountain_view').map((row) => asString(properties(row).mountain_id)))),
     trek: buildTrekCompletionMetrics(events),
     activityProof: mapToTopList(countBy(events.filter((row) => row.event_name === 'business.activity_create').map((row) => asString(properties(row).proof_status, 'unknown'))), 5),
     community: mapToTopList(countBy(events.filter((row) => row.event_name.startsWith('business.community_')).map((row) => row.event_name)), 5),
+    sourceMetrics: buildSourceMetrics(events),
+    deviceMetrics: buildDeviceMetrics(events),
     shareTemplates: buildShareTemplateMetrics(events),
   }
 }

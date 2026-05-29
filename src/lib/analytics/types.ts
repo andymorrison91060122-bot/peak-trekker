@@ -85,7 +85,13 @@ export type OverviewMetrics = {
   totalUsers: number
   dauSeries: SeriesPoint[]
   registrationSeries: SeriesPoint[]
-  funnel: Array<{ step: string; value: number; conversionRate: number | null }>
+  funnel: Array<{
+    step: string
+    eventLabel: string
+    value: number
+    conversionRate: number | null
+    dropoffCount: number | null
+  }>
   dauCohort: {
     activeUsers: number
     trekUsers: number
@@ -107,6 +113,21 @@ export type UserBehaviorMetrics = {
   trek: TrekCompletionMetrics
   activityProof: Array<{ label: string; value: number }>
   community: Array<{ label: string; value: number }>
+  sourceMetrics: Array<{
+    source: string
+    actorCount: number
+    share: number
+    d1RetentionRate: number
+    d7RetentionRate: number
+    d30RetentionRate: number
+  }>
+  deviceMetrics: Array<{
+    device: string
+    actorCount: number
+    trekStartActors: number
+    trekCompleteActors: number
+    trekCompletionRate: number
+  }>
   shareTemplates: ShareTemplateMetrics
 }
 

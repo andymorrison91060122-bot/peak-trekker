@@ -71,7 +71,7 @@ test('buildAnalyticsDashboardData applies cohort filter before all dashboard met
   assert.equal(newData.cohortKey, 'new')
   assert.equal(newData.cohortActorCount, 1)
   assert.equal(newData.overview.totalEvents, 4)
-  assert.equal(newData.overview.funnel[2].value, 1)
+  assert.equal(newData.overview.funnel.find((row) => row.step === '首次 Trek 启动')?.value, 1)
   assert.deepEqual(newData.paidPotential.featureRanking.map((row) => row.feature_id), ['high_quality_share'])
 
   const returningData = buildAnalyticsDashboardData(events, '30d', true, NOW, 'returning', fullHistory)

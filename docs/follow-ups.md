@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-29 · 最新版本记录: v0.44
+> Last Updated: 2026-05-29 · 最新版本记录: v0.45
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`deb61b7`（Merge FU-45 · 2026-05-29）
+`2a907a5`（Merge FU-52 · 2026-05-29）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（12 条）
+## Active Follow-ups（11 条）
 
 ### FU-4 · mountains 华山 vs 西岳华山南峰子峰拆分
 
@@ -313,33 +313,6 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-### FU-52 · PMTiles 实验包 cleanup + 全国主包保留决策
-
-- **优先级**: P2（存储治理 / FU-47(a) 副产物）
-- **归属阶段**: 阶段 5 / 地图基建后续
-- **状态**: 🟢 active
-
-**背景**: FU-47(a) Phase 4 为验证地图产品方向，临时生成并上传多组 PMTiles 实验包：v5 6 组合 mountain-bbox candidate、v7 `z=11-12` 双层、v8 `z=9-12` baseline，以及早期 `z=7` / `z=8` 中国 bbox 全国主包。用户已明确 V3 不删除旧 PMTiles，cleanup 独立跟踪。
-
-**实施建议**:
-- 盘点 Supabase Storage `map-tiles/basemap/` 下所有实验对象 + `/tmp/peak-trekker-maptiles/` 本地候选文件
-- 保留 v8 baseline `huashan-bbox30-z9-12.pmtiles`
-- 删除或 archive v5/v7 已否决候选包
-- 单独评估 `china-z7-20260519.pmtiles` / `china-z8*` 是否仍保留作 Explore 兜底 / 全国概览，否则清理
-- 清理前输出对象清单 + 文件大小 + 删除计划，执行后 Range/public URL 验证
-
-**不在 scope**:
-- 不改变 FU-47(a) 已锁定的 mountain-bbox baseline
-- 不接入 Mountain Detail / Trek / Activity
-- 不删除未经过用户确认的远程对象
-
-**涉及**:
-- Supabase Storage `map-tiles` bucket
-- `/tmp/peak-trekker-maptiles/` 本地实验产物（系统临时目录，是否清理由执行时确认）
-- docs/follow-ups.md cleanup 记账
-
----
-
 ## Known Issues
 
 ### Known Issue · checkin 数据字段写入路径异常 (2026-05-21 FU-11 sprint 期间发现)
@@ -351,7 +324,28 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 
 ---
 
-## Closed Follow-ups（50 条）
+## Closed Follow-ups（51 条）
+
+### FU-52 ✅ PMTiles 实验包 cleanup + china-z7 死代码清理
+
+- **关闭原因**: FU-52 sprint 完成 PMTiles storage / code 双侧收口。Supabase Storage `map-tiles/basemap/` 下 9 个被否决实验包 + `china-z7` / `china-z8` 全国包已按用户确认清单删除, 释放 57,788,515 bytes (55.11 MiB); 仅保留生产 `basemap/huashan-bbox30-z9-12.pmtiles`。
+- **关键设计决策**:
+  · 当前无全国地图产品场景, `china-z7-20260519.pmtiles` 不再保留作 debug / fallback。
+  · `src/lib/map/map-assets.ts` 移除 china-z7 national-asset 死机器: `NATIONAL_MAP_TILE_ASSET` / `getNationalMapTilesAsset` / `getMapTilesPublicUrl` / `MAP_TILES_OBJECT_PATH` / `MAP_TILES_SIZE_BYTES` 等。
+  · `/debug/map-prototype` 存储估算改为 per-mountain bbox30 z9-12 × 300, 不再叠加全国主包。
+  · `docs/map-weather-brief.md` 同步 v0.3.6: china-z7 停用, production baseline 收口为 per-mountain bbox30 z9-12, Activity / Trek 缺 mountain-bbox 继续 trace-only。
+  · production Mountain Detail / Trek / Activity 路径不变, Huashan PMTiles registry 保留。
+- **Storage 删除验证**:
+  · 删除清单: `china-z7-20260519.pmtiles`, `china-z8only-20260519.pmtiles`, `huashan-bbox25-z12/z13`, `huashan-bbox30-z11-12/z12/z13`, `huashan-bbox50-z12/z13`。
+  · 删除后 `basemap/` 只剩 `basemap/huashan-bbox30-z9-12.pmtiles`。
+  · Huashan public URL status 200; 9 个删除对象 public URL 均返回 400 (not found 类结果)。
+- **前瞻 · 并入 300 山峰 pipeline**:
+  · 最终地图为分区域 per-mountain bbox 包上传: 300/400 山峰批量上传时, 每座山需生成 bbox30-z9-12 PMTiles → 上传 Storage → 注册进 `MOUNTAIN_PMTILES_ASSETS`。
+  · "每座山详情页地图正常渲染"列为该 pipeline 的一个验收项。
+- **准入**: lint 0e/5w · build PASS · focused node tests 32p · Huashan Mountain Detail 375px PMTiles evidence captured · active `src` / `tests` 对 `china-z7` / national API 0 命中 · git diff --check clean。
+- **风险落地**: codex-risk-behavior-policy 连续 13 个 sprint 0 红线违反。
+
+---
 
 ### FU-45 ✅ 山峰简介恢复 sanitized 富文本渲染
 
@@ -1019,6 +1013,19 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.45（2026-05-29）
+
+FU-52 close。
+
+- PMTiles storage cleanup 完成: 删除 Supabase Storage `map-tiles/basemap/` 下 9 个被否决实验包 + `china-z7` / `china-z8` 全国包, 释放 55.11 MiB; 仅保留生产 `huashan-bbox30-z9-12.pmtiles`。
+- 代码清理: 移除 china-z7 national asset 死机器 (`NATIONAL_MAP_TILE_ASSET` / `getNationalMapTilesAsset` / `getMapTilesPublicUrl` / `MAP_TILES_OBJECT_PATH` / `MAP_TILES_SIZE_BYTES`), debug prototype 存储估算改 per-mountain bbox30 z9-12 × 300。
+- brief 同步: `docs/map-weather-brief.md` v0.3.6 记录 china-z7 停用, production baseline 收口为 per-mountain PMTiles, Activity / Trek fallback 继续 trace-only。
+- 前瞻: 300/400 山峰 pipeline 需按每座山生成 bbox30-z9-12 PMTiles → 上传 Storage → 注册 `MOUNTAIN_PMTILES_ASSETS`, 并把"每座山详情页地图正常渲染"纳入验收。
+- codex-risk-behavior-policy 连续 13 个 sprint 0 红线违反。
+- Active 12 → 11 · Closed 50 → 51
+
+---
 
 ### v0.44（2026-05-29）
 

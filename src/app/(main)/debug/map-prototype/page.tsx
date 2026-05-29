@@ -1,11 +1,6 @@
 import { redirect } from 'next/navigation'
 import MapPrototypeClient from '@/components/map/MapPrototypeClient'
 import { canAccessOnboardingDebugTools } from '@/lib/onboarding-debug'
-import {
-  formatMapTilesSize,
-  MAP_TILES_BUILD_DATE,
-  MAP_TILES_SIZE_BYTES,
-} from '@/lib/map/map-assets'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 type HuashanReviewAsset = {
@@ -48,12 +43,11 @@ function formatPreciseMapTilesSize(bytes: number) {
 }
 
 function buildMapPrototypeReviewScript() {
+  const cumulativeBytes = HUASHAN_REVIEW_ASSET.bytes * 300
   const config = {
-    mainBaselineBytes: MAP_TILES_SIZE_BYTES,
-    mainBaselineLabel: formatMapTilesSize(MAP_TILES_SIZE_BYTES),
     tileUrl: getMapTilesPublicUrlForPath(HUASHAN_REVIEW_ASSET.objectPath),
     tileSizeLabel: formatPreciseMapTilesSize(HUASHAN_REVIEW_ASSET.bytes),
-    cumulativeLabel: formatPreciseMapTilesSize(MAP_TILES_SIZE_BYTES + HUASHAN_REVIEW_ASSET.bytes * 300),
+    cumulativeLabel: formatPreciseMapTilesSize(cumulativeBytes),
     asset: HUASHAN_REVIEW_ASSET,
     center: HUASHAN_CENTER,
     routeCenter: HUASHAN_ROUTE_CENTER,
@@ -277,7 +271,7 @@ function buildMapPrototypeReviewScript() {
       ['bbox 范围', config.bboxLabel],
       ['bbox 物理范围', config.asset.bboxKm + 'km × ' + config.asset.bboxKm + 'km'],
       ['单包大小', config.tileSizeLabel],
-      ['300 山峰估算', config.cumulativeLabel + ' · 含主包 ' + config.mainBaselineLabel],
+      ['300 山峰估算', config.cumulativeLabel + ' · per-mountain bbox30 z9-12'],
       ['轨迹占比', config.routeKm + 'km / ' + config.asset.bboxKm + 'km = ' + config.routeViewportRatio],
       ['zoom 边界', 'min=fitZoom · max=z' + config.asset.maxZoom],
       ['对象路径', config.asset.objectPath],
@@ -423,7 +417,7 @@ export default async function MapPrototypePage() {
         tileObjectPath={HUASHAN_REVIEW_ASSET.objectPath}
         tileSizeLabel={formatPreciseMapTilesSize(HUASHAN_REVIEW_ASSET.bytes)}
         tileMaxZoom={HUASHAN_REVIEW_ASSET.maxZoom}
-        buildDate={MAP_TILES_BUILD_DATE}
+        buildLabel="per-mountain bbox30 z9-12"
       />
       <script dangerouslySetInnerHTML={{ __html: buildMapPrototypeReviewScript() }} />
     </>

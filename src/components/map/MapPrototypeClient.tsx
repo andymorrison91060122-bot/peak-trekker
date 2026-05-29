@@ -9,7 +9,7 @@ type MapPrototypeClientProps = {
   tileObjectPath: string
   tileSizeLabel: string
   tileMaxZoom: number
-  buildDate: string
+  buildLabel: string
 }
 
 type LoadStatus = 'loading' | 'ready' | 'error'
@@ -93,7 +93,7 @@ export default function MapPrototypeClient({
   tileObjectPath,
   tileSizeLabel,
   tileMaxZoom,
-  buildDate,
+  buildLabel,
 }: MapPrototypeClientProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -302,7 +302,7 @@ export default function MapPrototypeClient({
             <span className={`map-prototype__status map-prototype__status--${status}`}>
               {status === 'ready' ? 'ready' : status === 'loading' ? 'loading' : 'error'}
             </span>
-            <span>Build {buildDate}</span>
+            <span>Baseline {buildLabel}</span>
           </div>
           <code>{tileObjectPath}</code>
         </div>

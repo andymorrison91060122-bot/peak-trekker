@@ -671,7 +671,7 @@ basemap/huashan-bbox30-z9-12.pmtiles
 
 华山 baseline `huashan-bbox30-z9-12.pmtiles` 实测约 649,374 bytes。按 300 座估算：
 
-* Storage: 约 185.8 MiB，叠加 z=7 全国主包约 20.4 MiB，总计约 206 MiB
+* Storage: 约 185.8 MiB（仅 per-mountain bbox30 z=9-12 包；FU-52 起不再把 z=7 全国主包计入 production baseline）
 * 若每座热门山每月 1,000 次地图打开，单山流量约 619 MiB/月
 * 300 山峰不会均匀达到热门访问量；应结合 `weather_priority_tier` 分批生成和监控带宽
 
@@ -693,6 +693,7 @@ PMTiles object path 一旦被客户端引用，就按长期缓存处理。失效
 * 每个 PMTiles 都有 bbox / zoom / size / sha256
 * Storage 上传支持跳过已存在且 sha256 一致的文件
 * app registry 只登记 production baseline，不登记实验候选
+* Storage 仅保留 production baseline per-mountain 包；FU-52 确认删除 z=7 全国包与 Huashan 实验候选前必须先人工 review 删除清单
 * Mountain Detail 对无 PMTiles 山不走全国 z=7 兜底
 * Activity Detail 缺 mountain-bbox PMTiles 时走 trace-only（无底图 + SVG fit-bounds trace overlay），不再使用 z=7 背景（见 §15.5.4 v0.3.4）
 * 浏览器证据覆盖 PMTiles ok / text fallback / unavailable / Activity trace-only fallback
@@ -757,7 +758,7 @@ NavigationControl 提供原生 +/− 按钮。product surface 由 NavigationCont
 - "仅可预览轨迹" 文案
 - 视觉尺寸等同 share poster
 
-z=7 全国主包不作为 Activity Detail 产品 fallback；仅保留在 `src/lib/map/map-assets.ts` 供 `/debug/map-prototype` 等 debug 场景使用。SVG fit-bounds overlay 不挂 MapLibre layer 是为了保持分享海报视觉尺寸（若挂 MapLibre layer 会按底图 zoom 比例压成几像素无法分享）。
+z=7 全国主包不作为 Activity Detail 产品 fallback。FU-52 起 `src/lib/map/map-assets.ts` 也不再登记 national z7 包；`/debug/map-prototype` 改用 Huashan per-mountain baseline 验证。SVG fit-bounds overlay 不挂 MapLibre layer 是为了保持分享海报视觉尺寸（若挂 MapLibre layer 会按底图 zoom 比例压成几像素无法分享）。
 
 ### 15.5.5 Layer allowlist
 
@@ -854,6 +855,12 @@ product surface 需要外部按钮触发 zoomIn / zoomOut / fitBounds 时，通�
 
 Peak Trekker 当前阶段不应该为了“所有山都实时天气”而牺牲主线的稳定性、可控性和上线速度。
 
+### v0.3.6 — 2026-05-29
+
+- FU-52: PMTiles storage baseline 收口为 per-mountain bbox30 z=9-12 包；`china-z7-20260519.pmtiles` 全国包与 Huashan 实验候选进入删除清单，V3 经用户确认后再执行 Storage 删除。
+- `src/lib/map/map-assets.ts` 不再登记 national z7 asset；`/debug/map-prototype` 存储估算改为 per-mountain 包 × 山峰数，不再叠加全国主包。
+- §15.4.5 / §15.4.7 / §15.5.4 同步：Mountain Detail / Activity Detail / Trek 缺 mountain-bbox 时继续走既有 fallback / trace-only 逻辑，不引入 z=7 全国底图。
+
 ### v0.3.5 — 2026-05-28
 
 - §15.5.4 Activity trace-only fallback 文案精简：`底图暂不可用 · 轨迹预览仍可查看` → `仅可预览轨迹`（user 三次验收反馈，更短更直接）。
@@ -861,13 +868,13 @@ Peak Trekker 当前阶段不应该为了“所有山都实时天气”而牺牲�
 ### v0.3.4 — 2026-05-28
 
 - §15.5.3 product surface 由 NavigationControl 唯一承担 zoom UI；移除"自定义放大按钮必须接 zoomIn"要求（防止与原生控件视觉冲突，user 二次验收反馈）。
-- §15.5.4 Activity Detail 缺 mountain-bbox PMTiles 时**不再降级到 z=7 全国主包**，直接走 trace-only（无底图 + SVG fit-bounds trace overlay），视觉等同 share poster。z=7 全国主包仅保留在 `map-assets.ts` 供 debug 场景。
+- §15.5.4 Activity Detail 缺 mountain-bbox PMTiles 时**不再降级到 z=7 全国主包**，直接走 trace-only（无底图 + SVG fit-bounds trace overlay），视觉等同 share poster。历史上 z=7 全国主包曾仅保留给 debug 场景，FU-52 起已从 active code path 移除。
 - §15.4.7 上线 checklist 同步更新：Activity Detail fallback 描述从 "z=7 背景 + SVG overlay" 改为 "trace-only（无底图 + SVG fit-bounds trace overlay）"；浏览器证据清单从 "z=7 fallback" 改为 "Activity trace-only fallback"。
 
 ### v0.3.3 — 2026-05-28
 
 - 新增 §15.5 客户端实施 baseline（FU-47(a) 锁定）：沉淀 30km bbox × z=9-12 × dark × 1:1 的 9 步初始化序列 / 5 项交互 enable + NavigationControl / GeoJSON layer 替代 SVG abstract / 24 个 layer allowlist / resize 重算 / PMTiles protocol singleton / SSR-safe query param / imperative handle 等实施规范。FU-47(b) patch v1 起所有 PMTiles client surface 必须严格遵循。
-- §15.5.4 明确 z=7 national fallback 的 SVG overlay 例外保留，保护分享海报视觉尺寸约束。
+- §15.5.4 当时曾明确 z=7 national fallback 的 SVG overlay 例外；该历史例外已在 FU-47(b) v0.3.4 与 FU-52 v0.3.6 中收口为 trace-only / per-mountain baseline，不再作为 active product 或 debug code path。
 
 ### v0.3.2 — 2026-05-28
 

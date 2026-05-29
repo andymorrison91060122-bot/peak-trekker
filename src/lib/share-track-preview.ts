@@ -91,11 +91,15 @@ export function buildShareTrackPreview(rawTrackPoints: unknown, maxPoints = DEFA
   const maxLng = Math.max(...lngs)
   const latRange = maxLat - minLat
   const lngRange = maxLng - minLng
+  const midLat = (minLat + maxLat) / 2
+  const lngScale = Math.max(Math.cos((midLat * Math.PI) / 180), 0.1)
+  const effLngRange = lngRange * lngScale
+  const range = Math.max(latRange, effLngRange, COORDINATE_EPSILON)
 
   return {
     points: sampled.map((point) => ({
-      x: lngRange <= COORDINATE_EPSILON ? 0.5 : (point.lng - minLng) / lngRange,
-      y: latRange <= COORDINATE_EPSILON ? 0.5 : (maxLat - point.lat) / latRange,
+      x: (((point.lng - minLng) * lngScale) + (range - effLngRange) / 2) / range,
+      y: ((maxLat - point.lat) + (range - latRange) / 2) / range,
     })),
     pointCount: deduped.length,
     hasAltitude: deduped.some((point) => point.altitude !== null),
@@ -111,9 +115,15 @@ function formatCoord(value: number) {
 }
 
 function projectPoint(point: ShareTrackPreviewPoint, frame: Required<ShareTrackFrame>): ShareTrackPreviewPoint {
+  const innerWidth = frame.width - frame.padding * 2
+  const innerHeight = frame.height - frame.padding * 2
+  const scale = Math.min(innerWidth, innerHeight)
+  const offsetX = (innerWidth - scale) / 2
+  const offsetY = (innerHeight - scale) / 2
+
   return {
-    x: formatCoord(frame.x + frame.padding + clampUnit(point.x) * (frame.width - frame.padding * 2)),
-    y: formatCoord(frame.y + frame.padding + clampUnit(point.y) * (frame.height - frame.padding * 2)),
+    x: formatCoord(frame.x + frame.padding + offsetX + clampUnit(point.x) * scale),
+    y: formatCoord(frame.y + frame.padding + offsetY + clampUnit(point.y) * scale),
   }
 }
 

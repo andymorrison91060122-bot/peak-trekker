@@ -3,6 +3,8 @@ import { test } from 'node:test'
 import {
   normalizeScreenshotData,
   SCREENSHOT_MAX_DURATION_SECONDS,
+  SCREENSHOT_MAX_PACE_MIN_PER_KM,
+  SCREENSHOT_MIN_PACE_MIN_PER_KM,
 } from '../src/lib/import/screenshot-confirm-data.ts'
 
 test('normalizes screenshot confirm data with optional duration and altitude omitted', () => {
@@ -63,6 +65,36 @@ test('keeps long but valid route-planning distances', () => {
   assert.equal(result.data.durationSeconds, 158802)
   assert.equal(result.data.elevationGainMeters, 5523)
   assert.equal(result.data.speedKmh, 18.7)
+})
+
+test('normalizes screenshot pace while dropping out-of-range values', () => {
+  const valid = normalizeScreenshotData({
+    format: 'screenshot',
+    distanceMeters: 5900,
+    paceMinPerKm: 7.15,
+  })
+
+  assert.equal(valid.ok, true)
+  if (!valid.ok) return
+  assert.equal(valid.data.paceMinPerKm, 7.15)
+
+  const tooFast = normalizeScreenshotData({
+    format: 'screenshot',
+    distanceMeters: 5900,
+    paceMinPerKm: SCREENSHOT_MIN_PACE_MIN_PER_KM - 0.01,
+  })
+  assert.equal(tooFast.ok, true)
+  if (!tooFast.ok) return
+  assert.equal(tooFast.data.paceMinPerKm, undefined)
+
+  const tooSlow = normalizeScreenshotData({
+    format: 'screenshot',
+    distanceMeters: 5900,
+    paceMinPerKm: SCREENSHOT_MAX_PACE_MIN_PER_KM + 0.01,
+  })
+  assert.equal(tooSlow.ok, true)
+  if (!tooSlow.ok) return
+  assert.equal(tooSlow.data.paceMinPerKm, undefined)
 })
 
 test('requires a valid screenshot distance for confirm', () => {

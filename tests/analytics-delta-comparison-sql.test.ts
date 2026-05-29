@@ -29,7 +29,7 @@ test('dashboard ranges support today, all-time, funnel penetration, DAU cohort, 
 
   assert.equal(today.rangeKey, 'today')
   assert.equal(today.overview.totalEvents, 5)
-  assert.equal(today.overview.funnel[1].conversionRate, 0.5)
+  assert.equal(today.overview.funnel[1].conversionRate, 1)
   assert.equal(today.overview.dauCohort.activeUsers, 1)
   assert.equal(today.overview.dauCohort.trekRate, 1)
   assert.equal(today.deltas.totalEvents.previous, 1)

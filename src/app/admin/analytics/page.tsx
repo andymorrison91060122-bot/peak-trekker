@@ -8,12 +8,31 @@ type AdminAnalyticsPageProps = {
   searchParams?: Promise<{ range?: string; cohort?: string; fu55Demo?: string }>
 }
 
+const demoReferrers = [
+  null,
+  'https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxnewloginpage',
+  'https://servicewechat.com/wxa-demo/pages/share',
+  'https://www.google.com/search?q=peak+trekker',
+  'https://baidu.com/s?wd=登山记录',
+  'https://example.com/outdoor-list',
+  'https://peak-trekker.vercel.app/explore',
+]
+
+const demoUserAgents = [
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+  'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'unknown-fu60-demo-agent',
+]
+
 function demoEvent(
   index: number,
   event_name: string,
   properties: Record<string, unknown> = {},
   event_type: AnalyticsEventRow['event_type'] = 'business',
   daysAgo = index % 14,
+  overrides: Partial<AnalyticsEventRow> = {},
 ): AnalyticsEventRow {
   const date = new Date()
   date.setDate(date.getDate() - daysAgo)
@@ -25,10 +44,11 @@ function demoEvent(
     event_name,
     properties,
     page_path: '/admin/analytics?fu55Demo=1',
-    referrer: null,
-    user_agent: 'fu55-demo',
+    referrer: demoReferrers[index % demoReferrers.length],
+    user_agent: demoUserAgents[index % demoUserAgents.length],
     client_ts: date.toISOString(),
     server_ts: date.toISOString(),
+    ...overrides,
   }
 }
 
@@ -57,8 +77,9 @@ function buildDemoEvents(): AnalyticsEventRow[] {
     properties: Record<string, unknown> = {},
     event_type: AnalyticsEventRow['event_type'] = 'business',
     daysAgo = 0,
+    overrides: Partial<AnalyticsEventRow> = {},
   ) => {
-    const row = demoEvent(index, event_name, properties, event_type, daysAgo)
+    const row = demoEvent(index, event_name, properties, event_type, daysAgo, overrides)
     row.user_id = userId
     row.session_id = `session-${userId}`
     events.push(row)
@@ -73,10 +94,18 @@ function buildDemoEvents(): AnalyticsEventRow[] {
     addIdentifiedEvent(800 + index * 10, userId, 'auth.register_complete', { cohort: 'new' }, 'auth', registerDaysAgo)
     addIdentifiedEvent(801 + index * 10, userId, 'page_view', { cohort: 'new' }, 'page_view', activityDaysAgo)
     addIdentifiedEvent(802 + index * 10, userId, 'business.mountain_view', { mountain_id: index % 2 === 0 ? 'huashan' : 'taishan' }, 'business', activityDaysAgo)
-    if (index < 7) addIdentifiedEvent(803 + index * 10, userId, 'business.trek_start', { session_id: `new-trek-${index}`, mountain_id: 'huashan' }, 'business', activityDaysAgo)
-    if (index < 4) addIdentifiedEvent(804 + index * 10, userId, 'business.trek_complete', { session_id: `new-trek-${index}`, mountain_id: 'huashan', duration_seconds: 6900 + index * 180 }, 'business', activityDaysAgo)
-    if (index < 5) addIdentifiedEvent(805 + index * 10, userId, 'business.share_template_generate', { template_id: 'clean_vertical', success: true }, 'business', activityDaysAgo)
-    if (index < 3) addIdentifiedEvent(806 + index * 10, userId, 'paid_attempt.high_quality_share', { feature_id: 'high_quality_share', current_state: index === 0 ? 'gate_engaged' : 'gate_shown' }, 'paid_attempt', activityDaysAgo)
+    if (index < 8) addIdentifiedEvent(803 + index * 10, userId, 'page_view', { cohort: 'new', selected_mountain_id: 'huashan' }, 'page_view', activityDaysAgo, {
+      page_path: `/trek?mountainId=${index % 2 === 0 ? 'huashan' : 'taishan'}`,
+    })
+    if (index < 7) addIdentifiedEvent(804 + index * 10, userId, 'business.trek_start', { session_id: `new-trek-${index}`, mountain_id: 'huashan' }, 'business', activityDaysAgo, {
+      user_agent: demoUserAgents[index % demoUserAgents.length],
+    })
+    if (index < 4) addIdentifiedEvent(805 + index * 10, userId, 'business.trek_complete', { session_id: `new-trek-${index}`, mountain_id: 'huashan', duration_seconds: 6900 + index * 180 }, 'business', activityDaysAgo, {
+      user_agent: demoUserAgents[index % demoUserAgents.length],
+    })
+    if (index < 4) addIdentifiedEvent(806 + index * 10, userId, 'business.activity_create', { proof_status: 'verified', source: 'realtime_gps', mountain_id: 'huashan' }, 'business', activityDaysAgo)
+    if (index < 3) addIdentifiedEvent(807 + index * 10, userId, 'business.share_template_generate', { template_id: 'clean_vertical', success: true }, 'business', activityDaysAgo)
+    if (index < 3) addIdentifiedEvent(808 + index * 10, userId, 'paid_attempt.high_quality_share', { feature_id: 'high_quality_share', current_state: index === 0 ? 'gate_engaged' : 'gate_shown' }, 'paid_attempt', activityDaysAgo)
   }
   for (let index = 0; index < 10; index += 1) {
     const userId = `demo-returning-user-${index + 1}`
@@ -85,10 +114,18 @@ function buildDemoEvents(): AnalyticsEventRow[] {
     addIdentifiedEvent(950 + index * 10, userId, 'auth.register_complete', { cohort: 'returning' }, 'auth', registerDaysAgo)
     addIdentifiedEvent(951 + index * 10, userId, 'page_view', { cohort: 'returning' }, 'page_view', activityDaysAgo)
     addIdentifiedEvent(952 + index * 10, userId, 'business.mountain_view', { mountain_id: index % 2 === 0 ? 'huashan' : 'wudang' }, 'business', activityDaysAgo)
-    if (index < 8) addIdentifiedEvent(953 + index * 10, userId, 'business.trek_start', { session_id: `returning-trek-${index}`, mountain_id: 'wudang' }, 'business', activityDaysAgo)
-    if (index < 6) addIdentifiedEvent(954 + index * 10, userId, 'business.trek_complete', { session_id: `returning-trek-${index}`, mountain_id: 'wudang', duration_seconds: 8400 + index * 240 }, 'business', activityDaysAgo)
-    if (index < 8) addIdentifiedEvent(955 + index * 10, userId, 'paid_attempt.premium_route_pack', { feature_id: 'premium_route_pack', current_state: index < 3 ? 'gate_engaged' : index < 5 ? 'gate_dismissed' : 'gate_shown' }, 'paid_attempt', activityDaysAgo)
-    if (index < 4) addIdentifiedEvent(956 + index * 10, userId, 'business.screenshot_recognize_complete', { provider: 'xiaomi_v2_omni', success: true, duration_ms: 1500 + index * 120, cost_cny: 0 }, 'business', activityDaysAgo)
+    if (index < 9) addIdentifiedEvent(953 + index * 10, userId, 'page_view', { cohort: 'returning', selected_mountain_id: 'wudang' }, 'page_view', activityDaysAgo, {
+      page_path: `/trek?mountainId=${index % 2 === 0 ? 'huashan' : 'wudang'}`,
+    })
+    if (index < 8) addIdentifiedEvent(954 + index * 10, userId, 'business.trek_start', { session_id: `returning-trek-${index}`, mountain_id: 'wudang' }, 'business', activityDaysAgo, {
+      user_agent: demoUserAgents[(index + 1) % demoUserAgents.length],
+    })
+    if (index < 6) addIdentifiedEvent(955 + index * 10, userId, 'business.trek_complete', { session_id: `returning-trek-${index}`, mountain_id: 'wudang', duration_seconds: 8400 + index * 240 }, 'business', activityDaysAgo, {
+      user_agent: demoUserAgents[(index + 1) % demoUserAgents.length],
+    })
+    if (index < 6) addIdentifiedEvent(956 + index * 10, userId, 'business.activity_create', { proof_status: 'verified', source: 'realtime_gps', mountain_id: 'wudang' }, 'business', activityDaysAgo)
+    if (index < 8) addIdentifiedEvent(957 + index * 10, userId, 'paid_attempt.premium_route_pack', { feature_id: 'premium_route_pack', current_state: index < 3 ? 'gate_engaged' : index < 5 ? 'gate_dismissed' : 'gate_shown' }, 'paid_attempt', activityDaysAgo)
+    if (index < 4) addIdentifiedEvent(958 + index * 10, userId, 'business.screenshot_recognize_complete', { provider: 'xiaomi_v2_omni', success: true, duration_ms: 1500 + index * 120, cost_cny: 0 }, 'business', activityDaysAgo)
   }
   for (let index = 0; index < 8; index += 1) {
     const row = demoEvent(1100 + index, index < 4 ? 'business.share_link_open' : 'paid_attempt.anonymous_gate', {
@@ -190,6 +227,8 @@ function buildDemoEvents(): AnalyticsEventRow[] {
   events.push(
     demoEvent(20, 'auth.register_complete', {}, 'auth', 0),
     demoEvent(21, 'auth.register_complete', {}, 'auth', 8),
+    demoEvent(2099, 'page_view', {}, 'page_view', 0, { user_id: 'demo-funnel-register', session_id: 'session-demo-funnel-register' }),
+    demoEvent(2100, 'auth.register_complete', {}, 'auth', 0, { user_id: 'demo-funnel-register', session_id: 'session-demo-funnel-register' }),
     demoEvent(22, 'business.mountain_view', { mountain_id: 'huashan', mountain_name: '华山' }, 'business', 0),
     demoEvent(23, 'business.mountain_view', { mountain_id: 'taishan', mountain_name: '泰山' }, 'business', 1),
     demoEvent(24, 'business.mountain_view', { mountain_id: 'huashan', mountain_name: '华山' }, 'business', 2),
@@ -200,6 +239,8 @@ function buildDemoEvents(): AnalyticsEventRow[] {
     demoEvent(34, 'business.trek_start', { session_id: 'demo-trek-1', mountain_id: 'huashan' }, 'business', 0),
     demoEvent(35, 'business.trek_start', { session_id: 'demo-trek-2', mountain_id: 'taishan' }, 'business', 1),
     demoEvent(36, 'business.trek_complete', { session_id: 'demo-trek-1', mountain_id: 'huashan', duration_seconds: 7440 }, 'business', 0),
+    demoEvent(2101, 'business.trek_complete', { session_id: 'demo-funnel-complete', mountain_id: 'huashan', duration_seconds: 7800 }, 'business', 0, { user_id: 'demo-funnel-complete', session_id: 'session-demo-funnel-complete' }),
+    demoEvent(2102, 'business.share_template_generate', { template_id: 'clean_vertical', success: true }, 'business', 0, { user_id: 'demo-funnel-share', session_id: 'session-demo-funnel-share' }),
     demoEvent(37, 'business.trek_summit_proximity_enter', { session_id: 'demo-trek-1', mountain_id: 'huashan' }, 'business', 0),
     demoEvent(38, 'business.trek_summit_proximity_enter', { session_id: 'demo-trek-2', mountain_id: 'taishan' }, 'business', 1),
     demoEvent(39, 'business.trek_abort', { session_id: 'demo-trek-2', altitude_progress: 0.68, duration_seconds: 3600 }, 'business', 1),

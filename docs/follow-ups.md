@@ -9,7 +9,7 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`d07204a`（Merge FU-12 · 2026-05-29）
+`40a990d`（Merge FU-4 · 2026-05-30）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint

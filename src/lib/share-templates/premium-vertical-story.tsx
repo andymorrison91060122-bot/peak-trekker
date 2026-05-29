@@ -1,3 +1,4 @@
+import { buildShareTrackPath, type ShareTrackPreview } from '../share-track-preview'
 import type { ShareTemplateProps } from './types'
 import {
   BrandFooter,
@@ -8,6 +9,7 @@ import {
   buildMountainLine,
   formatDistance,
   formatPlainNumber,
+  hasShareTrackPoint,
 } from './shared'
 
 export function PremiumVerticalStoryTemplate({ data, photoDataUrl }: ShareTemplateProps) {
@@ -16,7 +18,8 @@ export function PremiumVerticalStoryTemplate({ data, photoDataUrl }: ShareTempla
   return (
     <PosterShell background="#0a0c0e">
       <PhotoLayer photoDataUrl={photoDataUrl} grayscale />
-      {!photoDataUrl ? <VerticalStoryRidgeSvg /> : null}
+      {!photoDataUrl && hasShareTrackPoint(data.trackPreview) ? <VerticalStoryTrailSvg trackPreview={data.trackPreview} /> : null}
+      {!photoDataUrl && !hasShareTrackPoint(data.trackPreview) ? <VerticalStoryRidgeSvg /> : null}
       <div
         style={{
           display: 'flex',
@@ -115,6 +118,61 @@ function StoryIcon({ kind }: { kind: 'pin' | 'mountain' | 'clock' | 'arrow' }) {
     <svg width="28" height="28" viewBox="0 0 24 24" style={{ display: 'block', flexShrink: 0 }}>
       <path d="M12 21s7-5.2 7-12a7 7 0 0 0-14 0c0 6.8 7 12 7 12z" stroke={C.fg} strokeWidth="2" fill="none" />
       <circle cx="12" cy="9" r="2.5" fill={C.fg} />
+    </svg>
+  )
+}
+
+function VerticalStoryTrailSvg({ trackPreview }: { trackPreview?: ShareTrackPreview | null }) {
+  const route = buildShareTrackPath(trackPreview, {
+    x: 230,
+    y: 390,
+    width: 620,
+    height: 620,
+    padding: 56,
+  })
+
+  if (!route) return null
+
+  return (
+    <svg
+      width="1080"
+      height="1920"
+      viewBox="0 0 1080 1920"
+      data-testid="premium-vertical-story-trail"
+      style={{ position: 'absolute', left: 0, top: 0 }}
+    >
+      <defs>
+        <filter id="vertical-story-trail-glow" x="-24%" y="-24%" width="148%" height="148%">
+          <feGaussianBlur stdDeviation="13" />
+        </filter>
+      </defs>
+      {route.d ? (
+        <>
+          <path
+            data-real-track="true"
+            d={route.d}
+            stroke={C.success}
+            strokeWidth="42"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            opacity=".13"
+            filter="url(#vertical-story-trail-glow)"
+          />
+          <path
+            data-real-track="true"
+            d={route.d}
+            stroke={C.success}
+            strokeWidth="12"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            opacity=".86"
+          />
+        </>
+      ) : null}
+      <circle data-real-track="true" cx={route.start.x} cy={route.start.y} r="19" fill={C.bgDeep} stroke={C.success} strokeWidth="8" />
+      {route.d ? <circle data-real-track="true" cx={route.end.x} cy={route.end.y} r="27" fill={C.success} /> : null}
     </svg>
   )
 }

@@ -157,9 +157,9 @@ function ScorePill({ value, label = value.toFixed(1) }: { value: number; label?:
   return <span className={`analytics-score-pill ${scoreTone(value)}`}>{label}</span>
 }
 
-function FormulaDisclosure({ title, children }: { title: string; children: React.ReactNode }) {
+function FormulaDisclosure({ title, testId, children }: { title: string; testId?: string; children: React.ReactNode }) {
   return (
-    <details className="analytics-formula" open>
+    <details className="analytics-formula" data-testid={testId} open>
       <summary>{title}</summary>
       <div>{children}</div>
     </details>
@@ -241,8 +241,19 @@ function OverviewTab({ data }: { data: AnalyticsDashboardData }) {
         <Panel title="DAU trend" subtitle="page_view session trend">
           <SeriesLineChart data={overview.dauSeries} />
         </Panel>
-        <Panel title="主漏斗" subtitle="访问 → 注册 → 首次 Trek → 分享">
-          <MiniTable columns={['步骤', '数量', '渗透率']} rows={overview.funnel.map((row) => [row.step, row.value, row.conversionRate === null ? '入口' : percent(row.conversionRate)])} />
+        <Panel title="10 步激活漏斗" subtitle="actor-level 首次触发路径" testId="admin-analytics-funnel-10step">
+          <FormulaDisclosure title="10 步漏斗说明" testId="admin-analytics-funnel-disclosure">
+            每步按 actor 去重计数, actor = user_id ?? session_id。第 4 步用 /trek?mountainId= page_view 近似选山, 第 5 步才是实际 Trek 启动。第 9/10 步使用 visitor_session_id / new_user_id, 用于传播边缘诊断, 不等同同一 actor 连续生存漏斗。
+          </FormulaDisclosure>
+          <MiniTable
+            columns={['步骤', 'Actor', '渗透率', '流失']}
+            rows={overview.funnel.map((row, index) => [
+              `${index + 1}. ${row.step}`,
+              row.value,
+              row.conversionRate === null ? '入口' : <ScorePill key={row.step} value={row.conversionRate * 100} label={percent(row.conversionRate)} />,
+              row.dropoffCount === null ? '—' : row.dropoffCount,
+            ])}
+          />
         </Panel>
       </div>
       <div className="analytics-two-col">
@@ -301,6 +312,50 @@ function UserBehaviorTab({ data }: { data: AnalyticsDashboardData }) {
         </Panel>
         <Panel title="Community 互动" subtitle="community event count" testId="admin-analytics-community">
           <SeriesBarChart data={userBehavior.community} color="#A7F3D0" />
+        </Panel>
+      </div>
+      <div className="analytics-two-col">
+        <Panel title="来源分布" subtitle="referrer 分类 + 回访率" testId="admin-analytics-source-metrics">
+          <FormulaDisclosure title="来源分类说明" testId="admin-analytics-source-disclosure">
+            空 referrer、同站或 localhost 归直接; servicewechat / pyq / moments 归朋友圈; wx.qq.com / weixin / wechat 归微信; baidu.com 归百度; google.* 归 Google; 其余外部来源归其他。
+          </FormulaDisclosure>
+          <ChartFrame>
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={nonEmptySeries(userBehavior.sourceMetrics.map((row) => ({ label: row.source, value: row.actorCount })))} dataKey="value" nameKey="label" cx="50%" cy="50%" outerRadius={76} innerRadius={40} isAnimationActive={false}>
+                  {nonEmptySeries(userBehavior.sourceMetrics.map((row) => ({ label: row.source, value: row.actorCount }))).map((row, index) => <Cell key={row.label} fill={chartColors[index % chartColors.length]} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: '#111', border: '1px solid #2D6A4F', color: '#E8F5E9' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartFrame>
+          <MiniTable
+            columns={['来源', 'Actors', '占比', 'D1', 'D7', 'D30']}
+            rows={userBehavior.sourceMetrics.map((row) => [
+              row.source,
+              row.actorCount,
+              percent(row.share),
+              percent(row.d1RetentionRate),
+              percent(row.d7RetentionRate),
+              percent(row.d30RetentionRate),
+            ])}
+          />
+        </Panel>
+        <Panel title="设备分布" subtitle="轻量 UA 规则分类 + Trek 完成率" testId="admin-analytics-device-metrics">
+          <FormulaDisclosure title="设备分类说明" testId="admin-analytics-device-disclosure">
+            server-side 轻量 UA 规则解析 user_agent。iPhone/iPad/iOS 归 iOS, Android 归 Android, Mac/Windows/Linux/Chrome OS 且无移动设备类型归 Desktop, 其余未知或模糊 UA 归 Other。
+          </FormulaDisclosure>
+          <SeriesBarChart data={userBehavior.deviceMetrics.map((row) => ({ label: row.device, value: row.actorCount }))} color="#74C69D" />
+          <MiniTable
+            columns={['设备', 'Actors', 'Start', 'Complete', '完成率']}
+            rows={userBehavior.deviceMetrics.map((row) => [
+              row.device,
+              row.actorCount,
+              row.trekStartActors,
+              row.trekCompleteActors,
+              percent(row.trekCompletionRate),
+            ])}
+          />
         </Panel>
       </div>
       <section className="analytics-section" data-testid="admin-analytics-share-templates">

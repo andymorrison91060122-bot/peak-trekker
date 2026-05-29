@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-29 · 最新版本记录: v0.45
+> Last Updated: 2026-05-29 · 最新版本记录: v0.46
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`2a907a5`（Merge FU-52 · 2026-05-29）
+`d337d6e`（Merge FU-38 Phase 1 · 2026-05-29）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -237,6 +237,17 @@ altitude 相同但坐标差 1.5km，应该是父子关系（华山为父景区�
 - 优先级: P3
 - 归属阶段: V1.1+
 - 状态: 🟢 active
+
+**状态注记（2026-05-29 · Phase 1 done）**:
+- 已落地 parser + 确认页 Phase 1: COROS / 两步路 "只显配速" 截图会识别为 `paceMinPerKm`（例: `7'09"` → `7.15`; `FIELD_VALIDATION.pace = 2-40 min/km`）。
+- `/screenshot` 确认页新增可编辑「配速」行，镜像现有 `speed` 字段; 速度不伪造，现有 speed 提取保持零回归。
+- 无 migration / 不落库: `paceMinPerKm` 经 `normalizeScreenshotData()` 流转，但 `checkins` insert 不消费，和当前 `speedKmh` 行为一致。
+- 涉及: `src/lib/screenshot/types.ts` / `field-parser.ts` / `src/lib/import/screenshot-confirm-data.ts` / `src/app/(flow)/screenshot/ScreenshotClient.tsx` + 3 个 focused tests。
+
+**Phase 2 pending（保持 Active）**:
+- 要在 Activity Detail / Share 展示 pace，必须新增 `checkins.pace_min_per_km` 列并走 deploy-gated production migration。
+- 现状连 `speedKmh` 也只 normalize 不落库，活动详情 / 分享也没有 speed 展示；Phase 2 本质应升级为"活动速率指标持久化 + 展示"（大概率 pace 与 speed 一起处理）。
+- 建议留额度回来后，与 Activity Detail / Share 设计一起做，避免把确认页字段提前硬接到未定展示口径。
 
 背景: COROS 健走 / 跑步 App 等只显示配速 (7'09"/km) 没有速度 (km/h)。Pre-3.c parser 守住"只提取不计算"底线，这类截图速度字段永远显示"未识别"。需新增独立 paceMinPerKm 字段。
 
@@ -1013,6 +1024,20 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.46（2026-05-29）
+
+FU-38 Phase 1 done, FU-38 保持 Active。
+
+- 配速识别 Phase 1 完成: parser 新增 `paceMinPerKm` 识别, 接住 COROS / 两步路 "只显配速" 截图 (`7'09"` → `7.15`; pace validation `2-40 min/km`), 且不伪造 `speedKmh`。
+- 确认页完成: `/screenshot` 识别确认页新增可编辑「配速」行, 跟随 field toggle / editable fields / confirm payload / recognized field analytics 口径; 375px + desktop browser evidence 已完成。
+- Phase 1 边界: 无 schema migration, 不落库, Activity Detail / Share 展示不变; `paceMinPerKm` 与当前 `speedKmh` 一样只在 normalize payload 中流转, insert 不消费。
+- Phase 2 pending: `checkins.pace_min_per_km` deploy-gated migration + 持久化 + Activity / Share 展示; 建议与 speed 持久化一起作为"活动速率指标"统一设计。
+- 准入: lint 0e/5w · build PASS · focused node tests 61p · git diff --check clean · no full Playwright。
+- codex-risk-behavior-policy 连续 14 个 sprint 0 红线违反。
+- Active / Closed 计数不变（Active 11 · Closed 51）
+
+---
 
 ### v0.45（2026-05-29）
 

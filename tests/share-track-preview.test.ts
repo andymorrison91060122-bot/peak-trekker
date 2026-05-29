@@ -7,6 +7,16 @@ async function loadTrackPreview() {
   return import(`../src/lib/share-track-preview.${sourceExtension}`)
 }
 
+function assertPointClose(
+  actual: { x: number; y: number } | undefined,
+  expected: { x: number; y: number },
+  message: string,
+) {
+  assert.ok(actual, `${message}: missing point`)
+  assert.ok(Math.abs(actual.x - expected.x) < 0.01, `${message}: x ${actual.x} should be close to ${expected.x}`)
+  assert.ok(Math.abs(actual.y - expected.y) < 0.01, `${message}: y ${actual.y} should be close to ${expected.y}`)
+}
+
 describe('share track preview projection', () => {
   test('normalizes imported track points without exposing raw coordinates', async () => {
     const { buildShareTrackPreview } = await loadTrackPreview()
@@ -19,8 +29,8 @@ describe('share track preview projection', () => {
 
     assert.equal(preview?.pointCount, 3)
     assert.equal(preview?.hasAltitude, true)
-    assert.deepEqual(preview?.points[0], { x: 0, y: 1 })
-    assert.deepEqual(preview?.points.at(-1), { x: 1, y: 0 })
+    assertPointClose(preview?.points[0], { x: 0.1129, y: 1 }, 'first point should be latitude-corrected and centered')
+    assertPointClose(preview?.points.at(-1), { x: 0.8871, y: 0 }, 'last point should be latitude-corrected and centered')
     assert.notDeepEqual(preview?.points[0], { x: 36.101, y: 117.083 })
   })
 
@@ -48,8 +58,8 @@ describe('share track preview projection', () => {
     const path = buildShareTrackPath(preview, { width: 120, height: 80, padding: 8 })
 
     assert.match(path?.d ?? '', /^M .* Q /)
-    assert.deepEqual(path?.start, { x: 8, y: 72 })
-    assert.deepEqual(path?.end, { x: 112, y: 8 })
+    assertPointClose(path?.start, { x: 32.43, y: 72 }, 'two-point start should be centered in the wide axis')
+    assertPointClose(path?.end, { x: 87.57, y: 8 }, 'two-point end should be centered in the wide axis')
   })
 
   test('filters invalid placeholder points and keeps valid southern hemisphere points', async () => {
@@ -100,7 +110,7 @@ describe('share track preview projection', () => {
 
     assert.equal(preview?.pointCount, 210)
     assert.ok((preview?.points.length ?? 0) <= 25)
-    assert.deepEqual(preview?.points.at(-1), { x: 1, y: 0 })
+    assertPointClose(preview?.points.at(-1), { x: 0.9326, y: 0 }, 'sampled endpoint should preserve geographic aspect')
   })
 
   test('projects vertical story tracks into the square upper-middle frame', async () => {
@@ -126,5 +136,32 @@ describe('share track preview projection', () => {
       assert.ok(point.x >= 286 && point.x <= 794, `x ${point.x} should stay inside the square frame`)
       assert.ok(point.y >= 446 && point.y <= 954, `y ${point.y} should stay inside the square frame`)
     }
+  })
+
+  test('letterboxes wide tracks inside non-square frames instead of stretching vertically', async () => {
+    const { buildShareTrackPreview, buildShareTrackPath } = await loadTrackPreview()
+    const preview = buildShareTrackPreview([
+      { lat: 30, lng: 100, ele: 100 },
+      { lat: 30.1, lng: 101, ele: 200 },
+      { lat: 30.2, lng: 102, ele: 300 },
+    ])
+
+    const route = buildShareTrackPath(preview, {
+      x: 0,
+      y: 0,
+      width: 216,
+      height: 290,
+      padding: 10,
+    })
+
+    assert.ok(route?.d)
+    assert.equal(route.d, 'M 10 156.33 L 108 145 L 206 133.67')
+    assertPointClose(route.start, { x: 10, y: 156.33 }, 'wide route start should sit inside centered letterbox')
+    assertPointClose(route.end, { x: 206, y: 133.67 }, 'wide route end should sit inside centered letterbox')
+
+    const xSpan = route.end.x - route.start.x
+    const ySpan = Math.abs(route.end.y - route.start.y)
+    assert.ok(xSpan > 190, `expected wide route to use the short-edge scale, got x span ${xSpan}`)
+    assert.ok(ySpan < 30, `expected wide route not to stretch vertically, got y span ${ySpan}`)
   })
 })

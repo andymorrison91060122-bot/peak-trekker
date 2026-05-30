@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-30 · 最新版本记录: v0.51
+> Last Updated: 2026-05-30 · 最新版本记录: v0.52
 
 ---
 
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（6 条）
+## Active Follow-ups（5 条）
 
 ### FU-16 · mountains 坐标精度审计
 
@@ -145,39 +145,6 @@
 - 输出成本对比（按月预估）
 
 涉及: 新 scripts/ocr-engine-benchmark.ts + benchmark 报告 doc
-
----
-
-### FU-38 · 配速字段 (paceMinPerKm) 独立支持
-
-- 优先级: P3
-- 归属阶段: V1.1+
-- 状态: 🟢 active
-
-**状态注记（2026-05-29 · Phase 1 done）**:
-- 已落地 parser + 确认页 Phase 1: COROS / 两步路 "只显配速" 截图会识别为 `paceMinPerKm`（例: `7'09"` → `7.15`; `FIELD_VALIDATION.pace = 2-40 min/km`）。
-- `/screenshot` 确认页新增可编辑「配速」行，镜像现有 `speed` 字段; 速度不伪造，现有 speed 提取保持零回归。
-- 无 migration / 不落库: `paceMinPerKm` 经 `normalizeScreenshotData()` 流转，但 `checkins` insert 不消费，和当前 `speedKmh` 行为一致。
-- 涉及: `src/lib/screenshot/types.ts` / `field-parser.ts` / `src/lib/import/screenshot-confirm-data.ts` / `src/app/(flow)/screenshot/ScreenshotClient.tsx` + 3 个 focused tests。
-
-**Phase 2 pending（保持 Active）**:
-- 要在 Activity Detail / Share 展示 pace，必须新增 `checkins.pace_min_per_km` 列并走 deploy-gated production migration。
-- 现状连 `speedKmh` 也只 normalize 不落库，活动详情 / 分享也没有 speed 展示；Phase 2 本质应升级为"活动速率指标持久化 + 展示"（大概率 pace 与 speed 一起处理）。
-- 建议留额度回来后，与 Activity Detail / Share 设计一起做，避免把确认页字段提前硬接到未定展示口径。
-
-背景: COROS 健走 / 跑步 App 等只显示配速 (7'09"/km) 没有速度 (km/h)。Pre-3.c parser 守住"只提取不计算"底线，这类截图速度字段永远显示"未识别"。需新增独立 paceMinPerKm 字段。
-
-实施建议:
-- field-parser.ts 新增 paceMinPerKm 字段抽取（mm'ss"/km 锚点）
-- 字段定义新增 paceMinPerKm: number | null
-- ScreenshotClient confirm UI 加配速 toggle 区域（mm 'ss" /km 三段输入）
-- 活动详情 / 分享模板按需展示配速
-
-涉及:
-- src/lib/screenshot/field-parser.ts
-- src/app/(flow)/screenshot/ScreenshotClient.tsx
-- 可能扩展 checkins schema (pace_min_per_km column)
-- src/app/(flow)/activity/[id]/ActivityDetailClient.tsx
 
 ---
 
@@ -252,7 +219,18 @@
 
 ---
 
-## Closed Follow-ups（57 条）
+## Closed Follow-ups（58 条）
+
+### FU-38 ✅ 配速字段 (paceMinPerKm) 独立支持
+
+- **关闭原因**: 用户决策关闭 FU-38, 不再推进 Phase 2 的独立 `paceMinPerKm` 持久化 + Activity / Share 展示方向。配速 (min/km) 更偏跑步 / 越野跑指标, 非登山核心指标; 登山核心仍优先看速度 (km/h) 与爬升。
+- **关键决策记录**:
+  · FU-38 原痛点主要是 COROS / 两步路等截图只显配速、速度栏为空, 发生在截图导入而非轨迹导入。
+  · Phase 1 已落地的 pace 解析 + `/screenshot` 确认页可编辑「配速」行保留不删, 属于零成本兜底。
+  · `/screenshot` 确认页的「速度 / 配速」行均 `locked: false`, 用户可自行填写 / 修改速度或配速, 足够覆盖当前截图导入的人工确认场景。
+  · speed / pace 当前经 `normalizeScreenshotData()` 流转, 但写 `checkins` 时不落库, Activity Detail / Share 也不展示; 若未来要展示速率指标, 应作为 Activity / Share 指标设计的一部分另议, 不挂回 FU-38。
+  · 识别准确率 (区分速度 / 配速 / 速率) 延后到 FU-35 小米 MIMO 多模态接入时, 用 prompt 让模型明确区分, 不在本 FU 解决。
+- **B13 透明披露**: 本次为纯 docs 关闭, 无代码 / schema / UI 改动; Phase 1 的 parser 与确认页编辑能力继续保留。
 
 ### FU-6 ✅ UGC 山峰收录机制（砍半 · record-only）
 
@@ -1036,6 +1014,17 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.52（2026-05-30）
+
+docs-only · FU-38 close。
+
+- FU-38 直接关闭, 不做 Phase 2: `paceMinPerKm` 独立持久化 + Activity / Share 展示方向停止推进。
+- 决策理由: 配速 (min/km) 更偏跑步 / 越野跑, 非登山核心指标; 登山核心仍看速度 (km/h) 与爬升。
+- Phase 1 保留: parser 对 COROS / 两步路等只显配速截图的识别 + `/screenshot` 确认页可编辑「配速」行不删除, 继续作为截图导入确认兜底。
+- 后续归口: speed / pace 目前均 normalize 但不落库、不展示; 若未来要展示速率指标, 作为 Activity / Share 指标设计另议。速度 / 配速识别准确率留 FU-35 小米 MIMO 多模态 prompt 区分。
+- B13: 纯 docs 关闭, 无代码 / schema / UI 改动, 无 migration, 不跑测试 / Playwright。
+- Active 6 → 5 · Closed 57 → 58
 
 ### v0.51（2026-05-30）
 

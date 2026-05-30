@@ -9,6 +9,7 @@ import {
   IMPORT_MOUNTAIN_OUT_OF_RANGE_MESSAGE,
 } from '@/lib/import/mountain-distance-check'
 import type { ImportedTrackData, MountainMatch } from '@/lib/import/types'
+import type { MountainRequestInput } from '@/lib/mountain-requests'
 import Card from '@/components/ui/Card'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import { useHelpSheet } from '@/components/help/useHelpSheet'
@@ -84,6 +85,12 @@ type MountainSelection =
   | { kind: 'mountain'; mountain: SelectableMountain }
   | { kind: 'unaffiliated' }
 
+type MountainRequestCandidateContext = {
+  mountain: SelectableMountain
+  distanceMeters?: number | null
+  referencePointSource?: MountainMatch['referencePointSource'] | null
+}
+
 type MountainSearchResponse = {
   ok?: boolean
   mountains?: Array<{
@@ -119,6 +126,65 @@ function formatDistance(meters?: number | null) {
   return `${(meters / 1000).toFixed(1)} km`
 }
 
+function stripFileExtension(fileName?: string | null) {
+  if (!fileName) return null
+  const normalized = fileName.trim()
+  if (!normalized) return null
+  return normalized.replace(/\.[^.]+$/, '') || normalized
+}
+
+function getRepresentativeTrackPoint(result: ImportedTrackData) {
+  const validPoints = result.trackPoints.filter((point) =>
+    Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
+  )
+  if (validPoints.length === 0) return null
+
+  const pointsWithElevation = validPoints.filter((point) => typeof point.elevation === 'number' && Number.isFinite(point.elevation))
+  if (pointsWithElevation.length > 0) {
+    return pointsWithElevation.reduce((best, point) => ((point.elevation ?? -Infinity) > (best.elevation ?? -Infinity) ? point : best))
+  }
+
+  return validPoints[0] ?? null
+}
+
+function buildMountainRequestPayload(
+  result: ImportedTrackData,
+  requestSource: MountainRequestInput['requestSource'],
+  candidate?: MountainRequestCandidateContext | null
+): MountainRequestInput {
+  const representativePoint = getRepresentativeTrackPoint(result)
+  const candidateDistanceM = candidate?.distanceMeters ?? candidate?.mountain.distanceMeters ?? null
+  const referencePointSource = candidate?.referencePointSource ?? candidate?.mountain.referencePointSource ?? null
+  const trackName = result.name?.trim() || null
+  const fileBaseName = stripFileExtension(result.fileName)
+
+  return {
+    requestSource,
+    locationName: trackName ?? candidate?.mountain.name ?? fileBaseName,
+    latitude: representativePoint?.latitude ?? null,
+    longitude: representativePoint?.longitude ?? null,
+    altitudeM: typeof representativePoint?.elevation === 'number' ? representativePoint.elevation : (result.maxElevation ?? null),
+    province: candidate?.mountain.province ?? null,
+    trackName,
+    fileName: result.fileName,
+    importFormat: result.format,
+    candidateMountainId: candidate?.mountain.id ?? null,
+    candidateMountainName: candidate?.mountain.name ?? null,
+    candidateDistanceM,
+    referencePointSource,
+    trackContentHash: result.trackContentHash ?? null,
+    context: {
+      trackPointCount: result.trackPoints.length,
+      distanceMeters: result.distanceMeters ?? null,
+      durationSeconds: result.durationSeconds ?? null,
+      maxElevation: result.maxElevation ?? null,
+      minElevation: result.minElevation ?? null,
+      elevationGainMeters: result.elevationGainMeters ?? null,
+      requestSource,
+    },
+  }
+}
+
 function formatMountainDistanceValidation(distanceMeters?: number | null) {
   return `距离 ${formatDistance(distanceMeters)}`
 }
@@ -129,6 +195,7 @@ function getMountainDistanceValidation(result: ImportedTrackData, mountain: Sele
       valid: mountain.distanceMeters <= IMPORT_MOUNTAIN_DISTANCE_THRESHOLD_METERS,
       distanceMeters: mountain.distanceMeters,
       thresholdMeters: IMPORT_MOUNTAIN_DISTANCE_THRESHOLD_METERS,
+      referencePointSource: mountain.referencePointSource,
     }
   }
 
@@ -141,6 +208,7 @@ function getMountainDistanceValidation(result: ImportedTrackData, mountain: Sele
     valid: distanceCheck.valid,
     distanceMeters: distanceCheck.distanceMeters,
     thresholdMeters: distanceCheck.thresholdMeters,
+    referencePointSource: distanceCheck.referencePoint?.source,
   }
 }
 
@@ -2434,7 +2502,7 @@ function ImportMountainSelection({
   onBack: () => void
   onCancel: () => void
   onConfirm: (selection: MountainSelection) => void
-  onRequestMountain: () => void
+  onRequestMountain: (payload?: MountainRequestInput) => void
   onLogin: () => void
 }) {
   const candidates = getSuggestedCandidates(result).map(toSelectableMountain)
@@ -2448,6 +2516,7 @@ function ImportMountainSelection({
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [distanceNotice, setDistanceNotice] = useState<MountainDistanceNotice | null>(null)
+  const [requestCandidate, setRequestCandidate] = useState<MountainRequestCandidateContext | null>(null)
 
   useEffect(() => {
     if (!searchOpen) return
@@ -2515,6 +2584,11 @@ function ImportMountainSelection({
     const validation = getMountainDistanceValidation(result, mountain)
     if (!validation.valid) {
       setSelected(null)
+      setRequestCandidate({
+        mountain,
+        distanceMeters: validation.distanceMeters,
+        referencePointSource: validation.referencePointSource,
+      })
       setDistanceNotice({
         tone: 'error',
         message: getOutOfRangeNotice(validation.distanceMeters),
@@ -2528,6 +2602,7 @@ function ImportMountainSelection({
     }
 
     setSelected({ kind: 'mountain', mountain: nextMountain })
+    setRequestCandidate(null)
     if (typeof nextMountain.distanceMeters === 'number') {
       setDistanceNotice({
         tone: 'success',
@@ -2591,7 +2666,12 @@ function ImportMountainSelection({
       </p>
 
       <ConfirmErrorNotice error={confirmError} authRequired={confirmAuthRequired} onLogin={onLogin} />
-      <DistanceValidationNotice notice={distanceNotice} onRequestMountain={onRequestMountain} />
+      <DistanceValidationNotice
+        notice={distanceNotice}
+        onRequestMountain={requestCandidate
+          ? () => onRequestMountain(buildMountainRequestPayload(result, 'import_distance_blocked', requestCandidate))
+          : onRequestMountain}
+      />
 
       {candidates.length > 0 ? (
         <div style={{ display: 'grid', gap: 10, marginTop: 'var(--space-4)' }}>
@@ -3168,7 +3248,7 @@ function ImportSuccess({
 export default function ImportClient() {
   const router = useRouter()
   const { open: openHelpSheet } = useHelpSheet()
-  const { showToast } = useAppToast()
+  const { showToast, clearToasts } = useAppToast()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [step, setStep] = useState<ImportStep>('entry')
   const [file, setFile] = useState<File | null>(null)
@@ -3432,13 +3512,54 @@ export default function ImportClient() {
     window.setTimeout(openFilePicker, 0)
   }
 
-  function handleRequestMountain() {
+  async function submitMountainRequest(payload: MountainRequestInput) {
+    const response = await fetch('/api/mountain-requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => null) as { error?: string } | null
+      throw new Error(body?.error ?? 'mountain request failed')
+    }
+  }
+
+  async function handleRequestMountain(payload?: MountainRequestInput) {
     showToast({
       tone: 'info',
-      message: '已收到您的山峰反馈，正式收录流程上线后会优先核实并录入。',
-      durationMs: 4200,
+      message: '正在提交您的山峰反馈…',
+      durationMs: 12000,
     })
     openHelpSheet('start.mountain-not-listed')
+
+    if (!payload) {
+      clearToasts()
+      showToast({
+        tone: 'success',
+        message: '已收到您的山峰收录申请，后续我们审核过后会逐步对山峰进行开放',
+        durationMs: 4200,
+      })
+      return
+    }
+
+    try {
+      await submitMountainRequest(payload)
+      clearToasts()
+      showToast({
+        tone: 'success',
+        message: '已收到您的山峰收录申请，后续我们审核过后会逐步对山峰进行开放',
+        durationMs: 4200,
+      })
+    } catch (error) {
+      console.warn('[import] mountain request failed', error)
+      clearToasts()
+      showToast({
+        tone: 'error',
+        message: '申请暂时没写入，请稍后重试。',
+        durationMs: 4200,
+      })
+    }
   }
 
   function renderStep() {
@@ -3601,7 +3722,7 @@ export default function ImportClient() {
       )
     }
 
-    if (step === 'no_match') {
+    if (step === 'no_match' && parseResult) {
       return (
         <ImportNoMatch
           confirmError={confirmError}
@@ -3616,7 +3737,7 @@ export default function ImportClient() {
             setSelectionSearchInitiallyOpen(true)
             setStep('select_mountain')
           }}
-          onRequestMountain={handleRequestMountain}
+          onRequestMountain={() => handleRequestMountain(buildMountainRequestPayload(parseResult, 'import_no_match'))}
           onLogin={() => router.push(buildLoginHref())}
         />
       )

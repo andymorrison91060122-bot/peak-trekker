@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-30 · 最新版本记录: v0.50
+> Last Updated: 2026-05-30 · 最新版本记录: v0.51
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`1f5a70e`（Merge FU-61 · 2026-05-30）
+`34a97f3`（Merge FU-6 · 2026-05-30）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -83,24 +83,7 @@
 
 ---
 
-## Active Follow-ups（8 条）
-
-### FU-6 · UGC 山峰收录机制（砍半 · record-only）
-
-- **优先级**: P2 长期
-- **归属阶段**: V1.1+
-- **状态**: 🟡 in-progress
-
-**背景**: 当前 mountains 表是策划预录的 20 座名山，用户上传非预录山峰只能"不关联山峰"。需要 UGC 收录流程让用户提交新山峰候选 → 运营审核 → 入库。
-
-**实施建议**:
-- 新建 `mountain_requests` 表
-- 用户在"申请收录山峰"按钮真实写入 request
-- 运营后台审核 + 入库
-
-**涉及**: 需要后台管理系统，工作量较大，列长期方向。
-
----
+## Active Follow-ups（6 条）
 
 ### FU-16 · mountains 坐标精度审计
 
@@ -111,22 +94,6 @@
 **背景**: 已确认是 WGS-84 坐标系（与 GPS 一致）。但 19 座山的坐标点可能不是真实峰顶（如华山指向景区中心而非南峰落雁峰，误差约 400-500m）。会影响"登顶检测距离阈值"。
 
 **实施建议**: 物料完善时校准每座山的"峰顶坐标"为真实最高点。
-
----
-
-### FU-34 · 截图 fixture 库扩充 + CI 回归
-
-- 优先级: P2 ongoing
-- 归属阶段: 长期维护
-- 状态: 🟢 active
-
-背景: Pre-3.c 已收集 20 个 raw OCR fixture（覆盖 14 个 App），但仍有遗漏（高德地图 / 悦动圈 / 国外冷门 watch app 等）。每次新增 App / 新模式截图都应增 fixture + parser 校准。
-
-实施建议:
-- 用户反馈某截图识别失败 → 提取 raw OCR JSON → 加 fixture → 调 parser → 加单元测试
-- CI 自动跑 fixture 测试，parser 退化立即阻断 merge
-
-涉及: tests/fixtures/screenshots/raw-ocr/*.json + tests/screenshot-parser.test.ts
 
 ---
 
@@ -285,9 +252,35 @@
 
 ---
 
-## Closed Follow-ups（55 条）
+## Closed Follow-ups（57 条）
 
-### FU-61 🔴 自动登顶兜底 + 登顶范围 300m + 照片非强制
+### FU-6 ✅ UGC 山峰收录机制（砍半 · record-only）
+
+- **关闭原因**: FU-6 record-only sprint 把现有 `/import` 两处「申请收录山峰」入口从纯占位反馈升级为真实后台记录: 用户点击 → 写入 `mountain_requests` → admin `/admin/mountains/requests` 只读列表查看。审核 / 入库 / 状态流转 / 上新流程均不在本期 scope, 后续按后台累积申请数据反馈另开新 FU。
+- **关键设计决策**:
+  · 新建 `public.mountain_requests` 表, 捕获提交用户、来源、坐标、海拔、省份、地点名、导入格式、候选山峰、track hash / fingerprint / 15min dedupe bucket、context JSONB。
+  · RLS 收紧: authenticated 仅能 insert `user_id = auth.uid()` 的行; admin 通过 `profiles.is_admin = TRUE` select 全部; service_role full access; `PUBLIC` / `anon` 无 grants。
+  · 写入 API 只做 insert, 不带 `.select()` 读回, 避免普通用户需要 select policy; unique violation `23505` 视为 deduped success。
+  · `/import` 用户侧不新增表单, 自动捕获 import 流已有上下文; 两处入口共用 handler。
+  · Toast 改为单条「进度 → 结果」时序: `正在提交您的山峰反馈…` → 成功 `已收到您的山峰收录申请，后续我们审核过后会逐步对山峰进行开放` 或失败 `申请暂时没写入，请稍后重试。`, 结果前清掉进度 toast, 避免语义打架。
+  · Admin 只读列表不暴露 email / 手机号; 用户显示为 `用户名` 或 user id 8 位前缀; OCR / 用户来源文本全部 React text 渲染, 不使用 `dangerouslySetInnerHTML`, XSS fixture 已覆盖。
+  · `import_format` CHECK 仅含 `gpx/kml/fit`, 已核对当前 import 实际支持格式一致。
+- **B13 透明披露**:
+  · production migration 走 deploy-gated apply: Vercel READY → baseline read → transaction dry-run → apply → post-verify。
+  · `apply_migration` 首次遇 Supabase 插件 wham gateway 传输层瞬时失败; 只读确认表仍不存在后, 经用户授权完整重跑门控并成功 apply。
+  · 15min bucket dedupe 是 MVP 防刷, bucket 边界分钟可能重复。
+  · province best-effort, 不接逆地理; 没有坐标时允许为空。
+  · `/import` 非 middleware 门禁, 但 API 仍以 auth.getUser() 防御 401; 用户侧成功路径基于实际登录态。
+- **准入**: lint 0e/5w · build PASS · focused node tests 35p · focused e2e 3p · git diff --check clean · `rg "test.fixme\\(" tests/e2e` 0 matches · no full Playwright。
+- **Production migration verify**: `public.mountain_requests` 21 columns; 4 business indexes + pkey; dedupe unique index `idx_mountain_requests_dedupe`; RLS enabled; policies `mountain_requests_insert_own` / `mountain_requests_select_admin`; grants `authenticated INSERT/SELECT`, `service_role ALL`, `PUBLIC/anon` none。
+- **风险落地**: codex-risk-behavior-policy 连续 19 个 sprint 0 红线违反。
+
+### FU-34 ✅ 截图 fixture 库扩充 + CI 回归
+
+- **关闭原因**: FU-34 降级为按需 reactive 维护项。Pre-3.c 以后已具备基础 OCR fixture / parser 回归框架, 继续长期维护不需要占用 Active FU; 后续遇到具体失败样本时按单独 case 提取 raw OCR JSON → 加 fixture → 调 parser → 加 focused test。
+- **B13 透明披露**: 本次不新增 fixture, 不改 parser; 关闭语义是 tracker hygiene / 工作流降级, 不是宣称所有未来截图 App 都已覆盖。
+
+### FU-61 ✅ 自动登顶兜底 + 登顶范围 300m + 照片非强制
 
 - **关闭原因**: FU-61 sprint 落地 Trek 登顶核验口径调整: GPS 轨迹到达峰顶范围即视为登顶; 手动「我已登顶」保留仪式感但非必要; 照片 / 备注 / 细节均可下山后补。user 视觉验收 PASS。
 - **关键设计决策**:
@@ -1043,6 +1036,19 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.51（2026-05-30）
+
+FU-6 close + FU-34 tracker hygiene。
+
+- FU-6 record-only UGC 山峰收录落地: `/import` 两处「申请收录山峰」入口真实写入 `mountain_requests`, 成功/失败反馈改为单条「进度 → 结果」toast 时序, admin `/admin/mountains/requests` 只读列表可查看申请。
+- Schema / 安全: `mountain_requests` 表 + RLS 收紧 + 15min bucket dedupe + insert 不读回; admin 列表不暴露 email, 用户文本 React escape, XSS fixture 覆盖。
+- Production migration deploy-gated apply: Vercel READY → baseline 0 table → dry-run PASS → apply success → post-verify 21 columns / 4 indexes + pkey / dedupe unique / RLS / 2 policies / grants。
+- FU-34 降级为按需 reactive, 后续遇到新截图失败样本单独开 case 加 fixture / parser test。
+- hygiene: `.gitignore` 新增 `output/`; FU-61 closed 标题从 `🔴` 对齐为 `✅`。
+- 准入: lint 0e/5w · build PASS · focused node tests 35p · focused e2e 3p · git diff --check clean · no full Playwright。
+- codex-risk-behavior-policy 连续 19 个 sprint 0 红线违反。
+- Active 8 → 6 · Closed 55 → 57
 
 ### v0.50（2026-05-30）
 

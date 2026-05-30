@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-30 · 最新版本记录: v0.49
+> Last Updated: 2026-05-30 · 最新版本记录: v0.50
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`40a990d`（Merge FU-4 · 2026-05-30）
+`1f5a70e`（Merge FU-61 · 2026-05-30）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -285,7 +285,25 @@
 
 ---
 
-## Closed Follow-ups（54 条）
+## Closed Follow-ups（55 条）
+
+### FU-61 🔴 自动登顶兜底 + 登顶范围 300m + 照片非强制
+
+- **关闭原因**: FU-61 sprint 落地 Trek 登顶核验口径调整: GPS 轨迹到达峰顶范围即视为登顶; 手动「我已登顶」保留仪式感但非必要; 照片 / 备注 / 细节均可下山后补。user 视觉验收 PASS。
+- **关键设计决策**:
+  · 登顶核验范围统一为 300m: client / server 默认 summit radius、手动确认解锁半径、analytics summit proximity threshold 均对齐; `APPROACH_RADIUS = 500m` 保持为临近提醒区, 非核验区。
+  · server `verify_summit_checkin` 改为整段 `track_points` 最近点核验, 不再用结束末点; 写入 `latitude` / `longitude` / `verification_distance_m` 时使用最近证据点, 避免用户下撤后误判失败。
+  · `finish_incomplete_trek` 在保存 incomplete 前执行自动兜底: 同 session 尚无 checkin、轨迹点数和时长满足有效记录阈值、整段轨迹最近点进入核验范围时, 自动生成 `completion_status='complete'` / `GPS VERIFIED` / `verified_at` 记录。
+  · 自动登顶与手动登顶同档 `verified`, 计入排名与执照, 不新增 `auto` proof taxonomy。
+  · 手动确认照片改为可选: 有照片则上传后确认, 无照片也可直接确认; Trek UI 文案明确「到达峰顶 300m 范围即视为登顶, 照片和备注可下山后补」。
+  · FAQ 新增「怎样才算登顶 / 系统如何判定登顶」, 并更新 `record.summit-window` / `review.what-is-review` / `record.source-label`; `docs/target-prd.md` / `docs/ui-interaction-spec.md` / `docs/acceptance-checklist.md` 同步产品口径。
+- **B13 透明披露**:
+  · 坐标精度仍依赖 `mountains.latitude / longitude`; FU-16 坐标审计未完成, 本 sprint 用 300m buffer 降低但不消除坐标误差风险。
+  · GPS 漂移可能误触发登顶; 自动兜底仍受现有 drift filtering、最小点数、最小时长约束。
+  · server 以已保存 `track_points` 为 canonical; client 在接近峰顶 / 结束路径尽量 flush 最新点, 但完整离线队列 / 长期无网结束同步不在本 sprint scope。
+  · Phase A e2e 曾暴露 auto-fallback 用例的 harness 问题: 测试只 backdate server session, client elapsed 未达到 testMode 10s 有效记录门槛, 因而正确走 short-record abort。已在测试层加 `waitForClientElapsedAtLeast`, 未改 app 行为。
+- **准入**: lint 0e/5w · build PASS · focused node tests 39p · focused e2e 6p (summit photo optional / resilience summit zone / auto summit fallback) · git diff --check clean · `rg "test.fixme\\(" tests/e2e` 0 matches · no full Playwright。
+- **风险落地**: codex-risk-behavior-policy 连续 18 个 sprint 0 红线违反。
 
 ### FU-4 ✅ 删除西岳华山南峰冗余记录
 
@@ -1025,6 +1043,20 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.50（2026-05-30）
+
+FU-61 close。
+
+- 自动登顶兜底落地: GPS 轨迹到达峰顶核验范围即视为登顶; 手动确认保留仪式感但非必要; 照片 / 备注 / 细节可下山后补。
+- 登顶范围统一 300m, server `verify_summit_checkin` 改用整段轨迹最近点核验, `finish_incomplete_trek` 在有效记录且曾进入核验范围时自动生成 `complete / GPS VERIFIED` verified checkin。
+- Trek UI / FAQ / `target-prd` / `ui-interaction-spec` / `acceptance-checklist` 同步「GPS 到达 = 核验依据, 照片非强制」口径; 不新增 `auto` proof taxonomy。
+- B13: 坐标精度仍依赖 FU-16 后续审计; GPS 漂移风险由 drift filtering + 最小点数 + 最小时长约束; 完整离线队列不在本 sprint scope。
+- 准入: lint 0e/5w · build PASS · focused node tests 39p · focused e2e 6p · git diff --check clean · no full Playwright。
+- codex-risk-behavior-policy 连续 18 个 sprint 0 红线违反。
+- Active 9 → 8 · Closed 54 → 55
+
+---
 
 ### v0.49（2026-05-30）
 

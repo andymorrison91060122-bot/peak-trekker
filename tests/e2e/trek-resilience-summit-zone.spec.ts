@@ -130,10 +130,11 @@ test('manual refresh button refreshes GPS data and applies cooldown', async ({ p
   }
 })
 
-test('near summit CTA only becomes summit confirmation inside 100m', async ({ page, baseURL }) => {
+test('near summit CTA becomes summit confirmation inside 300m', async ({ page, baseURL }) => {
   test.setTimeout(180_000)
   const root = baseURL ?? 'http://127.0.0.1:3100'
-  const nearButNotReady = offsetFromMountain(150)
+  const nearButNotReady = offsetFromMountain(350)
+  const readyAt300m = offsetFromMountain(150)
 
   await openAuthenticatedTrek({
     page,
@@ -151,18 +152,19 @@ test('near summit CTA only becomes summit confirmation inside 100m', async ({ pa
     await expect(page.getByTestId('trek-near-summit-view')).toBeVisible({ timeout: 20_000 })
     await expect(page.getByTestId('trek-near-summit-cta')).toHaveText('继续靠近峰顶')
     await page.getByTestId('trek-near-summit-cta').click()
-    await expect(page.locator('[role="alert"]').filter({ hasText: '进入 100m 登顶确认范围' })).toBeVisible({
+    await expect(page.locator('[role="alert"]').filter({ hasText: '进入 300m 登顶核验范围' })).toBeVisible({
       timeout: 20_000,
     })
 
     await setMockGps(page, {
-      latitude: HUASHAN.latitude,
-      longitude: HUASHAN.longitude,
+      latitude: readyAt300m.latitude,
+      longitude: readyAt300m.longitude,
       altitude: HUASHAN.altitude,
       accuracy: 5,
     })
     await expect(page.getByTestId('trek-near-summit-cta')).toHaveText('我已登顶', { timeout: 20_000 })
     await expect(page.getByTestId('trek-near-summit-stats')).toContainText('就绪', { timeout: 20_000 })
+    await captureOptionalE2EScreenshot(page, 'summit-300m-copy-1024.png')
     await page.getByTestId('trek-near-summit-cta').click()
     await expect(page.getByTestId('trek-summit-photo-view')).toBeVisible({ timeout: 20_000 })
     await captureOptionalE2EScreenshot(page, 'trek-summit-zone-cta.png')

@@ -112,6 +112,19 @@ test('summit photo empty state centers icon and copy vertically', () => {
   assert.match(summitPhotoView, /justifyContent:\s*'center'/)
 })
 
+test('summit confirmation uses 300m range and summit photo is optional', () => {
+  assert.match(trekClient, /MIN_SUMMIT_CONFIRM_RADIUS_M\s*=\s*300/)
+  assert.match(trekClient, /Math\.max\([^)]*summit_radius_m[\s\S]{0,120}MIN_SUMMIT_CONFIRM_RADIUS_M/)
+  assert.doesNotMatch(trekClient, /SUMMIT_READY_RADIUS_M\s*=\s*100/)
+  assert.doesNotMatch(trekClient, /进入 100m 登顶确认范围/)
+
+  const summitSubmit = trekClient.match(/async function handleSummitPhotoSubmit\(\)[\s\S]*?\n  \}/)?.[0] ?? ''
+  assert.doesNotMatch(summitSubmit, /请先选择一张登顶照片/)
+  assert.match(summitSubmit, /: null[\s\S]{0,120}handleGpsCheckin\(photoUrl\)/)
+  assert.match(trekClient, /照片.*可选/)
+  assert.match(trekClient, /GPS.*到达.*范围.*视为登顶/)
+})
+
 test('summit confirmed page uses share primary and activity secondary CTAs only', () => {
   const summitConfirmedView = trekClient.match(/function SummitConfirmedView\([\s\S]*?function SummitRidgeDivider/)?.[0] ?? ''
   assert.match(summitConfirmedView, /data-testid="trek-summit-primary-cta"[\s\S]{0,320}生成分享/)
@@ -305,18 +318,19 @@ test('trek resume button persists server resume before restarting GPS runtime', 
   assert.match(trekClient, /trek_resume_failed/)
 })
 
-test('near summit CTA switches to summit-ready copy at 100m', () => {
-  assert.match(trekClient, /SUMMIT_READY_RADIUS_M\s*=\s*100/)
-  assert.match(trekClient, /const isSummitReadyZone =[\s\S]{0,120}distanceToTarget <= SUMMIT_READY_RADIUS_M/)
+test('near summit CTA switches to summit-ready copy at the 300m confirm radius', () => {
+  assert.match(trekClient, /MIN_SUMMIT_CONFIRM_RADIUS_M\s*=\s*300/)
+  assert.match(trekClient, /const isSummitReadyZone =[\s\S]{0,120}distanceToTarget <= summitConfirmRadiusM/)
   assert.match(trekClient, /ctaLabel=\{isSummitReadyZone \? '我已登顶' : '继续靠近峰顶'\}/)
   assert.match(trekClient, /canContinue=\{canConfirmSummit\}/)
-  assert.match(trekClient, /distanceToTarget !== null && distanceToTarget <= SUMMIT_READY_RADIUS_M/)
+  assert.match(trekClient, /distanceToTarget !== null && distanceToTarget <= summitConfirmRadiusM/)
 })
 
-test('server summit verification uses 300m hard fallback and returns structured distance details', () => {
+test('server summit verification uses 300m hard fallback and closest-point distance details', () => {
   assert.match(trekActions, /SERVER_SUMMIT_VERIFY_RADIUS_M\s*=\s*300/)
   assert.match(trekActions, /const maxVerifyDistance = Math\.max\(summitRadius, SERVER_SUMMIT_VERIFY_RADIUS_M\)/)
-  assert.match(trekActions, /verifyDistance > maxVerifyDistance/)
-  assert.match(trekActions, /distanceMeters:\s*Math\.round\(verifyDistance\)/)
+  assert.match(trekActions, /resolveSummitEvidencePoint/)
+  assert.match(trekActions, /!evidence\.insideVerifyRadius/)
+  assert.match(trekActions, /distanceMeters:\s*Math\.round\(evidence\.distanceM\)/)
   assert.match(trekActions, /maxMeters:\s*maxVerifyDistance/)
 })

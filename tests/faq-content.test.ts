@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+
+import { FAQ_BY_ANCHOR } from '../src/lib/faq-content.ts'
+
+test('FAQ explains summit verification as GPS range based and photo optional', () => {
+  const summitRules = FAQ_BY_ANCHOR['record.summit-rules']
+  assert.ok(summitRules)
+  assert.match(summitRules.q, /怎样才算登顶|系统如何判定登顶/)
+  assert.match(summitRules.a, /GPS 轨迹/)
+  assert.match(summitRules.a, /峰顶/)
+  assert.match(summitRules.a, /照片/)
+  assert.match(summitRules.a, /下山后补|事后补/)
+
+  const summitWindow = FAQ_BY_ANCHOR['record.summit-window']
+  assert.ok(summitWindow)
+  assert.match(summitWindow.a, /到达峰顶范围即视为登顶|GPS 到达/)
+  assert.match(summitWindow.a, /照片.*可.*补/)
+  assert.doesNotMatch(summitWindow.a, /提示你拍一张照作为登顶留证/)
+
+  const summitProof = FAQ_BY_ANCHOR['review.what-is-review']
+  assert.ok(summitProof)
+  assert.match(summitProof.a, /照片.*不是.*必要|无需.*现场照片/)
+})
+
+test('FAQ source label says GPS VERIFIED can come from GPS track reaching summit range', () => {
+  const sourceLabel = FAQ_BY_ANCHOR['record.source-label']
+  assert.ok(sourceLabel)
+  assert.match(sourceLabel.a, /GPS VERIFIED/)
+  assert.match(sourceLabel.a, /轨迹.*到达峰顶范围/)
+  assert.match(sourceLabel.a, /照片不是必要条件|不要求现场照片/)
+})

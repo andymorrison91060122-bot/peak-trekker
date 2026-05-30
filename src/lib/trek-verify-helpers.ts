@@ -32,7 +32,21 @@ type StatsRpcError = {
   hint?: string | null
 }
 
-type VerifyMountain = Mountain & { summit_radius_m?: number | null }
+export type VerifyMountain = Mountain & { summit_radius_m?: number | null }
+export type SummitEvidenceTrackPoint = {
+  lat: number
+  lng: number
+  ts?: number
+  altitude?: number | null
+  accuracy?: number | null
+}
+
+export type SummitEvidencePoint = {
+  point: SummitEvidenceTrackPoint
+  distanceM: number
+  insideVerifyRadius: boolean
+  maxVerifyDistanceM: number
+}
 
 export type TrekVerifyFailureReason =
   | 'insufficient_track_points'
@@ -233,6 +247,36 @@ export function resolveNearestMountainForVerification({
       distanceM: haversineMeters(lat, lng, candidate.latitude, candidate.longitude),
     }))
     .sort((a, b) => a.distanceM - b.distanceM)[0] ?? null
+}
+
+export function resolveSummitEvidencePoint({
+  points,
+  mountain,
+  maxVerifyDistanceM,
+}: {
+  points: SummitEvidenceTrackPoint[]
+  mountain: VerifyMountain
+  maxVerifyDistanceM: number
+}): SummitEvidencePoint | null {
+  let bestPoint: SummitEvidenceTrackPoint | null = null
+  let bestDistanceM = Number.POSITIVE_INFINITY
+
+  for (const point of points) {
+    const distanceM = haversineMeters(point.lat, point.lng, mountain.latitude, mountain.longitude)
+    if (distanceM < bestDistanceM) {
+      bestDistanceM = distanceM
+      bestPoint = point
+    }
+  }
+
+  if (!bestPoint || !Number.isFinite(bestDistanceM)) return null
+
+  return {
+    point: bestPoint,
+    distanceM: bestDistanceM,
+    insideVerifyRadius: bestDistanceM <= maxVerifyDistanceM,
+    maxVerifyDistanceM,
+  }
 }
 
 export async function recordServerVerifyFailure({

@@ -4,6 +4,6 @@ export const TREK_RULES = {
   minTrackPoints: QA_TREK_RULES_ENABLED ? 2 : 8,
   minSessionSeconds: QA_TREK_RULES_ENABLED ? 1 : 90,
   defaultApproachRadiusM: 500,
-  defaultSummitRadiusM: 200,
+  defaultSummitRadiusM: 300,
   maxDriftSpeedMps: 9.5,
 } as const

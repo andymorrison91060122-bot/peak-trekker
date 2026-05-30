@@ -74,8 +74,7 @@ type TrekViewState =
   | 'summitConfirmed'
 
 const APPROACH_RADIUS = TREK_RULES.defaultApproachRadiusM
-const SUMMIT_RADIUS = TREK_RULES.defaultSummitRadiusM
-const SUMMIT_READY_RADIUS_M = 100
+const MIN_SUMMIT_CONFIRM_RADIUS_M = 300
 const MAX_DRIFT_SPEED_MPS = TREK_RULES.maxDriftSpeedMps
 const MANUAL_REFRESH_COOLDOWN_MS = 5000
 const MANUAL_REFRESH_TIMEOUT_MS = 2500
@@ -119,6 +118,10 @@ async function uploadTrekPhoto(file: File, options: { sessionId?: string | null;
 
 function isClientLocalSessionId(value: string) {
   return value.startsWith(LOCAL_TREK_SESSION_PREFIX) || value.startsWith(LOCAL_FALLBACK_SESSION_PREFIX)
+}
+
+function getSummitConfirmRadiusM(mountain: Pick<Mountain, 'summit_radius_m'> | null | undefined) {
+  return Math.max(mountain?.summit_radius_m ?? TREK_RULES.defaultSummitRadiusM, MIN_SUMMIT_CONFIRM_RADIUS_M)
 }
 
 function normalizeTrekActionError(error: unknown) {
@@ -878,7 +881,7 @@ export default function TrekClient({
       proximityEnterAtRef.current = null
     }
 
-    if (matched && closestDistance <= SUMMIT_RADIUS) {
+    if (matched && closestDistance <= getSummitConfirmRadiusM(matched)) {
       setNearbyMountain(matched)
       setStatus('approach_alert')
       return
@@ -1019,7 +1022,13 @@ export default function TrekClient({
           setGpsErrorCode(null)
           checkNearby(latitude, longitude)
 
-          if (lastSyncRef.current === 0 || now - lastSyncRef.current >= 4000) {
+          const distanceToActiveSummit = targetMountain
+            ? haversineMeters(latitude, longitude, targetMountain.latitude, targetMountain.longitude)
+            : null
+          const shouldFlushSummitPoint =
+            distanceToActiveSummit !== null && distanceToActiveSummit <= getSummitConfirmRadiusM(targetMountain)
+
+          if (shouldFlushSummitPoint || lastSyncRef.current === 0 || now - lastSyncRef.current >= 4000) {
             lastSyncRef.current = now
             void appendPointToServer(runtimeSessionId, nextPoint, accuracy)
           }
@@ -1046,7 +1055,7 @@ export default function TrekClient({
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
       )
     },
-    [appendPointToServer, checkNearby, clearToasts, clearTrackingRuntime, showToast]
+    [appendPointToServer, checkNearby, clearToasts, clearTrackingRuntime, showToast, targetMountain]
   )
 
   const restoreActiveTrekSession = useCallback(
@@ -1340,15 +1349,40 @@ export default function TrekClient({
           : {}),
       })
       const checkinId = typeof data.checkinId === 'string' ? data.checkinId : null
+      const autoVerified = data.autoVerified === true || data.completionStatus === 'complete'
       resetLiveTrekState()
-      showToast({ key: 'trek_record_saved' })
+      showToast(
+        autoVerified
+          ? {
+              tone: 'success',
+              message: '轨迹已到达峰顶范围，已自动确认登顶。',
+              durationMs: 5200,
+            }
+          : { key: 'trek_record_saved' }
+      )
       if (checkinId) {
+        if (autoVerified) {
+          trackEvent({
+            event_type: 'business',
+            event_name: 'business.trek_complete',
+            properties: {
+              session_id: activeSessionId,
+              mountain_id: targetMountain.id,
+              duration_seconds: elapsedSeconds,
+              distance_km: distanceKm,
+              ascent_m: ascentM,
+              summit_altitude_m: targetMountain.altitude,
+              marked_summit: false,
+              auto_verified: true,
+            },
+          })
+        }
         trackEvent({
           event_type: 'business',
           event_name: 'business.activity_create',
           properties: {
             source: 'realtime_gps',
-            proof_status: 'partial',
+            proof_status: autoVerified ? 'verified' : 'partial',
             session_id: activeSessionId,
             mountain_id: targetMountain.id,
             checkin_id: checkinId,
@@ -1498,7 +1532,9 @@ export default function TrekClient({
   function handleApproachContinue() {
     if (!canConfirmSummit) {
       const missing: string[] = []
-      if (distanceToTarget === null || distanceToTarget > SUMMIT_READY_RADIUS_M) missing.push('进入 100m 登顶确认范围')
+      if (distanceToTarget === null || distanceToTarget > summitConfirmRadiusM) {
+        missing.push(`进入 ${summitConfirmRadiusM}m 登顶核验范围`)
+      }
       if (trackRef.current.length < verificationRules.minTrackPoints) missing.push(`轨迹点至少 ${verificationRules.minTrackPoints} 个`)
       if (elapsedSeconds < verificationRules.minSessionSeconds) missing.push(`记录至少 ${verificationRules.minSessionSeconds} 秒`)
       showToast({
@@ -1515,27 +1551,27 @@ export default function TrekClient({
     setStatus('summit_photo')
     showToast({
       tone: 'info',
-      message: '已到达峰顶，请拍一张登顶照完成留证。',
+      message: '已到达峰顶核验范围。可以直接确认登顶，照片和细节可下山后补。',
       durationMs: 2600,
     })
   }
 
   async function handleSummitPhotoSubmit() {
-    if (!photoFile) {
-      showToast({ key: 'action_blocked', message: '请先选择一张登顶照片。' })
-      return
-    }
-
     setPhotoLoading(true)
     try {
-      const photoUrl = await uploadTrekPhoto(photoFile, { sessionId, testMode: trekTestMode })
+      const photoUrl = photoFile
+        ? await uploadTrekPhoto(photoFile, { sessionId, testMode: trekTestMode })
+        : null
       await handleGpsCheckin(photoUrl)
       setPhotoFile(null)
       if (photoInputRef.current) {
         photoInputRef.current.value = ''
       }
     } catch (error) {
-      showToast({ key: 'image_upload_failure', message: error instanceof Error ? error.message : '登顶照片上传失败，请稍后重试。' })
+      showToast({
+        key: 'image_upload_failure',
+        message: error instanceof Error ? error.message : '确认登顶失败，请稍后重试。',
+      })
     } finally {
       setPhotoLoading(false)
     }
@@ -1543,10 +1579,11 @@ export default function TrekClient({
 
   const hasMinimumVerificationEvidence =
     trackRef.current.length >= verificationRules.minTrackPoints && elapsedSeconds >= verificationRules.minSessionSeconds
+  const summitConfirmRadiusM = targetMountain ? getSummitConfirmRadiusM(targetMountain) : MIN_SUMMIT_CONFIRM_RADIUS_M
   const isSummitReadyZone =
-    distanceToTarget !== null && distanceToTarget <= SUMMIT_READY_RADIUS_M
+    distanceToTarget !== null && distanceToTarget <= summitConfirmRadiusM
   const canConfirmSummit =
-    distanceToTarget !== null && distanceToTarget <= SUMMIT_READY_RADIUS_M && hasMinimumVerificationEvidence
+    distanceToTarget !== null && distanceToTarget <= summitConfirmRadiusM && hasMinimumVerificationEvidence
   const isTrackingActive = status === 'locating' || status === 'tracking' || status === 'approach_alert'
   const isSummitPhotoFlow = status === 'summit_photo'
   const isSummitFlow = isSummitPhotoFlow || status === 'summit_verified' || status === 'card_preview' || status === 'shared'
@@ -2279,10 +2316,10 @@ function TrekTopBar({
     ? '待出发'
     : isGpsWeak
       ? '信号微弱'
-      : isNearSummit
-        ? '临近峰顶'
+        : isNearSummit
+          ? '临近峰顶'
         : isSummitPhoto
-          ? '拍照留证'
+          ? '确认登顶'
           : isSummitConfirmed
           ? '登顶完成'
           : isRecording
@@ -2810,7 +2847,7 @@ function NearSummitView({
             }}
           >
             <p style={{ margin: 0 }}>山顶在前方。这一段更要稳。</p>
-            <p style={{ margin: 0 }}>到了之后，留 10 分钟给自己。</p>
+            <p style={{ margin: 0 }}>GPS 到达核验范围即视为登顶，手动确认只是给自己留个仪式感。</p>
           </div>
         </div>
       </section>
@@ -2906,7 +2943,7 @@ function NearSummitView({
               flex: '0 0 auto',
             }}
           >
-            <CameraIcon size={20} />
+              <CheckIcon size={20} />
           </span>
           <div style={{ minWidth: 0 }}>
             <div
@@ -2928,7 +2965,7 @@ function NearSummitView({
                 fontWeight: 400,
               }}
             >
-              系统会请你拍一张登顶照作为留证 · 一张就够。
+              照片和备注都可选，可下山后补；记录结束时也会根据整段轨迹自动核验。
             </p>
           </div>
         </div>
@@ -3004,7 +3041,7 @@ function SummitPhotoView({
             textTransform: 'uppercase',
           }}
         >
-          SUMMIT PHOTO
+          SUMMIT CHECK
         </div>
         <h1
           style={{
@@ -3015,7 +3052,7 @@ function SummitPhotoView({
             fontWeight: 700,
           }}
         >
-          拍一张登顶照
+          确认登顶
         </h1>
         <p
           style={{
@@ -3025,7 +3062,7 @@ function SummitPhotoView({
             lineHeight: 1.6,
           }}
         >
-          {mountain?.name ?? '目标山峰'} 已进入核验范围。照片会和本次 GPS 轨迹一起生成登顶留证。
+          {mountain?.name ?? '目标山峰'} 已进入核验范围。GPS 轨迹已能作为登顶核验依据，照片可选，也可以下山后再补。
         </p>
       </section>
 
@@ -3076,7 +3113,7 @@ function SummitPhotoView({
                   overflowWrap: 'anywhere',
                 }}
               >
-                {photoFile ? photoFile.name : '还没有选择照片'}
+                {photoFile ? photoFile.name : '未选择照片（可选）'}
               </div>
               <div
                 style={{
@@ -3085,10 +3122,28 @@ function SummitPhotoView({
                   lineHeight: 'var(--font-label-m-line)',
                 }}
               >
-                一张清晰的峰顶照即可
+                可直接确认登顶；想留纪念时再添加一张照片。
               </div>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={onPickPhoto}
+            disabled={photoLoading}
+            style={{
+              minHeight: 44,
+              borderRadius: 12,
+              border: '1px solid var(--color-outline)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-on-surface)',
+              fontSize: 'var(--font-label-m-size)',
+              lineHeight: 'var(--font-label-m-line)',
+              fontWeight: 'var(--font-label-m-weight)',
+            }}
+          >
+            {photoFile ? '更换照片（可选）' : '添加照片（可选）'}
+          </button>
 
           <div
             style={{
@@ -3108,8 +3163,8 @@ function SummitPhotoView({
         <SecondaryButton style={{ width: '100%' }} onClick={onBack} disabled={photoLoading}>
           返回
         </SecondaryButton>
-        <PrimaryButton style={{ width: '100%' }} onClick={photoFile ? onSubmit : onPickPhoto} loading={photoLoading}>
-          {photoFile ? '提交留证' : '选择照片'}
+        <PrimaryButton style={{ width: '100%' }} onClick={onSubmit} loading={photoLoading}>
+          确认登顶
         </PrimaryButton>
       </BottomActionBar>
     </div>
@@ -3312,6 +3367,7 @@ function PreStartView({
           }} />
 
           <PreStartPreflightList mountain={activeMountain} gps={gps} gpsError={gpsError} prepGpsStatus={prepGpsStatus} />
+          <SummitPolicyNote />
 
           {prepGpsStatus === 'weak' ? (
             <PrepGpsWeakCard
@@ -3376,6 +3432,51 @@ function PreStartView({
           </BottomActionBar>
         </>
       )}
+    </div>
+  )
+}
+
+function SummitPolicyNote() {
+  return (
+    <div style={{ padding: 'var(--space-4) var(--space-4) 0' }}>
+      <div
+        data-testid="trek-summit-policy-note"
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 'var(--space-3)',
+          padding: 'var(--space-4)',
+          borderRadius: 14,
+          border: '1px solid color-mix(in oklch, var(--color-success) 22%, transparent)',
+          background: 'color-mix(in oklch, var(--color-success) 8%, var(--color-surface-variant))',
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            width: 28,
+            height: 28,
+            display: 'grid',
+            placeItems: 'center',
+            borderRadius: 'var(--radius-pill)',
+            background: 'color-mix(in oklch, var(--color-success) 16%, transparent)',
+            color: 'var(--color-success)',
+            flex: '0 0 auto',
+          }}
+        >
+          <CheckIcon size={16} />
+        </span>
+        <p
+          style={{
+            margin: 0,
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 1.55,
+          }}
+        >
+          GPS 到达峰顶 300m 范围即视为登顶；照片和备注都可选，可以下山后再补。
+        </p>
+      </div>
     </div>
   )
 }

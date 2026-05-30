@@ -20,6 +20,7 @@ import {
   listActiveMountainsForVerification,
   recordServerVerifyFailure,
   resolveNearestMountainForVerification,
+  resolveSummitEvidencePoint,
   updateVerificationStats,
   type TrekVerifyRecordRpcRow,
   type TrekVerifySessionRecord,
@@ -666,7 +667,7 @@ export async function POST(request: NextRequest) {
       : MIN_INCOMPLETE_TREK_SECONDS
     const points = isLocalSession ? safeTrackPoints(body?.trackPoints) : []
     const localStartedAt = finiteNumber(body?.startedAt)
-    const localElapsedSeconds = finiteNumber(body?.elapsedSeconds)
+    const localElapsedSeconds = isLocalSession ? finiteNumber(body?.elapsedSeconds) : null
 
     let session:
       | (TrekVerifySessionRecord & {
@@ -773,7 +774,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const lastPoint = effectivePoints.at(-1)!
     const trackSummary = summarizeTrackPoints(effectivePoints)
     const distanceMeters =
       finiteNumber(session?.distance_m) ??
@@ -787,6 +787,124 @@ export async function POST(request: NextRequest) {
     const maxAltitudeMeters =
       finiteNumber(session?.max_altitude_m) ??
       trackSummary.maxAltitudeM
+
+    const { data: finishMountain } = await fetchMountainForVerification(supabase, effectiveMountainId)
+    if (
+      finishMountain &&
+      effectivePoints.length >= verificationRules.minTrackPoints &&
+      durationSeconds >= verificationRules.minSessionSeconds
+    ) {
+      const finishSummitRadius = finishMountain.summit_radius_m ?? TREK_RULES.defaultSummitRadiusM
+      const maxVerifyDistanceM = Math.max(finishSummitRadius, SERVER_SUMMIT_VERIFY_RADIUS_M)
+      const evidence = resolveSummitEvidencePoint({
+        points: effectivePoints,
+        mountain: finishMountain,
+        maxVerifyDistanceM,
+      })
+
+      if (evidence?.insideVerifyRadius) {
+        const rankingWeight = rankingWeightByDifficulty(finishMountain.difficulty)
+        const now = new Date().toISOString()
+        let verifiedCheckin: { id: string; duplicated: boolean }
+
+        if (session) {
+          const { data: recordedCheckin, error: recordError } = await supabase
+            .rpc('verify_and_record_checkin', {
+              p_session_id: session.id,
+              p_user_id: user.id,
+              p_mountain_id: finishMountain.id,
+              p_latitude: evidence.point.lat,
+              p_longitude: evidence.point.lng,
+              p_note: note,
+              p_verified_at: now,
+              p_verification_distance_m: Math.round(evidence.distanceM),
+              p_ranking_weight: rankingWeight,
+            })
+            .single()
+
+          const rpcRow = recordedCheckin as TrekVerifyRecordRpcRow | null
+          if (recordError || !rpcRow?.checkin_id) {
+            return NextResponse.json({ error: recordError?.message ?? 'record checkin failed' }, { status: 500 })
+          }
+
+          verifiedCheckin = {
+            id: rpcRow.checkin_id,
+            duplicated: Boolean(rpcRow.duplicated),
+          }
+        } else {
+          const { data: createdCheckin, error: createError } = await insertCheckinWithFallback(
+            supabase,
+            {
+              user_id: user.id,
+              mountain_id: finishMountain.id,
+              type: 'gps',
+              source: 'realtime_gps',
+              completion_status: 'complete',
+              latitude: evidence.point.lat,
+              longitude: evidence.point.lng,
+              note,
+              verified_at: now,
+              verification_distance_m: Math.round(evidence.distanceM),
+              ranking_weight: rankingWeight,
+              distance_meters: Math.round(distanceMeters),
+              duration_seconds: durationSeconds,
+              elevation_gain_meters: Math.round(ascentMeters),
+              elevation_loss_meters: Math.round(descentMeters),
+              max_elevation_meters: maxAltitudeMeters,
+              min_elevation_meters: trackSummary.minAltitudeM,
+              start_time: trackSummary.startTime ?? (startedAt ? new Date(startedAt).toISOString() : null),
+              end_time: trackSummary.endTime ?? new Date(endedAtMs).toISOString(),
+              track_name: `${finishMountain.name} GPS 登顶记录`,
+              track_points: effectivePoints,
+            },
+            'id'
+          )
+
+          if (createError || !createdCheckin) {
+            return NextResponse.json({ error: createError?.message ?? 'create checkin failed' }, { status: 500 })
+          }
+
+          verifiedCheckin = {
+            id: (createdCheckin as unknown as { id: string }).id,
+            duplicated: false,
+          }
+        }
+
+        const statsWarning =
+          verifiedCheckin.duplicated
+            ? false
+            : await updateVerificationStats({
+                supabase,
+                mountain: finishMountain,
+                userId: user.id,
+              })
+
+        try {
+          await syncUserLicenseLevel({
+            supabase,
+            userId: user.id,
+          })
+        } catch (error) {
+          console.warn('license sync after auto summit verification failed', error)
+        }
+
+        return NextResponse.json({
+          ok: true,
+          checkinId: verifiedCheckin.id,
+          completionStatus: 'complete',
+          autoVerified: true,
+          verificationDistanceM: Math.round(evidence.distanceM),
+          rankingWeight,
+          ...(statsWarning ? { statsWarning: 'stats_update_failed' } : {}),
+          mountain: {
+            id: finishMountain.id,
+            name: finishMountain.name,
+          },
+        })
+      }
+    }
+
+    const lastPoint = effectivePoints.at(-1)!
 
     const { data: createdCheckin, error: createError } = await insertCheckinWithFallback(
       supabase,
@@ -988,23 +1106,36 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const lastPoint = points.at(-1)!
-    const verifyDistance = haversineMeters(lastPoint.lat, lastPoint.lng, mountain.latitude, mountain.longitude)
     const summitRadius = mountain.summit_radius_m ?? TREK_RULES.defaultSummitRadiusM
     const maxVerifyDistance = Math.max(summitRadius, SERVER_SUMMIT_VERIFY_RADIUS_M)
+    const evidence = resolveSummitEvidencePoint({
+      points,
+      mountain,
+      maxVerifyDistanceM: maxVerifyDistance,
+    })
 
-    if (verifyDistance > maxVerifyDistance) {
+    if (!evidence) {
+      await recordServerVerifyFailure({
+        supabase,
+        session: serverSession,
+        reason: 'insufficient_track_points',
+        detail: 'no valid summit evidence point',
+      })
+      return NextResponse.json({ error: 'insufficient_track_points', detail: 'no valid summit evidence point' }, { status: 422 })
+    }
+
+    if (!evidence.insideVerifyRadius) {
       await recordServerVerifyFailure({
         supabase,
         session: serverSession,
         reason: 'outside_summit_radius',
-        detail: `current distance ${Math.round(verifyDistance)}m > ${maxVerifyDistance}m`,
+        detail: `closest distance ${Math.round(evidence.distanceM)}m > ${maxVerifyDistance}m`,
       })
       return NextResponse.json(
         {
           error: 'outside_summit_radius',
-          detail: `current distance ${Math.round(verifyDistance)}m > ${maxVerifyDistance}m`,
-          distanceMeters: Math.round(verifyDistance),
+          detail: `closest distance ${Math.round(evidence.distanceM)}m > ${maxVerifyDistance}m`,
+          distanceMeters: Math.round(evidence.distanceM),
           maxMeters: maxVerifyDistance,
         },
         { status: 422 }
@@ -1037,11 +1168,11 @@ export async function POST(request: NextRequest) {
           p_session_id: serverSession.id,
           p_user_id: user.id,
           p_mountain_id: mountain.id,
-          p_latitude: lastPoint.lat,
-          p_longitude: lastPoint.lng,
+          p_latitude: evidence.point.lat,
+          p_longitude: evidence.point.lng,
           p_note: note,
           p_verified_at: now,
-          p_verification_distance_m: Math.round(verifyDistance),
+          p_verification_distance_m: Math.round(evidence.distanceM),
           p_ranking_weight: rankingWeight,
         })
         .single()
@@ -1065,12 +1196,12 @@ export async function POST(request: NextRequest) {
           mountain_id: mountain.id,
           type: 'gps',
           source: 'realtime_gps',
-          latitude: lastPoint.lat,
-          longitude: lastPoint.lng,
+          latitude: evidence.point.lat,
+          longitude: evidence.point.lng,
           note,
           photo_url: photoUrl,
           verified_at: now,
-          verification_distance_m: Math.round(verifyDistance),
+          verification_distance_m: Math.round(evidence.distanceM),
           ranking_weight: rankingWeight,
           completion_status: 'complete',
         },
@@ -1121,7 +1252,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       ...(verifiedCheckin.duplicated ? { duplicated: true } : {}),
       checkinId: verifiedCheckin.id,
-      verificationDistanceM: Math.round(verifyDistance),
+      verificationDistanceM: Math.round(evidence.distanceM),
       rankingWeight,
       ...(statsWarning ? { statsWarning: 'stats_update_failed' } : {}),
       mountain: {

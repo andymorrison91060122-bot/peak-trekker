@@ -6,7 +6,7 @@ export const ATTRIBUTION_SOURCE_COOKIE = 'pt_attribution_source_user_id'
 export const ANALYTICS_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
 export const ATTRIBUTION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
 
-export const TREK_SUMMIT_PROXIMITY_THRESHOLD_M = 200
+export const TREK_SUMMIT_PROXIMITY_THRESHOLD_M = 300
 export const TREK_TIMEOUT_THRESHOLD_HOURS = 6
 export const NEW_USER_THRESHOLD_DAYS = 7
 

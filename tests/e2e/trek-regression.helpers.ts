@@ -70,7 +70,7 @@ export async function fetchCheckinForE2E(checkinId: string) {
   const supabase = getSupabaseAdminClient()
   const { data, error } = await supabase
     .from('checkins')
-    .select('id, completion_status, session_id, mountain_id, photo_url, verified_at')
+    .select('id, completion_status, session_id, mountain_id, photo_url, verified_at, verification_distance_m')
     .eq('id', checkinId)
     .single()
 
@@ -85,6 +85,7 @@ export async function fetchCheckinForE2E(checkinId: string) {
     mountain_id: string | null
     photo_url: string | null
     verified_at: string | null
+    verification_distance_m: number | null
   }
 }
 
@@ -124,7 +125,7 @@ export async function completeSummitPhotoFlow(page: Page) {
     return response.request().postData()?.includes('"action":"verify_summit_checkin"') ?? false
   })
 
-  await page.getByRole('button', { name: '提交留证' }).click()
+  await page.getByRole('button', { name: '确认登顶' }).click()
   const verifyResponse = await verifyResponsePromise
   const verifyBody = await verifyResponse.json().catch(() => ({}))
   expect(verifyResponse.status(), JSON.stringify(verifyBody)).toBe(200)
@@ -135,7 +136,7 @@ export async function completeSummitPhotoFlow(page: Page) {
   return { checkinId, photoName: photo.name }
 }
 
-async function appendSummitServerGpsPoints(page: Page, sessionId: string) {
+export async function appendSummitServerGpsPoints(page: Page, sessionId: string) {
   if (!sessionId || sessionId.startsWith('local-')) return
 
   const startedAt = Date.now() - 120_000
@@ -160,7 +161,7 @@ async function appendSummitServerGpsPoints(page: Page, sessionId: string) {
   }
 }
 
-async function feedSummitGpsPoints(page: Page) {
+export async function feedSummitGpsPoints(page: Page) {
   const points = Array.from({ length: 8 }, (_, index) => ({
     latitude: HUASHAN.latitude - (7 - index) * 0.000004,
     longitude: HUASHAN.longitude - (7 - index) * 0.000004,

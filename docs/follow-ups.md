@@ -9,7 +9,7 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`34a97f3`（Merge FU-6 · 2026-05-30）
+`f93da14`（Merge FU-38 · 2026-05-30）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint

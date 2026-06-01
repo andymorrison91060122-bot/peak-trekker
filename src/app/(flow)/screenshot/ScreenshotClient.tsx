@@ -3,7 +3,7 @@
 import type { ChangeEvent, CSSProperties, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { OcrResult, ParsedScreenshotFields, ScreenshotQuotaState, TencentOcrSource } from '@/lib/screenshot/types'
+import type { OcrResult, ParsedScreenshotFields, ScreenshotOcrSource, ScreenshotQuotaState } from '@/lib/screenshot/types'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import ModalShell from '@/components/ui/ModalShell'
@@ -18,20 +18,20 @@ const SCREENSHOT_MAX_PACE_MIN_PER_KM = 40
 
 type ScreenshotStep = 'upload' | 'processing' | 'confirm' | 'submitting' | 'success'
 type RecognizeErrorKind = 'auth' | 'too_large' | 'unsupported' | 'network' | 'file' | 'quota'
-type FieldKey = 'elevation' | 'distance' | 'duration' | 'elevationGain' | 'date' | 'location' | 'speed' | 'pace'
+type FieldKey = 'elevation' | 'distance' | 'duration' | 'elevationGain' | 'elevationLoss' | 'date' | 'location' | 'speed' | 'pace'
 
 type RecognizeResult = {
   ok: true
   ocrResult: OcrResult
   parsedFields: ParsedScreenshotFields
-  ocrSource?: TencentOcrSource
+  ocrSource?: ScreenshotOcrSource
 }
 
 type RecognizeResponse = {
   ok?: boolean
   ocrResult?: OcrResult
   parsedFields?: ParsedScreenshotFields
-  ocrSource?: TencentOcrSource
+  ocrSource?: ScreenshotOcrSource
   quota?: ScreenshotQuotaState
   code?: string
   error?: string
@@ -43,11 +43,7 @@ type SubmitResult = {
 }
 
 type FieldToggles = Record<FieldKey, boolean>
-type EditableFields = Record<FieldKey, string> & {
-  durationHours: string
-  durationMinutes: string
-  durationSeconds: string
-}
+type EditableFields = Record<FieldKey, string>
 
 type MountainOption = {
   id: string
@@ -69,6 +65,7 @@ const FIELD_CONFIGS: FieldConfig[] = [
   { key: 'distance', label: '总距离', locked: true },
   { key: 'duration', label: '时长', locked: false },
   { key: 'elevationGain', label: '爬升', locked: false },
+  { key: 'elevationLoss', label: '下降', locked: false },
   { key: 'date', label: '日期', locked: false },
   { key: 'location', label: '地点', locked: false },
   { key: 'speed', label: '速度', locked: false },
@@ -80,6 +77,7 @@ const EMPTY_FIELD_TOGGLES: FieldToggles = {
   distance: true,
   duration: false,
   elevationGain: false,
+  elevationLoss: false,
   date: false,
   location: false,
   speed: false,
@@ -90,10 +88,8 @@ const EMPTY_EDITABLE_FIELDS: EditableFields = {
   elevation: '',
   distance: '',
   duration: '',
-  durationHours: '',
-  durationMinutes: '',
-  durationSeconds: '',
   elevationGain: '',
+  elevationLoss: '',
   date: '',
   location: '',
   speed: '',
@@ -166,6 +162,12 @@ function readableError(message: string, kind: RecognizeErrorKind) {
   return message || '这张截图暂时无法识别，请换一张再试。'
 }
 
+function providerFromSource(source?: ScreenshotOcrSource) {
+  if (source === 'mimo_v25') return 'mimo_v25'
+  if (source === 'basic' || source === 'accurate') return `tencent_ocr_${source}`
+  return 'screenshot_recognition'
+}
+
 function hasFieldValue<T extends { value?: unknown }>(
   field: T | undefined
 ): field is T & { value: NonNullable<T['value']> } {
@@ -179,43 +181,16 @@ function formatDuration(seconds: number) {
   const hours = Math.floor(safeSeconds / 3600)
   const minutes = Math.floor((safeSeconds % 3600) / 60)
   const rest = safeSeconds % 60
-  if (hours > 0) return `${hours}h ${minutes}m ${rest}s`
-  if (minutes > 0) return `${minutes}m ${rest}s`
-  return `${rest}s`
-}
-
-function formatDurationForInput(seconds: number) {
-  const safeSeconds = Math.max(0, Math.round(seconds))
-  const hours = Math.floor(safeSeconds / 3600)
-  const minutes = Math.floor((safeSeconds % 3600) / 60)
-  const rest = safeSeconds % 60
-  if (hours > 0) return `${hours}h ${minutes}m`
-  if (rest > 0) return `${minutes}:${rest.toString().padStart(2, '0')}`
-  return `${minutes}m`
-}
-
-function durationPartsForInput(seconds: number) {
-  const safeSeconds = Math.max(0, Math.round(seconds))
-  return {
-    hours: String(Math.floor(safeSeconds / 3600)),
-    minutes: String(Math.floor((safeSeconds % 3600) / 60)),
-    seconds: String(safeSeconds % 60),
-  }
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`
 }
 
 function buildEditableFields(fields: ParsedScreenshotFields): EditableFields {
-  const durationParts = hasFieldValue(fields.duration)
-    ? durationPartsForInput(fields.duration.value)
-    : { hours: '', minutes: '', seconds: '' }
-
   return {
     elevation: hasFieldValue(fields.elevation) ? String(Math.round(fields.elevation.value)) : '',
     distance: hasFieldValue(fields.distance) ? String(fields.distance.value) : '',
-    duration: hasFieldValue(fields.duration) ? formatDurationForInput(fields.duration.value) : '',
-    durationHours: durationParts.hours,
-    durationMinutes: durationParts.minutes,
-    durationSeconds: durationParts.seconds,
+    duration: hasFieldValue(fields.duration) ? formatDuration(fields.duration.value) : '',
     elevationGain: hasFieldValue(fields.elevationGain) ? String(Math.round(fields.elevationGain.value)) : '',
+    elevationLoss: hasFieldValue(fields.elevationLoss) ? String(Math.round(fields.elevationLoss.value)) : '',
     date: hasFieldValue(fields.date) ? fields.date.value : '',
     location: hasFieldValue(fields.location) ? fields.location.value : '',
     speed: hasFieldValue(fields.speed) ? String(fields.speed.value) : '',
@@ -263,20 +238,26 @@ function parsePaceInput(value: string) {
     : undefined
 }
 
-function parseIntegerInput(value: string) {
+function parseDurationInput(value: string) {
   const trimmed = value.trim()
   if (!trimmed) return undefined
-  if (!/^\d+$/u.test(trimmed)) return undefined
-  return Number(trimmed)
-}
 
-function parseDurationParts(hoursValue: string, minutesValue: string, secondsValue: string) {
-  const hours = parseIntegerInput(hoursValue) ?? 0
-  const minutes = parseIntegerInput(minutesValue) ?? 0
-  const seconds = parseIntegerInput(secondsValue) ?? 0
-  if (hoursValue.trim() && (hours < 0 || hours > 999)) return undefined
-  if (minutesValue.trim() && (minutes < 0 || minutes > 59)) return undefined
-  if (secondsValue.trim() && (seconds < 0 || seconds > 59)) return undefined
+  const hms = trimmed.match(/^(\d{1,3}):([0-5]?\d):([0-5]?\d)$/u)
+  if (hms) {
+    return Number(hms[1]) * 3600 + Number(hms[2]) * 60 + Number(hms[3])
+  }
+
+  const hm = trimmed.match(/^(\d{1,3}):([0-5]?\d)$/u)
+  if (hm) {
+    return Number(hm[1]) * 3600 + Number(hm[2]) * 60
+  }
+
+  const chinese = trimmed.match(/(?:(\d+)\s*(?:小时|时|h))?\s*(?:(\d+)\s*(?:分钟|分|m))?\s*(?:(\d+)\s*(?:秒|s))?/iu)
+  if (!chinese?.[0]?.trim() || (!chinese[1] && !chinese[2] && !chinese[3])) return undefined
+  const hours = Number(chinese[1] ?? 0)
+  const minutes = Number(chinese[2] ?? 0)
+  const seconds = Number(chinese[3] ?? 0)
+  if (hours < 0 || hours > 999 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) return undefined
   const totalSeconds = hours * 3600 + minutes * 60 + seconds
   return totalSeconds > 0 ? totalSeconds : undefined
 }
@@ -285,9 +266,10 @@ function buildScreenshotParsedData(fields: EditableFields, toggles: FieldToggles
   const elevation = toggles.elevation ? parseNumberInput(fields.elevation) : undefined
   const distanceKm = parseNumberInput(fields.distance)
   const durationSeconds = toggles.duration
-    ? parseDurationParts(fields.durationHours, fields.durationMinutes, fields.durationSeconds)
+    ? parseDurationInput(fields.duration)
     : undefined
   const elevationGain = toggles.elevationGain ? parseNumberInput(fields.elevationGain) : undefined
+  const elevationLoss = toggles.elevationLoss ? parseNumberInput(fields.elevationLoss) : undefined
   const speed = toggles.speed ? parseNumberInput(fields.speed) : undefined
   const pace = toggles.pace ? parsePaceInput(fields.pace) : undefined
   const date = toggles.date && fields.date.trim() ? fields.date.trim() : undefined
@@ -301,6 +283,7 @@ function buildScreenshotParsedData(fields: EditableFields, toggles: FieldToggles
     ...(typeof distanceKm === 'number' ? { distanceMeters: Math.round(distanceKm * 1000) } : {}),
     ...(typeof durationSeconds === 'number' ? { durationSeconds } : {}),
     ...(typeof elevationGain === 'number' ? { elevationGainMeters: Math.round(elevationGain) } : {}),
+    ...(typeof elevationLoss === 'number' ? { elevationLossMeters: Math.round(elevationLoss) } : {}),
     ...(typeof speed === 'number' ? { speedKmh: speed } : {}),
     ...(typeof pace === 'number' ? { paceMinPerKm: pace } : {}),
     ...(date ? { date } : {}),
@@ -327,6 +310,10 @@ function formatFieldValue(fields: ParsedScreenshotFields, key: FieldKey) {
     }
     case 'elevationGain': {
       const field = fields.elevationGain
+      return hasFieldValue(field) ? `${Math.round(field.value)} m` : '—'
+    }
+    case 'elevationLoss': {
+      const field = fields.elevationLoss
       return hasFieldValue(field) ? `${Math.round(field.value)} m` : '—'
     }
     case 'date': {
@@ -358,6 +345,8 @@ function hasParsedField(fields: ParsedScreenshotFields, key: FieldKey) {
       return hasFieldValue(fields.duration)
     case 'elevationGain':
       return hasFieldValue(fields.elevationGain)
+    case 'elevationLoss':
+      return hasFieldValue(fields.elevationLoss)
     case 'date':
       return hasFieldValue(fields.date)
     case 'location':
@@ -375,6 +364,7 @@ function buildInitialFieldToggles(fields: ParsedScreenshotFields): FieldToggles 
     distance: true,
     duration: hasParsedField(fields, 'duration'),
     elevationGain: hasParsedField(fields, 'elevationGain'),
+    elevationLoss: hasParsedField(fields, 'elevationLoss'),
     date: hasParsedField(fields, 'date'),
     location: hasParsedField(fields, 'location'),
     speed: hasParsedField(fields, 'speed'),
@@ -393,11 +383,13 @@ function validationTone(fields: ParsedScreenshotFields) {
   const distanceKm = fields.distance?.value
   const durationSeconds = fields.duration?.value
   const elevationGain = fields.elevationGain?.value
+  const elevationLoss = fields.elevationLoss?.value
 
   return (typeof elevation === 'number' && elevation >= 9000) ||
     (typeof distanceKm === 'number' && distanceKm >= 200) ||
     (typeof durationSeconds === 'number' && durationSeconds >= 48 * 3600) ||
-    (typeof elevationGain === 'number' && elevationGain >= 10000)
+    (typeof elevationGain === 'number' && elevationGain >= 10000) ||
+    (typeof elevationLoss === 'number' && elevationLoss >= 10000)
     ? 'warning'
     : 'normal'
 }
@@ -1133,9 +1125,9 @@ function ProcessingScreen({
             gap: 14,
           }}
         >
-          <StatusRow state="done" label="文字信息提取完成" />
-          <StatusRow state="active" label="轨迹路线识别中..." />
-          <StatusRow state="pending" label="数据整理中..." />
+          <StatusRow state="active" label="读取截图中的数据" />
+          <StatusRow state="pending" label="整理为可编辑字段" />
+          <StatusRow state="pending" label="准备确认页面" />
         </div>
       </main>
     </ScreenshotShell>
@@ -1279,7 +1271,7 @@ function FieldRow({
             disabled={!config.locked && !on}
             placeholder={
               config.key === 'duration'
-                ? '如 2h 30m'
+                ? 'HH:MM:SS'
                 : config.key === 'date'
                   ? 'YYYY-MM-DD'
                   : config.key === 'pace'
@@ -1353,26 +1345,18 @@ function FieldRow({
 }
 
 function DurationFieldRow({
-  hoursValue,
-  minutesValue,
-  secondsValue,
+  value,
   missing,
   on,
   last,
-  onChangeHours,
-  onChangeMinutes,
-  onChangeSeconds,
+  onChange,
   onToggle,
 }: {
-  hoursValue: string
-  minutesValue: string
-  secondsValue: string
+  value: string
   missing: boolean
   on: boolean
   last: boolean
-  onChangeHours: (value: string) => void
-  onChangeMinutes: (value: string) => void
-  onChangeSeconds: (value: string) => void
+  onChange: (value: string) => void
   onToggle: () => void
 }) {
   const disabled = !on
@@ -1382,14 +1366,14 @@ function DurationFieldRow({
     outline: 'none',
     background: 'transparent',
     padding: 0,
-    width: 34,
+    width: '100%',
     fontSize: 'var(--font-title-m-size)',
     lineHeight: 'var(--font-title-m-line)',
     fontWeight: 600,
     color: missing ? 'var(--color-on-surface-variant)' : 'var(--color-on-surface)',
     fontVariantNumeric: 'tabular-nums',
     opacity: disabled ? 0.54 : 1,
-    textAlign: 'right' as const,
+    textAlign: 'left' as const,
   }
 
   return (
@@ -1423,53 +1407,19 @@ function DurationFieldRow({
           </span>
           <div
             style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: 'var(--space-2)',
-              color: disabled ? 'var(--color-on-surface-variant)' : 'var(--color-on-surface)',
               flex: 1,
               minWidth: 0,
             }}
           >
             <input
-              aria-label="时长小时"
+              aria-label="时长"
               inputMode="numeric"
-              pattern="[0-9]*"
-              value={hoursValue}
-              onChange={(event) => onChangeHours(event.currentTarget.value.replace(/\D/gu, '').slice(0, 3))}
+              value={value}
+              onChange={(event) => onChange(event.currentTarget.value.replace(/[^\d:hms时分秒小时分钟\s]/giu, '').slice(0, 12))}
               disabled={disabled}
-              placeholder="0"
+              placeholder="HH:MM:SS"
               style={inputStyle}
             />
-            <span style={{ fontSize: 'var(--font-label-m-size)', color: 'var(--color-on-surface-variant)' }}>
-              小时
-            </span>
-            <input
-              aria-label="时长分钟"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={minutesValue}
-              onChange={(event) => onChangeMinutes(event.currentTarget.value.replace(/\D/gu, '').slice(0, 2))}
-              disabled={disabled}
-              placeholder="0"
-              style={inputStyle}
-            />
-            <span style={{ fontSize: 'var(--font-label-m-size)', color: 'var(--color-on-surface-variant)' }}>
-              分钟
-            </span>
-            <input
-              aria-label="时长秒"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={secondsValue}
-              onChange={(event) => onChangeSeconds(event.currentTarget.value.replace(/\D/gu, '').slice(0, 2))}
-              disabled={disabled}
-              placeholder="0"
-              style={inputStyle}
-            />
-            <span style={{ fontSize: 'var(--font-label-m-size)', color: 'var(--color-on-surface-variant)' }}>
-              秒
-            </span>
           </div>
         </div>
         {missing ? (
@@ -1723,7 +1673,6 @@ function ConfirmScreen({
   mountainSearchError,
   submitError,
   onFieldChange,
-  onDurationPartChange,
   onToggle,
   onSelectMountain,
   onSearchMountain,
@@ -1742,7 +1691,6 @@ function ConfirmScreen({
   mountainSearchError: string | null
   submitError: string | null
   onFieldChange: (key: FieldKey, value: string) => void
-  onDurationPartChange: (part: 'hours' | 'minutes' | 'seconds', value: string) => void
   onToggle: (key: FieldKey) => void
   onSelectMountain: (id: string | null) => void
   onSearchMountain: () => void
@@ -1807,20 +1755,14 @@ function ConfirmScreen({
               return (
                 <DurationFieldRow
                   key={config.key}
-                  hoursValue={editableFields.durationHours}
-                  minutesValue={editableFields.durationMinutes}
-                  secondsValue={editableFields.durationSeconds}
+                  value={editableFields.duration}
                   missing={
                     missing &&
-                    !editableFields.durationHours.trim() &&
-                    !editableFields.durationMinutes.trim() &&
-                    !editableFields.durationSeconds.trim()
+                    !editableFields.duration.trim()
                   }
                   on={fieldToggles.duration}
                   last={index === FIELD_CONFIGS.length - 1}
-                  onChangeHours={(value) => onDurationPartChange('hours', value)}
-                  onChangeMinutes={(value) => onDurationPartChange('minutes', value)}
-                  onChangeSeconds={(value) => onDurationPartChange('seconds', value)}
+                  onChange={(value) => onFieldChange('duration', value)}
                   onToggle={() => onToggle(config.key)}
                 />
               )
@@ -2344,7 +2286,7 @@ export default function ScreenshotClient() {
       event_type: 'business',
       event_name: 'business.screenshot_recognize_start',
       properties: {
-        provider: 'tencent_ocr',
+        provider: 'mimo_v25_primary',
         content_hash: contentHash,
       },
     })
@@ -2384,7 +2326,7 @@ export default function ScreenshotClient() {
         event_type: 'business',
         event_name: 'business.screenshot_recognize_complete',
         properties: {
-          provider: payload.ocrSource ? `tencent_ocr_${payload.ocrSource}` : 'tencent_ocr',
+          provider: providerFromSource(payload.ocrSource),
           duration_ms: Math.round(performance.now() - startedAt),
           input_tokens: null,
           output_tokens: null,
@@ -2415,7 +2357,7 @@ export default function ScreenshotClient() {
         event_type: 'business',
         event_name: 'business.screenshot_recognize_error',
         properties: {
-          provider: 'tencent_ocr',
+          provider: 'mimo_v25_primary',
           error_type: kind,
           duration_ms: Math.round(performance.now() - startedAt),
           content_hash: contentHash,
@@ -2437,7 +2379,7 @@ export default function ScreenshotClient() {
         event_type: 'business',
         event_name: 'business.screenshot_recognize_abandon',
         properties: {
-          last_provider: recognizeResult.ocrSource ? `tencent_ocr_${recognizeResult.ocrSource}` : 'tencent_ocr',
+          last_provider: providerFromSource(recognizeResult.ocrSource),
           fields_recognized: recognizedFieldsRef.current,
           content_hash: recognizeContentHashRef.current,
         },
@@ -2592,28 +2534,6 @@ export default function ScreenshotClient() {
     }))
   }
 
-  function updateDurationPart(part: 'hours' | 'minutes' | 'seconds', value: string) {
-    if (recognizeContentHashRef.current && recognizedFieldsRef.current.includes('duration') && !editedFieldsRef.current.has('duration')) {
-      editedFieldsRef.current.add('duration')
-      trackEvent({
-        event_type: 'business',
-        event_name: 'business.screenshot_recognize_user_edit',
-        properties: {
-          field_edited: 'duration',
-          content_hash: recognizeContentHashRef.current,
-        },
-      })
-    }
-    setEditableFields((current) => ({
-      ...current,
-      ...(part === 'hours'
-        ? { durationHours: value }
-        : part === 'minutes'
-          ? { durationMinutes: value }
-          : { durationSeconds: value }),
-    }))
-  }
-
   function searchCurrentLocation() {
     void searchMountains(editableFields.location)
   }
@@ -2725,7 +2645,6 @@ export default function ScreenshotClient() {
           mountainSearchError={mountainSearchError}
           submitError={submitError}
           onFieldChange={updateField}
-          onDurationPartChange={updateDurationPart}
           onToggle={toggleField}
           onSelectMountain={setSelectedMountainId}
           onSearchMountain={searchCurrentLocation}

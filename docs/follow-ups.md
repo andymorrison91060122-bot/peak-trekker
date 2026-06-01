@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-05-30 · 最新版本记录: v0.52
+> Last Updated: 2026-06-02 · 最新版本记录: v0.53
 
 ---
 
@@ -13,7 +13,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动
+FU-62 · mimo-v2.5 文字生产集成（同步主路 + 腾讯兜底）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -97,20 +97,20 @@
 
 ---
 
-### FU-35 · 小米 v2-omni 多模态兜底接入
+### FU-35 · mimo-v2.5 多模态能力接入
 
 - 优先级: P2
-- 归属阶段: V1.1+ 或腾讯免费额度耗尽后
-- 状态: 🟢 active
+- 归属阶段: 文字生产集成进行中；轨迹能力后续评估
+- 状态: 🟡 in-progress
 
-背景: 腾讯云 OCR 配额超限或识别失败时，小米 v2-omni 多模态模型 (¥2.80/M input + ¥14.00/M output ≈ ¥0.011/截图) 作为兜底，比腾讯付费档 ¥0.10/次便宜约 9 倍。
+背景: 原 FU 写作 "v2-omni 兜底" 属旧框架。2026-06 mimo spike 已确认模型更新为 `mimo-v2.5`，文字识别方向从"腾讯兜底"调整为"mimo 主路 + 腾讯降级兜底"。生产文字集成拆到 FU-62 执行；轨迹能力仍不进入本 sprint，继续由 FU-36 跟踪。
 
 实施建议:
-- 新建 src/lib/screenshot/xiaomi-omni-adapter.ts
-- 路由器降级链：腾讯 Basic → 腾讯 Accurate → 小米 v2-omni
-- 配额账单整合到 FU-33 配额系统
+- 文字识别: 复用 spike no-hint prompt + 候选 schema + 代码裁决器，生产接入见 FU-62
+- 轨迹识别: 继续研究截图像素轨迹复原，不与本次文字生产主路耦合
+- 成本 / 延迟 / JSON 可靠性继续按 spike 报告口径记账
 
-涉及: 新 adapter + src/app/api/screenshot/recognize/route.ts 路由器升级 + 与 FU-33 联动
+涉及: src/lib/screenshot/mimo-v25-* + src/app/api/screenshot/recognize/route.ts + FU-36 轨迹后续
 
 ---
 
@@ -131,20 +131,25 @@
 
 ---
 
-### FU-37 · OCR vs 小米 v2-omni 对比测试方案
+### FU-62 · mimo-v2.5 文字生产集成
 
-- 优先级: P3
-- 归属阶段: 与 FU-35 联动启动
-- 状态: 🟢 active
+- **优先级**: P1
+- **归属阶段**: 当前 sprint
+- **状态**: 🟡 in-progress
 
-背景: FU-35 接入小米 v2-omni 前需评估其在我们实际 fixture 上的准确率与成本，决定是兜底还是反过来作为主路。
+**背景**: mimo-v2.5 文字 benchmark 已验证 no-hint 候选抽取 + 代码裁决器方向可替代腾讯正则主路。用户决策 V1 采用同步识别: mimo-v2.5 主路，腾讯 Basic → Accurate 保留为降级兜底；不做异步 job / 轮询 / 通知 / schema。
 
-实施建议:
-- 用同一组 fixture（FU-34 维护的 20+ 张）跑两路引擎
-- 输出准确率对比表（每个字段：海拔 / 距离 / 时长 / 爬升 / 速度 / 日期 / 地点）
-- 输出成本对比（按月预估）
+**实施范围**:
+- 新增生产 mimo adapter + no-hint prompt + 候选 schema + 代码裁决器
+- `recognize` route 同步主路: `runtime=nodejs` / `maxDuration=60` / mimo timeout 约 32s
+- 失败、超时、JSON 不可修复、低可信时回退腾讯，不重复扣 quota
+- 产品字段集仅含距离 / 时长 / 累计爬升 / 下降 / 地点 / 日期 / 速度 / 配速；不提取卡路里
+- `/screenshot` 处理态和确认页格式化同步更新，Phase 6 停下等用户视觉验收
 
-涉及: 新 scripts/ocr-engine-benchmark.ts + benchmark 报告 doc
+**不在 scope**:
+- 不做截图轨迹生产集成（继续归 FU-36）
+- 不新增 schema / migration / async queue
+- 不删除腾讯 OCR / 不改 production data
 
 ---
 
@@ -219,7 +224,21 @@
 
 ---
 
-## Closed Follow-ups（58 条）
+## Closed Follow-ups（59 条）
+
+### FU-37 ✅ OCR vs mimo-v2.5 对比测试方案
+
+- **关闭原因**: mimo-v2.5 spike / text v2 no-hint 重判已完成核心 benchmark, 输出文字准确率、轨迹复原、成本、延迟、JSON 可靠性与逐张人工验收证据。结论推动产品决策从"小米作为腾讯兜底"调整为"mimo-v2.5 文字主路 + 腾讯降级兜底"; 生产集成拆到 FU-62 执行。
+- **关键决策记录**:
+  · 模型从旧文档中的 `v2-omni` 更新为 `mimo-v2.5`。
+  · benchmark 区分文字识别与截图轨迹复原: 文字进入 FU-62 生产集成; 轨迹继续由 FU-36 跟踪。
+  · 腾讯 fixture baseline 仅作为参考列, 截图 visible ground truth / 人工验收证据作为评测标准。
+- **B13 透明披露**: benchmark 是 research-only, 不触碰 production recognize route / Tencent pipeline / schema / UI; 26 张样本不是纯 holdout, 后续生产替换仍需 FU-62 focused tests + browser evidence + 用户视觉验收。
+- **关闭 commit**: `pending`
+- **merge commit**: `pending`
+- **关闭时间**: 2026-06-02
+
+---
 
 ### FU-38 ✅ 配速字段 (paceMinPerKm) 独立支持
 
@@ -1014,6 +1033,16 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.53（2026-06-02）
+
+FU-62 start · mimo-v2.5 文字生产集成启动。
+
+- 注册 FU-62: mimo-v2.5 文字生产集成, 同步主路 + 腾讯降级兜底, 不做 async queue / migration / 轨迹生产接入。
+- FU-35 更新为 `mimo-v2.5` 多模态能力接入: 文字能力已验证并由 FU-62 集成中; 轨迹后续继续跟 FU-36。
+- FU-37 关闭: OCR vs mimo benchmark 已完成, 研究结论作为 FU-62 输入。
+- B13: Vercel 单函数细项未能由 CLI 读取, 本 sprint route 显式 `runtime=nodejs` + `maxDuration=60`; 若 deployment 实测低于 30s, 停止同步上线改异步。
+- Active 5 → 5 · Closed 58 → 59
 
 ### v0.52（2026-05-30）
 

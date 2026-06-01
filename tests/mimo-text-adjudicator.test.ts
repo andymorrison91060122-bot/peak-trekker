@@ -4,10 +4,10 @@ import {
   adjudicateField,
   parseDateCandidate,
   parseDurationCandidate,
-  type EvidenceCandidate,
-} from '../scripts/mimo-v25-text-generalization.ts'
+  type MimoEvidenceCandidate,
+} from '../src/lib/screenshot/mimo-v25-text-adjudicator.ts'
 
-function candidate(raw: string, labelRaw: string, unitRaw = ''): EvidenceCandidate {
+function candidate(raw: string, labelRaw: string, unitRaw = ''): MimoEvidenceCandidate {
   return {
     raw,
     labelRaw,
@@ -49,9 +49,17 @@ test('speed and pace candidates are not cross-promoted', () => {
 test('elevation and cumulative gain candidates require compatible labels', () => {
   const elevationFromGain = adjudicateField('elevationMeters', [candidate('544', '累计上升', 'm')])
   assert.equal(elevationFromGain.value, null)
-  assert.ok(elevationFromGain.hints.some((hint) => hint.includes('gain label is not elevation')))
+  assert.ok(elevationFromGain.hints.some((hint) => hint.includes('gain/loss label is not elevation')))
 
   const gainFromElevation = adjudicateField('elevationGainMeters', [candidate('373', '最高海拔', '米')])
   assert.equal(gainFromElevation.value, null)
-  assert.ok(gainFromElevation.hints.some((hint) => hint.includes('elevation label is not gain')))
+  assert.ok(gainFromElevation.hints.some((hint) => hint.includes('elevation label is not gain/loss')))
+})
+
+test('location candidates filter activity type words but preserve visible place text', () => {
+  const cityWithActivity = adjudicateField('location', [candidate('阳江市 登山', '地点', '')])
+  assert.equal(cityWithActivity.value, '阳江市')
+
+  const activityOnly = adjudicateField('location', [candidate('徒步', '运动类型', '')])
+  assert.equal(activityOnly.value, null)
 })

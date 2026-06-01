@@ -16,6 +16,9 @@ const OUTPUT_DIR = join(process.cwd(), 'output/mimo-spike-acceptance')
 const RESULT_DIR = join(OUTPUT_DIR, 'results')
 const OVERLAY_DIR = join(OUTPUT_DIR, 'overlays')
 const TRACK_PROBE_DIR = join(OUTPUT_DIR, 'track-probe')
+const FULL_TRACK_DIR = join(OUTPUT_DIR, 'track-overlays')
+const STABILITY_DIR = join(OUTPUT_DIR, 'stability')
+const SCHEMA_VERSION = 'mimo-v25-spike-all-v2'
 
 const ADOPTED_PRICE_CNY_PER_MILLION = {
   inputCacheMiss: 1,
@@ -25,6 +28,18 @@ const ADOPTED_PRICE_CNY_PER_MILLION = {
   discrepancy:
     'Official public docs previously showed higher pay-as-you-go values; report both if live docs still differ.',
 }
+
+const OFFICIAL_PRICE_REFERENCE = {
+  payAsYouGoUrl: 'https://platform.xiaomimimo.com/docs/en-US/price/pay-as-you-go',
+  priceUpdateUrl: 'https://platform.xiaomimimo.com/docs/en-US/news/v2.5-price-update',
+  checkedAt: '2026-06-01',
+  accessiblePayAsYouGoSnapshot:
+    'Search/index snippets still showed older pay-as-you-go rows updated 2026-05-22: cache hit ¥0.56/M, cache miss ¥2.80/M, output ¥14/M.',
+  priceUpdateSnapshot:
+    'The MiMo-V2.5 price-adjustment announcement is dated 2026-05-27 and states reduced MiMo-V2.5 API prices effective 2026-05-27 00:00 Beijing time; the user-provided 2026-05-27 screenshot is used as the adopted billing rate.',
+}
+
+const STABILITY_SAMPLE_IDS = ['liangbulu-631', 'apple-watch-639'] as const
 
 type Mode = 'dry-run' | 'smoke' | 'all' | 'track-probe'
 
@@ -68,6 +83,33 @@ type MimoUsage = {
 
 type RoutePoint = { x: number; y: number }
 type RouteTopology = 'through' | 'loop' | 'unknown'
+type RouteTruth = 'map_track' | 'stats_only' | 'unclear'
+type TextFieldKey =
+  | 'distanceKm'
+  | 'durationSeconds'
+  | 'speedKmh'
+  | 'paceMinPerKm'
+  | 'elevationMeters'
+  | 'elevationGainMeters'
+  | 'caloriesKcal'
+  | 'date'
+  | 'location'
+type TruthVisibility = 'visible' | 'not_visible' | 'ambiguous'
+type FieldScoreStatus = 'match' | 'mismatch' | 'missing' | 'false_positive' | 'not_scored' | 'wrong_field'
+type FieldWinner = 'mimo_only' | 'tencent_only' | 'both_correct' | 'both_wrong' | 'both_missing' | 'not_scored'
+
+type VisibleTruthField = {
+  value: number | string | null
+  raw: string | null
+  visibility: TruthVisibility
+  source: string
+}
+
+type VisibleGroundTruth = {
+  routeTruth: RouteTruth
+  fields: Record<TextFieldKey, VisibleTruthField>
+  notes?: string
+}
 
 type RouteMarker = {
   kind: 'start' | 'end' | 'intermediate'
@@ -142,8 +184,19 @@ type MimoParsedPayload = {
   stats?: Record<string, unknown>
   route?: {
     classification?: 'map_track' | 'stats_only' | 'unclear'
+    routeType?: 'Type A' | 'Type B' | 'no-track' | 'unclear' | string | null
+    topologyHint?: RouteTopology | string | null
     mapStyle?: string | null
     lineColor?: string | null
+    lineColors?: Array<{
+      name?: string | null
+      hex?: string | null
+      hsv?: { h?: number | null; s?: number | null; v?: number | null } | null
+      confidence?: number | null
+      evidence?: string | null
+    }>
+    strokeSamples?: Array<RoutePoint & { color?: string | null; evidence?: string | null }>
+    markers?: RouteMarker[]
     points?: RoutePoint[]
     bbox?: { x?: number; y?: number; width?: number; height?: number } | null
     confidence?: number | null
@@ -155,6 +208,7 @@ type MimoParsedPayload = {
 }
 
 type MimoRunResult = {
+  schemaVersion?: string
   sample: Omit<Sample, 'tencentBaseline'>
   api: {
     endpoint: 'openai-compatible' | 'anthropic-compatible'
@@ -275,6 +329,106 @@ function buildManualSamples(): Sample[] {
   ]
 }
 
+const TEXT_FIELD_KEYS: TextFieldKey[] = [
+  'distanceKm',
+  'durationSeconds',
+  'speedKmh',
+  'paceMinPerKm',
+  'elevationMeters',
+  'elevationGainMeters',
+  'caloriesKcal',
+  'date',
+  'location',
+]
+
+const FIELD_TOLERANCE: Record<TextFieldKey, number> = {
+  distanceKm: 0.05,
+  durationSeconds: 60,
+  speedKmh: 0.1,
+  paceMinPerKm: 0.12,
+  elevationMeters: 2,
+  elevationGainMeters: 2,
+  caloriesKcal: 5,
+  date: 0,
+  location: 0,
+}
+
+const VISIBLE_GROUND_TRUTH: Record<string, { routeTruth: RouteTruth; notes?: string }> = {
+  'coros-629': { routeTruth: 'map_track', notes: 'Visible dark map with lime route.' },
+  'coros-cropped-630': { routeTruth: 'map_track', notes: 'Visible dark map with lime route; cropped stats remain visible.' },
+  'liangbulu-631': { routeTruth: 'map_track', notes: 'Visible two-bulu route preview and stats stack.' },
+  'two-bulu-15-53-actual': { routeTruth: 'map_track', notes: 'Fixture may be absent from current 26-image source folder.' },
+  'coros-walking-6-81-actual': { routeTruth: 'map_track', notes: 'Fixture may be absent from current 26-image source folder.' },
+  'zepp-trex3-632': { routeTruth: 'map_track', notes: 'Visible satellite map with yellow route.' },
+  'zepp-balance-633': { routeTruth: 'map_track', notes: 'Visible stitched map panels with yellow route.' },
+  'zepp-trex3pro-634': { routeTruth: 'map_track', notes: 'Visible satellite map with green route.' },
+  'suunto-635': { routeTruth: 'map_track', notes: 'Visible map route near top.' },
+  'ovital-636': { routeTruth: 'map_track', notes: 'Visible route-planning map with multiple colored tracks.' },
+  'suunto-coros-637': { routeTruth: 'map_track', notes: 'Visible stitched route comparison panels.' },
+  'oppo-watch-638': { routeTruth: 'map_track', notes: 'Watch summary includes visible map route.' },
+  'apple-watch-639': { routeTruth: 'map_track', notes: 'Workout summary includes a small visible map route.' },
+  'xiaomi-640': { routeTruth: 'map_track', notes: 'Visible map with orange/green route.' },
+  'xiaomi-taishan-641': { routeTruth: 'map_track', notes: 'Visible map route in the mountain area.' },
+  'huawei-642': { routeTruth: 'map_track', notes: 'Visible map route with marker dots.' },
+  'huawei-shenzhen-643': { routeTruth: 'map_track', notes: 'Visible map route with marker dots.' },
+  'strava-suzhou-644': { routeTruth: 'map_track', notes: 'Visible Strava route crop.' },
+  'strava-huangshan-645': { routeTruth: 'map_track', notes: 'Visible Strava route crop.' },
+  'yuedongquan-646': { routeTruth: 'map_track', notes: 'Visible map section; route evidence may be low contrast.' },
+  'codoon-647': { routeTruth: 'map_track', notes: 'Visible route map with numbered dots.' },
+  'keep-648': { routeTruth: 'map_track', notes: 'Visible route map in activity summary.' },
+  'petal-maps-649': { routeTruth: 'map_track', notes: 'Visible Petal Maps route line.' },
+  'foooooot-650': { routeTruth: 'map_track', notes: 'Visible route map with multi-color route.' },
+  'sigma-652': { routeTruth: 'map_track', notes: 'Watermarked Sigma screenshot still includes a visible route line.' },
+  'keep-watermark-653': { routeTruth: 'map_track', notes: 'Watermarked Keep screenshot still includes a visible route line.' },
+  'wechat-711': { routeTruth: 'map_track', notes: 'User-accepted faithful v2 route probe; satellite red route.' },
+  'wechat-712': { routeTruth: 'map_track', notes: 'User-accepted faithful v2 route probe; dark COROS lime route.' },
+}
+
+function truthFieldFromSample(sample: Sample, key: TextFieldKey): VisibleTruthField {
+  const source = sample.fixtureId ? 'visible-ledger seeded from OCR fixture expectation' : 'visible-ledger manual transcription'
+  const truth = sample.groundTruth
+  const value =
+    key === 'distanceKm'
+      ? truth.distanceKm
+      : key === 'durationSeconds'
+        ? truth.durationSeconds
+        : key === 'speedKmh'
+          ? truth.speedKmh
+          : key === 'paceMinPerKm'
+            ? truth.paceMinPerKm
+            : key === 'elevationMeters'
+              ? truth.elevationMeters
+              : key === 'elevationGainMeters'
+                ? truth.elevationGainMeters
+                : key === 'caloriesKcal'
+                  ? truth.caloriesKcal
+                  : key === 'date'
+                    ? truth.date
+                    : truth.location
+  if (!value) {
+    return { value: null, raw: null, visibility: 'not_visible', source }
+  }
+  return {
+    value: value.value,
+    raw: value.raw ?? String(value.value),
+    visibility: 'visible',
+    source,
+  }
+}
+
+function visibleGroundTruthForSample(sample: Sample): VisibleGroundTruth {
+  const fields = Object.fromEntries(TEXT_FIELD_KEYS.map((key) => [key, truthFieldFromSample(sample, key)])) as Record<
+    TextFieldKey,
+    VisibleTruthField
+  >
+  const visible = VISIBLE_GROUND_TRUTH[sample.id]
+  return {
+    routeTruth: visible?.routeTruth ?? (sample.mapStyle === 'stats_only' ? 'stats_only' : 'map_track'),
+    fields,
+    notes: visible?.notes ?? 'No explicit visible-ledger note; route truth inferred from manifest style.',
+  }
+}
+
 function imageIdFromSourceFile(fileName: string) {
   return fileName.match(/_(\d+)_\d+\.jpg$/u)?.[1] ?? fileName
 }
@@ -376,9 +530,22 @@ JSON schema:
   },
   "route": {
     "classification": "map_track" | "stats_only" | "unclear",
+    "routeType": "Type A" | "Type B" | "no-track" | "unclear",
+    "topologyHint": "through" | "loop" | "unknown",
     "mapStyle": string | null,
     "lineColor": string | null,
+    "lineColors": [
+      {
+        "name": string | null,
+        "hex": "#RRGGBB" | null,
+        "hsv": {"h": number | null, "s": number | null, "v": number | null},
+        "confidence": number,
+        "evidence": string | null
+      }
+    ],
+    "strokeSamples": [{"x": number, "y": number, "color": "#RRGGBB" | null, "evidence": string | null}],
     "points": [{"x": number, "y": number}],
+    "markers": [{"kind": "start" | "end" | "intermediate", "x": number, "y": number, "label": string | null, "confidence": number, "evidence": string | null}],
     "bbox": {"x": number, "y": number, "width": number, "height": number} | null,
     "confidence": number,
     "description": string | null,
@@ -389,9 +556,12 @@ JSON schema:
 }
 
 For route points:
-- Return 12 to 80 ordered points for visible map routes.
+- Return 20 to 100 ordered seed points for visible map routes. These are only seeds for local CV; preserve turns but do not invent precision.
+- Return 4 to 12 strokeSamples on the visible route line and identify the route line color. If multiple route colors are present, list each visible route color in lineColors.
+- Identify start/end markers when visible. For Type B routes, include visible intermediate marker centers; do not include numeric marker labels in the route shape itself.
 - Use an empty array for stats_only or unclear route.
-- Avoid points on UI labels, cards, buttons, or markers unless the route passes underneath them.`
+- Avoid points on UI labels, cards, buttons, or markers unless the route passes underneath them.
+- If no route is visible, classification must be stats_only and points/markers/strokeSamples must be empty.`
 }
 
 function openAiPayload(sample: Sample, dataUri: string, width: number, height: number, includeThinking: boolean) {
@@ -407,7 +577,7 @@ function openAiPayload(sample: Sample, dataUri: string, width: number, height: n
       },
     ],
     temperature: 0,
-    max_tokens: 3000,
+    max_tokens: 4500,
     ...(includeThinking ? { thinking: { type: 'disabled' } } : {}),
   }
 }
@@ -427,7 +597,7 @@ function repairPayload(sample: Sample, invalidText: string) {
       },
     ],
     temperature: 0,
-    max_tokens: 3000,
+    max_tokens: 4500,
   }
 }
 
@@ -435,7 +605,7 @@ function anthropicPayload(sample: Sample, dataUri: string, width: number, height
   const base64 = dataUri.replace(/^data:image\/jpeg;base64,/u, '')
   return {
     model: MODEL,
-    max_tokens: 3000,
+    max_tokens: 4500,
     temperature: 0,
     tools: [
       {
@@ -608,6 +778,219 @@ function compareResult(parsed: MimoParsedPayload | null, sample: Sample) {
   }
 }
 
+function rawFieldFromMimo(stats: Record<string, unknown> | undefined, key: TextFieldKey) {
+  const field = stats?.[key]
+  if (!field || typeof field !== 'object') return ''
+  const raw = (field as { raw?: unknown }).raw
+  return typeof raw === 'string' ? raw : ''
+}
+
+function valueFromMimo(result: MimoRunResult | undefined, key: TextFieldKey) {
+  const field = result?.parsed?.stats?.[key]
+  if (!field || typeof field !== 'object') return { value: null as number | string | null, raw: '' }
+  const raw = rawFieldFromMimo(result?.parsed?.stats, key)
+  const value = (field as { value?: unknown }).value
+  if (key === 'date' || key === 'location') {
+    return { value: typeof value === 'string' && value.trim() ? value.trim() : null, raw }
+  }
+  const numberValue = Number(value)
+  return { value: Number.isFinite(numberValue) ? numberValue : null, raw }
+}
+
+function valueFromTencent(sample: Sample, key: TextFieldKey) {
+  const baseline = sample.tencentBaseline
+  if (!baseline) return { value: null as number | string | null, raw: '', available: false }
+  const field =
+    key === 'distanceKm'
+      ? baseline.distance
+      : key === 'durationSeconds'
+        ? baseline.duration
+        : key === 'speedKmh'
+          ? baseline.speed
+          : key === 'paceMinPerKm'
+            ? baseline.paceMinPerKm
+            : key === 'elevationMeters'
+              ? baseline.elevation
+              : key === 'elevationGainMeters'
+                ? baseline.elevationGain
+                : key === 'caloriesKcal'
+                  ? baseline.calories
+                  : key === 'date'
+                    ? baseline.date
+                    : baseline.location
+  if (!field) return { value: null as number | string | null, raw: '', available: true }
+  return { value: field.value, raw: field.raw, available: true }
+}
+
+function normalizeTextValue(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/gu, '').replace(/[，,。.\-_/]/gu, '')
+}
+
+function valuesClose(a: number | string | null, b: number | string | null, tolerance: number) {
+  if (typeof a === 'number' && typeof b === 'number') return Math.abs(a - b) <= tolerance
+  if (typeof a === 'string' && typeof b === 'string') {
+    const left = normalizeTextValue(a)
+    const right = normalizeTextValue(b)
+    if (!left || !right) return false
+    return left === right || left.includes(right) || right.includes(left)
+  }
+  return false
+}
+
+function wrongFieldNote(field: TextFieldKey, actual: number | string | null, truth: VisibleGroundTruth) {
+  if (typeof actual !== 'number') return null
+  const pairings: Array<[TextFieldKey, string]> =
+    field === 'speedKmh'
+      ? [['paceMinPerKm', 'pace_as_speed']]
+      : field === 'paceMinPerKm'
+        ? [['speedKmh', 'speed_as_pace']]
+        : field === 'elevationMeters'
+          ? [['elevationGainMeters', 'gain_as_elevation']]
+          : field === 'elevationGainMeters'
+            ? [['elevationMeters', 'elevation_as_gain']]
+            : []
+  for (const [otherField, note] of pairings) {
+    const other = truth.fields[otherField]
+    if (other.visibility === 'visible' && typeof other.value === 'number' && valuesClose(actual, other.value, FIELD_TOLERANCE[otherField])) {
+      return note
+    }
+  }
+  return null
+}
+
+function scoreValue(
+  field: TextFieldKey,
+  actual: { value: number | string | null; raw: string },
+  truth: VisibleGroundTruth
+): { status: FieldScoreStatus; note: string } {
+  const expected = truth.fields[field]
+  if (expected.visibility === 'ambiguous') return { status: 'not_scored', note: 'truth_ambiguous' }
+  if (expected.visibility === 'not_visible') {
+    return actual.value === null ? { status: 'missing', note: 'truth_not_visible' } : { status: 'false_positive', note: 'field_not_visible_in_truth' }
+  }
+  if (actual.value === null) return { status: 'missing', note: 'visible_truth_missing_in_engine' }
+  if (valuesClose(actual.value, expected.value, FIELD_TOLERANCE[field])) return { status: 'match', note: 'within_tolerance' }
+  const wrong = wrongFieldNote(field, actual.value, truth)
+  if (wrong) return { status: 'wrong_field', note: wrong }
+  return { status: 'mismatch', note: 'outside_tolerance' }
+}
+
+function winnerFor(mimo: FieldScoreStatus, tencent: FieldScoreStatus | 'n/a', truthVisibility: TruthVisibility): FieldWinner {
+  if (truthVisibility !== 'visible') return 'not_scored'
+  const mimoOk = mimo === 'match'
+  const tencentOk = tencent === 'match'
+  if (mimoOk && tencentOk) return 'both_correct'
+  if (mimoOk && !tencentOk) return 'mimo_only'
+  if (!mimoOk && tencentOk) return 'tencent_only'
+  if (mimo === 'missing' && (tencent === 'missing' || tencent === 'n/a')) return 'both_missing'
+  return 'both_wrong'
+}
+
+function buildTextComparisons(samples: Sample[], results: MimoRunResult[]): FieldComparison[] {
+  const resultById = new Map(results.map((result) => [result.sample.id, result]))
+  return samples.flatMap((sample) => {
+    const result = resultById.get(sample.id)
+    const truth = visibleGroundTruthForSample(sample)
+    return TEXT_FIELD_KEYS.map((field): FieldComparison => {
+      const mimoValue = valueFromMimo(result, field)
+      const tencentValue = valueFromTencent(sample, field)
+      const mimoScore = scoreValue(field, mimoValue, truth)
+      const tencentScore = tencentValue.available ? scoreValue(field, tencentValue, truth) : { status: 'n/a' as const, note: 'no_tencent_fixture' }
+      const winner = winnerFor(mimoScore.status, tencentScore.status, truth.fields[field].visibility)
+      return {
+        sampleId: sample.id,
+        app: sample.app,
+        field,
+        truthValue: truth.fields[field].value === null ? '' : String(truth.fields[field].value),
+        truthRaw: truth.fields[field].raw ?? '',
+        truthVisibility: truth.fields[field].visibility,
+        mimoValue: mimoValue.value === null ? '' : String(mimoValue.value),
+        mimoRaw: mimoValue.raw,
+        mimoStatus: mimoScore.status,
+        tencentValue: tencentValue.value === null ? '' : String(tencentValue.value),
+        tencentRaw: tencentValue.raw,
+        tencentStatus: tencentScore.status,
+        winner,
+        note: [mimoScore.note, tencentScore.note].filter(Boolean).join(' | '),
+      }
+    })
+  })
+}
+
+async function writeTextComparisonOutputs(samples: Sample[], results: MimoRunResult[]) {
+  const rows = buildTextComparisons(samples, results)
+  const comparisonCsv = [
+    [
+      'sampleId',
+      'app',
+      'field',
+      'truthValue',
+      'truthRaw',
+      'truthVisibility',
+      'mimoValue',
+      'mimoRaw',
+      'mimoStatus',
+      'tencentValue',
+      'tencentRaw',
+      'tencentStatus',
+      'winner',
+      'note',
+    ].join(','),
+    ...rows.map((row) =>
+      [
+        row.sampleId,
+        row.app,
+        row.field,
+        row.truthValue,
+        row.truthRaw,
+        row.truthVisibility,
+        row.mimoValue,
+        row.mimoRaw,
+        row.mimoStatus,
+        row.tencentValue,
+        row.tencentRaw,
+        row.tencentStatus,
+        row.winner,
+        row.note,
+      ]
+        .map(csvValue)
+        .join(',')
+    ),
+  ]
+  const comparisonPath = join(OUTPUT_DIR, 'text-comparison.csv')
+  await writeFile(comparisonPath, comparisonCsv.join('\n'))
+
+  const summaryRows = [
+    'field,visibleTruthRows,mimoMatch,mimoWrongField,mimoMismatch,mimoMissing,mimoFalsePositive,tencentMatch,tencentWrongField,tencentMismatch,tencentMissing,tencentFalsePositive,mimoOnly,tencentOnly,bothCorrect,bothWrong,bothMissing',
+    ...TEXT_FIELD_KEYS.map((field) => {
+      const subset = rows.filter((row) => row.field === field)
+      const count = (predicate: (row: FieldComparison) => boolean) => subset.filter(predicate).length
+      return [
+        field,
+        count((row) => row.truthVisibility === 'visible'),
+        count((row) => row.mimoStatus === 'match'),
+        count((row) => row.mimoStatus === 'wrong_field'),
+        count((row) => row.mimoStatus === 'mismatch'),
+        count((row) => row.mimoStatus === 'missing'),
+        count((row) => row.mimoStatus === 'false_positive'),
+        count((row) => row.tencentStatus === 'match'),
+        count((row) => row.tencentStatus === 'wrong_field'),
+        count((row) => row.tencentStatus === 'mismatch'),
+        count((row) => row.tencentStatus === 'missing'),
+        count((row) => row.tencentStatus === 'false_positive'),
+        count((row) => row.winner === 'mimo_only'),
+        count((row) => row.winner === 'tencent_only'),
+        count((row) => row.winner === 'both_correct'),
+        count((row) => row.winner === 'both_wrong'),
+        count((row) => row.winner === 'both_missing'),
+      ].join(',')
+    }),
+  ]
+  const summaryPath = join(OUTPUT_DIR, 'field-accuracy-summary.csv')
+  await writeFile(summaryPath, summaryRows.join('\n'))
+  return { rows, comparisonPath, summaryPath }
+}
+
 async function imageData(sample: Sample) {
   const path = join(IMAGE_DIR, sample.fileName)
   const buffer = await readFile(path)
@@ -727,6 +1110,7 @@ async function runMimo(sample: Sample, apiKey: string): Promise<MimoRunResult> {
 
   const overlayPath = await writeOverlay(sample, path, parsed, width, height)
   const result: MimoRunResult = {
+    schemaVersion: SCHEMA_VERSION,
     sample: {
       id: sample.id,
       app: sample.app,
@@ -773,6 +1157,7 @@ async function writeManifest(samples: Sample[]) {
       samples.map((sample) => ({
         ...sample,
         tencentBaseline: sample.tencentBaseline ?? null,
+        visibleGroundTruth: visibleGroundTruthForSample(sample),
       })),
       null,
       2
@@ -914,6 +1299,44 @@ type CvExtraction = {
 
 type ProbeCacheResult = TrackProbeResult & {
   candidates: Array<TrackProbeCandidate & { api?: TrackProbeCandidate['api'] }>
+}
+
+type FullTrackExtraction = {
+  sample: Omit<Sample, 'tencentBaseline'>
+  routeTruth: RouteTruth
+  mimoClassification: RouteTruth
+  lineColorCue: string
+  colorCueStatus: 'usable' | 'ambiguous' | 'missing' | 'stats_only'
+  failureMode: string | null
+  candidate: TrackProbeCandidate
+  referenceMask: {
+    routePixelCount: number
+    componentCount: number
+    selectedComponentCount: number
+    falsePositiveComponentCount: number
+  }
+  referenceMaskData?: Mask
+  debugMaskData?: Mask
+  overlayPath: string
+  debugMaskPath?: string
+  referenceMaskPath?: string
+}
+
+type FieldComparison = {
+  sampleId: string
+  app: string
+  field: TextFieldKey
+  truthValue: string
+  truthRaw: string
+  truthVisibility: TruthVisibility
+  mimoValue: string
+  mimoRaw: string
+  mimoStatus: FieldScoreStatus
+  tencentValue: string
+  tencentRaw: string
+  tencentStatus: FieldScoreStatus | 'n/a'
+  winner: FieldWinner
+  note: string
 }
 
 class MinHeap {
@@ -1240,6 +1663,7 @@ function astarPath(start: RoutePoint, end: RoutePoint, walkMask: Mask, preferred
   const localWidth = maxX - minX + 1
   const localHeight = maxY - minY + 1
   const localLength = localWidth * localHeight
+  if (localLength > 650_000) return null
   const startLocal = (Math.round(start.y) - minY) * localWidth + (Math.round(start.x) - minX)
   const endLocal = (Math.round(end.y) - minY) * localWidth + (Math.round(end.x) - minX)
   const cameFrom = new Int32Array(localLength)
@@ -1250,12 +1674,15 @@ function astarPath(start: RoutePoint, end: RoutePoint, walkMask: Mask, preferred
   const heap = new MinHeap()
   score[startLocal] = 0
   heap.push(startLocal, distance(start, end))
+  let expanded = 0
 
   while (heap.size) {
     const item = heap.pop()
     if (!item) break
     const current = item.node
     if (closed[current]) continue
+    expanded += 1
+    if (expanded > 220_000) return null
     if (current === endLocal) {
       const path: RoutePoint[] = []
       let cursor = current
@@ -1335,6 +1762,24 @@ function resamplePath(points: RoutePoint[], stepPx: number) {
   }
   const last = points.at(-1)
   if (last && distance(output.at(-1) ?? last, last) > 0.5) output.push(last)
+  return output
+}
+
+function densifyPolyline(points: RoutePoint[], stepPx: number) {
+  if (points.length < 2) return points
+  const output: RoutePoint[] = [points[0]]
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1]
+    const current = points[index]
+    const steps = Math.max(1, Math.ceil(distance(previous, current) / stepPx))
+    for (let step = 1; step <= steps; step += 1) {
+      const t = step / steps
+      output.push({
+        x: previous.x + (current.x - previous.x) * t,
+        y: previous.y + (current.y - previous.y) * t,
+      })
+    }
+  }
   return output
 }
 
@@ -1496,6 +1941,411 @@ function extractCvRoute(sample: Sample, image: PixelImage): CvExtraction {
       'Metrics are biased upward because the CV candidate and reference mask share the same color source.',
       ...(redRoadInterference ? [`711 red-road interference: ${redRoadInterference}`] : []),
     ],
+  }
+}
+
+function routeClassification(parsed: MimoParsedPayload | null): RouteTruth {
+  const value = parsed?.route?.classification ?? parsed?.imageType
+  return value === 'map_track' || value === 'stats_only' || value === 'unclear' ? value : 'unclear'
+}
+
+function normalizeMarkers(markers: RouteMarker[] | undefined, width: number, height: number): RouteMarker[] {
+  if (!Array.isArray(markers)) return []
+  return markers
+    .map((marker) => ({
+      kind: marker.kind,
+      x: Number(marker.x),
+      y: Number(marker.y),
+      label: marker.label ?? null,
+      confidence: typeof marker.confidence === 'number' ? marker.confidence : null,
+      evidence: marker.evidence ?? null,
+    }))
+    .filter(
+      (marker) =>
+        (marker.kind === 'start' || marker.kind === 'end' || marker.kind === 'intermediate') &&
+        Number.isFinite(marker.x) &&
+        Number.isFinite(marker.y)
+    )
+    .map((marker): RouteMarker => ({
+      ...marker,
+      kind: marker.kind as RouteMarker['kind'],
+      x: Math.max(0, Math.min(width, marker.x)),
+      y: Math.max(0, Math.min(height, marker.y)),
+    }))
+}
+
+function markerAnchorsFromMimo(markers: RouteMarker[], points: RoutePoint[]): TrackAnchor[] {
+  const sortedMarkers = markers.length
+    ? [
+        ...markers.filter((marker) => marker.kind === 'start').slice(0, 1),
+        ...markers.filter((marker) => marker.kind === 'intermediate'),
+        ...markers.filter((marker) => marker.kind === 'end').slice(0, 1),
+      ]
+    : []
+  if (sortedMarkers.length >= 2) {
+    return sortedMarkers.map((marker, index) => ({
+      kind: marker.kind,
+      x: marker.x,
+      y: marker.y,
+      label: marker.label ?? (marker.kind === 'intermediate' ? String(index) : marker.kind),
+    }))
+  }
+  if (points.length >= 2) {
+    return [
+      { kind: 'start', x: points[0].x, y: points[0].y, label: 'seed-start' },
+      ...points.slice(1, -1).filter((_point, index) => index % Math.max(1, Math.floor(points.length / 8)) === 0).map((point, index) => ({
+        kind: 'intermediate' as const,
+        x: point.x,
+        y: point.y,
+        label: `seed-${index + 1}`,
+      })),
+      { kind: 'end', x: points.at(-1)!.x, y: points.at(-1)!.y, label: 'seed-end' },
+    ]
+  }
+  return []
+}
+
+function hexToRgb(hex: string | null | undefined) {
+  if (!hex) return null
+  const match = hex.trim().match(/^#?([0-9a-f]{6})$/iu)
+  if (!match) return null
+  const value = Number.parseInt(match[1], 16)
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  }
+}
+
+function hueDistance(a: number, b: number) {
+  const diff = Math.abs(a - b) % 360
+  return Math.min(diff, 360 - diff)
+}
+
+function hueSeedsForColorName(name: string | null | undefined) {
+  const text = (name ?? '').toLowerCase()
+  const seeds: number[] = []
+  if (/red|orange|红|橙/u.test(text)) seeds.push(8, 24)
+  if (/yellow|黄|金/u.test(text)) seeds.push(52)
+  if (/lime|green|绿|青绿/u.test(text)) seeds.push(88, 128)
+  if (/cyan|teal|蓝绿|青/u.test(text)) seeds.push(178)
+  if (/blue|蓝/u.test(text)) seeds.push(215)
+  if (/purple|violet|紫/u.test(text)) seeds.push(275)
+  if (/pink|magenta|粉|玫/u.test(text)) seeds.push(318)
+  return seeds
+}
+
+function routeBbox(parsed: MimoParsedPayload | null, points: RoutePoint[], width: number, height: number) {
+  const bbox = parsed?.route?.bbox
+  const fromBbox =
+    bbox &&
+    [bbox.x, bbox.y, bbox.width, bbox.height].every((value) => typeof value === 'number' && Number.isFinite(value))
+      ? {
+          x: Number(bbox.x),
+          y: Number(bbox.y),
+          width: Number(bbox.width),
+          height: Number(bbox.height),
+        }
+      : null
+  if (fromBbox && fromBbox.width > 10 && fromBbox.height > 10) {
+    const margin = 90
+    return {
+      x: Math.max(0, Math.floor(fromBbox.x - margin)),
+      y: Math.max(0, Math.floor(fromBbox.y - margin)),
+      width: Math.min(width, Math.ceil(fromBbox.x + fromBbox.width + margin)) - Math.max(0, Math.floor(fromBbox.x - margin)),
+      height: Math.min(height, Math.ceil(fromBbox.y + fromBbox.height + margin)) - Math.max(0, Math.floor(fromBbox.y - margin)),
+    }
+  }
+  if (points.length >= 2) {
+    const xs = points.map((point) => point.x)
+    const ys = points.map((point) => point.y)
+    const margin = 140
+    const minX = Math.max(0, Math.floor(Math.min(...xs) - margin))
+    const minY = Math.max(0, Math.floor(Math.min(...ys) - margin))
+    const maxX = Math.min(width, Math.ceil(Math.max(...xs) + margin))
+    const maxY = Math.min(height, Math.ceil(Math.max(...ys) + margin))
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
+  }
+  return { x: 0, y: 0, width, height: Math.round(height * 0.78) }
+}
+
+function samplePixelHsv(image: PixelImage, point: RoutePoint) {
+  const x = Math.round(point.x)
+  const y = Math.round(point.y)
+  if (x < 0 || x >= image.width || y < 0 || y >= image.height) return null
+  const offset = (y * image.width + x) * image.channels
+  return rgbToHsv(image.data[offset] ?? 0, image.data[offset + 1] ?? 0, image.data[offset + 2] ?? 0)
+}
+
+function colorCuesFromMimo(parsed: MimoParsedPayload | null, points: RoutePoint[], image: PixelImage) {
+  const route = parsed?.route
+  const cues: Array<{ h: number; s: number; v: number; source: string }> = []
+  for (const color of route?.lineColors ?? []) {
+    const fromHex = hexToRgb(color.hex)
+    if (fromHex) {
+      const hsv = rgbToHsv(fromHex.r, fromHex.g, fromHex.b)
+      cues.push({ ...hsv, source: `hex:${color.hex}` })
+    }
+    if (color.hsv && typeof color.hsv.h === 'number') {
+      cues.push({
+        h: color.hsv.h,
+        s: typeof color.hsv.s === 'number' ? color.hsv.s : 0.45,
+        v: typeof color.hsv.v === 'number' ? color.hsv.v : 0.55,
+        source: `hsv:${color.name ?? 'unnamed'}`,
+      })
+    }
+    for (const hue of hueSeedsForColorName(color.name)) {
+      cues.push({ h: hue, s: 0.55, v: 0.55, source: `name:${color.name}` })
+    }
+  }
+  for (const hue of hueSeedsForColorName(route?.lineColor)) {
+    cues.push({ h: hue, s: 0.55, v: 0.55, source: `lineColor:${route?.lineColor}` })
+  }
+  for (const sample of route?.strokeSamples ?? []) {
+    const fromHex = hexToRgb(sample.color)
+    if (fromHex) {
+      const hsv = rgbToHsv(fromHex.r, fromHex.g, fromHex.b)
+      cues.push({ ...hsv, source: `stroke:${sample.color}` })
+    }
+    const pixel = samplePixelHsv(image, sample)
+    if (pixel && pixel.s > 0.18 && pixel.v > 0.18) cues.push({ ...pixel, source: 'stroke-pixel' })
+  }
+  for (const point of points.slice(0, 18)) {
+    const pixel = samplePixelHsv(image, point)
+    if (pixel && pixel.s > 0.22 && pixel.v > 0.22) cues.push({ ...pixel, source: 'seed-pixel' })
+  }
+  const deduped: typeof cues = []
+  for (const cue of cues) {
+    if (!Number.isFinite(cue.h) || cue.s < 0.12 || cue.v < 0.12) continue
+    if (deduped.some((existing) => hueDistance(existing.h, cue.h) < 6 && Math.abs(existing.s - cue.s) < 0.08)) continue
+    deduped.push(cue)
+  }
+  return deduped.slice(0, 8)
+}
+
+function lineColorCueText(parsed: MimoParsedPayload | null, cues: Array<{ h: number; s: number; v: number; source: string }>) {
+  const colorNames = [
+    parsed?.route?.lineColor,
+    ...((parsed?.route?.lineColors ?? []).map((color) => color.name ?? color.hex ?? '').filter(Boolean) as string[]),
+  ].filter(Boolean)
+  const hsvText = cues.map((cue) => `${cue.source}@${cue.h.toFixed(0)}/${cue.s.toFixed(2)}/${cue.v.toFixed(2)}`).join('; ')
+  return [colorNames.join('|'), hsvText].filter(Boolean).join(' / ') || 'n/a'
+}
+
+function genericColorMask(image: PixelImage, bbox: { x: number; y: number; width: number; height: number }, cues: Array<{ h: number; s: number; v: number }>) {
+  const mask = new Uint8Array(image.width * image.height)
+  if (!cues.length) return mask
+  const maxX = Math.min(image.width, bbox.x + bbox.width)
+  const maxY = Math.min(image.height, bbox.y + bbox.height)
+  for (let y = Math.max(0, bbox.y); y < maxY; y += 1) {
+    for (let x = Math.max(0, bbox.x); x < maxX; x += 1) {
+      const offset = (y * image.width + x) * image.channels
+      const hsv = rgbToHsv(image.data[offset] ?? 0, image.data[offset + 1] ?? 0, image.data[offset + 2] ?? 0)
+      const match = cues.some((cue) => {
+        const hueTol = cue.s > 0.45 ? 24 : 34
+        const saturationFloor = Math.max(0.18, Math.min(0.58, cue.s * 0.45))
+        const valueFloor = Math.max(0.16, Math.min(0.62, cue.v * 0.42))
+        return hueDistance(hsv.h, cue.h) <= hueTol && hsv.s >= saturationFloor && hsv.v >= valueFloor
+      })
+      if (match) mask[y * image.width + x] = 1
+    }
+  }
+  return mask
+}
+
+function buildFullCvCandidate(sample: Sample, result: MimoRunResult, image: PixelImage): FullTrackExtraction {
+  const truth = visibleGroundTruthForSample(sample)
+  const parsed = result.parsed
+  const classification = routeClassification(parsed)
+  const seedPoints = normalizePoints(parsed?.route?.points, image.width, image.height)
+  const markers = normalizeMarkers(parsed?.route?.markers, image.width, image.height)
+  const lineCues = colorCuesFromMimo(parsed, seedPoints, image)
+  const lineColorCue = lineColorCueText(parsed, lineCues)
+  const topologyHint = parsed?.route?.topologyHint === 'through' || parsed?.route?.topologyHint === 'loop' ? parsed.route.topologyHint : 'unknown'
+  const routeType =
+    classification === 'stats_only'
+      ? 'no-track'
+      : parsed?.route?.routeType === 'Type A' || parsed?.route?.routeType === 'Type B'
+        ? parsed.route.routeType
+        : markers.some((marker) => marker.kind === 'intermediate')
+          ? 'Type B'
+          : classification === 'map_track'
+          ? 'Type A'
+          : 'unclear'
+
+  if (image.width * image.height > 4_500_000) {
+    const candidate: TrackProbeCandidate = {
+      sampleId: sample.id,
+      method: 'cv',
+      routeType,
+      topology: topologyHint,
+      points: [],
+      markers,
+      grade: 'no-track',
+      metrics: computeTrackMetrics([], markers, new Uint8Array(image.width * image.height), image.width, image.height),
+      notes: [
+        `MIMO classification=${classification}; truth route=${truth.routeTruth}.`,
+        `Image dimensions ${image.width}x${image.height} exceed the bounded local CV probe limit; fail-closed instead of running unbounded pathfinding.`,
+      ],
+    }
+    return {
+      sample: stripTencentBaseline(sample),
+      routeTruth: truth.routeTruth,
+      mimoClassification: classification,
+      lineColorCue,
+      colorCueStatus: lineCues.length ? 'usable' : 'missing',
+      failureMode: 'image_too_large_for_cv_probe',
+      candidate,
+      referenceMask: { routePixelCount: 0, componentCount: 0, selectedComponentCount: 0, falsePositiveComponentCount: 0 },
+      referenceMaskData: new Uint8Array(image.width * image.height),
+      debugMaskData: new Uint8Array(image.width * image.height),
+      overlayPath: '',
+    }
+  }
+
+  if (truth.routeTruth === 'stats_only' || classification === 'stats_only') {
+    const failureMode = truth.routeTruth !== 'stats_only' && classification === 'stats_only' ? 'missed_visible_track' : truth.routeTruth === 'stats_only' && classification !== 'stats_only' ? 'hallucinated_track' : null
+    const candidate: TrackProbeCandidate = {
+      sampleId: sample.id,
+      method: 'cv',
+      routeType: truth.routeTruth === 'stats_only' ? 'no-track' : routeType,
+      topology: 'unknown',
+      points: [],
+      markers: [],
+      grade: truth.routeTruth === 'stats_only' && classification === 'stats_only' ? 'no-track' : 'poor',
+      metrics: computeTrackMetrics([], [], new Uint8Array(image.width * image.height), image.width, image.height),
+      notes: [
+        `MIMO classification=${classification}; truth route=${truth.routeTruth}.`,
+        failureMode ? `Failure mode: ${failureMode}.` : 'No CV route attempted for stats_only classification.',
+      ],
+    }
+    return {
+      sample: stripTencentBaseline(sample),
+      routeTruth: truth.routeTruth,
+      mimoClassification: classification,
+      lineColorCue,
+      colorCueStatus: classification === 'stats_only' ? 'stats_only' : 'missing',
+      failureMode,
+      candidate,
+    referenceMask: { routePixelCount: 0, componentCount: 0, selectedComponentCount: 0, falsePositiveComponentCount: 0 },
+      referenceMaskData: new Uint8Array(image.width * image.height),
+      debugMaskData: new Uint8Array(image.width * image.height),
+      overlayPath: '',
+    }
+  }
+
+  if (!lineCues.length || seedPoints.length < 2) {
+    const candidate: TrackProbeCandidate = {
+      sampleId: sample.id,
+      method: 'cv',
+      routeType,
+      topology: topologyHint,
+      points: [],
+      markers,
+      grade: 'no-track',
+      metrics: computeTrackMetrics([], markers, new Uint8Array(image.width * image.height), image.width, image.height),
+      notes: [
+        `MIMO classification=${classification}; truth route=${truth.routeTruth}.`,
+        `Color/seed unusable: cues=${lineCues.length}, seedPoints=${seedPoints.length}.`,
+      ],
+    }
+    return {
+      sample: stripTencentBaseline(sample),
+      routeTruth: truth.routeTruth,
+      mimoClassification: classification,
+      lineColorCue,
+      colorCueStatus: lineCues.length ? 'ambiguous' : 'missing',
+      failureMode: 'color_unusable',
+      candidate,
+      referenceMask: { routePixelCount: 0, componentCount: 0, selectedComponentCount: 0, falsePositiveComponentCount: 0 },
+      referenceMaskData: new Uint8Array(image.width * image.height),
+      debugMaskData: new Uint8Array(image.width * image.height),
+      overlayPath: '',
+    }
+  }
+
+  const bbox = routeBbox(parsed, seedPoints, image.width, image.height)
+  const rawMask = genericColorMask(image, bbox, lineCues)
+  const closed = erodeMask(dilateMask(rawMask, image.width, image.height, 2), image.width, image.height, 1)
+  const components = connectedComponents(closed, image.width, image.height, 8)
+  const refinedMask = maskFromComponents(components, image.width, image.height)
+  const selectedReference = selectReferenceMask(refinedMask, components, seedPoints, image.width, image.height)
+  const anchors = markerAnchorsFromMimo(markers, seedPoints)
+  const snapMask = dilateMask(selectedReference.mask, image.width, image.height, 18)
+  const snappedSeeds = seedPoints
+    .map((point) => snapToMask(point, snapMask, image.width, image.height, 42) ?? point)
+    .filter((point, index, list) => index === 0 || distance(point, list[index - 1]) > 1)
+  const topology =
+    topologyHint !== 'unknown'
+      ? topologyHint
+      : snappedSeeds.length >= 2 && distance(snappedSeeds[0], snappedSeeds.at(-1) ?? snappedSeeds[0]) > LOOP_RADIUS_PX
+        ? 'through'
+        : snappedSeeds.length >= 2
+          ? 'loop'
+          : 'unknown'
+  const points = densifyPolyline(snappedSeeds, 5)
+  const boundedNotes = [
+    'Full-mode generic CV uses MIMO seed order snapped to the MIMO-colored mask; A* pathfinding is disabled here to prevent unbounded local searches and false long bridges.',
+    topology === 'through' ? 'Through topology: kept open; no return-to-start closure attempted.' : `Topology=${topology}.`,
+  ]
+  const candidateMarkers =
+    markers.length > 0
+      ? markers
+      : anchors.map((anchor) => ({
+          kind: anchor.kind,
+          x: anchor.x,
+          y: anchor.y,
+          label: anchor.kind === 'intermediate' ? anchor.label ?? null : null,
+          confidence: 0.55,
+          evidence: 'Fallback marker from MIMO seed point.',
+        }))
+  const metrics = computeTrackMetrics(points, candidateMarkers, selectedReference.mask, image.width, image.height)
+  const candidate: TrackProbeCandidate = {
+    sampleId: sample.id,
+    method: 'cv',
+    routeType,
+    topology,
+    points,
+    markers: candidateMarkers,
+    grade: 'no-track',
+    metrics,
+    notes: [
+      `MIMO classification=${classification}; truth route=${truth.routeTruth}.`,
+      `MIMO-driven color cue: ${lineColorCue}.`,
+      `Generic CV bbox=${bbox.x},${bbox.y},${bbox.width},${bbox.height}; components selected ${selectedReference.selectedComponentCount}/${components.length}.`,
+      ...boundedNotes,
+    ],
+  }
+  candidate.grade = gradeCandidate(candidate)
+  const failureMode =
+    candidate.grade === 'faithful'
+      ? null
+      : !countMask(selectedReference.mask)
+        ? 'no_color_component'
+        : (candidate.metrics.maxSegmentGapPx ?? 0) > HARD_JOIN_LIMIT_PX
+          ? 'unsupported_long_join'
+          : candidate.grade === 'no-track'
+            ? 'no_ordered_path'
+            : 'low_shape_fidelity'
+  return {
+    sample: stripTencentBaseline(sample),
+    routeTruth: truth.routeTruth,
+    mimoClassification: classification,
+    lineColorCue,
+    colorCueStatus: lineCues.length ? 'usable' : 'missing',
+    failureMode,
+    candidate,
+    referenceMask: {
+      routePixelCount: countMask(selectedReference.mask),
+      componentCount: components.length,
+      selectedComponentCount: selectedReference.selectedComponentCount,
+      falsePositiveComponentCount: selectedReference.falsePositiveComponentCount,
+    },
+    referenceMaskData: selectedReference.mask,
+    debugMaskData: rawMask,
+    overlayPath: '',
+    debugMaskPath: '',
+    referenceMaskPath: '',
   }
 }
 
@@ -1688,18 +2538,17 @@ function svgMarkers(markers: RouteMarker[]) {
 }
 
 async function writeMaskDebug(path: string, sourceImage: string, mask: Mask, width: number, height: number) {
-  const maskSvgPixels: string[] = []
+  const overlay = Buffer.alloc(width * height * 4)
   for (let index = 0; index < mask.length; index += 1) {
     if (!mask[index]) continue
-    const x = index % width
-    const y = Math.floor(index / width)
-    maskSvgPixels.push(`<rect x="${x}" y="${y}" width="1" height="1" fill="#38bdf8" opacity="0.65"/>`)
+    const offset = index * 4
+    overlay[offset] = 56
+    overlay[offset + 1] = 189
+    overlay[offset + 2] = 248
+    overlay[offset + 3] = 165
   }
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-  ${maskSvgPixels.join('\n  ')}
-</svg>`
   await sharp(sourceImage)
-    .composite([{ input: Buffer.from(svg), blend: 'over' }])
+    .composite([{ input: overlay, raw: { width, height, channels: 4 }, blend: 'over' }])
     .png()
     .toFile(path)
 }
@@ -1747,6 +2596,74 @@ async function writeSideBySide(sample: Sample, leftPath: string, rightPath: stri
     .png()
     .toFile(output)
   return output
+}
+
+async function writeFullNoTrackCheck(sample: Sample, imagePath: string, extraction: FullTrackExtraction, width: number, height: number) {
+  await mkdir(FULL_TRACK_DIR, { recursive: true })
+  const label = `cv · ${extraction.candidate.grade} · ${extraction.mimoClassification} · ${extraction.failureMode ?? 'no route drawn'}`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <rect x="14" y="15" width="${Math.min(width - 28, 900)}" height="48" rx="10" fill="rgba(15,23,42,0.88)"/>
+  <text x="30" y="47" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#f8fafc">${xmlEscape(label)}</text>
+</svg>`
+  const outputPath = join(FULL_TRACK_DIR, `${sample.id}-no-track-check.png`)
+  await sharp(imagePath)
+    .composite([{ input: Buffer.from(svg), blend: 'over' }])
+    .png()
+    .toFile(outputPath)
+  return outputPath
+}
+
+async function writeFullTrackOverlay(sample: Sample, imagePath: string, extraction: FullTrackExtraction, width: number, height: number) {
+  await mkdir(FULL_TRACK_DIR, { recursive: true })
+  const candidate = extraction.candidate
+  const label = `${candidate.method} · ${candidate.grade} · ${candidate.topology ?? 'unknown'} · truth ${extraction.routeTruth} · c2r ${formatMetric(candidate.metrics.candidateToReferenceP95)} · cov ${
+    typeof candidate.metrics.referenceCoverageRatio === 'number' ? `${Math.round(candidate.metrics.referenceCoverageRatio * 100)}%` : 'n/a'
+  }`
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <rect x="14" y="15" width="${Math.min(width - 28, 960)}" height="48" rx="10" fill="rgba(15,23,42,0.88)"/>
+  <text x="30" y="47" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#f8fafc">${xmlEscape(label)}</text>
+  ${svgPolyline(candidate.points)}
+  ${svgMarkers(candidate.markers)}
+</svg>`
+  const outputPath = join(FULL_TRACK_DIR, `${sample.id}-cv-overlay.png`)
+  await sharp(imagePath)
+    .composite([{ input: Buffer.from(svg), blend: 'over' }])
+    .png()
+    .toFile(outputPath)
+  return outputPath
+}
+
+async function writeFullTrackEvidence(sample: Sample, extraction: FullTrackExtraction) {
+  const image = await readPixelImage(sample)
+  if (extraction.candidate.points.length < 2) {
+    const noTrackPath = await writeFullNoTrackCheck(sample, image.path, extraction, image.width, image.height)
+    extraction.overlayPath = noTrackPath
+    extraction.candidate.overlayPath = noTrackPath
+    return extraction
+  }
+  const referenceMaskPath = join(FULL_TRACK_DIR, `${sample.id}-reference-mask.png`)
+  const debugMaskPath = join(FULL_TRACK_DIR, `${sample.id}-debug-mask.png`)
+  await writeMaskDebug(
+    referenceMaskPath,
+    image.path,
+    extraction.referenceMaskData ?? rasterizePolyline(extraction.candidate.points, image.width, image.height, 5),
+    image.width,
+    image.height
+  )
+  await writeMaskDebug(
+    debugMaskPath,
+    image.path,
+    extraction.debugMaskData ?? rasterizePolyline(extraction.candidate.points, image.width, image.height, 2),
+    image.width,
+    image.height
+  )
+  const overlayPath = await writeFullTrackOverlay(sample, image.path, extraction, image.width, image.height)
+  extraction.overlayPath = overlayPath
+  extraction.referenceMaskPath = referenceMaskPath
+  extraction.debugMaskPath = debugMaskPath
+  extraction.candidate.overlayPath = overlayPath
+  extraction.candidate.debugMaskPath = debugMaskPath
+  return extraction
 }
 
 function normalizeCandidateFromCache(candidate: TrackProbeCandidate, width: number, height: number): TrackProbeCandidate {
@@ -2054,13 +2971,380 @@ async function runTrackProbe(samples: Sample[]) {
   await writeTrackProbeOutputs(results, sideBySidePaths, baselineDir)
 }
 
+async function buildFullTrackGeneralization(samples: Sample[], results: MimoRunResult[]) {
+  const resultById = new Map(results.map((result) => [result.sample.id, result]))
+  const extractions: FullTrackExtraction[] = []
+  await mkdir(FULL_TRACK_DIR, { recursive: true })
+  for (const sample of samples) {
+    const result = resultById.get(sample.id)
+    if (!result) throw new Error(`Missing MIMO result for ${sample.id}; cannot build full track generalization.`)
+    const image = await readPixelImage(sample)
+    const extraction = buildFullCvCandidate(sample, result, image)
+    await writeFullTrackEvidence(sample, extraction)
+    extractions.push(extraction)
+    console.log(
+      [
+        `track sample=${sample.id}`,
+        `truth=${extraction.routeTruth}`,
+        `mimo=${extraction.mimoClassification}`,
+        `cvGrade=${extraction.candidate.grade}`,
+        `topology=${extraction.candidate.topology ?? 'unknown'}`,
+        `colorCue=${extraction.colorCueStatus}`,
+        `failure=${extraction.failureMode ?? 'none'}`,
+        `overlay=${basename(extraction.overlayPath)}`,
+      ].join(' ')
+    )
+  }
+  return extractions
+}
+
+function sanitizeTrackExtraction(extraction: FullTrackExtraction) {
+  const safe: Partial<FullTrackExtraction> = { ...extraction }
+  delete safe.referenceMaskData
+  delete safe.debugMaskData
+  return safe
+}
+
+async function writeTrackGeneralizationOutputs(extractions: FullTrackExtraction[]) {
+  const resultPath = join(OUTPUT_DIR, 'track-generalization-results.json')
+  await writeFile(resultPath, JSON.stringify(extractions.map(sanitizeTrackExtraction), null, 2))
+  const summaryPath = join(OUTPUT_DIR, 'track-generalization-summary.csv')
+  const rows = [
+    [
+      'sampleId',
+      'app',
+      'routeTruth',
+      'mimoClassification',
+      'cvGrade',
+      'routeType',
+      'topology',
+      'pointCount',
+      'markerCount',
+      'lineColorCue',
+      'colorCueStatus',
+      'failureMode',
+      'routePixelCount',
+      'componentCount',
+      'selectedComponentCount',
+      'falsePositiveComponentCount',
+      'candidateToReferenceP95',
+      'referenceToCandidateP95',
+      'referenceCoverageRatio',
+      'maxSegmentGapPx',
+      'overlayPath',
+      'referenceMaskPath',
+      'debugMaskPath',
+    ].join(','),
+    ...extractions.map((extraction) =>
+      [
+        extraction.sample.id,
+        extraction.sample.app,
+        extraction.routeTruth,
+        extraction.mimoClassification,
+        extraction.candidate.grade,
+        extraction.candidate.routeType,
+        extraction.candidate.topology ?? 'unknown',
+        extraction.candidate.points.length,
+        extraction.candidate.markers.length,
+        extraction.lineColorCue,
+        extraction.colorCueStatus,
+        extraction.failureMode ?? '',
+        extraction.referenceMask.routePixelCount,
+        extraction.referenceMask.componentCount,
+        extraction.referenceMask.selectedComponentCount,
+        extraction.referenceMask.falsePositiveComponentCount,
+        formatMetric(extraction.candidate.metrics.candidateToReferenceP95),
+        formatMetric(extraction.candidate.metrics.referenceToCandidateP95),
+        formatMetric(extraction.candidate.metrics.referenceCoverageRatio, 3),
+        formatMetric(extraction.candidate.metrics.maxSegmentGapPx),
+        extraction.overlayPath,
+        extraction.referenceMaskPath ?? '',
+        extraction.debugMaskPath ?? '',
+      ]
+        .map(csvValue)
+        .join(',')
+    ),
+  ]
+  await writeFile(summaryPath, rows.join('\n'))
+  return { resultPath, summaryPath }
+}
+
+async function runStabilityRepeats(samples: Sample[], apiKey: string) {
+  await mkdir(STABILITY_DIR, { recursive: true })
+  const stabilityResults: MimoRunResult[] = []
+  for (const sampleId of STABILITY_SAMPLE_IDS) {
+    const sample = samples.find((item) => item.id === sampleId)
+    if (!sample) throw new Error(`Stability sample ${sampleId} was not found in manifest.`)
+    const outputPath = join(STABILITY_DIR, `${sample.id}-repeat-2.json`)
+    if (existsSync(outputPath)) {
+      const existing = JSON.parse(await readFile(outputPath, 'utf8')) as MimoRunResult
+      stabilityResults.push(existing)
+      console.log(`stability sample=${sample.id} fresh=no`)
+      continue
+    }
+    const result = await runMimo(sample, apiKey)
+    await writeFile(outputPath, JSON.stringify(result, null, 2))
+    stabilityResults.push(result)
+    console.log(
+      [
+        `stability sample=${sample.id}`,
+        'fresh=yes',
+        `json=${result.json.parseable ? 'yes' : 'no'}`,
+        `latencyMs=${result.api.latencyMs}`,
+        `costCny=${result.pricing.adoptedCny.toFixed(6)}`,
+      ].join(' ')
+    )
+  }
+  return stabilityResults
+}
+
+function fieldVariance(primary: MimoRunResult | undefined, repeat: MimoRunResult | undefined, field: TextFieldKey) {
+  if (!primary || !repeat) return ''
+  const a = valueFromMimo(primary, field).value
+  const b = valueFromMimo(repeat, field).value
+  if (typeof a === 'number' && typeof b === 'number') return String(Number((b - a).toFixed(4)))
+  if (typeof a === 'string' || typeof b === 'string') return a === b ? 'same' : 'changed'
+  return ''
+}
+
+async function writeStabilitySummary(primaryResults: MimoRunResult[], stabilityResults: MimoRunResult[]) {
+  const primaryById = new Map(primaryResults.map((result) => [result.sample.id, result]))
+  const path = join(OUTPUT_DIR, 'stability-summary.csv')
+  const rows = [
+    [
+      'sampleId',
+      'primaryParsePath',
+      'repeatParsePath',
+      'primaryLatencyMs',
+      'repeatLatencyMs',
+      'primaryCostCny',
+      'repeatCostCny',
+      ...TEXT_FIELD_KEYS.map((field) => `${field}Delta`),
+      'repeatJsonPath',
+    ].join(','),
+    ...stabilityResults.map((repeat) => {
+      const primary = primaryById.get(repeat.sample.id)
+      return [
+        repeat.sample.id,
+        primary?.json.parsePath ?? '',
+        repeat.json.parsePath,
+        primary?.api.latencyMs ?? '',
+        repeat.api.latencyMs,
+        primary?.pricing.adoptedCny.toFixed(6) ?? '',
+        repeat.pricing.adoptedCny.toFixed(6),
+        ...TEXT_FIELD_KEYS.map((field) => fieldVariance(primary, repeat, field)),
+        join(STABILITY_DIR, `${repeat.sample.id}-repeat-2.json`),
+      ]
+        .map(csvValue)
+        .join(',')
+    }),
+  ]
+  await writeFile(path, rows.join('\n'))
+  return path
+}
+
+function percentileNumber(values: number[], p: number) {
+  if (!values.length) return 0
+  const sorted = [...values].sort((a, b) => a - b)
+  return sorted[Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * p))]
+}
+
+async function writeRootRunSummary(results: MimoRunResult[]) {
+  const path = join(OUTPUT_DIR, 'summary.csv')
+  const rows = [
+    'sampleId,imageId,app,mapStyle,schemaVersion,jsonParseable,parsePath,anthropicFallback,repairAttempts,latencyMs,inputTokens,cachedInputTokens,outputTokens,totalTokens,adoptedCostCny,officialLegacyCostCny,routeClassification,lineColor,overlayPath,resultJsonPath',
+    ...results.map((result) => {
+      const officialLegacyCost =
+        ((Math.max(0, result.usage.inputTokens - result.usage.cachedInputTokens) * 2.8 +
+          result.usage.cachedInputTokens * 0.56 +
+          result.usage.outputTokens * 14) /
+          1_000_000)
+      return [
+        result.sample.id,
+        result.sample.imageId,
+        result.sample.app,
+        result.sample.mapStyle,
+        result.schemaVersion ?? 'legacy',
+        result.json.parseable,
+        result.json.parsePath,
+        result.api.anthropicFallbackUsed,
+        result.api.repairAttempts,
+        result.api.latencyMs,
+        result.usage.inputTokens,
+        result.usage.cachedInputTokens,
+        result.usage.outputTokens,
+        result.usage.totalTokens,
+        result.pricing.adoptedCny.toFixed(6),
+        officialLegacyCost.toFixed(6),
+        routeClassification(result.parsed),
+        result.parsed?.route?.lineColor ?? '',
+        result.overlayPath ?? '',
+        join(RESULT_DIR, `${result.sample.id}.json`),
+      ]
+        .map(csvValue)
+        .join(',')
+    }),
+  ]
+  await writeFile(path, rows.join('\n'))
+  return path
+}
+
+async function writeFullBenchmarkReport({
+  samples,
+  results,
+  stabilityResults,
+  textRows,
+  textComparisonPath,
+  fieldSummaryPath,
+  trackExtractions,
+  trackSummaryPath,
+  trackResultPath,
+  stabilitySummaryPath,
+  summaryPath,
+}: {
+  samples: Sample[]
+  results: MimoRunResult[]
+  stabilityResults: MimoRunResult[]
+  textRows: FieldComparison[]
+  textComparisonPath: string
+  fieldSummaryPath: string
+  trackExtractions: FullTrackExtraction[]
+  trackSummaryPath: string
+  trackResultPath: string
+  stabilitySummaryPath: string
+  summaryPath: string
+}) {
+  const counts = statusCounts(results)
+  const latencies = results.map((result) => result.api.latencyMs)
+  const totalCost = results.reduce((sum, result) => sum + result.pricing.adoptedCny, 0)
+  const stabilityCost = stabilityResults.reduce((sum, result) => sum + result.pricing.adoptedCny, 0)
+  const freshPrimary = results.filter((result) => result.schemaVersion === SCHEMA_VERSION).length
+  const legacyPrimary = results.length - freshPrimary
+  const tencentAvailable = samples.filter((sample) => Boolean(sample.tencentBaseline)).length
+  const mimoWins = textRows.filter((row) => row.winner === 'mimo_only').length
+  const tencentWins = textRows.filter((row) => row.winner === 'tencent_only').length
+  const bothWrong = textRows.filter((row) => row.winner === 'both_wrong').length
+  const speedPaceRows = textRows.filter((row) => row.field === 'speedKmh' || row.field === 'paceMinPerKm')
+  const elevationRows = textRows.filter((row) => row.field === 'elevationMeters' || row.field === 'elevationGainMeters')
+  const routeCounts = {
+    faithful: trackExtractions.filter((item) => item.candidate.grade === 'faithful').length,
+    rough: trackExtractions.filter((item) => item.candidate.grade === 'rough').length,
+    poor: trackExtractions.filter((item) => item.candidate.grade === 'poor').length,
+    noTrack: trackExtractions.filter((item) => item.candidate.grade === 'no-track').length,
+    hallucinated: trackExtractions.filter((item) => item.failureMode === 'hallucinated_track').length,
+    colorUnusable: trackExtractions.filter((item) => item.failureMode === 'color_unusable').length,
+  }
+  const evidencePaths = [
+    summaryPath,
+    textComparisonPath,
+    fieldSummaryPath,
+    trackSummaryPath,
+    trackResultPath,
+    stabilitySummaryPath,
+    join(OUTPUT_DIR, 'manifest.json'),
+    ...results.map((result) => join(RESULT_DIR, `${result.sample.id}.json`)),
+    ...stabilityResults.map((result) => join(STABILITY_DIR, `${result.sample.id}-repeat-2.json`)),
+    ...trackExtractions.flatMap((item) => [item.overlayPath, item.referenceMaskPath ?? '', item.debugMaskPath ?? ''].filter(Boolean)),
+  ]
+  const report = `# mimo-v2.5 Full Spike Report
+
+Generated: ${new Date().toISOString()}
+
+## Scope
+- Dataset: ${samples.length} screenshots from \`爬山轨迹结果参考图片/\`.
+- Research-only: no app UI, route, Tencent OCR pipeline, migration, schema, or production operation touched.
+- Model: ${MODEL}; temperature=0; OpenAI-compatible first, JSON repair once, Anthropic-compatible tool-use fallback only if JSON remains invalid.
+- Tencent+regex baseline: reference column only where raw OCR fixtures exist (${tencentAvailable}/${samples.length}); \`wechat-711\` and \`wechat-712\` remain Tencent baseline N/A.
+
+## B13
+- \`wechat-711\` primary result may be legacy smoke cache if \`${join(RESULT_DIR, 'wechat-711.json')}\` existed before this run; report labels legacy schema in \`${summaryPath}\`.
+- \`wechat-712\` had no full stats cache before this sprint; if present now, it was created by this \`--all\` run and still does not borrow \`coros-629\`.
+- Route extraction is pixel-shape redraw evidence from screenshots, not GPX-grade geography.
+- Full-mode CV is driven by MIMO-reported route color/seed cues; no 711/712 hard-coded HSV profile is used in \`--all\`.
+- CV metrics are supportive and biased by the image-derived color mask; human overlay review remains authoritative.
+- Pricing B13: adopted billing uses ${ADOPTED_PRICE_CNY_PER_MILLION.source}. Official reference checked ${OFFICIAL_PRICE_REFERENCE.checkedAt}: ${OFFICIAL_PRICE_REFERENCE.accessiblePayAsYouGoSnapshot} ${OFFICIAL_PRICE_REFERENCE.priceUpdateSnapshot}
+
+## Reliability / Cost
+- JSON parseable: ${counts.jsonParseable}/${counts.total}
+- Repair retries: ${counts.repaired}
+- Anthropic fallbacks: ${counts.anthropicFallbacks}
+- Primary records: ${results.length} (${freshPrimary} current schema, ${legacyPrimary} legacy cache)
+- Stability repeats: ${stabilityResults.length}
+- Average latency: ${latencies.length ? Math.round(latencies.reduce((sum, value) => sum + value, 0) / latencies.length) : 0} ms
+- P95 latency: ${Math.round(percentileNumber(latencies, 0.95))} ms
+- Primary adopted cost: ¥${totalCost.toFixed(6)}
+- Stability adopted cost: ¥${stabilityCost.toFixed(6)}
+- Average adopted cost / primary image: ¥${(totalCost / Math.max(1, results.length)).toFixed(6)}
+
+## Text Accuracy
+- MIMO-only wins: ${mimoWins}
+- Tencent-only wins: ${tencentWins}
+- Both wrong: ${bothWrong}
+- Speed/pace wrong-field cases: ${speedPaceRows.filter((row) => row.mimoStatus === 'wrong_field' || row.tencentStatus === 'wrong_field').length}
+- Elevation/gain wrong-field cases: ${elevationRows.filter((row) => row.mimoStatus === 'wrong_field' || row.tencentStatus === 'wrong_field').length}
+- Full three-column comparison: \`${textComparisonPath}\`
+- Field accuracy summary: \`${fieldSummaryPath}\`
+
+## Route Generalization
+- Faithful: ${routeCounts.faithful}
+- Rough: ${routeCounts.rough}
+- Poor: ${routeCounts.poor}
+- No-track: ${routeCounts.noTrack}
+- Hallucinated-track failures: ${routeCounts.hallucinated}
+- Color-unusable failures: ${routeCounts.colorUnusable}
+- Summary: \`${trackSummaryPath}\`
+- Candidate JSON: \`${trackResultPath}\`
+
+## Evidence Paths
+${evidencePaths.map((path) => `- \`${path}\``).join('\n')}
+`
+  const reportPath = join(OUTPUT_DIR, 'report.md')
+  await writeFile(reportPath, report)
+  return reportPath
+}
+
+async function writeFullBenchmarkOutputs(samples: Sample[], results: MimoRunResult[], stabilityResults: MimoRunResult[]) {
+  const summaryPath = await writeRootRunSummary(results)
+  const { rows: textRows, comparisonPath: textComparisonPath, summaryPath: fieldSummaryPath } = await writeTextComparisonOutputs(samples, results)
+  const trackExtractions = await buildFullTrackGeneralization(samples, results)
+  const { resultPath: trackResultPath, summaryPath: trackSummaryPath } = await writeTrackGeneralizationOutputs(trackExtractions)
+  const stabilitySummaryPath = await writeStabilitySummary(results, stabilityResults)
+  return writeFullBenchmarkReport({
+    samples,
+    results,
+    stabilityResults,
+    textRows,
+    textComparisonPath,
+    fieldSummaryPath,
+    trackExtractions,
+    trackSummaryPath,
+    trackResultPath,
+    stabilitySummaryPath,
+    summaryPath,
+  })
+}
+
 async function main() {
   const mode = parseArgs()
   const samples = await buildSamples()
   await writeManifest(samples)
 
   if (mode === 'dry-run') {
-    console.log(`manifest_ready samples=${samples.length} output=${OUTPUT_DIR}`)
+    const existingPrimary = samples.filter((sample) => existsSync(join(RESULT_DIR, `${sample.id}.json`))).length
+    const expectedFreshPrimary = samples.length - existingPrimary
+    const existingStability = STABILITY_SAMPLE_IDS.filter((sampleId) => existsSync(join(STABILITY_DIR, `${sampleId}-repeat-2.json`))).length
+    const expectedFreshStability = STABILITY_SAMPLE_IDS.length - existingStability
+    console.log(
+      [
+        `manifest_ready samples=${samples.length}`,
+        `existingPrimaryResults=${existingPrimary}`,
+        `expectedFreshPrimaryCalls=${expectedFreshPrimary}`,
+        `existingStabilityResults=${existingStability}`,
+        `expectedFreshStabilityCalls=${expectedFreshStability}`,
+        `wechat712FullStatsCache=${existsSync(join(RESULT_DIR, 'wechat-712.json')) ? 'present' : 'missing'}`,
+        `output=${OUTPUT_DIR}`,
+      ].join(' ')
+    )
     return
   }
 
@@ -2103,6 +3387,13 @@ async function main() {
         `overlay=${result.overlayPath ? basename(result.overlayPath) : 'none'}`,
       ].join(' ')
     )
+  }
+
+  if (mode === 'all') {
+    const stabilityResults = await runStabilityRepeats(samples, apiKey)
+    const reportPath = await writeFullBenchmarkOutputs(samples, results, stabilityResults)
+    console.log(`full_report=${reportPath}`)
+    return
   }
 
   await writeSummary(results)

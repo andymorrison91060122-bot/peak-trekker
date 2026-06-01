@@ -21,6 +21,7 @@ export type ScreenshotRecognitionEngineResult = {
     primary?: 'mimo_v25'
     fallback?: TencentOcrSource
     mimo?: MimoTextRecognitionResult['meta']
+    noTextDetected?: boolean
     fallbackChain: string[]
   }
 }
@@ -42,6 +43,11 @@ function tencentFallbackReason(error: unknown) {
   return error instanceof Error ? error.message : String(error)
 }
 
+function isNoTextOcrError(error: unknown) {
+  const message = tencentFallbackReason(error)
+  return /未检测到文本|no\s+text|text\s+not\s+detected|empty\s+ocr/i.test(message)
+}
+
 function hasUsableMimoResult(result: MimoTextRecognitionResult) {
   return getMimoTextFallbackReason({
     fields: result.adjudication.fields,
@@ -51,7 +57,29 @@ function hasUsableMimoResult(result: MimoTextRecognitionResult) {
 }
 
 async function recognizeWithTencent(imageBase64: string, invoker: TencentInvoker, fallbackChain: string[]): Promise<ScreenshotRecognitionEngineResult> {
-  const { source, ocrResult, fallbackReason } = await invoker(imageBase64)
+  let tencentResult: Awaited<ReturnType<TencentInvoker>>
+  try {
+    tencentResult = await invoker(imageBase64)
+  } catch (error) {
+    if (!isNoTextOcrError(error)) {
+      throw error
+    }
+
+    const fallbackReason = tencentFallbackReason(error)
+    return {
+      source: 'accurate',
+      ocrResult: { textBlocks: [], rawText: '' },
+      parsedFields: {},
+      fallbackReason,
+      engineMeta: {
+        fallback: 'accurate',
+        noTextDetected: true,
+        fallbackChain: [...fallbackChain, `tencent_accurate:no_text`],
+      },
+    }
+  }
+
+  const { source, ocrResult, fallbackReason } = tencentResult
   const parsedFields = parseFieldsFromOcr(ocrResult.textBlocks)
   return {
     source: tencentSource(source),

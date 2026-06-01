@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { consumeScreenshotQuota, getScreenshotQuotaState } from '@/lib/screenshot/quota'
+import { screenshotRecognitionErrorStatus } from '@/lib/screenshot/recognition-status'
 import { recognizeScreenshotText } from '@/lib/screenshot/recognition-service'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
@@ -20,13 +21,6 @@ function validateScreenshotFile(file: File) {
   }
 
   return { ok: true as const }
-}
-
-function ocrStatus(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error)
-  if (/not configured/i.test(message)) return 500
-  if (/limit|quota|rate/i.test(message)) return 429
-  return 502
 }
 
 function quotaExhaustedResponse(quota: Awaited<ReturnType<typeof getScreenshotQuotaState>>) {
@@ -120,7 +114,7 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : '截图识别失败，请稍后重试。' },
-      { status: ocrStatus(error) }
+      { status: screenshotRecognitionErrorStatus(error) }
     )
   }
 }

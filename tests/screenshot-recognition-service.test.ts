@@ -78,6 +78,35 @@ test('recognition service falls back to Tencent when mimo misses required distan
   assert.ok(result.engineMeta?.fallbackChain.some((item) => item.includes('mimo_missing_required_distance')))
 })
 
+test('recognition service returns an empty low-confidence result when every engine sees no text', async () => {
+  const result = await recognizeScreenshotText('base64', 'image/png', {
+    mimoInvoker: async () => mimoResult({}),
+    tencentInvoker: async () => {
+      throw new Error('Tencent accurate OCR failed: 照片中未检测到文本')
+    },
+  })
+
+  assert.equal(result.source, 'accurate')
+  assert.deepEqual(result.ocrResult, { textBlocks: [], rawText: '' })
+  assert.deepEqual(result.parsedFields, {})
+  assert.equal(result.engineMeta?.primary, 'mimo_v25')
+  assert.equal(result.engineMeta?.fallback, 'accurate')
+  assert.equal(result.engineMeta?.noTextDetected, true)
+  assert.ok(result.engineMeta?.fallbackChain.includes('tencent_accurate:no_text'))
+})
+
+test('recognition service still rejects non-empty Tencent failures', async () => {
+  await assert.rejects(
+    recognizeScreenshotText('base64', 'image/png', {
+      mimoInvoker: async () => mimoResult({}),
+      tencentInvoker: async () => {
+        throw new Error('Tencent accurate OCR failed: upstream timeout')
+      },
+    }),
+    /upstream timeout/
+  )
+})
+
 test('recognition service skips mimo when forced to Tencent', async () => {
   let mimoCalled = false
   const result = await recognizeScreenshotText('base64', 'image/png', {

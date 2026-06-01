@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-02 · 最新版本记录: v0.53
+> Last Updated: 2026-06-02 · 最新版本记录: v0.54
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`f93da14`（Merge FU-38 · 2026-05-30）
+`7cf0cbc`（Merge FU-62 · 2026-06-02）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-FU-62 · mimo-v2.5 文字生产集成（同步主路 + 腾讯兜底）
+待启动
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -83,7 +83,7 @@ FU-62 · mimo-v2.5 文字生产集成（同步主路 + 腾讯兜底）
 
 ---
 
-## Active Follow-ups（5 条）
+## Active Follow-ups（4 条）
 
 ### FU-16 · mountains 坐标精度审计
 
@@ -100,15 +100,15 @@ FU-62 · mimo-v2.5 文字生产集成（同步主路 + 腾讯兜底）
 ### FU-35 · mimo-v2.5 多模态能力接入
 
 - 优先级: P2
-- 归属阶段: 文字生产集成进行中；轨迹能力后续评估
-- 状态: 🟡 in-progress
+- 归属阶段: 文字生产已上线；轨迹能力后续评估
+- 状态: 🟢 active
 
-背景: 原 FU 写作 "v2-omni 兜底" 属旧框架。2026-06 mimo spike 已确认模型更新为 `mimo-v2.5`，文字识别方向从"腾讯兜底"调整为"mimo 主路 + 腾讯降级兜底"。生产文字集成拆到 FU-62 执行；轨迹能力仍不进入本 sprint，继续由 FU-36 跟踪。
+背景: 原 FU 写作 "v2-omni 兜底" 属旧框架。2026-06 mimo spike 已确认模型更新为 `mimo-v2.5`，文字识别方向从"腾讯兜底"调整为"mimo 主路 + 腾讯降级兜底"。生产文字集成已由 FU-62 上线；轨迹能力仍不进入本 sprint，继续由 FU-36 跟踪。
 
 实施建议:
-- 文字识别: 复用 spike no-hint prompt + 候选 schema + 代码裁决器，生产接入见 FU-62
+- 文字识别: 已上线为同步主路，腾讯 Basic → Accurate 保留降级兜底
 - 轨迹识别: 继续研究截图像素轨迹复原，不与本次文字生产主路耦合
-- 成本 / 延迟 / JSON 可靠性继续按 spike 报告口径记账
+- 成本 / 延迟 / JSON 可靠性继续按生产日志 / 后续 spike 报告口径记账
 
 涉及: src/lib/screenshot/mimo-v25-* + src/app/api/screenshot/recognize/route.ts + FU-36 轨迹后续
 
@@ -120,36 +120,15 @@ FU-62 · mimo-v2.5 文字生产集成（同步主路 + 腾讯兜底）
 - 归属阶段: V1.1+
 - 状态: 🟢 active
 
-背景: PRD §13.2 提及"轨迹色彩重绘"功能，需要图像处理能力把原 App 自带轨迹色（黄/红/绿）重绘为 Peak Trekker 品牌色。
+背景: PRD §13.2 提及"轨迹色彩重绘"功能，需要图像处理能力把原 App 自带轨迹色（黄/红/绿）重绘为 Peak Trekker 品牌色。mimo-v2.5 文字生产上线不代表截图轨迹已可用；轨迹复原仍必须单独解决，方案 pending。
 
 实施建议:
 - 多模态识别图像中轨迹位置（mask）
 - 重新着色 + 输出新图替换原截图轨迹层
-- 与 FU-35 小米 v2-omni 同链路（Vision capable model）
+- 评估 CV 抠线 + mimo 点位 / 颜色提示的混合方案，达不到 faithful 则截图分享先走文字-only
+- 与 FU-35 mimo-v2.5 多模态能力共享模型 client / 研究报告
 
 涉及: 新 image processing pipeline + 与 FU-35 共享多模态模型 client
-
----
-
-### FU-62 · mimo-v2.5 文字生产集成
-
-- **优先级**: P1
-- **归属阶段**: 当前 sprint
-- **状态**: 🟡 in-progress
-
-**背景**: mimo-v2.5 文字 benchmark 已验证 no-hint 候选抽取 + 代码裁决器方向可替代腾讯正则主路。用户决策 V1 采用同步识别: mimo-v2.5 主路，腾讯 Basic → Accurate 保留为降级兜底；不做异步 job / 轮询 / 通知 / schema。
-
-**实施范围**:
-- 新增生产 mimo adapter + no-hint prompt + 候选 schema + 代码裁决器
-- `recognize` route 同步主路: `runtime=nodejs` / `maxDuration=60` / mimo timeout 约 32s
-- 失败、超时、JSON 不可修复、低可信时回退腾讯，不重复扣 quota
-- 产品字段集仅含距离 / 时长 / 累计爬升 / 下降 / 地点 / 日期 / 速度 / 配速；不提取卡路里
-- `/screenshot` 处理态和确认页格式化同步更新，Phase 6 停下等用户视觉验收
-
-**不在 scope**:
-- 不做截图轨迹生产集成（继续归 FU-36）
-- 不新增 schema / migration / async queue
-- 不删除腾讯 OCR / 不改 production data
 
 ---
 
@@ -224,7 +203,28 @@ FU-62 · mimo-v2.5 文字生产集成（同步主路 + 腾讯兜底）
 
 ---
 
-## Closed Follow-ups（59 条）
+## Closed Follow-ups（60 条）
+
+### FU-62 ✅ mimo-v2.5 文字生产集成
+
+- **关闭原因**: mimo-v2.5 no-hint 候选抽取 + 代码裁决器已接入生产截图识别主路；腾讯 Basic → Accurate 保留为降级兜底。`/api/screenshot/recognize` 保持同步 API 形状并显式 `runtime=nodejs` / `maxDuration=60`，`/screenshot` 等待态与确认页字段格式化同步更新。
+- **关键决策记录**:
+  · V1 采用同步方案，不做 async job / polling / notification / schema。
+  · 产品字段集限定为距离 / 时长 / 累计爬升 / 下降 / 地点 / 日期 / 速度 / 配速，不提取卡路里，不接入截图轨迹。
+  · 生产降级链: mimo-v2.5 主路；失败、超时、JSON 不可修复、低可信或关键字段缺失时回退腾讯 OCR 既有 Basic → Accurate 行为。
+  · Vercel Preview 承重通过: Hobby 环境真实 recognize 约 15.9s 返回 `mimo_v25`，空白图低可信回退 `accurate` 正常。
+  · 6 个 Vercel env 已配置 Production + Preview: Supabase public/service role、Tencent OCR、MIMO_API_KEY；env 明文不入代码 / 日志 / commit。
+- **B13 透明披露**:
+  · 同步方案依赖 Vercel 实际函数时长与 mimo 稳定性；Preview 承重已通过，生产 push 后仍需生产域名 smoke。
+  · 本 sprint 无 schema / migration / production data model 变更；生产抽测会创建并清理临时测试用户，仅用于 authenticated recognize smoke。
+  · 截图轨迹复原未上线，继续由 FU-36 跟踪；截图分享轨迹能力不得因文字集成被视为完成。
+  · 本地 `vercel deploy --force` 上传 717MB 时遇 Vercel file upload/OOM，改用 Git-source deployment / Git push 构建，避免本地上传路径。
+- **准入**: 用户视觉验收 PASS；Preview recognize 承重 PASS；lint 0e/5w · build PASS · focused node tests 30p · focused e2e 4p · git diff --check clean · no full Playwright。
+- **关闭 commit**: `3272bae` / `37cc768` / `b0f0d0f`
+- **merge commit**: `7cf0cbc`
+- **关闭时间**: 2026-06-02
+
+---
 
 ### FU-37 ✅ OCR vs mimo-v2.5 对比测试方案
 
@@ -234,8 +234,8 @@ FU-62 · mimo-v2.5 文字生产集成（同步主路 + 腾讯兜底）
   · benchmark 区分文字识别与截图轨迹复原: 文字进入 FU-62 生产集成; 轨迹继续由 FU-36 跟踪。
   · 腾讯 fixture baseline 仅作为参考列, 截图 visible ground truth / 人工验收证据作为评测标准。
 - **B13 透明披露**: benchmark 是 research-only, 不触碰 production recognize route / Tencent pipeline / schema / UI; 26 张样本不是纯 holdout, 后续生产替换仍需 FU-62 focused tests + browser evidence + 用户视觉验收。
-- **关闭 commit**: `pending`
-- **merge commit**: `pending`
+- **关闭 commit**: `4b2ffe9` / `fa84138` / `af26e39`
+- **merge commit**: `7cf0cbc`
 - **关闭时间**: 2026-06-02
 
 ---
@@ -1033,6 +1033,19 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.54（2026-06-02）
+
+FU-62 close · mimo-v2.5 文字生产集成上线。
+
+- FU-62 关闭: `/api/screenshot/recognize` 同步接入 mimo-v2.5 主路 + 腾讯 Basic → Accurate 降级兜底, route 显式 `runtime=nodejs` / `maxDuration=60`。
+- `/screenshot` 等待态与确认页字段格式化同步: 时长 `HH:MM:SS`, 配速 `M'SS"`, 下降字段可确认编辑。
+- Vercel Preview 承重通过: Hobby 函数真实截图 recognize 约 15.9s 返回 `mimo_v25`, 空白图低可信回退 Tencent Accurate 正常; Production + Preview env 已配置。
+- FU-35 更新: 文字识别已上线, mimo-v2.5 多模态能力后续只跟踪轨迹 / 研究扩展。
+- FU-36 保持 active: 截图轨迹复原仍必须单独解决, 方案 pending, 不因文字上线而关闭。
+- FU-37 补齐关闭 commit / merge commit: benchmark 研究结论已随 FU-62 merge 入 main。
+- B13: 本 sprint 无 schema / migration; 截图轨迹未上线; 生产 push 后仍需生产域名 recognize smoke; 本地 `vercel deploy --force` 717MB 上传曾 OOM, 生产部署走 Git 构建。
+- Active 5 → 4 · Closed 59 → 60
 
 ### v0.53（2026-06-02）
 

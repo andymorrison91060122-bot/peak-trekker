@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
-import { parseFieldsFromOcr } from '@/lib/screenshot/field-parser'
 import { consumeScreenshotQuota, getScreenshotQuotaState } from '@/lib/screenshot/quota'
-import { recognizeScreenshotWithFallback } from '@/lib/screenshot/tencent-ocr-adapter'
+import { recognizeScreenshotText } from '@/lib/screenshot/recognition-service'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+
+export const runtime = 'nodejs'
+export const maxDuration = 60
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
 const SUPPORTED_SCREENSHOT_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
@@ -94,7 +96,7 @@ export async function POST(request: Request) {
     }
 
     const imageBase64 = Buffer.from(await file.arrayBuffer()).toString('base64')
-    const { source: ocrSource, ocrResult } = await recognizeScreenshotWithFallback(imageBase64)
+    const { source: ocrSource, ocrResult, parsedFields, engineMeta } = await recognizeScreenshotText(imageBase64, file.type)
     const quotaResult = await consumeScreenshotQuota(createSupabaseAdminClient(), user.id, quota)
     if (!quotaResult.success) {
       if (quotaResult.reason === 'exhausted') {
@@ -107,13 +109,12 @@ export async function POST(request: Request) {
       )
     }
 
-    const parsedFields = parseFieldsFromOcr(ocrResult.textBlocks)
-
     return NextResponse.json({
       ok: true,
       ocrResult,
       parsedFields,
       ocrSource,
+      recognitionMeta: engineMeta,
       quota: quotaResult.quota,
     })
   } catch (error) {

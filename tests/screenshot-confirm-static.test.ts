@@ -7,6 +7,9 @@ const importConfirmRoute = readFileSync('src/app/api/import/confirm/route.ts', '
 const screenshotRecognizeRoute = readFileSync('src/app/api/screenshot/recognize/route.ts', 'utf8')
 const screenshotQuotaHelper = readFileSync('src/lib/screenshot/quota.ts', 'utf8')
 const screenshotOcrAdapter = readFileSync('src/lib/screenshot/tencent-ocr-adapter.ts', 'utf8')
+const screenshotRecognitionService = readFileSync('src/lib/screenshot/recognition-service.ts', 'utf8')
+const screenshotMimoAdapter = readFileSync('src/lib/screenshot/mimo-v25-adapter.ts', 'utf8')
+const screenshotMimoAdjudicator = readFileSync('src/lib/screenshot/mimo-v25-text-adjudicator.ts', 'utf8')
 const screenshotQuotaMigration = readFileSync('supabase/migrations/20260517061630_create_screenshot_quota.sql', 'utf8')
 const mountainSearchRoute = readFileSync('src/app/api/mountains/search/route.ts', 'utf8')
 
@@ -34,9 +37,8 @@ test('screenshot client uses real preview, editable fields, mountain search, and
   assert.match(screenshotClient, /paceMinPerKm/)
   assert.match(screenshotClient, /parsePaceInput\(fields\.pace\)/)
   assert.match(screenshotClient, /aria-label=\{config\.label\}/)
-  assert.match(screenshotClient, /aria-label="时长小时"/)
-  assert.match(screenshotClient, /aria-label="时长分钟"/)
-  assert.match(screenshotClient, /aria-label="时长秒"/)
+  assert.match(screenshotClient, /aria-label="时长"/)
+  assert.match(screenshotClient, /\{\s*key:\s*'elevationLoss',\s*label:\s*'下降'/)
   assert.match(screenshotClient, /\/api\/mountains\/search\?q=/)
   assert.match(screenshotClient, /source:\s*'screenshot_recognition'/)
   assert.match(screenshotClient, /\/api\/import\/confirm/)
@@ -50,7 +52,7 @@ test('screenshot confirm treats elevation and duration as optional sanitized fie
   assert.doesNotMatch(importConfirmRoute, /speedKmh/)
   assert.doesNotMatch(importConfirmRoute, /paceMinPerKm/)
   assert.match(screenshotClient, /const durationSeconds = toggles\.duration/)
-  assert.match(screenshotClient, /parseDurationParts\(fields\.durationHours, fields\.durationMinutes, fields\.durationSeconds\)/)
+  assert.match(screenshotClient, /parseDurationInput\(fields\.duration\)/)
   assert.match(screenshotClient, /setSubmitError\('请先补全总距离。'\)/)
 })
 
@@ -62,12 +64,15 @@ test('mountain search supports recognized mountain name candidates such as Taish
 
 test('screenshot recognition route enforces quota with service-role RPC only', () => {
   assert.match(screenshotRecognizeRoute, /export async function GET/)
+  assert.match(screenshotRecognizeRoute, /export const runtime = 'nodejs'/)
+  assert.match(screenshotRecognizeRoute, /export const maxDuration = 60/)
   assert.match(screenshotRecognizeRoute, /getScreenshotQuotaState/)
   assert.match(screenshotRecognizeRoute, /consumeScreenshotQuota\(createSupabaseAdminClient\(\)/)
   assert.match(screenshotRecognizeRoute, /status:\s*402/)
   assert.match(screenshotRecognizeRoute, /screenshot_quota_exhausted/)
   assert.match(screenshotRecognizeRoute, /ocrSource/)
-  assert.match(screenshotRecognizeRoute, /recognizeScreenshotWithFallback/)
+  assert.match(screenshotRecognizeRoute, /recognizeScreenshotText/)
+  assert.match(screenshotRecognizeRoute, /recognitionMeta/)
 
   assert.match(screenshotQuotaMigration, /REVOKE ALL ON FUNCTION public\.consume_screenshot_quota\(UUID, TEXT, INTEGER, INTEGER\)\s+FROM PUBLIC, authenticated, anon;/)
   assert.match(screenshotQuotaMigration, /GRANT EXECUTE ON FUNCTION public\.consume_screenshot_quota\(UUID, TEXT, INTEGER, INTEGER\)\s+TO service_role;/)
@@ -89,4 +94,15 @@ test('Tencent OCR adapter supports BasicOCR to AccurateOCR fallback', () => {
   assert.match(screenshotOcrAdapter, /GeneralAccurateOCR/)
   assert.match(screenshotOcrAdapter, /recognizeScreenshotWithFallback/)
   assert.match(screenshotOcrAdapter, /basic_empty_result/)
+})
+
+test('mimo text route uses primary adapter with Tencent fallback and no track-processing copy', () => {
+  assert.match(screenshotRecognitionService, /recognizeScreenshotWithMimoV25Text/)
+  assert.match(screenshotRecognitionService, /recognizeScreenshotWithFallback/)
+  assert.match(screenshotMimoAdjudicator, /mimo_missing_required_distance/)
+  assert.match(screenshotMimoAdapter, /MIMO_TEXT_TIMEOUT_MS = 32_000/)
+  assert.match(screenshotMimoAdapter, /MIMO_API_KEY is not configured/)
+  assert.match(screenshotMimoAdapter, /thinking: \{ type: 'disabled' \}/)
+  assert.match(screenshotClient, /provider: 'mimo_v25_primary'/)
+  assert.doesNotMatch(screenshotClient, /轨迹路线识别中/)
 })

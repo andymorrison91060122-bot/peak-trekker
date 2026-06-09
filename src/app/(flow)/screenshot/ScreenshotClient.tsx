@@ -9,16 +9,28 @@ import SecondaryButton from '@/components/ui/SecondaryButton'
 import ModalShell from '@/components/ui/ModalShell'
 import { BackIcon, CameraIcon, CheckIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
 import { trackEvent } from '@/lib/analytics/client'
+import ScreenshotRouteCalibrationSection from './ScreenshotRouteCalibrationSection'
+import { createEmptyScreenshotRouteCalibration, type ScreenshotRouteCalibration } from '@/lib/screenshot-track/calibration'
+import {
+  formatScreenshotPace,
+  validateScreenshotEditableFields,
+  type ScreenshotEditableFields,
+  type ScreenshotFieldKey,
+  type ScreenshotFieldToggles,
+} from '@/lib/screenshot-field-validation'
+import {
+  buildPersistableScreenshotRouteShape,
+  measureScreenshotRouteShape,
+  validateScreenshotRouteShape,
+} from '@/lib/screenshot-route-shape'
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
 const PROCESSING_MIN_DURATION_MS = 2000
 const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
-const SCREENSHOT_MIN_PACE_MIN_PER_KM = 2
-const SCREENSHOT_MAX_PACE_MIN_PER_KM = 40
 
 type ScreenshotStep = 'upload' | 'processing' | 'confirm' | 'submitting' | 'success'
 type RecognizeErrorKind = 'auth' | 'too_large' | 'unsupported' | 'network' | 'file' | 'quota'
-type FieldKey = 'elevation' | 'distance' | 'duration' | 'elevationGain' | 'elevationLoss' | 'date' | 'location' | 'speed' | 'pace'
+type FieldKey = ScreenshotFieldKey
 
 type RecognizeResult = {
   ok: true
@@ -42,8 +54,9 @@ type SubmitResult = {
   checkinId?: string
 }
 
-type FieldToggles = Record<FieldKey, boolean>
-type EditableFields = Record<FieldKey, string>
+type FieldToggles = ScreenshotFieldToggles
+type EditableFields = ScreenshotEditableFields
+type FieldErrors = Partial<Record<FieldKey, string>>
 
 type MountainOption = {
   id: string
@@ -61,15 +74,15 @@ type FieldConfig = {
 }
 
 const FIELD_CONFIGS: FieldConfig[] = [
-  { key: 'elevation', label: '海拔', locked: false },
-  { key: 'distance', label: '总距离', locked: true },
+  { key: 'elevation', label: '海拔 m', locked: false },
+  { key: 'distance', label: '总距离 km', locked: true },
   { key: 'duration', label: '时长', locked: false },
-  { key: 'elevationGain', label: '爬升', locked: false },
-  { key: 'elevationLoss', label: '下降', locked: false },
+  { key: 'elevationGain', label: '爬升 m', locked: false },
+  { key: 'elevationLoss', label: '下降 m', locked: false },
   { key: 'date', label: '日期', locked: false },
   { key: 'location', label: '地点', locked: false },
-  { key: 'speed', label: '速度', locked: false },
-  { key: 'pace', label: '配速', locked: false },
+  { key: 'speed', label: '速度 km/h', locked: false },
+  { key: 'pace', label: '配速 /km', locked: false },
 ]
 
 const EMPTY_FIELD_TOGGLES: FieldToggles = {
@@ -198,100 +211,15 @@ function buildEditableFields(fields: ParsedScreenshotFields): EditableFields {
   }
 }
 
-function parseNumberInput(value: string) {
-  const normalized = value.trim().replace(/,/g, '.').replace(/[^\d.-]/g, '')
-  if (!normalized) return undefined
-  const numberValue = Number(normalized)
-  return Number.isFinite(numberValue) ? numberValue : undefined
-}
-
 function formatPaceForInput(value: number) {
-  const totalSeconds = Math.max(0, Math.round(value * 60))
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = totalSeconds % 60
-  return `${minutes}'${String(seconds).padStart(2, '0')}"`
+  return formatScreenshotPace(value)
 }
 
-function parsePaceInput(value: string) {
-  const normalized = value
-    .trim()
-    .replace(/\s+/gu, '')
-    .replace(/[’′]/gu, "'")
-    .replace(/[”″]/gu, '"')
-  if (!normalized) return undefined
-
-  const paceMatch = normalized.match(/^([0-9]{1,2})[':]([0-9]{2})"?$/u)
-  if (paceMatch) {
-    const minutes = Number(paceMatch[1])
-    const seconds = Number(paceMatch[2])
-    if (!Number.isFinite(minutes) || !Number.isFinite(seconds) || seconds >= 60) return undefined
-    const pace = Math.round((minutes + seconds / 60) * 100) / 100
-    return pace >= SCREENSHOT_MIN_PACE_MIN_PER_KM && pace <= SCREENSHOT_MAX_PACE_MIN_PER_KM ? pace : undefined
-  }
-
-  if (!/^[0-9]+(?:[,.][0-9]+)?$/u.test(normalized)) return undefined
-  const decimalPace = Number(normalized.replace(/,/gu, '.'))
-  return Number.isFinite(decimalPace) &&
-    decimalPace >= SCREENSHOT_MIN_PACE_MIN_PER_KM &&
-    decimalPace <= SCREENSHOT_MAX_PACE_MIN_PER_KM
-    ? decimalPace
-    : undefined
-}
-
-function parseDurationInput(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) return undefined
-
-  const hms = trimmed.match(/^(\d{1,3}):([0-5]?\d):([0-5]?\d)$/u)
-  if (hms) {
-    return Number(hms[1]) * 3600 + Number(hms[2]) * 60 + Number(hms[3])
-  }
-
-  const hm = trimmed.match(/^(\d{1,3}):([0-5]?\d)$/u)
-  if (hm) {
-    return Number(hm[1]) * 3600 + Number(hm[2]) * 60
-  }
-
-  const chinese = trimmed.match(/(?:(\d+)\s*(?:小时|时|h))?\s*(?:(\d+)\s*(?:分钟|分|m))?\s*(?:(\d+)\s*(?:秒|s))?/iu)
-  if (!chinese?.[0]?.trim() || (!chinese[1] && !chinese[2] && !chinese[3])) return undefined
-  const hours = Number(chinese[1] ?? 0)
-  const minutes = Number(chinese[2] ?? 0)
-  const seconds = Number(chinese[3] ?? 0)
-  if (hours < 0 || hours > 999 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) return undefined
-  const totalSeconds = hours * 3600 + minutes * 60 + seconds
-  return totalSeconds > 0 ? totalSeconds : undefined
-}
-
-function buildScreenshotParsedData(fields: EditableFields, toggles: FieldToggles, fileName?: string) {
-  const elevation = toggles.elevation ? parseNumberInput(fields.elevation) : undefined
-  const distanceKm = parseNumberInput(fields.distance)
-  const durationSeconds = toggles.duration
-    ? parseDurationInput(fields.duration)
-    : undefined
-  const elevationGain = toggles.elevationGain ? parseNumberInput(fields.elevationGain) : undefined
-  const elevationLoss = toggles.elevationLoss ? parseNumberInput(fields.elevationLoss) : undefined
-  const speed = toggles.speed ? parseNumberInput(fields.speed) : undefined
-  const pace = toggles.pace ? parsePaceInput(fields.pace) : undefined
-  const date = toggles.date && fields.date.trim() ? fields.date.trim() : undefined
-  const location = toggles.location && fields.location.trim() ? fields.location.trim() : undefined
-
-  return {
-    format: 'screenshot',
-    fileName: fileName ?? 'screenshot',
-    ...(location ? { name: location, location } : {}),
-    ...(typeof elevation === 'number' ? { maxElevation: Math.round(elevation) } : {}),
-    ...(typeof distanceKm === 'number' ? { distanceMeters: Math.round(distanceKm * 1000) } : {}),
-    ...(typeof durationSeconds === 'number' ? { durationSeconds } : {}),
-    ...(typeof elevationGain === 'number' ? { elevationGainMeters: Math.round(elevationGain) } : {}),
-    ...(typeof elevationLoss === 'number' ? { elevationLossMeters: Math.round(elevationLoss) } : {}),
-    ...(typeof speed === 'number' ? { speedKmh: speed } : {}),
-    ...(typeof pace === 'number' ? { paceMinPerKm: pace } : {}),
-    ...(date ? { date } : {}),
-  }
-}
-
-function missingLockedEditableFields(fields: EditableFields) {
-  return typeof parseNumberInput(fields.distance) !== 'number'
+function routeSolveLooksPending(calibration: ScreenshotRouteCalibration) {
+  return (
+    calibration.controlPoints.length >= 2 &&
+    (!calibration.imageSize || calibration.segments.length < calibration.controlPoints.length - 1)
+  )
 }
 
 function formatFieldValue(fields: ParsedScreenshotFields, key: FieldKey) {
@@ -640,14 +568,14 @@ function ScreenshotShell({
     <div
       data-screenshot-step={step}
       style={{
-        minHeight: '100dvh',
+        height: '100dvh',
         maxWidth: 'var(--page-max-width)',
         margin: '0 auto',
         background: 'var(--color-surface)',
         color: 'var(--color-on-surface)',
         display: 'flex',
         flexDirection: 'column',
-        overflowX: 'hidden',
+        overflow: 'hidden',
       }}
     >
       <SRNavBar title={title} onBack={onBack} />
@@ -1134,27 +1062,6 @@ function ProcessingScreen({
   )
 }
 
-function TrailPreviewCard() {
-  return (
-    <div
-      style={{
-        height: 180,
-        borderRadius: 'var(--radius-md)',
-        border: '2px dashed var(--color-outline)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--color-on-surface-variant)',
-        fontSize: 'var(--font-label-m-size)',
-        lineHeight: 'var(--font-label-m-line)',
-        background: 'transparent',
-      }}
-    >
-      未能识别轨迹，可跳过
-    </div>
-  )
-}
-
 function DragHandle() {
   return (
     <svg width="14" height="20" viewBox="0 0 14 20" fill="none" aria-hidden="true" focusable="false">
@@ -1222,6 +1129,7 @@ function FieldRow({
   config,
   value,
   missing,
+  fieldError,
   on,
   last,
   onChange,
@@ -1230,6 +1138,7 @@ function FieldRow({
   config: FieldConfig
   value: string
   missing: boolean
+  fieldError?: string
   on: boolean
   last: boolean
   onChange: (value: string) => void
@@ -1298,7 +1207,21 @@ function FieldRow({
             }}
           />
         </div>
-        {missing ? (
+        {fieldError ? (
+          <div
+            data-field-error={config.key}
+            style={{
+              marginLeft: 92,
+              marginTop: 'var(--space-1)',
+              color: config.locked ? 'var(--color-error)' : 'var(--color-warning)',
+              fontSize: 12,
+              lineHeight: 'var(--font-label-m-line)',
+              fontWeight: 500,
+            }}
+          >
+            {fieldError}
+          </div>
+        ) : missing ? (
           <div
             style={{
               marginLeft: 92,
@@ -1347,6 +1270,7 @@ function FieldRow({
 function DurationFieldRow({
   value,
   missing,
+  fieldError,
   on,
   last,
   onChange,
@@ -1354,6 +1278,7 @@ function DurationFieldRow({
 }: {
   value: string
   missing: boolean
+  fieldError?: string
   on: boolean
   last: boolean
   onChange: (value: string) => void
@@ -1415,14 +1340,28 @@ function DurationFieldRow({
               aria-label="时长"
               inputMode="numeric"
               value={value}
-              onChange={(event) => onChange(event.currentTarget.value.replace(/[^\d:hms时分秒小时分钟\s]/giu, '').slice(0, 12))}
+              onChange={(event) => onChange(event.currentTarget.value.replace(/[^\d:]/gu, '').slice(0, 10))}
               disabled={disabled}
-              placeholder="HH:MM:SS"
+              placeholder="HH:MM:SS 或 MM:SS"
               style={inputStyle}
             />
           </div>
         </div>
-        {missing ? (
+        {fieldError ? (
+          <div
+            data-field-error="duration"
+            style={{
+              marginLeft: 92,
+              marginTop: 'var(--space-1)',
+              color: 'var(--color-warning)',
+              fontSize: 12,
+              lineHeight: 'var(--font-label-m-line)',
+              fontWeight: 500,
+            }}
+          >
+            {fieldError}
+          </div>
+        ) : missing ? (
           <div
             style={{
               marginLeft: 92,
@@ -1490,7 +1429,7 @@ function ValidationBar({ tone }: { tone: 'normal' | 'warning' }) {
   )
 }
 
-function SubmitErrorNotice({ message }: { message: string }) {
+function SubmitErrorNotice({ message, actions }: { message: string; actions?: ReactNode }) {
   return (
     <div
       role="alert"
@@ -1505,7 +1444,12 @@ function SubmitErrorNotice({ message }: { message: string }) {
         fontWeight: 600,
       }}
     >
-      {message}
+      <div>{message}</div>
+      {actions ? (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+          {actions}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -1663,8 +1607,10 @@ function MountainMatchSection({
 
 function ConfirmScreen({
   result,
+  imagePreview,
   editableFields,
   fieldToggles,
+  routeCalibration,
   quota,
   quotaLoading,
   mountainOptions,
@@ -1672,8 +1618,12 @@ function ConfirmScreen({
   mountainSearchStatus,
   mountainSearchError,
   submitError,
+  routeShapeRecoveryOpen,
   onFieldChange,
   onToggle,
+  onRouteCalibrationChange,
+  onClearRouteCalibration,
+  onSaveTextOnly,
   onSelectMountain,
   onSearchMountain,
   onBack,
@@ -1681,8 +1631,10 @@ function ConfirmScreen({
   onUpgrade,
 }: {
   result: RecognizeResult
+  imagePreview: string | null
   editableFields: EditableFields
   fieldToggles: FieldToggles
+  routeCalibration: ScreenshotRouteCalibration
   quota: ScreenshotQuotaState | null
   quotaLoading: boolean
   mountainOptions: MountainOption[]
@@ -1690,8 +1642,12 @@ function ConfirmScreen({
   mountainSearchStatus: MountainSearchStatus
   mountainSearchError: string | null
   submitError: string | null
+  routeShapeRecoveryOpen: boolean
   onFieldChange: (key: FieldKey, value: string) => void
   onToggle: (key: FieldKey) => void
+  onRouteCalibrationChange: (calibration: ScreenshotRouteCalibration) => void
+  onClearRouteCalibration: () => void
+  onSaveTextOnly: () => void
   onSelectMountain: (id: string | null) => void
   onSearchMountain: () => void
   onBack: () => void
@@ -1700,6 +1656,16 @@ function ConfirmScreen({
 }) {
   const fields = result.parsedFields
   const tone = validationTone(fields)
+  const fieldErrors: FieldErrors = validateScreenshotEditableFields({
+    fields: editableFields,
+    toggles: fieldToggles,
+  }).errors
+  const visibleFieldConfigs = FIELD_CONFIGS.filter((config) => (
+    config.locked ||
+    hasParsedField(fields, config.key) ||
+    fieldToggles[config.key] ||
+    Boolean(editableFields[config.key].trim())
+  ))
 
   return (
     <ScreenshotShell
@@ -1711,7 +1677,17 @@ function ConfirmScreen({
       onUpgrade={onUpgrade}
       footer={
         <>
-          {submitError ? <SubmitErrorNotice message={submitError} /> : null}
+          {submitError ? (
+            <SubmitErrorNotice
+              message={submitError}
+              actions={routeShapeRecoveryOpen ? (
+                <>
+                  <SecondaryButton onClick={onClearRouteCalibration}>清空路线</SecondaryButton>
+                  <PrimaryButton onClick={onSaveTextOnly}>仅保存文字数据</PrimaryButton>
+                </>
+              ) : undefined}
+            />
+          ) : null}
           <PrimaryButton onClick={onSubmit}>确认并生成活动</PrimaryButton>
           <div
             style={{
@@ -1721,20 +1697,26 @@ function ConfirmScreen({
               lineHeight: 1.5,
             }}
           >
-            确认后将生成活动记录，可随时在分享编辑器中调整
+            校准路线可选；只确认文字数据也能生成活动。
           </div>
         </>
       }
     >
       <main
+        data-screenshot-confirm-main="true"
         style={{
           flex: 1,
+          minHeight: 0,
           overflowY: 'auto',
-          padding: 'var(--space-2) var(--space-4) 0',
+          padding: 'var(--space-2) var(--space-4) calc(20px + env(safe-area-inset-bottom))',
           minWidth: 0,
         }}
       >
-        <TrailPreviewCard />
+        <ScreenshotRouteCalibrationSection
+          imagePreview={imagePreview}
+          calibration={routeCalibration}
+          onCalibrationChange={onRouteCalibrationChange}
+        />
 
         <h2
           style={{
@@ -1749,32 +1731,34 @@ function ConfirmScreen({
         </h2>
 
         <div>
-          {FIELD_CONFIGS.map((config, index) => {
+          {visibleFieldConfigs.map((config, index) => {
             const missing = !hasParsedField(fields, config.key)
             if (config.key === 'duration') {
               return (
                 <DurationFieldRow
                   key={config.key}
                   value={editableFields.duration}
+                  fieldError={fieldErrors.duration}
                   missing={
                     missing &&
                     !editableFields.duration.trim()
                   }
                   on={fieldToggles.duration}
-                  last={index === FIELD_CONFIGS.length - 1}
+                  last={index === visibleFieldConfigs.length - 1}
                   onChange={(value) => onFieldChange('duration', value)}
                   onToggle={() => onToggle(config.key)}
                 />
               )
             }
             return (
-              <FieldRow
-                key={config.key}
+                <FieldRow
+                  key={config.key}
                 config={config}
                 value={editableFields[config.key]}
+                fieldError={fieldErrors[config.key]}
                 missing={missing && editableFields[config.key].trim().length === 0}
                 on={config.locked ? true : fieldToggles[config.key]}
-                last={index === FIELD_CONFIGS.length - 1}
+                  last={index === visibleFieldConfigs.length - 1}
                 onChange={(value) => onFieldChange(config.key, value)}
                 onToggle={() => onToggle(config.key)}
               />
@@ -2208,12 +2192,14 @@ export default function ScreenshotClient() {
   const [authRequired, setAuthRequired] = useState(false)
   const [fieldToggles, setFieldToggles] = useState<FieldToggles>(EMPTY_FIELD_TOGGLES)
   const [editableFields, setEditableFields] = useState<EditableFields>(EMPTY_EDITABLE_FIELDS)
+  const [routeCalibration, setRouteCalibration] = useState<ScreenshotRouteCalibration>(() => createEmptyScreenshotRouteCalibration())
   const [mountainOptions, setMountainOptions] = useState<MountainOption[]>([])
   const [selectedMountainId, setSelectedMountainId] = useState<string | null>(null)
   const [mountainSearchStatus, setMountainSearchStatus] = useState<MountainSearchStatus>('idle')
   const [mountainSearchError, setMountainSearchError] = useState<string | null>(null)
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [routeShapeRecoveryOpen, setRouteShapeRecoveryOpen] = useState(false)
   const [quotaState, setQuotaState] = useState<ScreenshotQuotaState | null>(null)
   const [quotaLoading, setQuotaLoading] = useState(true)
   const [upgradeSheetOpen, setUpgradeSheetOpen] = useState(false)
@@ -2347,6 +2333,7 @@ export default function ScreenshotClient() {
       setFieldToggles(buildInitialFieldToggles(payload.parsedFields))
       void searchMountains(nextEditableFields.location)
       setSubmitError(null)
+      setRouteShapeRecoveryOpen(false)
       setSubmitResult(null)
       setStep('confirm')
     } catch (error) {
@@ -2392,11 +2379,13 @@ export default function ScreenshotClient() {
     setRecognizeResult(null)
     setFieldToggles(EMPTY_FIELD_TOGGLES)
     setEditableFields(EMPTY_EDITABLE_FIELDS)
+    setRouteCalibration(createEmptyScreenshotRouteCalibration())
     setMountainOptions([])
     setSelectedMountainId(null)
     setMountainSearchStatus('idle')
     setMountainSearchError(null)
     setSubmitError(null)
+    setRouteShapeRecoveryOpen(false)
     setSubmitResult(null)
   }
 
@@ -2437,11 +2426,13 @@ export default function ScreenshotClient() {
     setAuthRequired(false)
     setFieldToggles(EMPTY_FIELD_TOGGLES)
     setEditableFields(EMPTY_EDITABLE_FIELDS)
+    setRouteCalibration(createEmptyScreenshotRouteCalibration())
     setMountainOptions([])
     setSelectedMountainId(null)
     setMountainSearchStatus('idle')
     setMountainSearchError(null)
     setSubmitError(null)
+    setRouteShapeRecoveryOpen(false)
     setSubmitResult(null)
     setStep('processing')
     void recognize(file)
@@ -2532,20 +2523,58 @@ export default function ScreenshotClient() {
       ...current,
       [key]: value,
     }))
+    if (key === 'distance') {
+      setSubmitError(null)
+      setRouteShapeRecoveryOpen(false)
+    }
+  }
+
+  function updateRouteCalibration(calibration: ScreenshotRouteCalibration) {
+    setRouteCalibration(calibration)
+  }
+
+  function clearRouteCalibrationForTextOnly() {
+    setRouteCalibration(createEmptyScreenshotRouteCalibration())
+    setSubmitError(null)
+    setRouteShapeRecoveryOpen(false)
   }
 
   function searchCurrentLocation() {
     void searchMountains(editableFields.location)
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(options: { forceTextOnly?: boolean } = {}) {
     if (!recognizeResult) return
-    if (missingLockedEditableFields(editableFields)) {
-      setSubmitError('请先补全总距离。')
+    const parsedDataResult = validateScreenshotEditableFields({
+      fields: editableFields,
+      toggles: fieldToggles,
+      fileName: imageFile?.name,
+    })
+    if (!parsedDataResult.ok) {
+      setRouteShapeRecoveryOpen(false)
+      setSubmitError(parsedDataResult.errors.distance ?? '请填写有效的总距离。')
+      return
+    }
+    const parsedData = parsedDataResult.parsedData
+    const routeShape = options.forceTextOnly ? null : buildPersistableScreenshotRouteShape(routeCalibration)
+    if (!options.forceTextOnly && routeCalibration.controlPoints.length >= 2 && !routeShape && routeSolveLooksPending(routeCalibration)) {
+      setRouteShapeRecoveryOpen(false)
+      setSubmitError('校准路线还没准备好，请稍等片刻或重新校准。')
+      return
+    }
+    const routeShapeValidation = validateScreenshotRouteShape(routeShape)
+    if (!routeShapeValidation.ok) {
+      console.info('screenshot route shape precheck failed', {
+        error: routeShapeValidation.error,
+        metrics: measureScreenshotRouteShape(routeShape),
+      })
+      setRouteShapeRecoveryOpen(true)
+      setSubmitError('校准路线太复杂，无法保存。请清空路线后少点重描，或明确选择仅保存文字数据。')
       return
     }
 
     setSubmitError(null)
+    setRouteShapeRecoveryOpen(false)
     setStep('submitting')
     try {
       const response = await fetch('/api/import/confirm', {
@@ -2554,11 +2583,18 @@ export default function ScreenshotClient() {
         body: JSON.stringify({
           source: 'screenshot_recognition',
           mountainId: selectedMountainId,
-          parsedData: buildScreenshotParsedData(editableFields, fieldToggles, imageFile?.name),
+          parsedData,
+          routeShape,
         }),
       })
-      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; checkinId?: string; error?: string }
+      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; checkinId?: string; error?: string; code?: string }
       if (!response.ok || !payload.ok || !payload.checkinId) {
+        if (payload.code === 'route_shape_invalid' || payload.code === 'route_shape_persist_failed') {
+          setRouteShapeRecoveryOpen(true)
+          setSubmitError(payload.error ?? '校准路线保存失败。请清空路线后少点重描，或明确选择仅保存文字数据。')
+          setStep('confirm')
+          return
+        }
         throw new Error(payload.error ?? '活动生成失败，请稍后再试。')
       }
       trackEvent({
@@ -2574,6 +2610,7 @@ export default function ScreenshotClient() {
       setSubmitResult({ ok: true, checkinId: payload.checkinId })
       router.push(`/activity/${payload.checkinId}`)
     } catch (error) {
+      setRouteShapeRecoveryOpen(false)
       setSubmitError(error instanceof Error ? error.message : '活动生成失败，请稍后再试。')
       setStep('confirm')
     }
@@ -2635,8 +2672,10 @@ export default function ScreenshotClient() {
       {step === 'confirm' && recognizeResult ? (
         <ConfirmScreen
           result={recognizeResult}
+          imagePreview={imagePreview}
           editableFields={editableFields}
           fieldToggles={fieldToggles}
+          routeCalibration={routeCalibration}
           quota={quotaState}
           quotaLoading={quotaLoading}
           mountainOptions={mountainOptions}
@@ -2644,8 +2683,12 @@ export default function ScreenshotClient() {
           mountainSearchStatus={mountainSearchStatus}
           mountainSearchError={mountainSearchError}
           submitError={submitError}
+          routeShapeRecoveryOpen={routeShapeRecoveryOpen}
           onFieldChange={updateField}
           onToggle={toggleField}
+          onRouteCalibrationChange={updateRouteCalibration}
+          onClearRouteCalibration={clearRouteCalibrationForTextOnly}
+          onSaveTextOnly={() => void handleSubmit({ forceTextOnly: true })}
           onSelectMountain={setSelectedMountainId}
           onSearchMountain={searchCurrentLocation}
           onBack={handleBack}

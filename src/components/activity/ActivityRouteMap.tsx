@@ -29,6 +29,7 @@ const routeNumberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDig
 const TRACE_FRAME = { width: 343, height: 343, padding: 38 }
 const COORDINATE_EPSILON = 0.0000001
 const ACTIVITY_LAYER_PREFIX = 'fu47b-activity-route'
+const SCREENSHOT_ROUTE_COLOR = '#76e8a8'
 
 function formatRouteTime(value: string | null) {
   if (!value) return '--:--'
@@ -417,6 +418,120 @@ function StatStrip({ activity }: { activity: ActivityDetailViewModel }) {
   )
 }
 
+function screenshotSegmentPath(points: Array<{ x: number; y: number }>, width: number, height: number) {
+  if (points.length < 2) return ''
+  return points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${(point.x * width).toFixed(2)} ${(point.y * height).toFixed(2)}`)
+    .join(' ')
+}
+
+function ScreenshotRouteShapeCard({ activity }: { activity: ActivityDetailViewModel }) {
+  const shape = activity.screenshotRouteShape
+  if (!shape) return null
+  const width = Math.max(1, shape.image.width)
+  const height = Math.max(1, shape.image.height)
+  const drawableSegments = shape.segments.filter((segment) => segment.resolution !== 'accepted_gap' && segment.points.length >= 2)
+
+  return (
+    <div
+      data-route-source="screenshot-shape"
+      role="img"
+      aria-label="截图校准路线"
+      style={{
+        position: 'relative',
+        width: '100%',
+        aspectRatio: `${width} / ${height}`,
+        minHeight: 260,
+        maxHeight: 680,
+        overflow: 'hidden',
+        background:
+          'radial-gradient(circle at 34% 26%, color-mix(in srgb, var(--color-success) 12%, transparent), transparent 34%), var(--color-surface)',
+      }}
+    >
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      >
+        <defs>
+          <filter id="activity-screenshot-route-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <rect width={width} height={height} fill="rgba(255,255,255,.018)" />
+        {drawableSegments.map((segment) => (
+          <path
+            key={segment.id}
+            d={screenshotSegmentPath(segment.points, width, height)}
+            fill="none"
+            stroke={SCREENSHOT_ROUTE_COLOR}
+            strokeWidth={Math.max(5, Math.min(width, height) * 0.012)}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.96"
+            filter="url(#activity-screenshot-route-glow)"
+          />
+        ))}
+      </svg>
+      <div
+        style={{
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: 12,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          padding: '8px 10px',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--color-outline)',
+          background: 'color-mix(in srgb, var(--color-surface) 76%, transparent)',
+          color: 'var(--color-on-surface-variant)',
+          backdropFilter: 'blur(12px)',
+          fontSize: 'var(--font-label-s-size)',
+          lineHeight: 'var(--font-label-s-line)',
+        }}
+      >
+        <span>截图校准路线</span>
+      </div>
+    </div>
+  )
+}
+
+function ScreenshotTextOnlyRouteCard() {
+  return (
+    <div
+      data-route-source="screenshot-text-only"
+      role="img"
+      aria-label="未校准路线"
+      style={{
+        minHeight: 260,
+        display: 'grid',
+        placeItems: 'center',
+        padding: 'var(--space-5)',
+        background: 'var(--color-surface)',
+        color: 'var(--color-on-surface-variant)',
+        textAlign: 'center',
+      }}
+    >
+      <div>
+        <div style={{ color: 'var(--color-on-surface)', fontWeight: 700, fontSize: 'var(--font-title-s-size)' }}>
+          仅保存了文字数据
+        </div>
+        <div style={{ marginTop: 6, fontSize: 'var(--font-label-m-size)', lineHeight: 1.5 }}>
+          这次截图没有校准路线，活动不显示猜测路线。
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function NoMapTraceCard({ trace, summitTime }: { trace: ProjectedTrace | null; summitTime: string | null }) {
   return (
     <div
@@ -478,10 +593,27 @@ export default function ActivityRouteMap({
   const forceMountainError = forceMapError === 'mountain'
   const useMountainAsset = Boolean(mountainAsset && !mountainMapFailed)
   const summitTime = activity.summitAt
+  const isScreenshotRoute = activity.sourceType === 'screenshot_recognition'
   const trace = useMemo(
     () => buildProjectedTrace(activity.trackPoints, useMountainAsset && mountainAsset ? 'bbox' : 'visual', mountainAsset?.bbox),
     [activity.trackPoints, mountainAsset, useMountainAsset],
   )
+
+  if (isScreenshotRoute) {
+    return (
+      <section className="act-route" data-testid="activity-route-map" data-map-mode="screenshot-shape">
+        <div className="act-route__section-head">
+          <div className="act-route__section-title">走过的路线</div>
+          <div className="act-route__section-right">截图路线</div>
+        </div>
+
+        <div className="act-route__card">
+          {activity.screenshotRouteShape ? <ScreenshotRouteShapeCard activity={activity} /> : <ScreenshotTextOnlyRouteCard />}
+          <StatStrip activity={activity} />
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="act-route" data-testid="activity-route-map" data-map-mode={useMountainAsset ? 'mountain-pmtiles' : 'trace-only'}>

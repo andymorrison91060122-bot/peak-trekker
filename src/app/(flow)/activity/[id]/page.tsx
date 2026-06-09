@@ -4,6 +4,7 @@ import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import type { SourceLabelProps } from '@/components/ui/SourceLabel'
 import { getSourceLabelType } from '@/lib/source-label-utils'
 import { resolveCheckinSource, type CheckinSource } from '@/lib/trek-utils'
+import { validateScreenshotRouteShape, type PersistedScreenshotRouteShape } from '@/lib/screenshot-route-shape'
 import ActivityDetailClient, {
   type ActivityDetailViewModel,
   type ActivityPhotoViewModel,
@@ -40,6 +41,7 @@ type CheckinRow = {
   start_time?: string | null
   end_time?: string | null
   track_points?: unknown
+  screenshot_route_shape?: unknown
   mountains: MountainRelation | MountainRelation[] | null
 }
 
@@ -71,6 +73,13 @@ type RawTrackPoint = {
 }
 
 const CHECKIN_SELECT_FULL = `
+  id, user_id, mountain_id, type, source, photo_url, note, session_id, verified_at, created_at,
+  distance_meters, duration_seconds, elevation_gain_meters, max_elevation_meters, min_elevation_meters,
+  start_time, end_time, track_points, screenshot_route_shape,
+  mountains(id, name, altitude, province, difficulty, latitude, longitude, cover_image, gallery_images)
+`
+
+const CHECKIN_SELECT_WITHOUT_SCREENSHOT_ROUTE_SHAPE = `
   id, user_id, mountain_id, type, source, photo_url, note, session_id, verified_at, created_at,
   distance_meters, duration_seconds, elevation_gain_meters, max_elevation_meters, min_elevation_meters,
   start_time, end_time, track_points,
@@ -174,9 +183,19 @@ async function fetchCheckin(supabase: Awaited<ReturnType<typeof createSupabaseSe
     return fullResult as { data: CheckinRow | null; error: typeof fullResult.error }
   }
 
+  const withoutRouteShapeResult = await supabase
+    .from('checkins')
+    .select(CHECKIN_SELECT_WITHOUT_SCREENSHOT_ROUTE_SHAPE)
+    .eq('id', id)
+    .maybeSingle()
+
+  if (!withoutRouteShapeResult.error || !isSchemaCompatibilityErrorMessage(withoutRouteShapeResult.error.message)) {
+    return withoutRouteShapeResult as { data: CheckinRow | null; error: typeof withoutRouteShapeResult.error }
+  }
+
   return (await supabase.from('checkins').select(CHECKIN_SELECT_LEGACY).eq('id', id).maybeSingle()) as {
     data: CheckinRow | null
-    error: typeof fullResult.error
+    error: typeof withoutRouteShapeResult.error
   }
 }
 
@@ -248,6 +267,10 @@ export default async function ActivityDetailPage({
   const photos = uniquePhotos(checkin.photo_url ?? null, assets)
   const sessionSamples = parseTrackPoints(session?.track_points)
   const checkinSamples = parseTrackPoints(checkin.track_points)
+  const screenshotRouteShapeResult = isScreenshotRecognition
+    ? validateScreenshotRouteShape(checkin.screenshot_route_shape)
+    : { ok: true as const, shape: null as PersistedScreenshotRouteShape | null }
+  const screenshotRouteShape = screenshotRouteShapeResult.ok ? screenshotRouteShapeResult.shape : null
   const trackSamples = sessionSamples.length ? sessionSamples : checkinSamples
   const trackPoints = trackSamples.flatMap((point) =>
     point.lat === null || point.lng === null
@@ -289,10 +312,10 @@ export default async function ActivityDetailPage({
   const durationSeconds = rawDurationSeconds > 0 && rawDurationSeconds <= 30 * 24 * 60 * 60
     ? rawDurationSeconds
     : 0
-  const summitAt = checkin.verified_at ?? checkin.end_time ?? session?.ended_at ?? null
-  const isSummit = Boolean(checkin.verified_at)
+  const summitAt = isScreenshotRecognition ? null : (checkin.verified_at ?? checkin.end_time ?? session?.ended_at ?? null)
+  const isSummit = isScreenshotRecognition ? false : Boolean(checkin.verified_at)
   const proofStatus =
-    isSummit && elevationSamples.length >= 8 ? 'confirmed' : isSummit ? 'partial' : 'none'
+    isScreenshotRecognition ? 'none' : isSummit && elevationSamples.length >= 8 ? 'confirmed' : isSummit ? 'partial' : 'none'
   const hasMeaningfulActivityData = distanceKm > 0 || ascentM > 0 || durationSeconds > 60
 
   const activity: ActivityDetailViewModel = {
@@ -326,6 +349,7 @@ export default async function ActivityDetailPage({
     photos,
     elevationSamples,
     trackPoints,
+    screenshotRouteShape,
     proofStatus,
     recordCount: countResult.count ?? 0,
   }

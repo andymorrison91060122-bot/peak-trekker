@@ -4,6 +4,7 @@ import { test } from 'node:test'
 
 const screenshotClient = readFileSync('src/app/(flow)/screenshot/ScreenshotClient.tsx', 'utf8')
 const importConfirmRoute = readFileSync('src/app/api/import/confirm/route.ts', 'utf8')
+const activityPage = readFileSync('src/app/(flow)/activity/[id]/page.tsx', 'utf8')
 const screenshotRecognizeRoute = readFileSync('src/app/api/screenshot/recognize/route.ts', 'utf8')
 const screenshotQuotaHelper = readFileSync('src/lib/screenshot/quota.ts', 'utf8')
 const screenshotOcrAdapter = readFileSync('src/lib/screenshot/tencent-ocr-adapter.ts', 'utf8')
@@ -11,15 +12,19 @@ const screenshotRecognitionStatus = readFileSync('src/lib/screenshot/recognition
 const screenshotRecognitionService = readFileSync('src/lib/screenshot/recognition-service.ts', 'utf8')
 const screenshotMimoAdapter = readFileSync('src/lib/screenshot/mimo-v25-adapter.ts', 'utf8')
 const screenshotMimoAdjudicator = readFileSync('src/lib/screenshot/mimo-v25-text-adjudicator.ts', 'utf8')
+const screenshotFieldValidation = readFileSync('src/lib/screenshot-field-validation.ts', 'utf8')
 const screenshotQuotaMigration = readFileSync('supabase/migrations/20260517061630_create_screenshot_quota.sql', 'utf8')
 const mountainSearchRoute = readFileSync('src/app/api/mountains/search/route.ts', 'utf8')
+const trekVerifyHelpers = readFileSync('src/lib/trek-verify-helpers.ts', 'utf8')
 
 test('screenshot confirm path writes through import confirm without requiring track points', () => {
   assert.match(importConfirmRoute, /source === 'screenshot_recognition'/)
   assert.match(importConfirmRoute, /handleScreenshotRecognitionConfirm/)
   assert.match(importConfirmRoute, /normalizeScreenshotData/)
+  assert.match(importConfirmRoute, /validateScreenshotRouteShape/)
   assert.match(importConfirmRoute, /source:\s*'screenshot_recognition'/)
   assert.match(importConfirmRoute, /track_points:\s*\[\]/)
+  assert.match(importConfirmRoute, /screenshot_route_shape:\s*routeShapeResult\.shape/)
   assert.match(importConfirmRoute, /insertCheckinWithFallback/)
 
   const screenshotBranchIndex = importConfirmRoute.indexOf("source === 'screenshot_recognition'")
@@ -29,17 +34,27 @@ test('screenshot confirm path writes through import confirm without requiring tr
   assert.ok(screenshotBranchIndex < trackNormalizeIndex)
 })
 
+test('screenshot recognition checkins are uploaded proof and never GPS ranking records', () => {
+  assert.match(importConfirmRoute, /Screenshot recognition is uploaded proof, not GPS\/summit verification\./)
+  assert.match(importConfirmRoute, /verified_at:\s*null/)
+  assert.match(importConfirmRoute, /ranking_weight:\s*0/)
+  assert.match(importConfirmRoute, /track_points:\s*\[\]/)
+})
+
 test('screenshot client uses real preview, editable fields, mountain search, and activity redirect', () => {
   assert.doesNotMatch(screenshotClient, /MockScreenshotPreview/)
   assert.doesNotMatch(screenshotClient, /截图活动生成接口待接入/)
   assert.match(screenshotClient, /ScreenshotProcessingPreview/)
   assert.match(screenshotClient, /buildEditableFields/)
-  assert.match(screenshotClient, /\{\s*key:\s*'pace',\s*label:\s*'配速'/)
+  assert.match(screenshotClient, /\{\s*key:\s*'pace',\s*label:\s*'配速 \/km'/)
   assert.match(screenshotClient, /paceMinPerKm/)
-  assert.match(screenshotClient, /parsePaceInput\(fields\.pace\)/)
+  assert.match(screenshotClient, /validateScreenshotEditableFields/)
+  assert.match(screenshotClient, /buildPersistableScreenshotRouteShape/)
+  assert.match(screenshotClient, /validateScreenshotRouteShape\(routeShape\)/)
+  assert.match(screenshotClient, /measureScreenshotRouteShape\(routeShape\)/)
   assert.match(screenshotClient, /aria-label=\{config\.label\}/)
   assert.match(screenshotClient, /aria-label="时长"/)
-  assert.match(screenshotClient, /\{\s*key:\s*'elevationLoss',\s*label:\s*'下降'/)
+  assert.match(screenshotClient, /\{\s*key:\s*'elevationLoss',\s*label:\s*'下降 m'/)
   assert.match(screenshotClient, /\/api\/mountains\/search\?q=/)
   assert.match(screenshotClient, /source:\s*'screenshot_recognition'/)
   assert.match(screenshotClient, /\/api\/import\/confirm/)
@@ -52,9 +67,45 @@ test('screenshot confirm treats elevation and duration as optional sanitized fie
   assert.match(importConfirmRoute, /max_elevation_meters:\s*parsedData\.maxElevation \?\? null/)
   assert.doesNotMatch(importConfirmRoute, /speedKmh/)
   assert.doesNotMatch(importConfirmRoute, /paceMinPerKm/)
-  assert.match(screenshotClient, /const durationSeconds = toggles\.duration/)
-  assert.match(screenshotClient, /parseDurationInput\(fields\.duration\)/)
-  assert.match(screenshotClient, /setSubmitError\('请先补全总距离。'\)/)
+  assert.match(screenshotClient, /validateScreenshotEditableFields\(\{[\s\S]*fields: editableFields,[\s\S]*toggles: fieldToggles,[\s\S]*fileName: imageFile\?\.name,[\s\S]*\}\)/)
+  assert.doesNotMatch(screenshotClient, /请检查总距离和已填写的数据/)
+  assert.match(screenshotClient, /data-field-error/)
+  assert.match(screenshotFieldValidation, /格式不对，本次不会保存该字段/)
+})
+
+test('screenshot route shape invalid path is explicit and never silently downgrades calibration', () => {
+  assert.match(importConfirmRoute, /validateScreenshotRouteShape\(body\.routeShape\)/)
+  assert.match(importConfirmRoute, /code:\s*'route_shape_invalid'/)
+  assert.doesNotMatch(importConfirmRoute, /detail:\s*error\?\.message/)
+  assert.doesNotMatch(importConfirmRoute, /detail:\s*routeShapeResult\.error/)
+  assert.match(importConfirmRoute, /console\.error\('screenshot route shape checkin insert failed'/)
+  assert.match(importConfirmRoute, /shapeMetrics:\s*measureScreenshotRouteShape\(routeShapeResult\.shape\)/)
+  assert.match(importConfirmRoute, /校准路线太复杂，无法保存。请减少控制点后再确认，或清空校准路线后只保存文字数据。/)
+  assert.match(screenshotClient, /仅保存文字数据/)
+  assert.match(screenshotClient, /routeShapeRecoveryOpen/)
+  assert.doesNotMatch(screenshotClient, /routeShapeValidation\.ok[\s\S]{0,300}routeShape:\s*null/)
+})
+
+test('activity read fallback drops only screenshot route shape before legacy stats-less select', () => {
+  assert.match(activityPage, /CHECKIN_SELECT_FULL/)
+  assert.match(activityPage, /CHECKIN_SELECT_WITHOUT_SCREENSHOT_ROUTE_SHAPE/)
+  assert.match(activityPage, /CHECKIN_SELECT_LEGACY/)
+  const intermediateIndex = activityPage.indexOf('CHECKIN_SELECT_WITHOUT_SCREENSHOT_ROUTE_SHAPE')
+  const legacyIndex = activityPage.indexOf('CHECKIN_SELECT_LEGACY')
+  assert.ok(intermediateIndex >= 0)
+  assert.ok(legacyIndex >= 0)
+  assert.ok(intermediateIndex < legacyIndex)
+  const intermediateSelect = activityPage.match(/const CHECKIN_SELECT_WITHOUT_SCREENSHOT_ROUTE_SHAPE = `([\s\S]*?)`/)?.[1] ?? ''
+  assert.match(intermediateSelect, /distance_meters/)
+  assert.match(intermediateSelect, /duration_seconds/)
+  assert.match(intermediateSelect, /elevation_gain_meters/)
+  assert.match(intermediateSelect, /track_points/)
+  assert.doesNotMatch(intermediateSelect, /screenshot_route_shape/)
+})
+
+test('screenshot route shape is not optional-stripped on insert', () => {
+  const optionalColumns = trekVerifyHelpers.match(/const OPTIONAL_CHECKIN_COLUMNS = \[([\s\S]*?)\]/)?.[1] ?? ''
+  assert.doesNotMatch(optionalColumns, /screenshot_route_shape/)
 })
 
 test('mountain search supports recognized mountain name candidates such as Taishan', () => {

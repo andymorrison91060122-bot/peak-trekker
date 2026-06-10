@@ -19,6 +19,7 @@ import {
   WarnIcon,
 } from '@/components/ui/Icons'
 import type { CheckinSource } from '@/types'
+import type { PersistedScreenshotRouteShape } from '@/lib/screenshot-route-shape'
 import { getDifficultyLevelLabel } from '@/lib/license-ui'
 import {
   ACTIVITY_NOTE_MAX_LENGTH,
@@ -91,6 +92,7 @@ export type ActivityDetailViewModel = {
   companions?: ActivityCompanionViewModel[]
   elevationSamples: number[]
   trackPoints: ActivityTrackPointViewModel[]
+  screenshotRouteShape: PersistedScreenshotRouteShape | null
   proofStatus: 'confirmed' | 'partial' | 'none'
   recordCount: number
 }

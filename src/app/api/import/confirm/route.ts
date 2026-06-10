@@ -3,6 +3,7 @@ import { getSupplementalTimeFallback } from '@/lib/import/confirm-time-fallback'
 import { validateImportMountainSelectionDistance } from '@/lib/import/mountain-distance-check'
 import { normalizeScreenshotData } from '@/lib/import/screenshot-confirm-data'
 import type { NormalizedScreenshotData } from '@/lib/import/screenshot-confirm-data'
+import { measureScreenshotRouteShape, validateScreenshotRouteShape } from '@/lib/screenshot-route-shape'
 import { computeTrackContentHash } from '@/lib/import/track-hash'
 import { buildComputedTrackStats, findHighestTrackPoint } from '@/lib/import/track-stats'
 import type { ImportedTrackData, TrackPoint } from '@/lib/import/types'
@@ -258,6 +259,13 @@ async function handleScreenshotRecognitionConfirm({
   if (!parsedDataResult.ok) {
     return NextResponse.json({ error: 'parsedData invalid' }, { status: 400 })
   }
+  const routeShapeResult = validateScreenshotRouteShape(body.routeShape)
+  if (!routeShapeResult.ok) {
+    return NextResponse.json({
+      error: '校准路线太复杂，无法保存。请减少控制点后再确认，或清空校准路线后只保存文字数据。',
+      code: 'route_shape_invalid',
+    }, { status: 400 })
+  }
 
   const mountainId = typeof body.mountainId === 'string' ? (body.mountainId.trim() || null) : null
   const { mountain, response } = await fetchImportMountain(supabase, mountainId)
@@ -266,7 +274,6 @@ async function handleScreenshotRecognitionConfirm({
   const parsedData = parsedDataResult.data
   const { startTime, endTime } = screenshotTimeRange(parsedData)
   const note = toSafeNote(body.note)
-  const createdAt = new Date().toISOString()
 
   const { data: checkin, error } = await insertCheckinWithFallback(
     supabase,
@@ -279,9 +286,10 @@ async function handleScreenshotRecognitionConfirm({
       latitude: mountain?.latitude ?? null,
       longitude: mountain?.longitude ?? null,
       note,
-      verified_at: createdAt,
+      // Screenshot recognition is uploaded proof, not GPS/summit verification.
+      verified_at: null,
       verification_distance_m: null,
-      ranking_weight: mountain ? rankingWeightByDifficulty(mountain.difficulty) : 0,
+      ranking_weight: 0,
       distance_meters: parsedData.distanceMeters,
       duration_seconds: parsedData.durationSeconds ?? null,
       elevation_gain_meters: parsedData.elevationGainMeters ?? null,
@@ -292,12 +300,25 @@ async function handleScreenshotRecognitionConfirm({
       end_time: endTime,
       track_name: parsedData.name ?? parsedData.location ?? parsedData.fileName ?? '截图识别活动',
       track_points: [],
+      screenshot_route_shape: routeShapeResult.shape,
     },
     'id'
   )
 
   if (error || !checkin) {
-    return NextResponse.json({ error: error?.message ?? 'create screenshot checkin failed' }, { status: 500 })
+    console.error('screenshot route shape checkin insert failed', {
+      code: routeShapeResult.shape ? 'route_shape_persist_failed' : 'screenshot_checkin_insert_failed',
+      userId,
+      hasShape: Boolean(routeShapeResult.shape),
+      shapeMetrics: measureScreenshotRouteShape(routeShapeResult.shape),
+      error: error?.message ?? 'missing inserted checkin',
+    })
+    return NextResponse.json({
+      error: routeShapeResult.shape
+        ? '校准路线保存失败，请稍后重试。'
+        : '活动生成失败，请稍后再试。',
+      code: routeShapeResult.shape ? 'route_shape_persist_failed' : undefined,
+    }, { status: 500 })
   }
 
   return NextResponse.json({

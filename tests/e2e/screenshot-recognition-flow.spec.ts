@@ -141,6 +141,7 @@ test('screenshot recognition flow writes an uploaded activity and opens activity
 
   await expect(page).toHaveURL(new RegExp(`/activity/${checkinId}`), { timeout: 20_000 })
   await expect(page.getByText('UPLOADED')).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByText('GPS VERIFIED')).toHaveCount(0)
   await expect(page.getByText('5.9', { exact: true })).toBeVisible()
   await expect(page.getByText('总距离 km')).toBeVisible()
   await expect(page.getByRole('link', { name: '生成分享' })).toHaveAttribute('href', `/share?checkinId=${checkinId}`)
@@ -148,13 +149,16 @@ test('screenshot recognition flow writes an uploaded activity and opens activity
 
   const { data, error } = await getSupabaseAdminClient()
     .from('checkins')
-    .select('id, source, verified_at, mountain_id, distance_meters, duration_seconds, max_elevation_meters, elevation_gain_meters')
+    .select(
+      'id, source, verified_at, ranking_weight, mountain_id, distance_meters, duration_seconds, max_elevation_meters, elevation_gain_meters',
+    )
     .eq('id', checkinId)
     .single()
 
   expect(error).toBeNull()
   expect(data?.source).toBe('screenshot_recognition')
-  expect(data?.verified_at).toBeTruthy()
+  expect(data?.verified_at).toBeNull()
+  expect(data?.ranking_weight).toBe(0)
   expect(data?.mountain_id).toBeTruthy()
   expect(data?.distance_meters).toBe(5900)
   expect(data?.duration_seconds).toBe(7200)

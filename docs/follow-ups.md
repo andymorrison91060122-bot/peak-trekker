@@ -1,15 +1,15 @@
-# Peak Trekker Follow-up 清单 + 项目交接 v0.8
+# Peak Trekker Follow-up 清单 + 项目交接 v0.9
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-02 · 最新版本记录: v0.54
+> Last Updated: 2026-06-10 · 最新版本记录: v0.55
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`7cf0cbc`（Merge FU-62 · 2026-06-02）
+`e4f4d37`（Merge FU-36 A1 screenshot route calibration · 2026-06-10）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（4 条）
+## Active Follow-ups（9 条）
 
 ### FU-16 · mountains 坐标精度审计
 
@@ -188,6 +188,112 @@
 - 不重写 QWeather adapter
 
 **实施时机**: 不立即启动，作为上线门禁项跟踪。所有功能性 sprint 完成 / 接近上线时启动。
+
+---
+
+### FU-63 · 仓库 pyc / __pycache__ hygiene PR
+
+- **优先级**: P2
+- **归属阶段**: 工程卫生 / 后续独立 PR
+- **状态**: 🟢 active
+
+**背景**: FU-36 A1 release 期间确认当前 main 继承了已 tracked 的 `.codex/**/__pycache__/*.pyc` 文件。A1 PR 明确要求不混入 pyc cleanup，因此该项需独立 hygiene PR 处理。
+
+**实施建议**:
+- `git rm --cached` 已 tracked 的 `.codex/**/__pycache__/*.pyc`
+- `.gitignore` 补充 `__pycache__/` 与 `*.pyc`
+- 确认不删除用户本地必要缓存，只停止 Git 追踪
+- 独立 hygiene commit / PR，不与功能代码混合
+
+**验收**:
+- `git ls-files | rg '\.pyc$|__pycache__'` 无结果
+- `.gitignore` 明确覆盖 `__pycache__/` 与 `*.pyc`
+- 不包含任何功能代码改动
+
+---
+
+### FU-64 · Supabase migration history repair for 20260609090000
+
+- **优先级**: P2
+- **归属阶段**: 数据库运维卫生 / 上线后整理
+- **状态**: 🟢 active
+
+**背景**: FU-36 release Step 2b 已通过 PostgREST control probe 确认 `public.checkins.screenshot_route_shape` 已存在且为 nullable `jsonb`。但 `supabase_migrations.schema_migrations` 历史在只读探测中不可达 / 未确认。迁移文件 `20260609090000_add_screenshot_route_shape.sql` 是 `add column if not exists`，对当前列状态是安全 no-op，但迁移历史可能存在 drift。
+
+**实施建议**:
+- 使用 Supabase 插件核实 migration history
+- 若历史缺失，按 Supabase 推荐方式登记 / 修复 `20260609090000`
+- 不 drop / recreate 已存在列
+- 修复后再次确认 `public.checkins.screenshot_route_shape` 仍为 nullable `jsonb`
+
+**验收**:
+- `20260609090000` 在 migration history 中可见
+- `information_schema.columns` 仍显示 `screenshot_route_shape jsonb nullable`
+- 生产数据无删除 / 无重写
+
+---
+
+### FU-65 · 截图未匹配山峰活动标题与列表副标签区分
+
+- **优先级**: P2
+- **归属阶段**: UI sprint / full loop
+- **状态**: 🟢 active
+
+**背景**: FU-36 A1 smoke 中发现未匹配山峰的截图活动标题会显示为「未关联山峰」，而用户实际输入的地点（如「阳江市」）更适合作为活动主标题。「未关联山峰 / 地区」应降级为副标签，避免用户在 Activity / Trek / Archive 列表中看到像错误状态一样的主标题。
+
+**实施建议**:
+- Activity Detail: 当 `source='screenshot_recognition'` 且无 `mountain_id` 时，优先使用用户输入地点 / location 作为标题
+- 「未关联山峰」或「未关联地区」降级为副标签 / metadata
+- Trek / Archive / 活动列表保持同样区分，避免列表中继续用「未关联山峰」做主标题
+- 覆盖有 location、无 location、匹配山峰三类场景
+
+**验收**:
+- 未匹配山峰但有地点的截图活动，主标题显示用户地点
+- 「未关联山峰 / 地区」只作为副标签出现
+- 匹配山峰活动现有标题不回退
+- 375px Activity + Archive / Trek 列表视觉验收
+
+---
+
+### FU-66 · FU-36 A2 community route badge guard
+
+- **优先级**: P1
+- **归属阶段**: FU-36 A2 / Community + Share guard
+- **状态**: 🟢 active
+
+**背景**: FU-36 A1 只把 screenshot_route_shape 渲染在 Activity detail 的独立截图校准路线卡片中，未接入 Share / Community。后续若 screenshot_route_shape 进入 community / share preview，必须按 source gate 路线徽章，防止 `screenshot_recognition` 被显示为「GPS 真实轨迹」。
+
+**实施建议**:
+- Community / Share preview 中 route badge 按 `source` 与数据来源区分
+- `source='screenshot_recognition'` 即使有 `screenshot_route_shape`，也不得显示「GPS 真实轨迹」
+- 继续保持 `track_points` / GPS 轨迹与 screenshot normalized shape 语义隔离
+- 若需要展示，可使用「截图校准路线」/ `UPLOADED` 一类非 GPS 文案
+
+**验收**:
+- screenshot_recognition + screenshot_route_shape 的社区 / 分享预览不出现「GPS 真实轨迹」
+- GPS / track_import 原有 badge 不回退
+- 覆盖 published community post 与 share preview 两条路径
+
+---
+
+### FU-67 · Activity 海拔空值渲染统一
+
+- **优先级**: P2
+- **归属阶段**: Activity UI polish
+- **状态**: 🟢 active
+
+**背景**: FU-36 release smoke 中观察到同一个 null 海拔值在 Activity hero card 中渲染为 `0 m`，但在 grid 中渲染为 `--`。同一空值应统一表达，避免用户误以为系统记录了真实 0m 海拔。
+
+**实施建议**:
+- 梳理 Activity Detail 中 max elevation / elevation gain / related elevation metric 的空值 formatter
+- 统一 null / undefined / invalid 为空态 `--`
+- 仅真实数值 0 才允许显示 `0 m`，并确认该语义是否适合对应字段
+- 加 focused formatter test 或 Activity 静态测试
+
+**验收**:
+- 同一 null 海拔值在 hero 与 grid 中一致显示
+- 真实 0 值与 null 不被混淆
+- GPS / screenshot / imported activity 三类来源无回退
 
 ---
 

@@ -1,4 +1,4 @@
-import { buildShareTrackPath, type ShareTrackPreview } from '../share-track-preview'
+import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, type ShareTrackPreview } from '../share-track-preview'
 import type { ShareTemplateProps } from './types'
 import {
   BrandFooter,
@@ -9,11 +9,14 @@ import {
   buildMountainLine,
   formatDistance,
   formatPlainNumber,
+  formatShareAltitude,
   hasShareTrackPoint,
+  hasShareAltitude,
 } from './shared'
 
 export function PremiumVerticalStoryTemplate({ data, photoDataUrl }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <PosterShell background="#0a0c0e">
@@ -42,15 +45,15 @@ export function PremiumVerticalStoryTemplate({ data, photoDataUrl }: ShareTempla
 
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 58, right: 58, bottom: 310 }}>
         {mountainLine ? <span style={{ color: C.fg, fontSize: 42, lineHeight: 1.2, fontWeight: 800 }}>{mountainLine}</span> : null}
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 24 }}>
-          <span style={{ color: C.success, fontSize: 120, lineHeight: 0.92, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 24 }}>
+          <span style={{ color: C.success, fontSize: 120, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 46, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
-        </div>
+        </div> : null}
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 80, right: 80, bottom: 198, height: 58, alignItems: 'center', justifyContent: 'center' }}>
-        <StoryStat icon="pin" value={formatPlainNumber(data.altitude)} unit="m" />
-        <StoryStat icon="mountain" value={formatDistance(data.distance)} unit="km" separator />
+        {showAltitude ? <StoryStat icon="pin" value={formatShareAltitude(data)} unit="m" /> : null}
+        <StoryStat icon="mountain" value={formatDistance(data.distance)} unit="km" separator={showAltitude} />
         {data.visibleFields.duration ? <StoryStat icon="clock" value={data.duration || '--'} separator /> : null}
         {data.visibleFields.elevationGain ? <StoryStat icon="arrow" value={formatPlainNumber(data.elevationGain)} unit="m" separator /> : null}
       </div>
@@ -123,12 +126,20 @@ function StoryIcon({ kind }: { kind: 'pin' | 'mountain' | 'clock' | 'arrow' }) {
 }
 
 function VerticalStoryTrailSvg({ trackPreview }: { trackPreview?: ShareTrackPreview | null }) {
-  const route = buildShareTrackPath(trackPreview, {
+  const route = buildShareTrackRender(trackPreview, {
     x: 230,
     y: 390,
     width: 620,
     height: 620,
-    padding: 56,
+    padding: 74,
+    ...SHARE_TRACK_CONTENT_FIT,
+  }, {
+    lineWidth: 12,
+    glowWidth: 42,
+    glowOpacity: 0.13,
+    startRadius: 19,
+    startStrokeWidth: 8,
+    endRadius: 27,
   })
 
   if (!route) return null
@@ -141,38 +152,34 @@ function VerticalStoryTrailSvg({ trackPreview }: { trackPreview?: ShareTrackPrev
       data-testid="premium-vertical-story-trail"
       style={{ position: 'absolute', left: 0, top: 0 }}
     >
-      <defs>
-        <filter id="vertical-story-trail-glow" x="-24%" y="-24%" width="148%" height="148%">
-          <feGaussianBlur stdDeviation="13" />
-        </filter>
-      </defs>
       {route.d ? (
         <>
           <path
             data-real-track="true"
             d={route.d}
             stroke={C.success}
-            strokeWidth="42"
+            strokeWidth={route.glowWidth}
             strokeLinecap="round"
             strokeLinejoin="round"
             fill="none"
-            opacity=".13"
-            filter="url(#vertical-story-trail-glow)"
+            opacity={route.glowOpacity}
+            vectorEffect="non-scaling-stroke"
           />
           <path
             data-real-track="true"
             d={route.d}
             stroke={C.success}
-            strokeWidth="12"
+            strokeWidth={route.lineWidth}
             strokeLinecap="round"
             strokeLinejoin="round"
             fill="none"
             opacity=".86"
+            vectorEffect="non-scaling-stroke"
           />
         </>
       ) : null}
-      <circle data-real-track="true" cx={route.start.x} cy={route.start.y} r="19" fill={C.bgDeep} stroke={C.success} strokeWidth="8" />
-      {route.d ? <circle data-real-track="true" cx={route.end.x} cy={route.end.y} r="27" fill={C.success} /> : null}
+      <circle data-real-track="true" cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bgDeep} stroke={C.success} strokeWidth={route.startStrokeWidth} />
+      {route.d ? <circle data-real-track="true" cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={C.success} /> : null}
     </svg>
   )
 }

@@ -5,13 +5,15 @@ import {
   PhotoLayer,
   PosterShell,
   buildMountainLine,
-  formatPlainNumber,
+  formatShareAltitude,
   fourStats,
+  hasShareAltitude,
 } from './shared'
 
 export function PremiumMonoFilmTemplate({ data, photoDataUrl }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const stats = fourStats(data)
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <PosterShell background="#0a0c0e">
@@ -43,11 +45,13 @@ export function PremiumMonoFilmTemplate({ data, photoDataUrl }: ShareTemplatePro
         {mountainLine ? (
           <span style={{ color: C.fg, fontSize: 42, lineHeight: 1.18, fontWeight: 800, textAlign: 'left' }}>{mountainLine}</span>
         ) : null}
-        <span style={{ color: C.fg2, fontSize: 28, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em', marginTop: 52 }}>峰顶海拔</span>
+        {showAltitude ? <>
+        <span style={{ color: C.fg2, fontSize: 28, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em', marginTop: 52 }}>最高海拔</span>
         <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 24 }}>
-          <span style={{ color: C.success, fontSize: 172, lineHeight: 0.9, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+          <span style={{ color: C.success, fontSize: 172, lineHeight: 0.9, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 58, lineHeight: 1, fontWeight: 800, marginLeft: 12 }}>m</span>
         </div>
+        </> : null}
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 58, right: 58, top: 1388, alignItems: 'stretch', justifyContent: 'center' }}>

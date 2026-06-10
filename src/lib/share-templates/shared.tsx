@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { ReactNode } from 'react'
-import { buildShareTrackPath, type ShareTrackPreview } from '../share-track-preview'
+import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, type ShareTrackPreview } from '../share-track-preview'
 import type { ShareTemplateData } from './types'
 
 export const POSTER_WIDTH = 1080
@@ -39,6 +39,14 @@ export const DEFAULT_PHOTO_BACKGROUND =
 export function formatPlainNumber(value: number) {
   if (!Number.isFinite(value)) return '--'
   return String(Math.round(value))
+}
+
+export function hasShareAltitude<T extends Pick<ShareTemplateData, 'altitude'>>(data: T): data is T & { altitude: number } {
+  return typeof data.altitude === 'number' && Number.isFinite(data.altitude)
+}
+
+export function formatShareAltitude(data: Pick<ShareTemplateData, 'altitude'>) {
+  return hasShareAltitude(data) ? formatPlainNumber(data.altitude) : ''
 }
 
 export function formatDistance(value: number) {
@@ -183,12 +191,20 @@ export function MountainRidgeSvg({ opacity = 0.2 }: { opacity?: number }) {
 }
 
 export function MiniTrailCircle({ size = 156, trackPreview }: { size?: number; trackPreview?: ShareTrackPreview | null }) {
-  const route = buildShareTrackPath(trackPreview, {
+  const route = buildShareTrackRender(trackPreview, {
     x: 14,
     y: 14,
     width: 92,
     height: 92,
-    padding: 2,
+    padding: 9,
+    ...SHARE_TRACK_CONTENT_FIT,
+  }, {
+    lineWidth: 6,
+    glowWidth: 18,
+    glowOpacity: 0.18,
+    startRadius: 7,
+    startStrokeWidth: 4,
+    endRadius: 8,
   })
 
   return (
@@ -207,10 +223,13 @@ export function MiniTrailCircle({ size = 156, trackPreview }: { size?: number; t
       {route ? (
         <svg width={size - 42} height={size - 42} viewBox="0 0 120 120">
           {route.d ? (
-            <path d={route.d} stroke={C.fg} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <>
+              <path d={route.d} stroke={C.success} strokeWidth={route.glowWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={route.glowOpacity} vectorEffect="non-scaling-stroke" />
+              <path d={route.d} stroke={C.fg} strokeWidth={route.lineWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" vectorEffect="non-scaling-stroke" />
+            </>
           ) : null}
-          <circle cx={route.start.x} cy={route.start.y} r="7" fill={C.fg} />
-          {route.d ? <circle cx={route.end.x} cy={route.end.y} r="8" fill={C.success} /> : null}
+          <circle cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} />
+          {route.d ? <circle cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={C.success} /> : null}
         </svg>
       ) : null}
     </div>
@@ -391,47 +410,51 @@ export function TrailSvg({
   lineWidth?: number
   trackPreview?: ShareTrackPreview | null
 }) {
-  const route = buildShareTrackPath(trackPreview, {
+  const route = buildShareTrackRender(trackPreview, {
     x: 240,
     y: 120,
     width: 720,
     height: 800,
-    padding: 40,
+    padding: 96,
+    ...SHARE_TRACK_CONTENT_FIT,
+  }, {
+    lineWidth,
+    glowWidth: Math.max(lineWidth * 4, glow * 2.4),
+    glowOpacity: 0.16,
+    startRadius: Math.max(13, lineWidth * 2.35),
+    startStrokeWidth: Math.max(5, lineWidth),
+    endRadius: Math.max(18, lineWidth * 3.2),
   })
 
   if (!route) return null
 
   return (
     <svg width={POSTER_WIDTH} height={POSTER_HEIGHT} viewBox={`0 0 ${POSTER_WIDTH} ${POSTER_HEIGHT}`} style={{ position: 'absolute', inset: 0 }}>
-      <defs>
-        <filter id="poster-trail-glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation={glow} />
-        </filter>
-      </defs>
       {route.d ? (
         <path
           d={route.d}
           stroke={C.success}
-          strokeWidth={lineWidth * 4}
+          strokeWidth={route.glowWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
-          opacity=".16"
-          filter="url(#poster-trail-glow)"
+          opacity={route.glowOpacity}
+          vectorEffect="non-scaling-stroke"
         />
       ) : null}
       {route.d ? (
         <path
           d={route.d}
           stroke={C.success}
-          strokeWidth={lineWidth}
+          strokeWidth={route.lineWidth}
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
+          vectorEffect="non-scaling-stroke"
         />
       ) : null}
-      {route ? <circle cx={route.start.x} cy={route.start.y} r="19" fill={C.bg} stroke={C.success} strokeWidth="8" /> : null}
-      {route?.d ? <circle cx={route.end.x} cy={route.end.y} r="26" fill={C.success} /> : null}
+      {route ? <circle cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} /> : null}
+      {route?.d ? <circle cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={C.success} /> : null}
     </svg>
   )
 }

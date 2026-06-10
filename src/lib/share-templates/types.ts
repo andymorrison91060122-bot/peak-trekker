@@ -38,7 +38,7 @@ export type ShareTemplateData = {
   mountainName: string
   location: string
   date: string
-  altitude: number
+  altitude?: number | null
   distance: number
   duration: string
   elevationGain: number

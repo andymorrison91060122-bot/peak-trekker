@@ -1,13 +1,13 @@
 'use client'
 
 import type { ChangeEvent, CSSProperties, ReactNode } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { OcrResult, ParsedScreenshotFields, ScreenshotOcrSource, ScreenshotQuotaState } from '@/lib/screenshot/types'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import ModalShell from '@/components/ui/ModalShell'
-import { BackIcon, CameraIcon, CheckIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
+import { BackIcon, CheckIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
 import { trackEvent } from '@/lib/analytics/client'
 import ScreenshotRouteCalibrationSection from './ScreenshotRouteCalibrationSection'
 import { createEmptyScreenshotRouteCalibration, type ScreenshotRouteCalibration } from '@/lib/screenshot-track/calibration'
@@ -21,8 +21,14 @@ import {
 import {
   buildPersistableScreenshotRouteShape,
   measureScreenshotRouteShape,
+  type PersistedScreenshotRouteShape,
   validateScreenshotRouteShape,
 } from '@/lib/screenshot-route-shape'
+import {
+  buildShareTrackRender,
+  buildShareTrackPreviewFromScreenshotRouteShape,
+  SHARE_TRACK_CONTENT_FIT,
+} from '@/lib/share-track-preview'
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
 const PROCESSING_MIN_DURATION_MS = 2000
@@ -52,6 +58,7 @@ type RecognizeResponse = {
 type SubmitResult = {
   ok: true
   checkinId?: string
+  routeShape?: PersistedScreenshotRouteShape | null
 }
 
 type FieldToggles = ScreenshotFieldToggles
@@ -220,47 +227,6 @@ function routeSolveLooksPending(calibration: ScreenshotRouteCalibration) {
     calibration.controlPoints.length >= 2 &&
     (!calibration.imageSize || calibration.segments.length < calibration.controlPoints.length - 1)
   )
-}
-
-function formatFieldValue(fields: ParsedScreenshotFields, key: FieldKey) {
-  switch (key) {
-    case 'elevation': {
-      const field = fields.elevation
-      return hasFieldValue(field) ? `${Math.round(field.value)} m` : '—'
-    }
-    case 'distance': {
-      const field = fields.distance
-      return hasFieldValue(field) ? `${field.value} km` : '—'
-    }
-    case 'duration': {
-      const field = fields.duration
-      return hasFieldValue(field) ? formatDuration(field.value) : '—'
-    }
-    case 'elevationGain': {
-      const field = fields.elevationGain
-      return hasFieldValue(field) ? `${Math.round(field.value)} m` : '—'
-    }
-    case 'elevationLoss': {
-      const field = fields.elevationLoss
-      return hasFieldValue(field) ? `${Math.round(field.value)} m` : '—'
-    }
-    case 'date': {
-      const field = fields.date
-      return hasFieldValue(field) ? field.value : '—'
-    }
-    case 'location': {
-      const field = fields.location
-      return hasFieldValue(field) ? field.value : '—'
-    }
-    case 'speed': {
-      const field = fields.speed
-      return hasFieldValue(field) ? `${field.value} km/h` : '—'
-    }
-    case 'pace': {
-      const field = fields.paceMinPerKm
-      return hasFieldValue(field) ? `${formatPaceForInput(field.value)} /km` : '—'
-    }
-  }
 }
 
 function hasParsedField(fields: ParsedScreenshotFields, key: FieldKey) {
@@ -1836,303 +1802,348 @@ function SubmittingScreen() {
   )
 }
 
-function PenIcon({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-      <path
-        d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M13.5 8.5l2 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  )
-}
+function ArchiveRouteMedallion({ routeShape }: { routeShape?: PersistedScreenshotRouteShape | null }) {
+  const preview = useMemo(() => buildShareTrackPreviewFromScreenshotRouteShape(routeShape), [routeShape])
+  const route = useMemo(() => buildShareTrackRender(preview, {
+    x: 35,
+    y: 35,
+    width: 118,
+    height: 118,
+    padding: 14,
+    ...SHARE_TRACK_CONTENT_FIT,
+  }, {
+    lineWidth: 3.6,
+    glowWidth: 15,
+    glowOpacity: 0.14,
+    startRadius: 5.8,
+    startStrokeWidth: 2.8,
+    endRadius: 6.8,
+  }), [preview])
 
-function EyeIcon({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-      <path
-        d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.8" />
-    </svg>
-  )
-}
-
-function SuccessActionCard({
-  label,
-  sub,
-  icon,
-  accent = false,
-  onClick,
-}: {
-  label: string
-  sub: string
-  icon: ReactNode
-  accent?: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        appearance: 'none',
-        border: accent
-          ? '1px solid color-mix(in srgb, var(--color-success) 26%, transparent)'
-          : '1px solid var(--color-outline)',
-        background: accent
-          ? 'color-mix(in srgb, var(--color-success) 8%, var(--color-surface-variant))'
-          : 'var(--color-surface-variant)',
-        color: accent ? 'var(--color-success)' : 'var(--color-on-surface)',
-        borderRadius: 14,
-        padding: 'var(--space-3)',
-        textAlign: 'left',
-        cursor: 'pointer',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-2)',
-        minWidth: 0,
-      }}
-    >
-      <span
+  if (!route) {
+    return (
+      <div
         style={{
-          width: 32,
-          height: 32,
-          borderRadius: 10,
+          position: 'absolute',
+          inset: 35,
           display: 'grid',
           placeItems: 'center',
-          background: accent
-            ? 'color-mix(in srgb, var(--color-success) 14%, transparent)'
-            : 'var(--color-surface-elevated)',
-          border: accent
-            ? '1px solid color-mix(in srgb, var(--color-success) 24%, transparent)'
-            : '1px solid var(--color-outline)',
+          color: 'var(--color-success)',
         }}
       >
-        {icon}
-      </span>
-      <span
-        style={{
-          color: 'var(--color-on-surface)',
-          fontSize: 'var(--font-label-m-size)',
-          lineHeight: 'var(--font-label-m-line)',
-          fontWeight: 700,
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          color: 'var(--color-on-surface-variant)',
-          fontSize: 'var(--font-label-s-size)',
-          lineHeight: 'var(--font-label-s-line)',
-          fontWeight: 500,
-        }}
-      >
-        {sub}
-      </span>
-    </button>
+        <ArchiveBrandMountainMark size={118} />
+      </div>
+    )
+  }
+
+  return (
+    <svg
+      width="188"
+      height="188"
+      viewBox="0 0 188 188"
+      aria-hidden="true"
+      style={{ position: 'absolute', inset: 0 }}
+    >
+      {route.d ? (
+        <>
+          <path
+            d={route.d}
+            stroke="var(--color-success)"
+            strokeWidth={route.glowWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            opacity={route.glowOpacity}
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            d={route.d}
+            stroke="var(--color-success)"
+            strokeWidth={route.lineWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            vectorEffect="non-scaling-stroke"
+          />
+        </>
+      ) : null}
+      <circle cx={route.start.x} cy={route.start.y} r={route.startRadius} fill="var(--color-surface)" stroke="var(--color-success)" strokeWidth={route.startStrokeWidth} />
+      {route.d ? <circle cx={route.end.x} cy={route.end.y} r={route.endRadius} fill="var(--color-success)" /> : null}
+    </svg>
   )
 }
 
-function SuccessScreen({
-  result,
+function ArchiveBrandMountainMark({ size = 118 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={{ display: 'block' }}>
+      <path
+        d="M3 19l5-9 4 6 3-4 6 7"
+        stroke="var(--color-success)"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <path
+        d="M8 10l2.8 4.2 1.2-1.9 2.8 4.2"
+        stroke="var(--color-success)"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+        opacity=".82"
+      />
+    </svg>
+  )
+}
+
+function ArchiveMoment({
+  editableFields,
+  selectedMountain,
   submitResult,
-  onViewActivity,
+  onContinue,
+  onBack,
 }: {
-  result: RecognizeResult | null
+  editableFields: EditableFields
+  selectedMountain: MountainOption | null
   submitResult: SubmitResult | null
-  onViewActivity: () => void
+  onContinue: () => void
+  onBack: () => void
 }) {
-  const fields = result?.parsedFields ?? {}
+  const displayTitle = selectedMountain?.name ?? (editableFields.location.trim() || '未命名山行')
+  const stats = [
+    ['总距离', editableFields.distance ? `${editableFields.distance}km` : '--'],
+    ['时长', editableFields.duration || '--'],
+    ['爬升', editableFields.elevationGain ? `${editableFields.elevationGain}m` : '--'],
+  ] as const
+
   return (
     <div
       data-screenshot-step="success"
+      data-testid="screenshot-archive-moment"
       style={{
-        minHeight: '100dvh',
+        height: '100dvh',
         maxWidth: 'var(--page-max-width)',
         margin: '0 auto',
-        background: 'var(--color-surface)',
+        background:
+          'radial-gradient(120% 80% at 50% 28%, color-mix(in srgb, var(--color-success) 12%, #11201a) 0%, #0b0d0f 58%, #08090a 100%)',
         color: 'var(--color-on-surface)',
-        padding: 'var(--space-10) var(--space-4) calc(var(--space-8) + env(safe-area-inset-bottom))',
-        overflowX: 'hidden',
+        padding: '0 28px',
+        overflow: 'hidden',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
-      <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-        <div
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            display: 'grid',
-            placeItems: 'center',
-            color: 'var(--color-success)',
-            background: 'color-mix(in srgb, var(--color-success) 12%, transparent)',
-            border: '1px solid color-mix(in srgb, var(--color-success) 28%, transparent)',
-          }}
-        >
-          <CheckIcon size={28} />
-        </div>
-        <h1
-          style={{
-            margin: 'var(--space-4) 0 0',
-            color: 'var(--color-on-surface)',
-            fontSize: 'var(--font-headline-m-size)',
-            lineHeight: 'var(--font-headline-m-line)',
-            fontWeight: 700,
-          }}
-        >
-          已带回档案
-        </h1>
-        <p
-          style={{
-            margin: 'var(--space-2) 0 0',
-            maxWidth: 280,
-            color: 'var(--color-on-surface-variant)',
-            fontSize: 'var(--font-label-m-size)',
-            lineHeight: 1.6,
-          }}
-        >
-          {formatFieldValue(fields, 'date')} 这次山行已成为你档案里的一条记录
-        </p>
+      <style>
+        {`
+          @keyframes screenshotArchiveRot { to { transform: rotate(360deg); } }
+          @keyframes screenshotArchiveBadgeIn {
+            from { opacity: 0; transform: translateY(18px) scale(.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+          @keyframes screenshotArchiveSeal {
+            to { stroke-dashoffset: 0; }
+          }
+          @keyframes screenshotArchiveFadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            [data-screenshot-archive-animated] { animation: none !important; }
+          }
+        `}
+      </style>
+      <button
+        type="button"
+        onClick={onBack}
+        aria-label="返回活动"
+        style={{
+          position: 'absolute',
+          top: 'calc(env(safe-area-inset-top, 0px) + 50px)',
+          left: 10,
+          zIndex: 5,
+          width: 44,
+          height: 44,
+          display: 'grid',
+          placeItems: 'center',
+          appearance: 'none',
+          background: 'transparent',
+          border: 'none',
+          color: 'var(--color-on-surface)',
+          cursor: submitResult?.checkinId ? 'pointer' : 'default',
+          opacity: submitResult?.checkinId ? 1 : 0.45,
+        }}
+      >
+        <BackIcon size={22} />
+      </button>
 
+      <svg
+        width="320"
+        height="320"
+        viewBox="0 0 320 320"
+        data-screenshot-archive-animated
+        style={{
+          position: 'absolute',
+          top: '18%',
+          opacity: 0.16,
+          animation: 'screenshotArchiveRot 26s linear infinite',
+        }}
+      >
+        <circle
+          cx="160"
+          cy="160"
+          r="150"
+          fill="none"
+          stroke="var(--color-success)"
+          strokeWidth="1"
+          strokeDasharray="2 10"
+        />
+      </svg>
+
+      <main
+        data-screenshot-archive-animated
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          animation: 'screenshotArchiveBadgeIn .7s cubic-bezier(.2,.8,.2,1) both',
+        }}
+      >
         <div
+          data-testid={submitResult?.routeShape ? 'screenshot-archive-route-medallion' : 'screenshot-archive-text-medallion'}
           style={{
-            width: '100%',
-            marginTop: 'var(--space-6)',
-            borderRadius: 14,
-            border: '1px solid var(--color-outline)',
-            background: 'var(--color-surface-variant)',
-            padding: 'var(--space-4)',
-            textAlign: 'left',
+            position: 'relative',
+            width: 188,
+            height: 188,
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', alignItems: 'baseline' }}>
-            <div>
-              <div
-                style={{
-                  color: 'var(--color-on-surface)',
-                  fontSize: 'var(--font-title-m-size)',
-                  lineHeight: 'var(--font-title-m-line)',
-                  fontWeight: 700,
-                }}
-              >
-                截图识别活动
-              </div>
-              <div
-                style={{
-                  marginTop: 2,
-                  color: 'var(--color-on-surface-variant)',
-                  fontSize: 'var(--font-label-s-size)',
-                  lineHeight: 'var(--font-label-s-line)',
-                }}
-              >
-                来源：UPLOADED
-              </div>
-            </div>
-            <div
-              style={{
-                color: 'var(--color-success)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 'var(--font-title-l-size)',
-                lineHeight: 'var(--font-title-l-line)',
-                fontWeight: 700,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {formatFieldValue(fields, 'elevation')}
-            </div>
-          </div>
-          <div
+          <svg width="188" height="188" viewBox="0 0 188 188" fill="none" aria-hidden="true">
+            <circle cx="94" cy="94" r="88" fill="color-mix(in srgb, var(--color-success) 4%, transparent)" stroke="var(--color-outline)" strokeWidth="1" />
+            <circle
+              cx="94"
+              cy="94"
+              r="80"
+              fill="none"
+              stroke="var(--color-success)"
+              strokeWidth="2.4"
+              pathLength="1"
+              strokeDasharray="1"
+              strokeDashoffset="1"
+              strokeLinecap="round"
+              transform="rotate(-90 94 94)"
+              data-screenshot-archive-animated
+              style={{ animation: 'screenshotArchiveSeal 1.1s .25s cubic-bezier(.4,0,.2,1) forwards' }}
+            />
+            {Array.from({ length: 24 }).map((_, index) => {
+              const angle = (index / 24) * Math.PI * 2
+              const outerRadius = 70
+              const innerRadius = index % 6 === 0 ? 62 : 66
+              return (
+                <line
+                  key={index}
+                  x1={94 + Math.cos(angle) * outerRadius}
+                  y1={94 + Math.sin(angle) * outerRadius}
+                  x2={94 + Math.cos(angle) * innerRadius}
+                  y2={94 + Math.sin(angle) * innerRadius}
+                  stroke="var(--color-success)"
+                  strokeWidth="1"
+                  opacity="0.35"
+                />
+              )
+            })}
+          </svg>
+          <ArchiveRouteMedallion routeShape={submitResult?.routeShape} />
+        </div>
+
+        <section
+          data-screenshot-archive-animated
+          style={{
+            marginTop: 22,
+            animation: 'screenshotArchiveFadeUp .5s .7s both',
+          }}
+        >
+          <h1
             style={{
-              marginTop: 'var(--space-4)',
-              paddingTop: 'var(--space-3)',
-              borderTop: '1px solid var(--color-outline)',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-              gap: 'var(--space-3)',
+              margin: 0,
+              color: 'var(--color-on-surface)',
+              fontSize: 19,
+              lineHeight: 1.22,
+              fontWeight: 800,
+              letterSpacing: 0,
             }}
           >
-            {[
-              ['距离', formatFieldValue(fields, 'distance')],
-              ['时长', formatFieldValue(fields, 'duration')],
-              ['爬升', formatFieldValue(fields, 'elevationGain')],
-            ].map(([label, value]) => (
-              <div key={label}>
+            {displayTitle}
+          </h1>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 22, marginTop: 14 }}>
+            {stats.map(([label, value]) => (
+              <div key={label} style={{ textAlign: 'center' }}>
                 <div
                   style={{
-                    color: 'var(--color-on-surface-variant)',
-                    fontSize: 'var(--font-label-s-size)',
-                    lineHeight: 'var(--font-label-s-line)',
-                  }}
-                >
-                  {label}
-                </div>
-                <div
-                  style={{
-                    marginTop: 2,
                     color: 'var(--color-on-surface)',
                     fontFamily: 'var(--font-mono)',
-                    fontSize: 'var(--font-label-m-size)',
-                    lineHeight: 'var(--font-label-m-line)',
-                    fontWeight: 700,
+                    fontSize: 18,
+                    lineHeight: 1,
+                    fontWeight: 600,
                     whiteSpace: 'nowrap',
                   }}
                 >
                   {value}
                 </div>
+                <div
+                  style={{
+                    marginTop: 4,
+                    color: 'var(--color-on-surface-variant)',
+                    fontSize: 9.5,
+                    lineHeight: 1,
+                    fontWeight: 600,
+                  }}
+                >
+                  {label}
+                </div>
               </div>
             ))}
           </div>
-        </div>
-
-        <section style={{ width: '100%', marginTop: 'var(--space-6)', textAlign: 'left' }}>
-          <div
-            style={{
-              color: 'var(--color-on-surface-variant)',
-              fontSize: 'var(--font-label-s-size)',
-              lineHeight: 'var(--font-label-s-line)',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-            }}
-          >
-            接下来
-          </div>
-          <div
-            style={{
-              marginTop: 'var(--space-3)',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-              gap: 'var(--space-3)',
-            }}
-          >
-            <SuccessActionCard label="补照片" sub="登顶 / 路上" icon={<CameraIcon size={20} />} onClick={() => undefined} />
-            <SuccessActionCard label="写一句话" sub="留下这次的感受" icon={<PenIcon size={20} />} onClick={() => undefined} />
-            <SuccessActionCard
-              label="生成分享"
-              sub="海拔卡 / 朋友圈"
-              icon={<ShareIcon size={20} />}
-              accent
-              onClick={() => undefined}
-            />
-            <SuccessActionCard
-              label="查看活动"
-              sub={submitResult?.checkinId ? '进入完整记录' : '活动页待生成'}
-              icon={<EyeIcon size={20} />}
-              onClick={onViewActivity}
-            />
-          </div>
         </section>
+
+        <div
+          data-screenshot-archive-animated
+          style={{
+            marginTop: 26,
+            textAlign: 'center',
+            animation: 'screenshotArchiveFadeUp .5s 1s both',
+          }}
+        >
+          <div style={{ color: 'var(--color-success)', fontSize: 14.5, lineHeight: 1.35, fontWeight: 700 }}>
+            已归档到你的山行档案
+          </div>
+        </div>
       </main>
+
+      <div
+        data-screenshot-archive-animated
+        style={{
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+          animation: 'screenshotArchiveFadeUp .5s 1.3s both',
+        }}
+      >
+        <PrimaryButton
+          onClick={onContinue}
+          disabled={!submitResult?.checkinId}
+          style={{ width: '100%' }}
+        >
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            去分享
+            <ShareIcon size={17} />
+          </span>
+        </PrimaryButton>
+      </div>
     </div>
   )
 }
@@ -2607,8 +2618,8 @@ export default function ScreenshotClient() {
           checkin_id: payload.checkinId,
         },
       })
-      setSubmitResult({ ok: true, checkinId: payload.checkinId })
-      router.push(`/activity/${payload.checkinId}`)
+      setSubmitResult({ ok: true, checkinId: payload.checkinId, routeShape: routeShapeValidation.shape })
+      setStep('success')
     } catch (error) {
       setRouteShapeRecoveryOpen(false)
       setSubmitError(error instanceof Error ? error.message : '活动生成失败，请稍后再试。')
@@ -2616,11 +2627,19 @@ export default function ScreenshotClient() {
     }
   }
 
-  function handleViewActivity() {
+  function handleArchiveBack() {
     if (submitResult?.checkinId) {
-      router.push(`/activity/${submitResult.checkinId}`)
+      router.replace(`/activity/${submitResult.checkinId}`)
     }
   }
+
+  function handleArchiveContinue() {
+    if (submitResult?.checkinId) {
+      router.replace(`/share?checkinId=${submitResult.checkinId}`)
+    }
+  }
+
+  const selectedMountain = mountainOptions.find((option) => option.id === selectedMountainId) ?? null
 
   return (
     <>
@@ -2700,7 +2719,13 @@ export default function ScreenshotClient() {
       {step === 'submitting' ? <SubmittingScreen /> : null}
 
       {step === 'success' ? (
-        <SuccessScreen result={recognizeResult} submitResult={submitResult} onViewActivity={handleViewActivity} />
+        <ArchiveMoment
+          editableFields={editableFields}
+          selectedMountain={selectedMountain}
+          submitResult={submitResult}
+          onContinue={handleArchiveContinue}
+          onBack={handleArchiveBack}
+        />
       ) : null}
 
       <UpgradeSheet open={upgradeSheetOpen} onClose={closeUpgradeSheetAsDismissed} onEngage={engageUpgradeSheet} />

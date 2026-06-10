@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
-import { consumeScreenshotQuota, getScreenshotQuotaState } from '@/lib/screenshot/quota'
+import { getScreenshotQuotaState } from '@/lib/screenshot/quota'
+import { recognizeThenConsumeScreenshotQuota } from '@/lib/screenshot/recognition-quota'
 import { screenshotRecognitionErrorStatus } from '@/lib/screenshot/recognition-status'
-import { recognizeScreenshotText } from '@/lib/screenshot/recognition-service'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
@@ -10,6 +10,19 @@ export const maxDuration = 60
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
 const SUPPORTED_SCREENSHOT_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const TEMPORARY_RECOGNITION_ERROR_MESSAGE = '识别服务暂时不可用，请稍后重试。本次未消耗识别次数。'
+const TEMPORARY_QUOTA_ERROR_MESSAGE = '识别额度暂时不可用，请稍后重试。'
+
+export function recognitionFailureResponse(error: unknown) {
+  console.error('screenshot recognition failed', {
+    error,
+    status: screenshotRecognitionErrorStatus(error),
+  })
+  return NextResponse.json(
+    { error: TEMPORARY_RECOGNITION_ERROR_MESSAGE },
+    { status: screenshotRecognitionErrorStatus(error) }
+  )
+}
 
 function validateScreenshotFile(file: File) {
   if (file.size > SCREENSHOT_MAX_BYTES) {
@@ -54,10 +67,8 @@ export async function GET() {
     const quota = await getScreenshotQuotaState(supabase, user.id)
     return NextResponse.json({ ok: true, quota })
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : '识别额度暂时不可用。' },
-      { status: 500 }
-    )
+    console.error('screenshot quota state failed', { error })
+    return NextResponse.json({ error: TEMPORARY_QUOTA_ERROR_MESSAGE }, { status: 500 })
   }
 }
 
@@ -90,8 +101,14 @@ export async function POST(request: Request) {
     }
 
     const imageBase64 = Buffer.from(await file.arrayBuffer()).toString('base64')
-    const { source: ocrSource, ocrResult, parsedFields, engineMeta } = await recognizeScreenshotText(imageBase64, file.type)
-    const quotaResult = await consumeScreenshotQuota(createSupabaseAdminClient(), user.id, quota)
+    const { recognition, quotaResult } = await recognizeThenConsumeScreenshotQuota({
+      imageBase64,
+      mimeType: file.type,
+      userId: user.id,
+      quota,
+      adminClient: createSupabaseAdminClient(),
+    })
+    const { source: ocrSource, ocrResult, parsedFields, engineMeta } = recognition
     if (!quotaResult.success) {
       if (quotaResult.reason === 'exhausted') {
         return quotaExhaustedResponse(quotaResult.quota)
@@ -112,9 +129,6 @@ export async function POST(request: Request) {
       quota: quotaResult.quota,
     })
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : '截图识别失败，请稍后重试。' },
-      { status: screenshotRecognitionErrorStatus(error) }
-    )
+    return recognitionFailureResponse(error)
   }
 }

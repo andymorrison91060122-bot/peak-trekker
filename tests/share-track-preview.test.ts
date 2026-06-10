@@ -164,4 +164,218 @@ describe('share track preview projection', () => {
     assert.ok(xSpan > 190, `expected wide route to use the short-edge scale, got x span ${xSpan}`)
     assert.ok(ySpan < 30, `expected wide route not to stretch vertically, got y span ${ySpan}`)
   })
+
+  test('builds disconnected poster subpaths for screenshot accepted gaps without bridging', async () => {
+    const { buildShareTrackPreviewFromScreenshotRouteShape, buildShareTrackPath } = await loadTrackPreview()
+    const shape = {
+      schemaVersion: 1,
+      kind: 'screenshot_route_shape',
+      coordinateSpace: 'normalized_screenshot',
+      source: 'user_seeded_livewire',
+      image: { width: 1000, height: 1000 },
+      controlPoints: [
+        { id: 'a', x: 0.1, y: 0.1 },
+        { id: 'b', x: 0.2, y: 0.2 },
+        { id: 'c', x: 0.8, y: 0.8 },
+        { id: 'd', x: 0.9, y: 0.9 },
+      ],
+      segments: [
+        {
+          id: 'seg-a-b',
+          fromId: 'a',
+          toId: 'b',
+          resolution: 'snapped',
+          points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.2 }],
+        },
+        {
+          id: 'seg-b-c',
+          fromId: 'b',
+          toId: 'c',
+          resolution: 'accepted_gap',
+          points: [],
+        },
+        {
+          id: 'seg-c-d',
+          fromId: 'c',
+          toId: 'd',
+          resolution: 'user_confirmed_shape',
+          points: [{ x: 0.8, y: 0.8 }, { x: 0.9, y: 0.9 }],
+        },
+      ],
+      createdAt: '2026-06-10T00:00:00.000Z',
+    }
+
+    const preview = buildShareTrackPreviewFromScreenshotRouteShape(shape)
+    const route = buildShareTrackPath(preview, { width: 100, height: 100, padding: 0 })
+
+    assert.equal(preview?.segments?.length, 2)
+    assert.equal(preview?.pointCount, 4)
+    assert.ok(route?.d)
+    assert.equal([...route.d.matchAll(/\bM\b/g)].length, 2)
+    assert.match(route.d, /^M 10 10 Q /)
+    assert.match(route.d, / M 80 80 Q /)
+    assert.doesNotMatch(route.d, /20 20 [LQC] /, 'no line or curve command may leave the first segment endpoint across the accepted gap')
+  })
+
+  test('returns no screenshot share preview for null or accepted-gap-only shapes', async () => {
+    const { buildShareTrackPreviewFromScreenshotRouteShape } = await loadTrackPreview()
+
+    assert.equal(buildShareTrackPreviewFromScreenshotRouteShape(null), null)
+    assert.equal(
+      buildShareTrackPreviewFromScreenshotRouteShape({
+        schemaVersion: 1,
+        kind: 'screenshot_route_shape',
+        coordinateSpace: 'normalized_screenshot',
+        source: 'user_seeded_livewire',
+        image: { width: 900, height: 1600 },
+        controlPoints: [{ id: 'a', x: 0.2, y: 0.2 }, { id: 'b', x: 0.8, y: 0.8 }],
+        segments: [
+          {
+            id: 'seg-a-b',
+            fromId: 'a',
+            toId: 'b',
+            resolution: 'accepted_gap',
+            points: [],
+          },
+        ],
+        createdAt: '2026-06-10T00:00:00.000Z',
+      }),
+      null,
+    )
+  })
+
+  test('keeps route stroke and endpoint sizes stable while fitting small and large screenshot shapes', async () => {
+    const { buildShareTrackPreviewFromScreenshotRouteShape, buildShareTrackRender, SHARE_TRACK_CONTENT_FIT } = await loadTrackPreview()
+    const frame = {
+      width: 300,
+      height: 300,
+      padding: 36,
+      ...SHARE_TRACK_CONTENT_FIT,
+    }
+    const style = {
+      lineWidth: 8,
+      glowWidth: 32,
+      startRadius: 19,
+      startStrokeWidth: 8,
+      endRadius: 26,
+    }
+    const makeShape = (points: Array<{ x: number; y: number }>) => ({
+      schemaVersion: 1,
+      kind: 'screenshot_route_shape',
+      coordinateSpace: 'normalized_screenshot',
+      source: 'user_seeded_livewire',
+      image: { width: 1080, height: 1920 },
+      controlPoints: points.map((point, index) => ({ id: `p-${index}`, ...point })),
+      segments: [
+        {
+          id: 'seg',
+          fromId: 'p-0',
+          toId: `p-${points.length - 1}`,
+          resolution: 'snapped',
+          points,
+        },
+      ],
+      createdAt: '2026-06-10T00:00:00.000Z',
+    })
+
+    const small = buildShareTrackRender(
+      buildShareTrackPreviewFromScreenshotRouteShape(makeShape([{ x: 0.49, y: 0.49 }, { x: 0.51, y: 0.51 }])),
+      frame,
+      style,
+    )
+    const large = buildShareTrackRender(
+      buildShareTrackPreviewFromScreenshotRouteShape(makeShape([{ x: 0.1, y: 0.12 }, { x: 0.42, y: 0.36 }, { x: 0.9, y: 0.88 }])),
+      frame,
+      style,
+    )
+
+    for (const route of [small, large]) {
+      assert.ok(route)
+      assert.ok(route.lineWidth >= 7 && route.lineWidth <= 9, `line width ${route.lineWidth} should stay in target px range`)
+      assert.equal(route.glowWidth, 32)
+      assert.equal(route.startRadius, 19)
+      assert.equal(route.startStrokeWidth, 8)
+      assert.equal(route.endRadius, 26)
+    }
+
+    assert.ok((small?.bounds.width ?? 0) >= 8, `short route should remain visible, got ${small?.bounds.width}`)
+    assert.ok((small?.bounds.width ?? 0) <= 90, `short route should not be over-magnified, got ${small?.bounds.width}`)
+    assert.ok((large?.bounds.minX ?? 0) >= 36, `long route should keep left padding, got ${large?.bounds.minX}`)
+    assert.ok((300 - (large?.bounds.maxX ?? 300)) >= 36, `long route should keep right padding, got ${large?.bounds.maxX}`)
+    assert.ok((large?.bounds.maxX ?? 0) <= 264, `long route should stay inside padded target frame, got ${large?.bounds.maxX}`)
+  })
+
+  test('smooths noisy target-space polylines without moving endpoints or bridging gaps', async () => {
+    const { buildShareTrackPreviewFromScreenshotRouteShape, buildShareTrackRender, SHARE_TRACK_CONTENT_FIT } = await loadTrackPreview()
+    const noisySegment = Array.from({ length: 200 }, (_, index) => {
+      const t = index / 199
+      const jitter = index === 0 || index === 199 ? 0 : (index % 2 === 0 ? 0.0018 : -0.0018)
+      return {
+        x: 0.16 + t * 0.24 + jitter,
+        y: 0.18 + t * 0.58 - jitter,
+      }
+    })
+    const secondSegment = [
+      { x: 0.66, y: 0.22 },
+      { x: 0.72, y: 0.3 },
+      { x: 0.79, y: 0.4 },
+    ]
+    const shape = {
+      schemaVersion: 1,
+      kind: 'screenshot_route_shape',
+      coordinateSpace: 'normalized_screenshot',
+      source: 'user_seeded_livewire',
+      image: { width: 1080, height: 1920 },
+      controlPoints: [
+        { id: 'a', x: 0.16, y: 0.18 },
+        { id: 'b', x: 0.4, y: 0.76 },
+        { id: 'c', x: 0.66, y: 0.22 },
+        { id: 'd', x: 0.79, y: 0.4 },
+      ],
+      segments: [
+        {
+          id: 'seg-a-b',
+          fromId: 'a',
+          toId: 'b',
+          resolution: 'snapped',
+          points: noisySegment,
+        },
+        {
+          id: 'seg-b-c',
+          fromId: 'b',
+          toId: 'c',
+          resolution: 'accepted_gap',
+          points: [],
+        },
+        {
+          id: 'seg-c-d',
+          fromId: 'c',
+          toId: 'd',
+          resolution: 'user_confirmed_shape',
+          points: secondSegment,
+        },
+      ],
+      createdAt: '2026-06-10T00:00:00.000Z',
+    }
+
+    const preview = buildShareTrackPreviewFromScreenshotRouteShape(shape, 240)
+    const route = buildShareTrackRender(preview, {
+      width: 300,
+      height: 420,
+      padding: 48,
+      ...SHARE_TRACK_CONTENT_FIT,
+    }, {
+      lineWidth: 8,
+      simplifyEpsilonPx: 1.75,
+    })
+
+    assert.ok(route?.d)
+    assert.equal(route.projectedSegments.length, 2)
+    assert.ok(route.projectedSegments[0]!.length < 30, `expected noisy segment to simplify, got ${route.projectedSegments[0]!.length} points`)
+    assert.match(route.d, /\b[QC]\b/, 'smoothed route should use curve commands')
+    assert.doesNotMatch(route.d, /(?:\bL\b\s+[-0-9.]+\s+[-0-9.]+\s*){12,}/, 'smoothed route should not keep long runs of jittery line commands')
+    assert.equal([...route.d.matchAll(/\bM\b/g)].length, 2, 'accepted gap should keep disconnected subpaths')
+    assertPointClose(route.projectedSegments[0]![0], route.start, 'first endpoint should stay exact after smoothing')
+    assertPointClose(route.projectedSegments.at(-1)!.at(-1), route.end, 'last endpoint should stay exact after smoothing')
+  })
 })

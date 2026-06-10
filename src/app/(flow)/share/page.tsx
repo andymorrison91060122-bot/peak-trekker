@@ -2,7 +2,11 @@ import type { Metadata } from 'next'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { checkTemplateAccess, isPremiumPaywallEnabled } from '@/lib/premium'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
-import { buildShareTrackPreview } from '@/lib/share-track-preview'
+import {
+  buildShareTrackPreview,
+  buildShareTrackPreviewFromScreenshotRouteShape,
+} from '@/lib/share-track-preview'
+import { resolveMeasuredShareAltitude } from '@/lib/share-data'
 import ShareClient, { type ShareActivityData } from './ShareClient'
 
 export const metadata: Metadata = {
@@ -32,6 +36,7 @@ type ShareCheckinRow = {
   max_elevation_meters?: number | null
   session_id?: string | null
   track_points?: unknown
+  screenshot_route_shape?: unknown
   mountains: MountainRelation | MountainRelation[] | null
 }
 
@@ -46,6 +51,22 @@ type TrekSessionRow = {
 }
 
 const SHARE_CHECKIN_SELECT_FULL = `
+  id,
+  source,
+  created_at,
+  start_time,
+  end_time,
+  distance_meters,
+  duration_seconds,
+  elevation_gain_meters,
+  max_elevation_meters,
+  session_id,
+  track_points,
+  screenshot_route_shape,
+  mountains(id, name, altitude, province)
+`
+
+const SHARE_CHECKIN_SELECT_WITHOUT_SCREENSHOT_ROUTE_SHAPE = `
   id,
   source,
   created_at,
@@ -111,6 +132,16 @@ async function fetchShareCheckin(
     return fullResult as { data: ShareCheckinRow | null; error: typeof fullResult.error }
   }
 
+  const withoutShapeResult = await supabase
+    .from('checkins')
+    .select(SHARE_CHECKIN_SELECT_WITHOUT_SCREENSHOT_ROUTE_SHAPE)
+    .eq('id', checkinId)
+    .maybeSingle()
+
+  if (!withoutShapeResult.error || !isSchemaCompatibilityErrorMessage(withoutShapeResult.error.message)) {
+    return withoutShapeResult as { data: ShareCheckinRow | null; error: typeof withoutShapeResult.error }
+  }
+
   return (await supabase.from('checkins').select(SHARE_CHECKIN_SELECT_LEGACY).eq('id', checkinId).maybeSingle()) as {
     data: ShareCheckinRow | null
     error: typeof fullResult.error
@@ -163,14 +194,17 @@ async function loadShareData(checkinId: string): Promise<ShareActivityData | nul
       ? Math.max(0, Math.round((new Date(session.ended_at).getTime() - new Date(session.started_at).getTime()) / 1000))
       : null)
   const elevationGain = row.elevation_gain_meters ?? session?.ascent_m ?? null
-  const altitude = row.max_elevation_meters ?? session?.max_altitude_m ?? mountain?.altitude ?? null
-  const trackPreview = buildShareTrackPreview(row.track_points) ?? buildShareTrackPreview(session?.track_points)
+  const altitude = resolveMeasuredShareAltitude(row.max_elevation_meters, session?.max_altitude_m)
+  const isScreenshotRecognition = row.source === 'screenshot_recognition'
+  const trackPreview = isScreenshotRecognition
+    ? buildShareTrackPreviewFromScreenshotRouteShape(row.screenshot_route_shape)
+    : buildShareTrackPreview(row.track_points) ?? buildShareTrackPreview(session?.track_points)
 
   return {
     mountainName: mountain?.name ?? '未知山峰',
     location: mountain?.province ?? '',
     date: formatShareDate(row.start_time ?? session?.started_at ?? row.created_at),
-    altitude: altitude ?? undefined,
+    altitude,
     distance: typeof distanceMeters === 'number' ? Number((distanceMeters / 1000).toFixed(1)) : undefined,
     duration: durationSeconds ?? undefined,
     elevationGain: elevationGain ?? undefined,

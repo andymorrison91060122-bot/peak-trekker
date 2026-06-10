@@ -9,6 +9,11 @@ import {
   type MapTileAsset,
   type MapTileBbox,
 } from '@/lib/map/map-assets'
+import {
+  buildShareTrackPreviewFromScreenshotRouteShape,
+  buildShareTrackRender,
+  SHARE_TRACK_CONTENT_FIT,
+} from '@/lib/share-track-preview'
 
 type ProjectedPoint = {
   x: number
@@ -418,19 +423,28 @@ function StatStrip({ activity }: { activity: ActivityDetailViewModel }) {
   )
 }
 
-function screenshotSegmentPath(points: Array<{ x: number; y: number }>, width: number, height: number) {
-  if (points.length < 2) return ''
-  return points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${(point.x * width).toFixed(2)} ${(point.y * height).toFixed(2)}`)
-    .join(' ')
-}
-
 function ScreenshotRouteShapeCard({ activity }: { activity: ActivityDetailViewModel }) {
   const shape = activity.screenshotRouteShape
+  const width = Math.max(1, shape?.image.width ?? 1)
+  const height = Math.max(1, shape?.image.height ?? 1)
+  const preview = useMemo(() => buildShareTrackPreviewFromScreenshotRouteShape(shape, 240), [shape])
+  const route = useMemo(() => buildShareTrackRender(preview, {
+    x: 0,
+    y: 0,
+    width,
+    height,
+    padding: Math.max(42, Math.min(width, height) * 0.12),
+    ...SHARE_TRACK_CONTENT_FIT,
+  }, {
+    lineWidth: 8,
+    glowWidth: 28,
+    glowOpacity: 0.2,
+    startRadius: 15,
+    startStrokeWidth: 6,
+    endRadius: 21,
+  }), [height, preview, width])
+
   if (!shape) return null
-  const width = Math.max(1, shape.image.width)
-  const height = Math.max(1, shape.image.height)
-  const drawableSegments = shape.segments.filter((segment) => segment.resolution !== 'accepted_gap' && segment.points.length >= 2)
 
   return (
     <div
@@ -454,29 +468,45 @@ function ScreenshotRouteShapeCard({ activity }: { activity: ActivityDetailViewMo
         aria-hidden="true"
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
       >
-        <defs>
-          <filter id="activity-screenshot-route-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="5" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
         <rect width={width} height={height} fill="rgba(255,255,255,.018)" />
-        {drawableSegments.map((segment) => (
-          <path
-            key={segment.id}
-            d={screenshotSegmentPath(segment.points, width, height)}
-            fill="none"
+        {route?.d ? (
+          <>
+            <path
+              data-real-track="true"
+              d={route.d}
+              fill="none"
+              stroke={SCREENSHOT_ROUTE_COLOR}
+              strokeWidth={route.glowWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={route.glowOpacity}
+              vectorEffect="non-scaling-stroke"
+            />
+            <path
+              data-real-track="true"
+              d={route.d}
+              fill="none"
+              stroke={SCREENSHOT_ROUTE_COLOR}
+              strokeWidth={route.lineWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity="0.96"
+              vectorEffect="non-scaling-stroke"
+            />
+          </>
+        ) : null}
+        {route ? (
+          <circle
+            data-real-track={route.d ? undefined : 'single-point'}
+            cx={route.start.x}
+            cy={route.start.y}
+            r={route.startRadius}
+            fill="var(--color-surface)"
             stroke={SCREENSHOT_ROUTE_COLOR}
-            strokeWidth={Math.max(5, Math.min(width, height) * 0.012)}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity="0.96"
-            filter="url(#activity-screenshot-route-glow)"
+            strokeWidth={route.startStrokeWidth}
           />
-        ))}
+        ) : null}
+        {route?.d ? <circle cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={SCREENSHOT_ROUTE_COLOR} /> : null}
       </svg>
       <div
         style={{

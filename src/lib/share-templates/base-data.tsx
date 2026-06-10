@@ -7,7 +7,8 @@ import {
   PhotoShade,
   PosterShell,
   buildMountainLine,
-  formatPlainNumber,
+  formatShareAltitude,
+  hasShareAltitude,
 } from './shared'
 
 function MountainTexture() {
@@ -48,6 +49,7 @@ function MountainTexture() {
 
 export function BaseDataTemplate({ data, photoDataUrl }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <PosterShell background="linear-gradient(180deg, #12181b 0%, #0a0c0e 100%)">
@@ -68,7 +70,7 @@ export function BaseDataTemplate({ data, photoDataUrl }: ShareTemplateProps) {
         }}
       />
 
-      <div
+      {showAltitude ? <div
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -80,15 +82,15 @@ export function BaseDataTemplate({ data, photoDataUrl }: ShareTemplateProps) {
         }}
       >
         <span style={{ color: C.fg2, fontSize: 38, lineHeight: 1, fontWeight: 800, letterSpacing: '0.08em' }}>
-          峰顶海拔
+          最高海拔
         </span>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 46 }}>
           <span style={{ color: C.success, fontSize: 238, lineHeight: 0.92, fontWeight: 800, letterSpacing: '0' }}>
-            {formatPlainNumber(data.altitude)}
+            {formatShareAltitude(data)}
           </span>
           <span style={{ color: C.success, fontSize: 78, lineHeight: 1, fontWeight: 800, marginLeft: 12 }}>m</span>
         </div>
-      </div>
+      </div> : null}
 
       <div
         style={{

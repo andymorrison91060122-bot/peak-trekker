@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-10 · 最新版本记录: v0.55
+> Last Updated: 2026-06-11 · 最新版本记录: v0.56
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`e4f4d37`（Merge FU-36 A1 screenshot route calibration · 2026-06-10）
+`ae9ab0b`（Merge FU-66 / FU-36 A2 archive→share handoff · 2026-06-11）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（9 条）
+## Active Follow-ups（14 条）
 
 ### FU-16 · mountains 坐标精度审计
 
@@ -244,7 +244,7 @@
 **实施建议**:
 - Activity Detail: 当 `source='screenshot_recognition'` 且无 `mountain_id` 时，优先使用用户输入地点 / location 作为标题
 - 「未关联山峰」或「未关联地区」降级为副标签 / metadata
-- Trek / Archive / 活动列表保持同样区分，避免列表中继续用「未关联山峰」做主标题
+- Archive success screen 已在 FU-66 / A2 中使用用户输入地点作为标题；Activity Detail / Trek / 活动列表仍需保持同样区分，避免列表中继续用「未关联山峰」做主标题
 - 覆盖有 location、无 location、匹配山峰三类场景
 
 **验收**:
@@ -252,27 +252,6 @@
 - 「未关联山峰 / 地区」只作为副标签出现
 - 匹配山峰活动现有标题不回退
 - 375px Activity + Archive / Trek 列表视觉验收
-
----
-
-### FU-66 · FU-36 A2 community route badge guard
-
-- **优先级**: P1
-- **归属阶段**: FU-36 A2 / Community + Share guard
-- **状态**: 🟢 active
-
-**背景**: FU-36 A1 只把 screenshot_route_shape 渲染在 Activity detail 的独立截图校准路线卡片中，未接入 Share / Community。后续若 screenshot_route_shape 进入 community / share preview，必须按 source gate 路线徽章，防止 `screenshot_recognition` 被显示为「GPS 真实轨迹」。
-
-**实施建议**:
-- Community / Share preview 中 route badge 按 `source` 与数据来源区分
-- `source='screenshot_recognition'` 即使有 `screenshot_route_shape`，也不得显示「GPS 真实轨迹」
-- 继续保持 `track_points` / GPS 轨迹与 screenshot normalized shape 语义隔离
-- 若需要展示，可使用「截图校准路线」/ `UPLOADED` 一类非 GPS 文案
-
-**验收**:
-- screenshot_recognition + screenshot_route_shape 的社区 / 分享预览不出现「GPS 真实轨迹」
-- GPS / track_import 原有 badge 不回退
-- 覆盖 published community post 与 share preview 两条路径
 
 ---
 
@@ -297,6 +276,128 @@
 
 ---
 
+### FU-68 · Verified-summit ceremonial altitude slot
+
+- **优先级**: P2
+- **归属阶段**: Share / Poster product refinement
+- **状态**: 🟢 active
+
+**背景**: FU-66 / A2 将分享海报 hero altitude 改为 measured-only，并统一从「峰顶海拔」改为「最高海拔」。catalog summit altitude 不再作为普通 poster hero fallback。后续若要恢复「峰顶海拔」的仪式感，必须只面向 summit-verified checkins。
+
+**实施建议**:
+- 产品先确认 summit-verified 状态下是否需要单独 ceremonial slot
+- 仅 summit-verified checkins 可考虑展示 catalog `峰顶海拔`
+- 同一决策覆盖 `/api/poster` 照片补签 card（目前仍使用 catalog altitude + `峰顶海拔` label）
+- 未 verified / uploaded / screenshot_recognition 不得展示 catalog summit altitude 作为 hero
+
+**验收**:
+- 非 verified 活动不会展示 catalog summit altitude
+- summit-verified 场景如启用，文案与数据来源明确
+- `/share` 与 `/api/poster` 口径一致
+
+---
+
+### FU-69 · DEM elevation backfill for uploaded coordinate tracks lacking `<ele>`
+
+- **优先级**: P3
+- **归属阶段**: Elevation enrichment research
+- **状态**: 🟢 active
+
+**背景**: 一些 coordinate-bearing uploaded tracks 可能有 GPS 几何但缺少 `<ele>` 高程，导致 measured elevation 缺失。可研究 DEM backfill，但必须先评估中国大陆可达性与 MVP 成本。
+
+**实施建议**:
+- 调研中国大陆终端 / 服务端可访问的 DEM 来源
+- 评估单次 backfill 成本、延迟、缓存策略与合规风险
+- 只对 coordinate-bearing tracks 考虑，不适用于 normalized screenshot shapes
+- 未通过可达性 + 成本评估前不进入产品方案
+
+**验收**:
+- 中国大陆可达性明确
+- MVP 成本可控且有上限
+- 数据来源与置信度可在产品中解释
+
+---
+
+### FU-70 · Uploaded track summit-area neutral consistency label
+
+- **优先级**: P3
+- **归属阶段**: Product language discussion
+- **状态**: 🟢 active
+
+**背景**: 对于 uploaded tracks whose geometry reaches the summit area，可能需要一个中性表达（如「轨迹达峰」）来描述自报数据与几何一致性，但不能误读为 GPS VERIFIED / summit verified。
+
+**实施建议**:
+- 先做产品讨论，明确「轨迹达峰」是否有必要
+- 文案必须保持 self-reported-data framing
+- 不影响 verified_at / ranking_weight / GPS VERIFIED 体系
+
+**验收**:
+- 标签语义不会与 GPS VERIFIED 混淆
+- 排名 / 证据 / 社区信任层不被误提升
+- UI 位置与文案经视觉验收
+
+---
+
+### FU-71 · Douglas-Peucker helper consolidation
+
+- **优先级**: P2
+- **归属阶段**: Route geometry cleanup
+- **状态**: 🟢 active
+
+**背景**: 当前存在两套 Douglas-Peucker 简化逻辑：persist-time pixel-space in `src/lib/screenshot-route-shape.ts` 与 render-time target-space in `src/lib/share-track-preview.ts`。它们参数不同但算法相近，后续可统一为一个参数化 helper。
+
+**实施建议**:
+- 抽出共享 geometry helper，支持不同 coordinate / target space 参数
+- 保持 persist-time 与 render-time 当前行为不回退
+- 加 fixtures 覆盖 noisy polyline、accepted_gap、short / degenerate shapes
+
+**验收**:
+- 两处调用结果与现有 baseline 等价或更稳定
+- accepted_gap 不被桥接
+- 分享渲染平滑度不回退
+
+---
+
+### FU-72 · Route-render style token consolidation
+
+- **优先级**: P2
+- **归属阶段**: Share / Activity visual system cleanup
+- **状态**: 🟢 active
+
+**背景**: FU-66 / A2 后，截图路线在 Archive medallion、Share editor、server poster、Activity card 等表面有各自 stroke / glow / marker 常量。可后续统一为 token set，避免视觉漂移。
+
+**实施建议**:
+- 建立 per-surface route render token: stroke width、glow width / opacity、marker sizes、padding
+- 浏览器预览与 server render 继续共用 path-building + glow-layering 逻辑
+- 不改变已验收视觉，先 consolidation 再小步调整
+
+**验收**:
+- 四个 surface 的路线风格由 token 驱动
+- 现有 long / short route evidence 不回退
+- 无 renderer-specific divergence
+
+---
+
+### FU-73 · Shared screenshot source predicate
+
+- **优先级**: P2
+- **归属阶段**: Source semantics cleanup
+- **状态**: 🟢 active
+
+**背景**: screenshot source 判断目前散落为 `source === 'screenshot_recognition'` 字符串检查。后续 source-gated badge、route shape、GPS isolation、share copy 都依赖同一语义，应抽为共享 predicate。
+
+**实施建议**:
+- 新增共享 `isScreenshotSource(source)` 或等价 helper
+- 替换 Share / Activity / confirm API / render policy 中的散落字符串判断
+- 保持 track_points / GPS semantics 不变
+
+**验收**:
+- 所有 screenshot source gate 通过共享 helper
+- GPS / uploaded / screenshot_recognition 语义不回退
+- focused tests 覆盖 source gate
+
+---
+
 ## Known Issues
 
 ### Known Issue · checkin 数据字段写入路径异常 (2026-05-21 FU-11 sprint 期间发现)
@@ -309,7 +410,23 @@
 
 ---
 
-## Closed Follow-ups（60 条）
+## Closed Follow-ups（61 条）
+
+### FU-66 ✅ FU-36 A2 archive→share handoff / screenshot route badge guard
+
+- **关闭原因**: FU-66 / FU-36 A2 已在 PR #2 落地: 截图确认成功后进入设计稿 ArchiveMoment，再「去分享」直达 `/share?checkinId=...`; `screenshot_route_shape` 在 Share editor 与 server-rendered poster 中渲染为品牌绿路线，text-only 截图不显示路线 fallback；截图来源保持 uploaded / neutral，不显示 `GPS VERIFIED` / `GPS 真实轨迹`。
+- **关键决策记录**:
+  · 本 release 无 DB migration / schema change；复用 FU-36 A1 已存在的 `checkins.screenshot_route_shape`。
+  · Archive flow 跳过 waypoint step；text-only archive medallion 使用 Peak Trekker 品牌山形 glyph。这两项为已批准设计偏离。
+  · 分享 hero altitude 改为 measured-only，文案从「峰顶海拔」统一为「最高海拔」；缺 measured elevation 时隐藏 hero block。catalog mountain altitude 不再作为未 verified poster hero fallback。
+  · Screenshot route shape 不写入 `track_points`，不进入 GPS / PMTiles / Community-as-GPS 语义。
+  · Recognition catch path 对非 domain errors 显示友好中文错误，保留 raw error 仅在 server log；quota 仅在成功识别后消耗。
+- **准入**: 用户视觉验收 PASS；focused A2 browser spec PASS；share / render / route preview / recognition focused node tests PASS；lint + build + git diff --check clean；no full Playwright。
+- **关闭 commit**: `2e30d10`
+- **merge commit**: `ae9ab0b`
+- **关闭时间**: 2026-06-11
+
+---
 
 ### FU-62 ✅ mimo-v2.5 文字生产集成
 

@@ -10,12 +10,14 @@ import {
   TopoSvg,
   TrailSvg,
   buildMountainLine,
-  formatPlainNumber,
+  formatShareAltitude,
   hasShareTrackPoint,
+  hasShareAltitude,
 } from './shared'
 
 export function PremiumPhotoCompositeTemplate({ data, photoDataUrl }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <PosterShell background={SHARE_TEMPLATE_PALETTE.bgPrimary}>
@@ -32,12 +34,12 @@ export function PremiumPhotoCompositeTemplate({ data, photoDataUrl }: ShareTempl
             {mountainLine}
           </span>
         ) : null}
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 32 }}>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 32 }}>
           <span style={{ color: C.success, fontSize: 160, lineHeight: 0.92, fontWeight: 800 }}>
-            {formatPlainNumber(data.altitude)}
+            {formatShareAltitude(data)}
           </span>
           <span style={{ color: C.success, fontSize: 58, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
-        </div>
+        </div> : null}
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 72, right: 72, bottom: 236 }}>

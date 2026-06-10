@@ -15,6 +15,8 @@ export const SHARE_RENDER_REJECTED_FIELDS = [
   'track_points',
   'trackPreview',
   'routePath',
+  'routeShape',
+  'screenshot_route_shape',
   'data',
 ] as const
 

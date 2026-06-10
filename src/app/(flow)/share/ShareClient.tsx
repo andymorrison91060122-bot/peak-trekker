@@ -13,8 +13,9 @@ import {
 } from '@/components/ui/Icons'
 import { HelpTrigger } from '@/components/help/HelpTrigger'
 import { trackEvent } from '@/lib/analytics/client'
+import { formatShareAltitude, hasShareAltitude } from '@/lib/share-templates/shared'
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
-import { buildShareTrackPath, type ShareTrackPreview } from '@/lib/share-track-preview'
+import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, type ShareTrackPreview } from '@/lib/share-track-preview'
 
 type ShareViewMode = 'editor' | 'watermarkPreview'
 type ExportAction = 'save' | 'share' | 'transparent' | null
@@ -150,8 +151,7 @@ function formatDuration(value: number | undefined) {
 
 function formatFieldValue(field: ShareFieldKey, data: ShareActivityData) {
   if (field === 'altitude') {
-    const value = formatNumber(data.altitude)
-    return value === '--' ? value : `${value} m`
+    return hasShareAltitude(data) ? `${formatShareAltitude(data)} m` : '--'
   }
   if (field === 'distance') return formatDistanceWithUnit(data.distance)
   if (field === 'duration') return formatDuration(data.duration)
@@ -370,13 +370,21 @@ function TopoBackground() {
 }
 
 function TrailPath({ trackPreview }: { trackPreview?: ShareTrackPreview | null }) {
-  const route = buildShareTrackPath(trackPreview, {
+  const route = useMemo(() => buildShareTrackRender(trackPreview, {
     x: 32,
     y: 44,
     width: 216,
     height: 290,
-    padding: 10,
-  })
+    padding: 24,
+    ...SHARE_TRACK_CONTENT_FIT,
+  }, {
+    lineWidth: 4.2,
+    glowWidth: 14,
+    glowOpacity: 0.18,
+    startRadius: 7,
+    startStrokeWidth: 3,
+    endRadius: 8,
+  }), [trackPreview])
 
   if (!route) return null
 
@@ -389,31 +397,28 @@ function TrailPath({ trackPreview }: { trackPreview?: ShareTrackPreview | null }
       style={{ position: 'absolute', inset: 0 }}
       aria-hidden="true"
     >
-      <defs>
-        <filter id="share-trail-glow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="4" />
-        </filter>
-      </defs>
       {route?.d ? (
         <>
           <path
             data-real-track="true"
             d={route.d}
             stroke="var(--color-success)"
-            strokeWidth="14"
+            strokeWidth={route.glowWidth}
             fill="none"
             strokeLinecap="round"
-            opacity="0.18"
-            filter="url(#share-trail-glow)"
+            strokeLinejoin="round"
+            opacity={route.glowOpacity}
+            vectorEffect="non-scaling-stroke"
           />
           <path
             data-real-track="true"
             d={route.d}
             stroke="var(--color-success)"
-            strokeWidth="4.2"
+            strokeWidth={route.lineWidth}
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
           />
         </>
       ) : null}
@@ -422,13 +427,13 @@ function TrailPath({ trackPreview }: { trackPreview?: ShareTrackPreview | null }
           data-real-track={route.d ? undefined : 'single-point'}
           cx={route.start.x}
           cy={route.start.y}
-          r="7"
+          r={route.startRadius}
           fill="var(--color-surface)"
           stroke="var(--color-success)"
-          strokeWidth="3"
+          strokeWidth={route.startStrokeWidth}
         />
       ) : null}
-      {route?.d ? <circle cx={route.end.x} cy={route.end.y} r="8" fill="var(--color-success)" /> : null}
+      {route?.d ? <circle cx={route.end.x} cy={route.end.y} r={route.endRadius} fill="var(--color-success)" /> : null}
     </svg>
   )
 }
@@ -666,6 +671,7 @@ function BaseHeroPreview({
   photoDataUrl: string | null
 }) {
   const isData = template === 'base-data'
+  const showAltitude = hasShareAltitude(data)
   const statItems = [
     isVisible('distance', toggles)
       ? { key: 'distance', label: 'DISTANCE', value: formatDistance(data.distance), unit: 'km' }
@@ -756,7 +762,7 @@ function BaseHeroPreview({
           textAlign: isData ? 'center' : 'left',
         }}
       >
-        {isData ? (
+        {isData && showAltitude ? (
           <div
             style={{
               color: 'var(--color-on-surface-variant)',
@@ -767,9 +773,9 @@ function BaseHeroPreview({
               marginBottom: 8,
             }}
           >
-            峰顶海拔
+            最高海拔
           </div>
-        ) : mountainLine ? (
+        ) : !isData && mountainLine ? (
           <div
             style={{
               fontSize: 15,
@@ -785,7 +791,7 @@ function BaseHeroPreview({
             {mountainLine}
           </div>
         ) : null}
-        <div
+        {showAltitude ? <div
           style={{
             color: 'var(--color-success)',
             fontFamily: 'var(--font-mono)',
@@ -797,9 +803,9 @@ function BaseHeroPreview({
             whiteSpace: 'nowrap',
           }}
         >
-          {formatNumber(data.altitude)}
+          {formatShareAltitude(data)}
           <span style={{ fontSize: isData ? 22 : 19, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
-        </div>
+        </div> : null}
         {isData && mountainLine ? (
           <div
             style={{
@@ -960,6 +966,7 @@ function PremiumHeroPreview({
   const overlay = template === 'premium-photo-overlay'
   const bold = template === 'premium-bold-number'
   const profile = template === 'premium-altitude-profile'
+  const showAltitude = hasShareAltitude(data)
 
   if (monoFilm) {
     return (
@@ -990,11 +997,13 @@ function PremiumHeroPreview({
               {mountainLine}
             </div>
           ) : null}
-          <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 8, fontWeight: 800, letterSpacing: '0.14em', marginTop: 16 }}>峰顶海拔</div>
+          {showAltitude ? <>
+          <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 8, fontWeight: 800, letterSpacing: '0.14em', marginTop: 16 }}>最高海拔</div>
           <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 10, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
-            <span style={{ fontSize: 62, lineHeight: 0.9, fontWeight: 800 }}>{formatNumber(data.altitude)}</span>
+            <span style={{ fontSize: 62, lineHeight: 0.9, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
             <span style={{ fontSize: 18, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
           </div>
+          </> : null}
         </div>
 
         <PreviewStats stats={statItems} bottom={62} compact />
@@ -1033,10 +1042,10 @@ function PremiumHeroPreview({
         </div>
         <div style={{ position: 'absolute', left: 18, right: 18, bottom: 122, textAlign: 'left' }}>
           {mountainLine ? <div style={{ color: 'var(--color-on-surface)', fontSize: 13, lineHeight: 1.25, fontWeight: 800 }}>{mountainLine}</div> : null}
-          <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
-            <span style={{ fontSize: 44, lineHeight: 0.92, fontWeight: 800 }}>{formatNumber(data.altitude)}</span>
+          {showAltitude ? <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: 44, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
             <span style={{ fontSize: 16, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
-          </div>
+          </div> : null}
         </div>
         <StoryPreviewDataBar data={data} toggles={toggles} />
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 18 }}>
@@ -1070,10 +1079,10 @@ function PremiumHeroPreview({
         <div style={{ position: 'absolute', left: 18, top: 74, width: 104 }}>
           {overlayName ? <div style={{ color: 'var(--color-on-surface)', fontSize: 14, lineHeight: 1.18, fontWeight: 800 }}>{overlayName}</div> : null}
           {overlayLocation ? <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 11, lineHeight: 1.1, fontWeight: 800, marginTop: 9 }}>{overlayLocation}</div> : null}
-          <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 20, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
-            <span style={{ fontSize: 42, lineHeight: 0.92, fontWeight: 800 }}>{formatNumber(data.altitude)}</span>
+          {showAltitude ? <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 20, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: 42, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
             <span style={{ fontSize: 14, marginLeft: 2, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
-          </div>
+          </div> : null}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 13, marginTop: 24 }}>
             <PremiumMetric label="总距离" value={formatDistance(data.distance)} unit="km" />
             {isVisible('duration', toggles) ? <PremiumMetric label="时长" value={formatDuration(data.duration)} /> : null}
@@ -1106,17 +1115,19 @@ function PremiumHeroPreview({
       >
         <PreviewPhotoBackground photoDataUrl={photoDataUrl}>{photoDataUrl ? null : <TopoBackground />}</PreviewPhotoBackground>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 12%, transparent), color-mix(in srgb, var(--color-surface) 86%, transparent) 78%, var(--color-surface))' }} />
-        <div style={{ position: 'absolute', left: 16, top: 54, color: 'rgba(255,255,255,0.32)', fontSize: 13, fontWeight: 800, letterSpacing: '0.08em' }}>峰顶海拔</div>
+        {showAltitude ? <>
+        <div style={{ position: 'absolute', left: 16, top: 54, color: 'rgba(255,255,255,0.32)', fontSize: 13, fontWeight: 800, letterSpacing: '0.08em' }}>最高海拔</div>
         <div style={{ position: 'absolute', left: 14, right: 14, top: 78, color: 'rgba(255,255,255,0.25)', fontFamily: 'var(--font-mono)', fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
-          {formatNumber(data.altitude)}
+          {formatShareAltitude(data)}
           <span style={{ fontSize: 22, marginLeft: 3 }}>m</span>
         </div>
+        </> : null}
         <div style={{ position: 'absolute', left: 16, right: 16, bottom: 104, textAlign: 'left' }}>
           {mountainLine ? <div style={{ color: 'var(--color-on-surface)', fontSize: 14, lineHeight: 1.25, fontWeight: 800 }}>{mountainLine}</div> : null}
-          <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
-            <span style={{ fontSize: 42, lineHeight: 0.92, fontWeight: 800 }}>{formatNumber(data.altitude)}</span>
+          {showAltitude ? <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: 42, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
             <span style={{ fontSize: 16, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
-          </div>
+          </div> : null}
         </div>
         <PreviewStats stats={statItems.slice(0, 2)} bottom={52} compact />
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 18 }}>
@@ -1186,9 +1197,9 @@ function PremiumHeroPreview({
 
       {template === 'premium-photo-composite' ? <TrailPath trackPreview={data.trackPreview} /> : null}
 
-      {bold ? (
+      {bold && showAltitude ? (
         <div style={{ position: 'absolute', left: 14, right: 14, top: 46, color: 'color-mix(in srgb, var(--color-on-surface) 26%, transparent)', fontFamily: 'var(--font-mono)', fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
-          {formatNumber(data.altitude)}
+          {formatShareAltitude(data)}
           <span style={{ fontSize: 22, marginLeft: 3 }}>m</span>
         </div>
       ) : null}
@@ -1206,9 +1217,11 @@ function PremiumHeroPreview({
       {dataScatter ? (
         <div style={{ position: 'absolute', left: 14, top: 66, width: 92 }}>
           <div style={{ color: 'var(--color-on-surface)', fontSize: 11, lineHeight: 1.2, fontWeight: 800 }}>{mountainLine}</div>
-          <div style={{ marginTop: 16, color: 'var(--color-on-surface-variant)', fontSize: 8, fontWeight: 800, letterSpacing: '0.08em' }}>峰顶海拔</div>
-          <div style={{ color: 'var(--color-success)', fontFamily: 'var(--font-mono)', fontSize: 30, lineHeight: 1, fontWeight: 800 }}>{formatNumber(data.altitude)}<span style={{ fontSize: 10, marginLeft: 2 }}>m</span></div>
+          {showAltitude ? <>
+          <div style={{ marginTop: 16, color: 'var(--color-on-surface-variant)', fontSize: 8, fontWeight: 800, letterSpacing: '0.08em' }}>最高海拔</div>
+          <div style={{ color: 'var(--color-success)', fontFamily: 'var(--font-mono)', fontSize: 30, lineHeight: 1, fontWeight: 800 }}>{formatShareAltitude(data)}<span style={{ fontSize: 10, marginLeft: 2 }}>m</span></div>
           <div style={{ width: 22, height: 2, borderRadius: 999, background: 'var(--color-success)', marginTop: 14, marginBottom: 10 }} />
+          </> : null}
           {statItems.map((item) => <TinyMetric key={item.key} label={item.label} value={item.value} unit={item.unit} />)}
         </div>
       ) : (
@@ -1226,10 +1239,10 @@ function PremiumHeroPreview({
               {mountainLine}
             </div>
           ) : null}
-          <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
-            <span style={{ fontSize: certificate ? 44 : verticalStory ? 44 : profile ? 46 : 56, lineHeight: 0.92, fontWeight: 800 }}>{formatNumber(data.altitude)}</span>
+          {showAltitude ? <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: certificate ? 44 : verticalStory ? 44 : profile ? 46 : 56, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
             <span style={{ fontSize: 18, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
-          </div>
+          </div> : null}
         </div>
       )}
 
@@ -1276,7 +1289,7 @@ function StoryPreviewDataBar({
   toggles: Record<ShareFieldKey, boolean>
 }) {
   const items = [
-    { key: 'altitude', icon: 'pin', value: formatNumber(data.altitude), unit: 'm' },
+    hasShareAltitude(data) ? { key: 'altitude', icon: 'pin', value: formatShareAltitude(data), unit: 'm' } : null,
     { key: 'distance', icon: 'mountain', value: formatDistance(data.distance), unit: 'km' },
     isVisible('duration', toggles) ? { key: 'duration', icon: 'clock', value: formatDuration(data.duration), unit: '' } : null,
     isVisible('elevationGain', toggles) ? { key: 'gain', icon: 'arrow', value: formatNumber(data.elevationGain), unit: 'm' } : null,
@@ -1443,6 +1456,7 @@ function TemplateThumb({
   onSelect: (template: BasicTemplateId) => void
 }) {
   const isData = template.variant === 'data'
+  const showAltitude = hasShareAltitude(data)
   return (
     <button
       type="button"
@@ -1477,7 +1491,7 @@ function TemplateThumb({
           <path d="M12 92 Q 26 74 38 77 T 62 50 T 72 29" stroke="var(--color-success)" strokeWidth="1.7" fill="none" strokeLinecap="round" />
         </svg>
       ) : null}
-      <div
+      {showAltitude ? <div
         style={{
           position: 'absolute',
           insetInline: 0,
@@ -1490,9 +1504,9 @@ function TemplateThumb({
           fontWeight: 700,
         }}
       >
-        {formatNumber(data.altitude)}
+        {formatShareAltitude(data)}
         <span style={{ fontSize: 8, marginLeft: 1 }}>m</span>
-      </div>
+      </div> : null}
       <div
         style={{
           position: 'absolute',
@@ -2456,8 +2470,11 @@ export default function ShareClient({
         },
       })
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        const shareTitle = hasShareAltitude(activityData)
+          ? `${activityData.mountainName ?? 'Peak Trekker'} ${formatShareAltitude(activityData)}m`
+          : activityData.mountainName ?? 'Peak Trekker'
         await navigator.share({
-          title: `${activityData.mountainName ?? 'Peak Trekker'} ${formatNumber(activityData.altitude)}m`,
+          title: shareTitle,
           url,
           files: [file],
         })

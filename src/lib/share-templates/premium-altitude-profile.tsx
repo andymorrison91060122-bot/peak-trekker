@@ -10,10 +10,13 @@ import {
   buildMountainLine,
   formatDistance,
   formatPlainNumber,
+  formatShareAltitude,
+  hasShareAltitude,
 } from './shared'
 
 export function PremiumAltitudeProfileTemplate({ data, photoDataUrl }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <PosterShell background="#101315">
@@ -35,10 +38,10 @@ export function PremiumAltitudeProfileTemplate({ data, photoDataUrl }: ShareTemp
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'absolute', left: 246, right: 246, bottom: 420 }}>
         {mountainLine ? <span style={{ color: C.fg, fontSize: 38, lineHeight: 1.2, fontWeight: 800, textAlign: 'center' }}>{mountainLine}</span> : null}
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 26 }}>
-          <span style={{ color: C.success, fontSize: 132, lineHeight: 0.9, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 26 }}>
+          <span style={{ color: C.success, fontSize: 132, lineHeight: 0.9, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 48, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
-        </div>
+        </div> : null}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', position: 'absolute', right: 72, bottom: 450, gap: 40 }}>

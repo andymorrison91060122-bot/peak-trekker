@@ -74,7 +74,7 @@ async function loadRemoteFonts() {
 }
 
 export async function loadShareFonts(text: string): Promise<ShareFont[]> {
-  const normalizedText = Array.from(new Set(`${text}Peak Trekker GPS VERIFIED UPLOADED 总距离时长爬升峰顶海拔`.split('')))
+  const normalizedText = Array.from(new Set(`${text}Peak Trekker GPS VERIFIED UPLOADED 总距离时长爬升最高海拔`.split('')))
     .join('')
     .slice(0, 512)
 

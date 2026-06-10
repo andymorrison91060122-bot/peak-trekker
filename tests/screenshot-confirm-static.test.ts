@@ -41,7 +41,7 @@ test('screenshot recognition checkins are uploaded proof and never GPS ranking r
   assert.match(importConfirmRoute, /track_points:\s*\[\]/)
 })
 
-test('screenshot client uses real preview, editable fields, mountain search, and activity redirect', () => {
+test('screenshot client uses real preview, editable fields, mountain search, and archive-to-share success flow', () => {
   assert.doesNotMatch(screenshotClient, /MockScreenshotPreview/)
   assert.doesNotMatch(screenshotClient, /截图活动生成接口待接入/)
   assert.match(screenshotClient, /ScreenshotProcessingPreview/)
@@ -58,7 +58,11 @@ test('screenshot client uses real preview, editable fields, mountain search, and
   assert.match(screenshotClient, /\/api\/mountains\/search\?q=/)
   assert.match(screenshotClient, /source:\s*'screenshot_recognition'/)
   assert.match(screenshotClient, /\/api\/import\/confirm/)
-  assert.match(screenshotClient, /router\.push\(`\/activity\/\$\{payload\.checkinId\}`\)/)
+  assert.match(screenshotClient, /data-testid="screenshot-archive-moment"/)
+  assert.match(screenshotClient, /setStep\('success'\)/)
+  assert.match(screenshotClient, /router\.replace\(`\/share\?checkinId=\$\{submitResult\.checkinId\}`\)/)
+  assert.match(screenshotClient, /router\.replace\(`\/activity\/\$\{submitResult\.checkinId\}`\)/)
+  assert.doesNotMatch(screenshotClient, /router\.push\(`\/activity\/\$\{payload\.checkinId\}`\)/)
 })
 
 test('screenshot confirm treats elevation and duration as optional sanitized fields', () => {
@@ -119,11 +123,12 @@ test('screenshot recognition route enforces quota with service-role RPC only', (
   assert.match(screenshotRecognizeRoute, /export const runtime = 'nodejs'/)
   assert.match(screenshotRecognizeRoute, /export const maxDuration = 60/)
   assert.match(screenshotRecognizeRoute, /getScreenshotQuotaState/)
-  assert.match(screenshotRecognizeRoute, /consumeScreenshotQuota\(createSupabaseAdminClient\(\)/)
+  assert.match(screenshotRecognizeRoute, /recognizeThenConsumeScreenshotQuota\(\{[\s\S]*adminClient:\s*createSupabaseAdminClient\(\)/)
+  assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const recognition = await recognize\(imageBase64,\s*mimeType\)[\s\S]*const quotaResult = await consume\(adminClient,\s*userId,\s*quota\)/)
   assert.match(screenshotRecognizeRoute, /status:\s*402/)
   assert.match(screenshotRecognizeRoute, /screenshot_quota_exhausted/)
   assert.match(screenshotRecognizeRoute, /ocrSource/)
-  assert.match(screenshotRecognizeRoute, /recognizeScreenshotText/)
+  assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /recognizeScreenshotText/)
   assert.match(screenshotRecognizeRoute, /screenshotRecognitionErrorStatus/)
   assert.match(screenshotRecognizeRoute, /recognitionMeta/)
   assert.doesNotMatch(screenshotRecognitionStatus, /limit\|quota\|rate/)
@@ -134,6 +139,47 @@ test('screenshot recognition route enforces quota with service-role RPC only', (
   assert.match(screenshotQuotaMigration, /GRANT EXECUTE ON FUNCTION public\.consume_screenshot_quota\(UUID, TEXT, INTEGER, INTEGER\)\s+TO service_role;/)
   assert.doesNotMatch(screenshotQuotaMigration, /GRANT EXECUTE ON FUNCTION public\.consume_screenshot_quota\(UUID, TEXT, INTEGER, INTEGER\)\s+TO authenticated;/)
   assert.match(screenshotQuotaHelper, /\.rpc\('consume_screenshot_quota'/)
+})
+
+test('screenshot recognition transient errors use friendly copy and do not consume quota', async () => {
+  const { recognizeThenConsumeScreenshotQuota } = await import('../src/lib/screenshot/recognition-quota.ts')
+  let consumed = false
+  const quota = {
+    monthKey: '2026-06',
+    isFirstMonth: false,
+    subscriptionTier: 'free',
+    freeLimit: 2,
+    freeUsed: 0,
+    paidLimit: 0,
+    paidUsed: 0,
+    freeRemaining: 2,
+    paidRemaining: 0,
+    remaining: 2,
+    totalLimit: 2,
+  } as const
+
+  await assert.rejects(
+    () => recognizeThenConsumeScreenshotQuota({
+      imageBase64: 'base64',
+      mimeType: 'image/png',
+      userId: 'user-id',
+      quota,
+      adminClient: {} as never,
+      recognize: async () => {
+        throw new TypeError('fetch failed')
+      },
+      consume: async (_adminClient, _userId, nextQuota) => {
+        consumed = true
+        return { success: true, bucket: 'free', quota: nextQuota }
+      },
+    }),
+    /fetch failed/,
+  )
+  assert.equal(consumed, false)
+
+  assert.match(screenshotRecognizeRoute, /识别服务暂时不可用，请稍后重试。本次未消耗识别次数。/)
+  assert.match(screenshotRecognizeRoute, /return recognitionFailureResponse\(error\)/)
+  assert.doesNotMatch(screenshotRecognizeRoute, /\{ error: error instanceof Error \? error\.message/)
 })
 
 test('screenshot client surfaces quota state and upgrade placeholder', () => {

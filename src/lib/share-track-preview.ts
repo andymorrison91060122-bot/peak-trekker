@@ -1,3 +1,5 @@
+import { validateScreenshotRouteShape } from './screenshot-route-shape.ts'
+
 export type ShareTrackPreviewPoint = {
   x: number
   y: number
@@ -5,6 +7,7 @@ export type ShareTrackPreviewPoint = {
 
 export type ShareTrackPreview = {
   points: ShareTrackPreviewPoint[]
+  segments?: ShareTrackPreviewPoint[][]
   pointCount: number
   hasAltitude: boolean
 }
@@ -15,12 +18,47 @@ export type ShareTrackFrame = {
   width: number
   height: number
   padding?: number
+  fitToContent?: boolean
+  maxContentScale?: number
+  minContentSpan?: number
+}
+
+export type ShareTrackBounds = {
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
+  width: number
+  height: number
 }
 
 export type ShareTrackPath = {
   d: string | null
   start: ShareTrackPreviewPoint
   end: ShareTrackPreviewPoint
+  bounds: ShareTrackBounds
+  projectedSegments: ShareTrackPreviewPoint[][]
+}
+
+export type ShareTrackRender = ShareTrackPath & {
+  lineWidth: number
+  glowWidth: number
+  glowOpacity: number
+  startRadius: number
+  startStrokeWidth: number
+  endRadius: number
+  filterPadding: number
+}
+
+export type ShareTrackRenderStyle = {
+  lineWidth?: number
+  glowWidth?: number
+  glowOpacity?: number
+  startRadius?: number
+  startStrokeWidth?: number
+  endRadius?: number
+  filterPadding?: number
+  simplifyEpsilonPx?: number
 }
 
 type ParsedTrackPoint = {
@@ -31,6 +69,15 @@ type ParsedTrackPoint = {
 
 const DEFAULT_MAX_POINTS = 96
 const COORDINATE_EPSILON = 0.0000001
+const DEFAULT_MIN_CONTENT_SPAN = 0.18
+const DEFAULT_MAX_CONTENT_SCALE = 4.5
+const DEFAULT_SIMPLIFY_EPSILON_PX = 1.75
+
+export const SHARE_TRACK_CONTENT_FIT = {
+  fitToContent: true,
+  maxContentScale: DEFAULT_MAX_CONTENT_SCALE,
+  minContentSpan: DEFAULT_MIN_CONTENT_SPAN,
+} as const
 
 function toFiniteNumber(value: unknown) {
   const numeric = Number(value)
@@ -70,6 +117,16 @@ function sampleTrackPoints(points: ParsedTrackPoint[], maxPoints: number) {
   return isSameCoordinate(sampled.at(-1) ?? lastPoint, lastPoint) ? sampled : [...sampled, lastPoint]
 }
 
+function samplePreviewPoints(points: ShareTrackPreviewPoint[], maxPoints: number) {
+  if (points.length <= maxPoints) return points
+  if (maxPoints <= 2) return [points[0]!, points.at(-1)!]
+
+  return Array.from({ length: maxPoints }, (_, index) => {
+    const sourceIndex = Math.round((index * (points.length - 1)) / (maxPoints - 1))
+    return points[sourceIndex]!
+  })
+}
+
 export function buildShareTrackPreview(rawTrackPoints: unknown, maxPoints = DEFAULT_MAX_POINTS): ShareTrackPreview | null {
   if (!Array.isArray(rawTrackPoints)) return null
 
@@ -106,12 +163,56 @@ export function buildShareTrackPreview(rawTrackPoints: unknown, maxPoints = DEFA
   }
 }
 
+function projectScreenshotPoint(point: ShareTrackPreviewPoint, width: number, height: number): ShareTrackPreviewPoint {
+  const safeWidth = Math.max(1, width)
+  const safeHeight = Math.max(1, height)
+  const maxDimension = Math.max(safeWidth, safeHeight)
+  const xOffset = (maxDimension - safeWidth) / 2
+  const yOffset = (maxDimension - safeHeight) / 2
+
+  return {
+    x: (xOffset + clampUnit(point.x) * safeWidth) / maxDimension,
+    y: (yOffset + clampUnit(point.y) * safeHeight) / maxDimension,
+  }
+}
+
+export function buildShareTrackPreviewFromScreenshotRouteShape(
+  rawShape: unknown,
+  maxPointsPerSegment = DEFAULT_MAX_POINTS,
+): ShareTrackPreview | null {
+  const validation = validateScreenshotRouteShape(rawShape)
+  if (!validation.ok || !validation.shape) return null
+
+  const safeMaxPoints = Math.max(2, Math.floor(maxPointsPerSegment))
+  const drawableSegments = validation.shape.segments.flatMap((segment) => {
+    if (segment.resolution === 'accepted_gap' || segment.points.length < 2) return []
+    const projected = segment.points.map((point) =>
+      projectScreenshotPoint(point, validation.shape!.image.width, validation.shape!.image.height),
+    )
+    const sampled = samplePreviewPoints(projected, safeMaxPoints)
+    return sampled.length >= 2 ? [sampled] : []
+  })
+
+  if (drawableSegments.length < 1) return null
+
+  return {
+    points: drawableSegments.flat(),
+    segments: drawableSegments,
+    pointCount: drawableSegments.reduce((sum, segment) => sum + segment.length, 0),
+    hasAltitude: false,
+  }
+}
+
 function clampUnit(value: number) {
   return Math.max(0, Math.min(1, value))
 }
 
 function formatCoord(value: number) {
   return Number(value.toFixed(2))
+}
+
+function pointsEqual(a: ShareTrackPreviewPoint, b: ShareTrackPreviewPoint) {
+  return Math.abs(a.x - b.x) < COORDINATE_EPSILON && Math.abs(a.y - b.y) < COORDINATE_EPSILON
 }
 
 function projectPoint(point: ShareTrackPreviewPoint, frame: Required<ShareTrackFrame>): ShareTrackPreviewPoint {
@@ -124,6 +225,148 @@ function projectPoint(point: ShareTrackPreviewPoint, frame: Required<ShareTrackF
   return {
     x: formatCoord(frame.x + frame.padding + offsetX + clampUnit(point.x) * scale),
     y: formatCoord(frame.y + frame.padding + offsetY + clampUnit(point.y) * scale),
+  }
+}
+
+function getPointBounds(points: ShareTrackPreviewPoint[]): ShareTrackBounds {
+  const first = points[0] ?? { x: 0, y: 0 }
+  let minX = first.x
+  let minY = first.y
+  let maxX = first.x
+  let maxY = first.y
+
+  for (const point of points) {
+    minX = Math.min(minX, point.x)
+    minY = Math.min(minY, point.y)
+    maxX = Math.max(maxX, point.x)
+    maxY = Math.max(maxY, point.y)
+  }
+
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    width: maxX - minX,
+    height: maxY - minY,
+  }
+}
+
+function pointLineDistance(point: ShareTrackPreviewPoint, start: ShareTrackPreviewPoint, end: ShareTrackPreviewPoint) {
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+  const denominator = Math.hypot(dx, dy)
+  if (denominator <= COORDINATE_EPSILON) return Math.hypot(point.x - start.x, point.y - start.y)
+  return Math.abs(dy * point.x - dx * point.y + end.x * start.y - end.y * start.x) / denominator
+}
+
+function simplifyDouglasPeucker(points: ShareTrackPreviewPoint[], epsilon: number): ShareTrackPreviewPoint[] {
+  if (points.length <= 2) return points
+
+  let maxDistance = -1
+  let splitIndex = -1
+  const start = points[0]!
+  const end = points.at(-1)!
+
+  for (let index = 1; index < points.length - 1; index += 1) {
+    const distance = pointLineDistance(points[index]!, start, end)
+    if (distance > maxDistance) {
+      maxDistance = distance
+      splitIndex = index
+    }
+  }
+
+  if (maxDistance > epsilon && splitIndex > 0) {
+    const before = simplifyDouglasPeucker(points.slice(0, splitIndex + 1), epsilon)
+    const after = simplifyDouglasPeucker(points.slice(splitIndex), epsilon)
+    return [...before.slice(0, -1), ...after]
+  }
+
+  return [start, end]
+}
+
+function buildQuadraticPath(points: ShareTrackPreviewPoint[]) {
+  const start = points[0]
+  const end = points.at(-1)
+  if (!start || !end) return null
+  if (points.length === 1) return null
+  if (points.length === 2) {
+    const dx = end.x - start.x
+    const dy = end.y - start.y
+    const length = Math.hypot(dx, dy) || 1
+    const curveOffset = Math.min(Math.hypot(dx, dy) * 0.16, 28)
+    const control = {
+      x: formatCoord((start.x + end.x) / 2 + (-dy / length) * curveOffset),
+      y: formatCoord((start.y + end.y) / 2 + (dx / length) * curveOffset),
+    }
+    return `M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y}`
+  }
+
+  const commands = [`M ${start.x} ${start.y}`]
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const p0 = points[Math.max(0, index - 1)]!
+    const p1 = points[index]!
+    const p2 = points[index + 1]!
+    const p3 = points[Math.min(points.length - 1, index + 2)]!
+    const cp1 = {
+      x: formatCoord(p1.x + (p2.x - p0.x) / 6),
+      y: formatCoord(p1.y + (p2.y - p0.y) / 6),
+    }
+    const cp2 = {
+      x: formatCoord(p2.x - (p3.x - p1.x) / 6),
+      y: formatCoord(p2.y - (p3.y - p1.y) / 6),
+    }
+    commands.push(`C ${cp1.x} ${cp1.y} ${cp2.x} ${cp2.y} ${p2.x} ${p2.y}`)
+  }
+  return commands.join(' ')
+}
+
+function fitPointToContent(point: ShareTrackPreviewPoint, bounds: ShareTrackBounds, frame: Required<ShareTrackFrame>) {
+  if (!frame.fitToContent) return point
+
+  const minContentSpan = Math.max(COORDINATE_EPSILON, frame.minContentSpan)
+  const effectiveSpan = Math.max(bounds.width, bounds.height, minContentSpan)
+  const scale = Math.min(1 / effectiveSpan, frame.maxContentScale)
+  const centerX = (bounds.minX + bounds.maxX) / 2
+  const centerY = (bounds.minY + bounds.maxY) / 2
+
+  return {
+    x: 0.5 + (point.x - centerX) * scale,
+    y: 0.5 + (point.y - centerY) * scale,
+  }
+}
+
+function buildProjectedSegmentPath(points: ShareTrackPreviewPoint[], frame: Required<ShareTrackFrame>, contentBounds: ShareTrackBounds | null) {
+  const sourcePoints = contentBounds ? points.map((point) => fitPointToContent(point, contentBounds, frame)) : points
+  const projected = sourcePoints.map((point) => projectPoint(point, frame))
+  const start = projected[0]
+  const end = projected.at(-1)
+
+  if (!start || !end) return null
+  if (projected.length === 1) return { d: null as string | null, start, end, projected }
+  if (projected.length === 2) {
+    const dx = end.x - start.x
+    const dy = end.y - start.y
+    const length = Math.hypot(dx, dy) || 1
+    const curveOffset = Math.min(frame.width, frame.height) * 0.08
+    const control = {
+      x: formatCoord((start.x + end.x) / 2 + (-dy / length) * curveOffset),
+      y: formatCoord((start.y + end.y) / 2 + (dx / length) * curveOffset),
+    }
+
+    return {
+      d: `M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y}`,
+      start,
+      end,
+      projected: [start, control, end],
+    }
+  }
+
+  return {
+    d: projected.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' '),
+    start,
+    end,
+    projected,
   }
 }
 
@@ -140,19 +383,55 @@ export function buildShareTrackPath(
     width: frame.width,
     height: frame.height,
     padding: safePadding,
+    fitToContent: frame.fitToContent ?? false,
+    maxContentScale: Math.max(1, frame.maxContentScale ?? DEFAULT_MAX_CONTENT_SCALE),
+    minContentSpan: Math.max(COORDINATE_EPSILON, frame.minContentSpan ?? DEFAULT_MIN_CONTENT_SPAN),
   }
 
   if (resolvedFrame.width <= 0 || resolvedFrame.height <= 0) return null
 
-  const points = preview.points.map((point) => projectPoint(point, resolvedFrame))
+  const drawableSegments = preview.segments?.filter((segment) => segment.length >= 1) ?? null
+  if (drawableSegments?.length) {
+    const contentBounds = resolvedFrame.fitToContent ? getPointBounds(drawableSegments.flat()) : null
+    const segmentPaths = drawableSegments.flatMap((segment) => {
+      const path = buildProjectedSegmentPath(segment, resolvedFrame, contentBounds)
+      return path ? [path] : []
+    })
+
+    if (!segmentPaths.length) return null
+    const start = segmentPaths[0]!.start
+    const end = segmentPaths.at(-1)!.end
+    const pathData = segmentPaths.flatMap((path) => (path.d ? [path.d] : [])).join(' ')
+    const bounds = getPointBounds(segmentPaths.flatMap((path) => path.projected))
+    const projectedSegments = segmentPaths.map((path) => path.projected.filter((point, index, points) => {
+      if (index === 0 || index === points.length - 1) return true
+      return !pointsEqual(point, points[index - 1]!)
+    }))
+
+    return {
+      d: pathData || null,
+      start,
+      end,
+      bounds,
+      projectedSegments,
+    }
+  }
+
+  const contentBounds = resolvedFrame.fitToContent ? getPointBounds(preview.points) : null
+  const points = preview.points
+    .map((point) => (contentBounds ? fitPointToContent(point, contentBounds, resolvedFrame) : point))
+    .map((point) => projectPoint(point, resolvedFrame))
   const start = points[0]!
   const end = points.at(-1)!
+  const bounds = getPointBounds(points)
 
   if (points.length === 1) {
     return {
       d: null,
       start,
       end,
+      bounds,
+      projectedSegments: [[start]],
     }
   }
 
@@ -170,6 +449,8 @@ export function buildShareTrackPath(
       d: `M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y}`,
       start,
       end,
+      bounds: getPointBounds([start, control, end]),
+      projectedSegments: [[start, end]],
     }
   }
 
@@ -177,5 +458,58 @@ export function buildShareTrackPath(
     d: points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' '),
     start,
     end,
+    bounds,
+    projectedSegments: [points],
+  }
+}
+
+export function buildShareTrackRender(
+  preview: ShareTrackPreview | null | undefined,
+  frame: ShareTrackFrame,
+  style: ShareTrackRenderStyle = {},
+): ShareTrackRender | null {
+  const route = buildShareTrackPath(preview, frame)
+  if (!route) return null
+  const epsilon = Math.max(0, style.simplifyEpsilonPx ?? DEFAULT_SIMPLIFY_EPSILON_PX)
+  const simplifiedSegments = route.projectedSegments
+    .map((segment) => simplifyDouglasPeucker(segment, epsilon))
+    .map((segment) => {
+      const first = segment[0]
+      const last = segment.at(-1)
+      if (!first || !last) return segment
+      const original = route.projectedSegments.find((candidate) => pointsEqual(candidate[0] ?? first, first) && pointsEqual(candidate.at(-1) ?? last, last))
+      const originalFirst = original?.[0]
+      const originalLast = original?.at(-1)
+      const withExactStart = originalFirst && !pointsEqual(segment[0]!, originalFirst) ? [originalFirst, ...segment.slice(1)] : segment
+      const withExactEnd = originalLast && !pointsEqual(withExactStart.at(-1)!, originalLast) ? [...withExactStart.slice(0, -1), originalLast] : withExactStart
+      return withExactEnd
+    })
+    .filter((segment) => segment.length >= 1)
+  const smoothedPath = simplifiedSegments
+    .flatMap((segment) => {
+      const d = buildQuadraticPath(segment)
+      return d ? [d] : []
+    })
+    .join(' ')
+  const renderBounds = getPointBounds(simplifiedSegments.flatMap((segment) => segment))
+
+  const lineWidth = Math.max(1, style.lineWidth ?? 8)
+  const glowWidth = Math.max(lineWidth, style.glowWidth ?? lineWidth * 4)
+  const startRadius = Math.max(1, style.startRadius ?? lineWidth * 2.35)
+  const startStrokeWidth = Math.max(1, style.startStrokeWidth ?? lineWidth)
+  const endRadius = Math.max(1, style.endRadius ?? lineWidth * 3.2)
+
+  return {
+    ...route,
+    d: smoothedPath || null,
+    bounds: renderBounds,
+    projectedSegments: simplifiedSegments,
+    lineWidth,
+    glowWidth,
+    glowOpacity: Math.max(0, Math.min(1, style.glowOpacity ?? 0.16)),
+    startRadius,
+    startStrokeWidth,
+    endRadius,
+    filterPadding: Math.max(0, style.filterPadding ?? glowWidth * 2),
   }
 }

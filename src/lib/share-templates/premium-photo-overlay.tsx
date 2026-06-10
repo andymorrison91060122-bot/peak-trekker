@@ -9,11 +9,14 @@ import {
   TopoSvg,
   formatDistance,
   formatPlainNumber,
+  formatShareAltitude,
+  hasShareAltitude,
 } from './shared'
 
 export function PremiumPhotoOverlayTemplate({ data, photoDataUrl }: ShareTemplateProps) {
   const mountainName = data.visibleFields.mountainName ? data.mountainName : ''
   const location = data.visibleFields.location ? data.location : ''
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <PosterShell background={SHARE_TEMPLATE_PALETTE.bgPrimary}>
@@ -33,14 +36,14 @@ export function PremiumPhotoOverlayTemplate({ data, photoDataUrl }: ShareTemplat
             {location}
           </span>
         ) : null}
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 44 }}>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 44 }}>
           <span style={{ color: C.success, fontSize: 138, lineHeight: 0.92, fontWeight: 800 }}>
-            {formatPlainNumber(data.altitude)}
+            {formatShareAltitude(data)}
           </span>
           <span style={{ color: C.success, fontSize: 46, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
-        </div>
+        </div> : null}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 42, marginTop: 74 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 42, marginTop: showAltitude ? 74 : 54 }}>
           <OverlayMetric label="总距离" value={formatDistance(data.distance)} unit="km" />
           {data.visibleFields.duration ? <OverlayMetric label="时长" value={data.duration || '--'} /> : null}
           {data.visibleFields.elevationGain ? <OverlayMetric label="爬升" value={formatPlainNumber(data.elevationGain)} unit="m" /> : null}

@@ -12,7 +12,9 @@ import {
   buildMountainLine,
   formatDistance,
   formatPlainNumber,
+  formatShareAltitude,
   fourStats,
+  hasShareAltitude,
   hasShareTrackPoint,
   visibleStats,
 } from './shared'
@@ -98,6 +100,7 @@ function TransparentDataRow({ data }: ShareTemplateProps) {
 
 function BottomClassicBlock({ data, compact = false }: { data: ShareTemplateProps['data']; compact?: boolean }) {
   const mountainLine = buildMountainLine(data)
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <div
@@ -136,12 +139,12 @@ function BottomClassicBlock({ data, compact = false }: { data: ShareTemplateProp
             {mountainLine}
           </span>
         ) : null}
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 34 }}>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 34 }}>
           <span style={{ color: C.success, fontSize: compact ? 142 : 170, lineHeight: 0.92, fontWeight: 800, letterSpacing: '0' }}>
-            {formatPlainNumber(data.altitude)}
+            {formatShareAltitude(data)}
           </span>
           <span style={{ color: C.success, fontSize: compact ? 54 : 62, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
-        </div>
+        </div> : null}
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 88, right: 88, bottom: compact ? 204 : 230 }}>
         <TransparentDataRow data={data} />
@@ -166,17 +169,18 @@ function WatermarkClassic({ data }: ShareTemplateProps) {
 
 function WatermarkData({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <TransparentShell>
       <MountainRidgeSvg opacity={0.14} />
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'absolute', left: 72, right: 72, top: 520 }}>
-        <span style={{ color: C.fg2, fontSize: 38, lineHeight: 1, fontWeight: 800, letterSpacing: '0.08em' }}>峰顶海拔</span>
+      {showAltitude ? <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'absolute', left: 72, right: 72, top: 520 }}>
+        <span style={{ color: C.fg2, fontSize: 38, lineHeight: 1, fontWeight: 800, letterSpacing: '0.08em' }}>最高海拔</span>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 46 }}>
-          <span style={{ color: C.success, fontSize: 238, lineHeight: 0.92, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+          <span style={{ color: C.success, fontSize: 238, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 78, lineHeight: 1, fontWeight: 800, marginLeft: 12 }}>m</span>
         </div>
-      </div>
+      </div> : null}
       {mountainLine ? (
         <span style={{ position: 'absolute', left: 72, right: 72, bottom: 520, color: C.fg, fontSize: 40, lineHeight: 1.2, fontWeight: 800, textAlign: 'center' }}>
           {mountainLine}
@@ -209,6 +213,7 @@ function WatermarkComposite({ data }: ShareTemplateProps) {
 function WatermarkOverlay({ data }: ShareTemplateProps) {
   const mountainName = data.visibleFields.mountainName ? data.mountainName : ''
   const location = data.visibleFields.location ? data.location : ''
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <TransparentShell>
@@ -223,11 +228,11 @@ function WatermarkOverlay({ data }: ShareTemplateProps) {
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 70, top: 250, width: 435 }}>
         {mountainName ? <span style={{ color: C.fg, fontSize: 38, lineHeight: 1.2, fontWeight: 800 }}>{mountainName}</span> : null}
         {location ? <span style={{ color: C.fg2, fontSize: 28, lineHeight: 1.15, fontWeight: 800, marginTop: 30 }}>{location}</span> : null}
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 44 }}>
-          <span style={{ color: C.success, fontSize: 138, lineHeight: 0.92, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 44 }}>
+          <span style={{ color: C.success, fontSize: 138, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 46, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 42, marginTop: 74 }}>
+        </div> : null}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 42, marginTop: showAltitude ? 74 : 54 }}>
           <WatermarkMetric label="总距离" value={formatDistance(data.distance)} unit="km" />
           {data.visibleFields.duration ? <WatermarkMetric label="时长" value={data.duration || '--'} /> : null}
           {data.visibleFields.elevationGain ? <WatermarkMetric label="爬升" value={formatPlainNumber(data.elevationGain)} unit="m" /> : null}
@@ -242,22 +247,23 @@ function WatermarkOverlay({ data }: ShareTemplateProps) {
 
 function WatermarkBoldNumber({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <TransparentShell>
-      <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 64, right: 64, top: 180 }}>
-        <span style={{ color: 'rgba(255, 255, 255, 0.32)', fontSize: 30, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>峰顶海拔</span>
+      {showAltitude ? <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 64, right: 64, top: 180 }}>
+        <span style={{ color: 'rgba(255, 255, 255, 0.32)', fontSize: 30, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>最高海拔</span>
         <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 32 }}>
-          <span style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 265, lineHeight: 0.86, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+          <span style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 265, lineHeight: 0.86, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 88, lineHeight: 1, fontWeight: 800, marginLeft: 12 }}>m</span>
         </div>
-      </div>
+      </div> : null}
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 72, right: 72, bottom: 315 }}>
         {mountainLine ? <span style={{ color: C.fg, fontSize: 42, lineHeight: 1.18, fontWeight: 800 }}>{mountainLine}</span> : null}
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 36 }}>
-          <span style={{ color: C.success, fontSize: 104, lineHeight: 0.92, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 36 }}>
+          <span style={{ color: C.success, fontSize: 104, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 42, fontWeight: 800, marginLeft: 10 }}>m</span>
-        </div>
+        </div> : null}
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 72, right: 72, bottom: 210, justifyContent: 'space-between' }}>
         <WatermarkMetric label="DISTANCE" value={formatDistance(data.distance)} unit="km" />
@@ -272,6 +278,7 @@ function WatermarkBoldNumber({ data }: ShareTemplateProps) {
 
 function WatermarkDataScatter({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <TransparentShell>
@@ -281,12 +288,14 @@ function WatermarkDataScatter({ data }: ShareTemplateProps) {
       <div style={{ display: 'flex', position: 'absolute', left: 0, top: 0, width: 470, height: 1920, background: 'linear-gradient(145deg, rgba(22, 26, 29, 0.82) 0%, rgba(13, 16, 18, 0.78) 100%)' }} />
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 64, top: 190, width: 340 }}>
         {mountainLine ? <span style={{ color: C.fg, fontSize: 36, lineHeight: 1.24, fontWeight: 800 }}>{mountainLine}</span> : null}
-        <span style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.14em', marginTop: 64 }}>峰顶海拔</span>
+        {showAltitude ? <>
+        <span style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.14em', marginTop: 64 }}>最高海拔</span>
         <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 18 }}>
-          <span style={{ color: C.success, fontSize: 106, lineHeight: 0.9, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+          <span style={{ color: C.success, fontSize: 106, lineHeight: 0.9, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 42, lineHeight: 1, fontWeight: 800, marginLeft: 9 }}>m</span>
         </div>
         <div style={{ display: 'flex', width: 52, height: 4, borderRadius: 999, background: C.success, marginTop: 58, marginBottom: 36 }} />
+        </> : <div style={{ display: 'flex', height: 36, marginTop: 44 }} />}
         <WatermarkMetric label="总距离" value={formatDistance(data.distance)} unit="km" />
         {data.visibleFields.duration ? <WatermarkMetric label="时长" value={data.duration || '--'} /> : null}
         {data.visibleFields.elevationGain ? <WatermarkMetric label="爬升" value={formatPlainNumber(data.elevationGain)} unit="m" /> : null}
@@ -301,6 +310,7 @@ function WatermarkDataScatter({ data }: ShareTemplateProps) {
 function WatermarkMonoFilm({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const stats = fourStats(data)
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <TransparentShell>
@@ -311,11 +321,13 @@ function WatermarkMonoFilm({ data }: ShareTemplateProps) {
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, top: 1260, bottom: 0, background: 'rgba(10,12,14,0.78)' }} />
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', position: 'absolute', left: 78, right: 78, top: 770 }}>
         {mountainLine ? <span style={{ color: C.fg, fontSize: 42, lineHeight: 1.18, fontWeight: 800, textAlign: 'left' }}>{mountainLine}</span> : null}
-        <span style={{ color: C.fg2, fontSize: 28, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em', marginTop: 52 }}>峰顶海拔</span>
+        {showAltitude ? <>
+        <span style={{ color: C.fg2, fontSize: 28, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em', marginTop: 52 }}>最高海拔</span>
         <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 24 }}>
-          <span style={{ color: C.success, fontSize: 172, lineHeight: 0.9, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+          <span style={{ color: C.success, fontSize: 172, lineHeight: 0.9, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 58, lineHeight: 1, fontWeight: 800, marginLeft: 12 }}>m</span>
         </div>
+        </> : null}
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 58, right: 58, top: 1388, alignItems: 'stretch', justifyContent: 'center' }}>
         {stats.map((item, index) => (
@@ -337,6 +349,7 @@ function WatermarkMonoFilm({ data }: ShareTemplateProps) {
 
 function WatermarkAltitudeProfile({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <TransparentShell>
@@ -353,10 +366,10 @@ function WatermarkAltitudeProfile({ data }: ShareTemplateProps) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'absolute', left: 246, right: 246, bottom: 420 }}>
         {mountainLine ? <span style={{ color: C.fg, fontSize: 38, lineHeight: 1.2, fontWeight: 800, textAlign: 'center' }}>{mountainLine}</span> : null}
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 26 }}>
-          <span style={{ color: C.success, fontSize: 132, lineHeight: 0.9, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 26 }}>
+          <span style={{ color: C.success, fontSize: 132, lineHeight: 0.9, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 48, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
-        </div>
+        </div> : null}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', position: 'absolute', right: 72, bottom: 450, gap: 40 }}>
         {data.visibleFields.duration ? <SmallMetric label="时长" value={data.duration || '--'} align="right" /> : null}
@@ -371,24 +384,25 @@ function WatermarkAltitudeProfile({ data }: ShareTemplateProps) {
 
 function WatermarkCertificate({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
-  const startAltitude = Math.max(0, Math.round(data.altitude - data.elevationGain))
+  const showAltitude = hasShareAltitude(data)
+  const startAltitude = showAltitude ? Math.max(0, Math.round(data.altitude - data.elevationGain)) : null
 
   return (
     <TransparentShell>
       <MountainRidgeSvg opacity={0.18} />
       <CertificateElevationChart />
-      <span style={{ position: 'absolute', left: 120, top: 870, color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800 }}>
+      {showAltitude && startAltitude !== null ? <span style={{ position: 'absolute', left: 120, top: 870, color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800 }}>
         起点 {formatPlainNumber(startAltitude)}m
-      </span>
-      <span style={{ position: 'absolute', right: 120, top: 190, color: C.success, fontSize: 30, lineHeight: 1, fontWeight: 800 }}>
-        {formatPlainNumber(data.altitude)}m
-      </span>
+      </span> : null}
+      {showAltitude ? <span style={{ position: 'absolute', right: 120, top: 190, color: C.success, fontSize: 30, lineHeight: 1, fontWeight: 800 }}>
+        {formatShareAltitude(data)}m
+      </span> : null}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'absolute', left: 72, right: 72, bottom: 430 }}>
         {mountainLine ? <span style={{ color: C.fg, fontSize: 40, lineHeight: 1.2, fontWeight: 800, textAlign: 'center' }}>{mountainLine}</span> : null}
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 28 }}>
-          <span style={{ color: C.success, fontSize: 132, lineHeight: 0.92, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 28 }}>
+          <span style={{ color: C.success, fontSize: 132, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 50, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
-        </div>
+        </div> : null}
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 72, right: 72, bottom: 260 }}>
         <TransparentDataRow data={data} />
@@ -402,6 +416,7 @@ function WatermarkCertificate({ data }: ShareTemplateProps) {
 
 function WatermarkVerticalStory({ data }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
+  const showAltitude = hasShareAltitude(data)
 
   return (
     <TransparentShell>
@@ -413,14 +428,14 @@ function WatermarkVerticalStory({ data }: ShareTemplateProps) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 58, right: 58, bottom: 310 }}>
         {mountainLine ? <span style={{ color: C.fg, fontSize: 42, lineHeight: 1.2, fontWeight: 800 }}>{mountainLine}</span> : null}
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 24 }}>
-          <span style={{ color: C.success, fontSize: 120, lineHeight: 0.92, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 24 }}>
+          <span style={{ color: C.success, fontSize: 120, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 46, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
-        </div>
+        </div> : null}
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 80, right: 80, bottom: 198, height: 58, alignItems: 'center', justifyContent: 'center' }}>
-        <StoryMiniStat value={formatPlainNumber(data.altitude)} unit="m" />
-        <StoryMiniStat value={formatDistance(data.distance)} unit="km" separator />
+        {showAltitude ? <StoryMiniStat value={formatShareAltitude(data)} unit="m" /> : null}
+        <StoryMiniStat value={formatDistance(data.distance)} unit="km" separator={showAltitude} />
         {data.visibleFields.duration ? <StoryMiniStat value={data.duration || '--'} separator /> : null}
         {data.visibleFields.elevationGain ? <StoryMiniStat value={formatPlainNumber(data.elevationGain)} unit="m" separator /> : null}
       </div>

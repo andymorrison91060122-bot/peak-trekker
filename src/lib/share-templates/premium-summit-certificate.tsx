@@ -9,11 +9,14 @@ import {
   PosterShell,
   buildMountainLine,
   formatPlainNumber,
+  formatShareAltitude,
+  hasShareAltitude,
 } from './shared'
 
 export function PremiumSummitCertificateTemplate({ data, photoDataUrl }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
-  const startAltitude = Math.max(0, Math.round(data.altitude - data.elevationGain))
+  const showAltitude = hasShareAltitude(data)
+  const startAltitude = showAltitude ? Math.max(0, Math.round(data.altitude - data.elevationGain)) : null
 
   return (
     <PosterShell background="linear-gradient(180deg, #11171a 0%, #0a0c0e 100%)">
@@ -25,19 +28,19 @@ export function PremiumSummitCertificateTemplate({ data, photoDataUrl }: ShareTe
       ) : null}
       <MountainRidgeSvg opacity={photoDataUrl ? 0.24 : 0.18} />
       <ElevationChart />
-      <span style={{ position: 'absolute', left: 120, top: 870, color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800 }}>
+      {showAltitude && startAltitude !== null ? <span style={{ position: 'absolute', left: 120, top: 870, color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800 }}>
         起点 {formatPlainNumber(startAltitude)}m
-      </span>
-      <span style={{ position: 'absolute', right: 120, top: 190, color: C.success, fontSize: 30, lineHeight: 1, fontWeight: 800 }}>
-        {formatPlainNumber(data.altitude)}m
-      </span>
+      </span> : null}
+      {showAltitude ? <span style={{ position: 'absolute', right: 120, top: 190, color: C.success, fontSize: 30, lineHeight: 1, fontWeight: 800 }}>
+        {formatShareAltitude(data)}m
+      </span> : null}
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'absolute', left: 72, right: 72, bottom: 430 }}>
         {mountainLine ? <span style={{ color: C.fg, fontSize: 40, lineHeight: 1.2, fontWeight: 800, textAlign: 'center' }}>{mountainLine}</span> : null}
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 28 }}>
-          <span style={{ color: C.success, fontSize: 132, lineHeight: 0.92, fontWeight: 800 }}>{formatPlainNumber(data.altitude)}</span>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 28 }}>
+          <span style={{ color: C.success, fontSize: 132, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 50, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
-        </div>
+        </div> : null}
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 72, right: 72, bottom: 260 }}>

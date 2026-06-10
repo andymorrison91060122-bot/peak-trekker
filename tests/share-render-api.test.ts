@@ -120,6 +120,45 @@ describe('share render API field policy regression', () => {
     assert.doesNotMatch(clientSource, /route\?\.d\s*\?\?/)
   })
 
+  test('share altitude hero is measured-only and relabeled', () => {
+    const sharePageSource = readSource('../src/app/(flow)/share/page.tsx')
+    const renderRouteSource = readSource('../src/app/api/share/render/route.ts')
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const fontSource = readSource('../src/lib/fonts/load-share-fonts.ts')
+    const serverTemplateSources = [
+      '../src/lib/share-templates/base-classic.tsx',
+      '../src/lib/share-templates/base-data.tsx',
+      '../src/lib/share-templates/premium-photo-composite.tsx',
+      '../src/lib/share-templates/premium-photo-overlay.tsx',
+      '../src/lib/share-templates/premium-bold-number.tsx',
+      '../src/lib/share-templates/premium-data-scatter.tsx',
+      '../src/lib/share-templates/premium-mono-film.tsx',
+      '../src/lib/share-templates/premium-altitude-profile.tsx',
+      '../src/lib/share-templates/premium-summit-certificate.tsx',
+      '../src/lib/share-templates/premium-vertical-story.tsx',
+      '../src/lib/share-templates/transparent-watermark.tsx',
+    ].map(readSource)
+
+    assert.match(sharePageSource, /resolveMeasuredShareAltitude\(row\.max_elevation_meters,\s*session\?\.max_altitude_m\)/)
+    assert.match(renderRouteSource, /resolveMeasuredShareAltitude\(row\.max_elevation_meters,\s*session\?\.max_altitude_m\)/)
+    assert.doesNotMatch(sharePageSource, /mountain\?\.altitude|mountain\.altitude/)
+    assert.doesNotMatch(renderRouteSource, /mountain\?\.altitude|mountain\.altitude/)
+
+    for (const source of [clientSource, renderRouteSource, fontSource, ...serverTemplateSources]) {
+      assert.doesNotMatch(source, /峰顶海拔/)
+    }
+    assert.match(clientSource, /最高海拔/)
+    assert.match(renderRouteSource, /最高海拔/)
+    assert.match(fontSource, /最高海拔/)
+
+    for (const source of serverTemplateSources) {
+      assert.match(source, /hasShareAltitude\(data\)/)
+      assert.doesNotMatch(source, /formatPlainNumber\(data\.altitude\)/)
+    }
+    assert.match(clientSource, /hasShareAltitude\(data\)/)
+    assert.match(clientSource, /formatShareAltitude\(data\)/)
+  })
+
   test('premium mono-film template does not render trail', () => {
     const monoFilmSource = readSource('../src/lib/share-templates/premium-mono-film.tsx')
 
@@ -140,9 +179,22 @@ describe('share render API field policy regression', () => {
     assert.match(verticalStorySource, /data-real-track="true"/)
     assert.match(
       verticalStorySource,
-      /buildShareTrackPath\(trackPreview,\s*\{\s*x:\s*230,\s*y:\s*390,\s*width:\s*620,\s*height:\s*620,\s*padding:\s*56,\s*\}/,
+      /buildShareTrackRender\(trackPreview,\s*\{\s*x:\s*230,\s*y:\s*390,\s*width:\s*620,\s*height:\s*620,\s*padding:\s*74,[\s\S]*?\.\.\.SHARE_TRACK_CONTENT_FIT/,
     )
+    assert.match(verticalStorySource, /strokeWidth=\{route\.glowWidth\}/)
+    assert.match(verticalStorySource, /vectorEffect="non-scaling-stroke"/)
     assert.doesNotMatch(verticalStorySource, /\{!photoDataUrl \? <VerticalStoryRidgeSvg \/> : null\}/)
+  })
+
+  test('share editor and poster templates use the shared route render pipeline', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const sharedTemplateSource = readSource('../src/lib/share-templates/shared.tsx')
+
+    assert.match(clientSource, /buildShareTrackRender\(trackPreview/)
+    assert.doesNotMatch(clientSource, /buildShareTrackPath/)
+    assert.match(sharedTemplateSource, /buildShareTrackRender\(trackPreview/)
+    assert.doesNotMatch(sharedTemplateSource, /filter id="poster-trail-glow"|filter id="share-trail-glow"/)
+    assert.match(sharedTemplateSource, /vectorEffect="non-scaling-stroke"/)
   })
 
   test('transparent watermark mono-film does not render trail', () => {
@@ -345,7 +397,7 @@ describe('share render API field policy regression', () => {
   test('rejects client-supplied track shapes and route paths', async () => {
     const { ShareRenderPayloadPolicyError, assertShareRenderPayload } = await loadPolicy()
 
-    for (const field of ['track', 'trackPoints', 'track_points', 'trackPreview', 'routePath']) {
+    for (const field of ['track', 'trackPoints', 'track_points', 'trackPreview', 'routePath', 'routeShape', 'screenshot_route_shape']) {
       assert.throws(
         () => assertShareRenderPayload({ template: 'base-classic', checkinId: 'fake-id', [field]: [] }),
         (error) => matchesPolicyError(error, ShareRenderPayloadPolicyError, {
@@ -355,6 +407,31 @@ describe('share render API field policy regression', () => {
         `${field} should be rejected`,
       )
     }
+  })
+
+  test('share data loaders use screenshot route shape without falling back to GPS track points for screenshot rows', () => {
+    const sharePageSource = readSource('../src/app/(flow)/share/page.tsx')
+    const renderRouteSource = readSource('../src/app/api/share/render/route.ts')
+
+    for (const source of [sharePageSource, renderRouteSource]) {
+      assert.match(source, /screenshot_route_shape/)
+      assert.match(
+        source,
+        /const trackPreview = isScreenshotRecognition\s*\?\s*buildShareTrackPreviewFromScreenshotRouteShape\(row\.screenshot_route_shape\)\s*:\s*buildShareTrackPreview\(row\.track_points\) \?\? buildShareTrackPreview\(session\?\.track_points\)/,
+      )
+      assert.match(source, /const isScreenshotRecognition = row\.source === 'screenshot_recognition'/)
+    }
+  })
+
+  test('uploaded screenshot share templates keep GPS verification copy out of the uploaded branch', () => {
+    const sharedSource = readSource('../src/lib/share-templates/shared.tsx')
+    const sourcePill = sharedSource.match(/export function SourcePill[\s\S]*?export function BrandFooter/)?.[0] ?? ''
+    const uploadedBranch = sourcePill.match(/:\s*\(\s*<>[\s\S]*?<span style=\{\{ fontSize: 22[\s\S]*?UPLOADED[\s\S]*?<\/>\s*\)/)?.[0] ?? ''
+
+    assert.ok(sourcePill)
+    assert.ok(uploadedBranch)
+    assert.doesNotMatch(uploadedBranch, /GPS VERIFIED|GPS 真实轨迹|verified/i)
+    assert.match(uploadedBranch, /UPLOADED/)
   })
 
   test('rejects visibility attempts for locked altitude and distance fields', async () => {

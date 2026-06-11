@@ -7,7 +7,7 @@ import { measureScreenshotRouteShape, validateScreenshotRouteShape } from '@/lib
 import { computeTrackContentHash } from '@/lib/import/track-hash'
 import { buildComputedTrackStats, findHighestTrackPoint } from '@/lib/import/track-stats'
 import type { ImportedTrackData, TrackPoint } from '@/lib/import/types'
-import { rankingWeightByDifficulty } from '@/lib/trek-utils'
+import { isScreenshotRecognitionSource, rankingWeightByDifficulty, SCREENSHOT_RECOGNITION_SOURCE } from '@/lib/trek-utils'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { insertCheckinWithFallback } from '@/lib/trek-verify-helpers'
 
@@ -41,7 +41,7 @@ type NormalizedImportedTrackData = Pick<ImportedTrackData, 'format' | 'fileName'
     >
   >
 
-type ImportConfirmSource = 'track_import' | 'screenshot_recognition'
+type ImportConfirmSource = 'track_import' | typeof SCREENSHOT_RECOGNITION_SOURCE
 
 const CLIENT_METRIC_KEYS = [
   'distanceMeters',
@@ -210,7 +210,7 @@ function normalizeImportedTrackData(value: unknown): NormalizeImportedTrackResul
 }
 
 function normalizeImportConfirmSource(value: unknown): ImportConfirmSource {
-  return value === 'screenshot_recognition' ? 'screenshot_recognition' : 'track_import'
+  return isScreenshotRecognitionSource(value) ? SCREENSHOT_RECOGNITION_SOURCE : 'track_import'
 }
 
 async function fetchImportMountain(
@@ -281,7 +281,7 @@ async function handleScreenshotRecognitionConfirm({
       user_id: userId,
       mountain_id: mountain?.id ?? null,
       type: 'gps',
-      source: 'screenshot_recognition',
+      source: SCREENSHOT_RECOGNITION_SOURCE,
       completion_status: 'complete',
       latitude: mountain?.latitude ?? null,
       longitude: mountain?.longitude ?? null,
@@ -345,7 +345,7 @@ export async function POST(request: Request) {
 
   const source = normalizeImportConfirmSource((body as { source?: unknown }).source)
 
-  if (source === 'screenshot_recognition') {
+  if (isScreenshotRecognitionSource(source)) {
     return handleScreenshotRecognitionConfirm({
       supabase,
       userId: user.id,

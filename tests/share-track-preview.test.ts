@@ -7,6 +7,10 @@ async function loadTrackPreview() {
   return import(`../src/lib/share-track-preview.${sourceExtension}`)
 }
 
+async function loadPolylineSimplifier() {
+  return import(`../src/lib/polyline-simplify.${sourceExtension}`)
+}
+
 function assertPointClose(
   actual: { x: number; y: number } | undefined,
   expected: { x: number; y: number },
@@ -18,6 +22,96 @@ function assertPointClose(
 }
 
 describe('share track preview projection', () => {
+  test('preserves line-mode degenerate epsilon while segment mode keeps exact-zero fallback only', async () => {
+    const { simplifyPolyline } = await loadPolylineSimplifier()
+    const project = (point: { x: number; y: number }) => point
+
+    const nearZeroLine = [
+      { x: 0, y: 0 },
+      { x: 0.8, y: 0 },
+      { x: 1e-8, y: 0 },
+    ]
+    assert.deepEqual(
+      simplifyPolyline(nearZeroLine, {
+        epsilon: 0.5,
+        project,
+        distanceMode: 'line',
+        degenerateEpsilon: 1e-7,
+      }),
+      nearZeroLine,
+      'line mode should use the old near-degenerate fallback distance-to-start behavior',
+    )
+
+    const nearZeroSegment = [
+      { x: 0, y: 0 },
+      { x: 5e-9, y: 0 },
+      { x: 1e-8, y: 0 },
+    ]
+    assert.deepEqual(
+      simplifyPolyline(nearZeroSegment, {
+        epsilon: 1e-9,
+        project,
+        distanceMode: 'segment',
+        degenerateEpsilon: 1,
+      }),
+      [nearZeroSegment[0], nearZeroSegment[2]],
+      'segment mode should ignore degenerateEpsilon and preserve exact-zero-only semantics',
+    )
+  })
+
+  test('pins route render style profiles by field name', async () => {
+    const { SHARE_TRACK_RENDER_PROFILES } = await loadTrackPreview()
+
+    assert.deepEqual(SHARE_TRACK_RENDER_PROFILES.shareEditorHero, {
+      lineWidth: 4.2,
+      glowWidth: 14,
+      glowOpacity: 0.18,
+      startRadius: 7,
+      startStrokeWidth: 3,
+      endRadius: 8,
+    })
+    assert.deepEqual(SHARE_TRACK_RENDER_PROFILES.posterMini, {
+      lineWidth: 6,
+      glowWidth: 18,
+      glowOpacity: 0.18,
+      startRadius: 7,
+      startStrokeWidth: 4,
+      endRadius: 8,
+    })
+    assert.deepEqual(SHARE_TRACK_RENDER_PROFILES.archiveMedallion, {
+      lineWidth: 3.6,
+      glowWidth: 15,
+      glowOpacity: 0.14,
+      startRadius: 5.8,
+      startStrokeWidth: 2.8,
+      endRadius: 6.8,
+    })
+    assert.deepEqual(SHARE_TRACK_RENDER_PROFILES.activityCard, {
+      lineWidth: 8,
+      glowWidth: 28,
+      glowOpacity: 0.2,
+      startRadius: 15,
+      startStrokeWidth: 6,
+      endRadius: 21,
+    })
+    assert.deepEqual(SHARE_TRACK_RENDER_PROFILES.verticalStory, {
+      lineWidth: 12,
+      glowWidth: 42,
+      glowOpacity: 0.13,
+      startRadius: 19,
+      startStrokeWidth: 8,
+      endRadius: 27,
+    })
+    assert.deepEqual(SHARE_TRACK_RENDER_PROFILES.posterTrail({ lineWidth: 8, glow: 10 }), {
+      lineWidth: 8,
+      glowWidth: 32,
+      glowOpacity: 0.16,
+      startRadius: 18.8,
+      startStrokeWidth: 8,
+      endRadius: 25.6,
+    })
+  })
+
   test('normalizes imported track points without exposing raw coordinates', async () => {
     const { buildShareTrackPreview } = await loadTrackPreview()
 

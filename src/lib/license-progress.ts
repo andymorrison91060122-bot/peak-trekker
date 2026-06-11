@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CheckinSource, Mountain, User } from '../types/index.ts'
+import { isScreenshotRecognitionSource } from './trek-utils.ts'
 
 export type LicenseLevel = User['license_level']
 export type DifficultyLevel = Mountain['difficulty']
@@ -110,7 +111,7 @@ function resolveLicenseRecordSource({
     source === 'realtime_gps' ||
     source === 'historical_photo' ||
     source === 'track_import' ||
-    source === 'screenshot_recognition'
+    isScreenshotRecognitionSource(source)
   ) {
     return source
   }

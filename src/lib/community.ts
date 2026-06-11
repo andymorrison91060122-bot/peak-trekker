@@ -10,7 +10,7 @@ import type {
   PostVisibility,
 } from '@/types'
 import { getMountainPosterBackgroundImage } from '@/lib/mountain-media'
-import { safeTrackPoints, type CheckinSource } from '@/lib/trek-utils'
+import { isScreenshotRecognitionSource, safeTrackPoints, type CheckinSource } from '@/lib/trek-utils'
 
 export const COMMUNITY_MAX_TAGS = 3
 export const COMMUNITY_MAX_TITLE_LENGTH = 30
@@ -133,7 +133,7 @@ export function normalizeCommunityTags(value: unknown) {
 
 export function buildCommunityDefaultTitle(mountainName: string, sourceType: CheckinSource) {
   if (sourceType === 'track_import') return `导入了 ${mountainName} 的轨迹记录`
-  if (sourceType === 'screenshot_recognition') return `识别了 ${mountainName} 的截图记录`
+  if (isScreenshotRecognitionSource(sourceType)) return `识别了 ${mountainName} 的截图记录`
   return sourceType === 'historical_photo'
     ? `补签了 ${mountainName} 的登山记录`
     : `登顶了 ${mountainName}`
@@ -141,20 +141,20 @@ export function buildCommunityDefaultTitle(mountainName: string, sourceType: Che
 
 export function buildCommunityBehaviorText(mountainName: string, sourceType: CheckinSource) {
   if (sourceType === 'track_import') return `导入了 ${mountainName} 的轨迹记录`
-  if (sourceType === 'screenshot_recognition') return `识别了 ${mountainName} 的截图记录`
+  if (isScreenshotRecognitionSource(sourceType)) return `识别了 ${mountainName} 的截图记录`
   return sourceType === 'historical_photo'
     ? `补签了 ${mountainName} 的历史记录`
     : `登顶了 ${mountainName}`
 }
 
 export function buildCommunitySourceLabel(sourceType: CheckinSource) {
-  if (sourceType === 'track_import' || sourceType === 'screenshot_recognition') return '上传数据'
+  if (sourceType === 'track_import' || isScreenshotRecognitionSource(sourceType)) return '上传数据'
   return sourceType === 'historical_photo' ? '照片补签记录' : 'GPS 实时记录'
 }
 
 export function buildCommunityActionTitle(sourceType: CheckinSource) {
   if (sourceType === 'track_import') return '轨迹导入'
-  if (sourceType === 'screenshot_recognition') return '截图识别'
+  if (isScreenshotRecognitionSource(sourceType)) return '截图识别'
   return sourceType === 'historical_photo' ? '照片补签' : 'GPS 记录'
 }
 
@@ -170,7 +170,7 @@ export function buildCommunityRenderFallbackTitle({
     sourceType === 'historical_photo' ||
     sourceType === 'realtime_gps' ||
     sourceType === 'track_import' ||
-    sourceType === 'screenshot_recognition'
+    isScreenshotRecognitionSource(sourceType)
       ? buildCommunityActionTitle(sourceType)
       : ''
 
@@ -372,7 +372,7 @@ export function resolveCommunityCardVariant({
     return 'media' as const
   }
 
-  return sourceType === 'realtime_gps' || sourceType === 'track_import' || sourceType === 'screenshot_recognition'
+  return sourceType === 'realtime_gps' || sourceType === 'track_import' || isScreenshotRecognitionSource(sourceType)
     ? ('route_map' as const)
     : ('no_image' as const)
 }
@@ -754,7 +754,7 @@ export function buildCommunityPostViewModel({
     recordStatusLabel:
       checkin.source === 'historical_photo'
         ? '历史补签'
-        : checkin.source === 'track_import' || checkin.source === 'screenshot_recognition'
+        : checkin.source === 'track_import' || isScreenshotRecognitionSource(checkin.source)
           ? '上传数据'
           : '已核验登顶',
     author: {

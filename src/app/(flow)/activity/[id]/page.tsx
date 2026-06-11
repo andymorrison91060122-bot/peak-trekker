@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import type { SourceLabelProps } from '@/components/ui/SourceLabel'
 import { getSourceLabelType } from '@/lib/source-label-utils'
-import { resolveCheckinSource, type CheckinSource } from '@/lib/trek-utils'
+import { isScreenshotRecognitionSource, resolveCheckinSource, type CheckinSource } from '@/lib/trek-utils'
 import { validateScreenshotRouteShape, type PersistedScreenshotRouteShape } from '@/lib/screenshot-route-shape'
 import { resolveCheckinDisplayTitle } from '@/lib/checkin-display-title'
 import ActivityDetailClient, {
@@ -241,7 +241,7 @@ export default async function ActivityDetailPage({
     source: checkin.source as CheckinSource | string | null | undefined,
     type: checkin.type === 'photo' ? 'photo' : 'gps',
   })
-  const isScreenshotRecognition = sourceType === 'screenshot_recognition'
+  const isScreenshotRecognition = isScreenshotRecognitionSource(sourceType)
   const sourceLabelType = deriveSourceLabelType(checkin, sourceType)
   const displayTitle = resolveCheckinDisplayTitle({
     mountainName: mountain?.name,

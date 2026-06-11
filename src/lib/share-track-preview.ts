@@ -1,3 +1,4 @@
+import { simplifyPolyline } from './polyline-simplify.ts'
 import { validateScreenshotRouteShape } from './screenshot-route-shape.ts'
 
 export type ShareTrackPreviewPoint = {
@@ -77,6 +78,57 @@ export const SHARE_TRACK_CONTENT_FIT = {
   fitToContent: true,
   maxContentScale: DEFAULT_MAX_CONTENT_SCALE,
   minContentSpan: DEFAULT_MIN_CONTENT_SPAN,
+} as const
+
+export const SHARE_TRACK_RENDER_PROFILES = {
+  shareEditorHero: {
+    lineWidth: 4.2,
+    glowWidth: 14,
+    glowOpacity: 0.18,
+    startRadius: 7,
+    startStrokeWidth: 3,
+    endRadius: 8,
+  },
+  posterMini: {
+    lineWidth: 6,
+    glowWidth: 18,
+    glowOpacity: 0.18,
+    startRadius: 7,
+    startStrokeWidth: 4,
+    endRadius: 8,
+  },
+  archiveMedallion: {
+    lineWidth: 3.6,
+    glowWidth: 15,
+    glowOpacity: 0.14,
+    startRadius: 5.8,
+    startStrokeWidth: 2.8,
+    endRadius: 6.8,
+  },
+  activityCard: {
+    lineWidth: 8,
+    glowWidth: 28,
+    glowOpacity: 0.2,
+    startRadius: 15,
+    startStrokeWidth: 6,
+    endRadius: 21,
+  },
+  verticalStory: {
+    lineWidth: 12,
+    glowWidth: 42,
+    glowOpacity: 0.13,
+    startRadius: 19,
+    startStrokeWidth: 8,
+    endRadius: 27,
+  },
+  posterTrail: ({ lineWidth = 8, glow = 10 }: { lineWidth?: number; glow?: number } = {}) => ({
+    lineWidth,
+    glowWidth: Math.max(lineWidth * 4, glow * 2.4),
+    glowOpacity: 0.16,
+    startRadius: Math.max(13, lineWidth * 2.35),
+    startStrokeWidth: Math.max(5, lineWidth),
+    endRadius: Math.max(18, lineWidth * 3.2),
+  }),
 } as const
 
 function toFiniteNumber(value: unknown) {
@@ -250,39 +302,6 @@ function getPointBounds(points: ShareTrackPreviewPoint[]): ShareTrackBounds {
     width: maxX - minX,
     height: maxY - minY,
   }
-}
-
-function pointLineDistance(point: ShareTrackPreviewPoint, start: ShareTrackPreviewPoint, end: ShareTrackPreviewPoint) {
-  const dx = end.x - start.x
-  const dy = end.y - start.y
-  const denominator = Math.hypot(dx, dy)
-  if (denominator <= COORDINATE_EPSILON) return Math.hypot(point.x - start.x, point.y - start.y)
-  return Math.abs(dy * point.x - dx * point.y + end.x * start.y - end.y * start.x) / denominator
-}
-
-function simplifyDouglasPeucker(points: ShareTrackPreviewPoint[], epsilon: number): ShareTrackPreviewPoint[] {
-  if (points.length <= 2) return points
-
-  let maxDistance = -1
-  let splitIndex = -1
-  const start = points[0]!
-  const end = points.at(-1)!
-
-  for (let index = 1; index < points.length - 1; index += 1) {
-    const distance = pointLineDistance(points[index]!, start, end)
-    if (distance > maxDistance) {
-      maxDistance = distance
-      splitIndex = index
-    }
-  }
-
-  if (maxDistance > epsilon && splitIndex > 0) {
-    const before = simplifyDouglasPeucker(points.slice(0, splitIndex + 1), epsilon)
-    const after = simplifyDouglasPeucker(points.slice(splitIndex), epsilon)
-    return [...before.slice(0, -1), ...after]
-  }
-
-  return [start, end]
 }
 
 function buildQuadraticPath(points: ShareTrackPreviewPoint[]) {
@@ -472,7 +491,12 @@ export function buildShareTrackRender(
   if (!route) return null
   const epsilon = Math.max(0, style.simplifyEpsilonPx ?? DEFAULT_SIMPLIFY_EPSILON_PX)
   const simplifiedSegments = route.projectedSegments
-    .map((segment) => simplifyDouglasPeucker(segment, epsilon))
+    .map((segment) => simplifyPolyline(segment, {
+      epsilon,
+      project: (point) => point,
+      distanceMode: 'line',
+      degenerateEpsilon: COORDINATE_EPSILON,
+    }))
     .map((segment) => {
       const first = segment[0]
       const last = segment.at(-1)

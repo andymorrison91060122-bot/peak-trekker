@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { ReactNode } from 'react'
-import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, type ShareTrackPreview } from '../share-track-preview'
+import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, SHARE_TRACK_RENDER_PROFILES, type ShareTrackPreview } from '../share-track-preview'
 import type { ShareTemplateData } from './types'
 
 export const POSTER_WIDTH = 1080
@@ -198,14 +198,7 @@ export function MiniTrailCircle({ size = 156, trackPreview }: { size?: number; t
     height: 92,
     padding: 9,
     ...SHARE_TRACK_CONTENT_FIT,
-  }, {
-    lineWidth: 6,
-    glowWidth: 18,
-    glowOpacity: 0.18,
-    startRadius: 7,
-    startStrokeWidth: 4,
-    endRadius: 8,
-  })
+  }, SHARE_TRACK_RENDER_PROFILES.posterMini)
 
   return (
     <div
@@ -417,14 +410,7 @@ export function TrailSvg({
     height: 800,
     padding: 96,
     ...SHARE_TRACK_CONTENT_FIT,
-  }, {
-    lineWidth,
-    glowWidth: Math.max(lineWidth * 4, glow * 2.4),
-    glowOpacity: 0.16,
-    startRadius: Math.max(13, lineWidth * 2.35),
-    startStrokeWidth: Math.max(5, lineWidth),
-    endRadius: Math.max(18, lineWidth * 3.2),
-  })
+  }, SHARE_TRACK_RENDER_PROFILES.posterTrail({ lineWidth, glow }))
 
   if (!route) return null
 

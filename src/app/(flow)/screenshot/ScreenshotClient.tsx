@@ -28,7 +28,9 @@ import {
   buildShareTrackRender,
   buildShareTrackPreviewFromScreenshotRouteShape,
   SHARE_TRACK_CONTENT_FIT,
+  SHARE_TRACK_RENDER_PROFILES,
 } from '@/lib/share-track-preview'
+import { SCREENSHOT_RECOGNITION_SOURCE } from '@/lib/trek-utils'
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
 const PROCESSING_MIN_DURATION_MS = 2000
@@ -185,7 +187,7 @@ function readableError(message: string, kind: RecognizeErrorKind) {
 function providerFromSource(source?: ScreenshotOcrSource) {
   if (source === 'mimo_v25') return 'mimo_v25'
   if (source === 'basic' || source === 'accurate') return `tencent_ocr_${source}`
-  return 'screenshot_recognition'
+  return SCREENSHOT_RECOGNITION_SOURCE
 }
 
 function hasFieldValue<T extends { value?: unknown }>(
@@ -1811,14 +1813,7 @@ function ArchiveRouteMedallion({ routeShape }: { routeShape?: PersistedScreensho
     height: 118,
     padding: 14,
     ...SHARE_TRACK_CONTENT_FIT,
-  }, {
-    lineWidth: 3.6,
-    glowWidth: 15,
-    glowOpacity: 0.14,
-    startRadius: 5.8,
-    startStrokeWidth: 2.8,
-    endRadius: 6.8,
-  }), [preview])
+  }, SHARE_TRACK_RENDER_PROFILES.archiveMedallion), [preview])
 
   if (!route) {
     return (
@@ -2592,7 +2587,7 @@ export default function ScreenshotClient() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          source: 'screenshot_recognition',
+          source: SCREENSHOT_RECOGNITION_SOURCE,
           mountainId: selectedMountainId,
           parsedData,
           routeShape,
@@ -2612,7 +2607,7 @@ export default function ScreenshotClient() {
         event_type: 'business',
         event_name: 'business.activity_create',
         properties: {
-          source: 'screenshot_recognition',
+          source: SCREENSHOT_RECOGNITION_SOURCE,
           proof_status: 'uploaded',
           mountain_id: selectedMountainId,
           checkin_id: payload.checkinId,

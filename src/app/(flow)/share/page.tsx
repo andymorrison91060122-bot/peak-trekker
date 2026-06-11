@@ -7,6 +7,7 @@ import {
   buildShareTrackPreviewFromScreenshotRouteShape,
 } from '@/lib/share-track-preview'
 import { resolveMeasuredShareAltitude, resolveShareMountainName } from '@/lib/share-data'
+import { isScreenshotRecognitionSource, SCREENSHOT_RECOGNITION_SOURCE } from '@/lib/trek-utils'
 import ShareClient, { type ShareActivityData } from './ShareClient'
 
 export const metadata: Metadata = {
@@ -122,7 +123,8 @@ function formatShareDate(value?: string | null) {
 }
 
 function sourceForShare(source?: string | null): ShareActivityData['source'] {
-  if (source === 'track_import' || source === 'screenshot_recognition') return source
+  if (source === 'track_import') return source
+  if (isScreenshotRecognitionSource(source)) return SCREENSHOT_RECOGNITION_SOURCE
   return 'gps'
 }
 
@@ -199,7 +201,7 @@ async function loadShareData(checkinId: string): Promise<ShareActivityData | nul
       : null)
   const elevationGain = row.elevation_gain_meters ?? session?.ascent_m ?? null
   const altitude = resolveMeasuredShareAltitude(row.max_elevation_meters, session?.max_altitude_m)
-  const isScreenshotRecognition = row.source === 'screenshot_recognition'
+  const isScreenshotRecognition = isScreenshotRecognitionSource(row.source)
   const trackPreview = isScreenshotRecognition
     ? buildShareTrackPreviewFromScreenshotRouteShape(row.screenshot_route_shape)
     : buildShareTrackPreview(row.track_points) ?? buildShareTrackPreview(session?.track_points)

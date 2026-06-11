@@ -1,4 +1,4 @@
-import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, type ShareTrackPreview } from '../share-track-preview'
+import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, SHARE_TRACK_RENDER_PROFILES, type ShareTrackPreview } from '../share-track-preview'
 import type { ShareTemplateProps } from './types'
 import {
   BrandFooter,
@@ -133,14 +133,7 @@ function VerticalStoryTrailSvg({ trackPreview }: { trackPreview?: ShareTrackPrev
     height: 620,
     padding: 74,
     ...SHARE_TRACK_CONTENT_FIT,
-  }, {
-    lineWidth: 12,
-    glowWidth: 42,
-    glowOpacity: 0.13,
-    startRadius: 19,
-    startStrokeWidth: 8,
-    endRadius: 27,
-  })
+  }, SHARE_TRACK_RENDER_PROFILES.verticalStory)
 
   if (!route) return null
 

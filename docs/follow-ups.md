@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-11 · 最新版本记录: v0.57
+> Last Updated: 2026-06-11 · 最新版本记录: v0.58
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`c8f4027`（Merge FU-63/67 hygiene + empty activity altitude dash · 2026-06-11）
+`7389c72`（Merge FU-65 location title chain + archive absent-elevation dash · 2026-06-11）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -258,28 +258,6 @@ REMOTE_ONLY                -                                                    
 
 ---
 
-### FU-65 · 截图未匹配山峰活动标题与列表副标签区分
-
-- **优先级**: P2
-- **归属阶段**: UI sprint / full loop
-- **状态**: 🟢 active
-
-**背景**: FU-36 A1 smoke 中发现未匹配山峰的截图活动标题会显示为「未关联山峰」，而用户实际输入的地点（如「阳江市」）更适合作为活动主标题。「未关联山峰 / 地区」应降级为副标签，避免用户在 Activity / Trek / Archive 列表中看到像错误状态一样的主标题。
-
-**实施建议**:
-- Activity Detail: 当 `source='screenshot_recognition'` 且无 `mountain_id` 时，优先使用用户输入地点 / location 作为标题
-- 「未关联山峰」或「未关联地区」降级为副标签 / metadata
-- Archive success screen 已在 FU-66 / A2 中使用用户输入地点作为标题；Activity Detail / Trek / 活动列表仍需保持同样区分，避免列表中继续用「未关联山峰」做主标题
-- 覆盖有 location、无 location、匹配山峰三类场景
-
-**验收**:
-- 未匹配山峰但有地点的截图活动，主标题显示用户地点
-- 「未关联山峰 / 地区」只作为副标签出现
-- 匹配山峰活动现有标题不回退
-- 375px Activity + Archive / Trek 列表视觉验收
-
----
-
 ### FU-68 · Verified-summit ceremonial altitude slot
 
 - **优先级**: P2
@@ -292,6 +270,7 @@ REMOTE_ONLY                -                                                    
 - 产品先确认 summit-verified 状态下是否需要单独 ceremonial slot
 - 仅 summit-verified checkins 可考虑展示 catalog `峰顶海拔`
 - 同一决策覆盖 `/api/poster` 照片补签 card（目前仍使用 catalog altitude + `峰顶海拔` label）
+- 同时 audit `/api/poster` 对 screenshot rows 的 exposure（community covers 可能走 honor-card system：title fallback + catalog-altitude semantics）
 - 未 verified / uploaded / screenshot_recognition 不得展示 catalog summit altitude 作为 hero
 
 **验收**:
@@ -402,6 +381,30 @@ REMOTE_ONLY                -                                                    
 
 ---
 
+### FU-74 · Calibration editor: zoom-invariant control points
+
+- **优先级**: P2
+- **归属阶段**: Screenshot calibration editor polish
+- **状态**: 🟢 active
+
+**背景**: editor zoom rescales the viewBox while control-point radii/strokes are in viewBox units, so points grow with zoom, occluding the route exactly when the user zooms in to fine-edit.
+
+**实施建议**:
+- Primary: inverse-scale markers — visible radius `baseRadius / zoom`, strokeWidth `baseStroke / zoom`, glow likewise.
+- Keep a separate invisible hit-target circle `>=44px` on screen, inverse-scaled with a floor.
+- Secondary polish: active/dragged point slightly larger + highlighted, non-active points dimmed (~60%) during drag; start/end may stay slightly larger.
+- Deferred: hide-others-while-dragging interaction.
+
+**验收**:
+- Visible point size approximately constant at 1x/2x/3x.
+- At 3x points do not occlude the majority of the route line.
+- Tap/drag error stays `<=4px` (A1 gate, no regression).
+- Easy to hit/drag (hit target large, visual dot small).
+- Zero impact on persisted shape and share/poster rendering.
+- Scope: `ScreenshotRouteCalibrationSection` rendering only; extend the focused A1 calibration spec with a zoom-size assertion.
+
+---
+
 ## Known Issues
 
 ### Known Issue · checkin 数据字段写入路径异常 (2026-05-21 FU-11 sprint 期间发现)
@@ -414,7 +417,22 @@ REMOTE_ONLY                -                                                    
 
 ---
 
-## Closed Follow-ups（63 条）
+## Closed Follow-ups（64 条）
+
+### FU-65 ✅ 截图未匹配山峰活动标题与列表副标签区分
+
+- **关闭原因**: FU-65 已在 PR #4 落地: title chain `mountain.name → displayable checkins.track_name → fallback` 覆盖 Activity Detail / Archive list / Profile trips / Share editor / server poster / transparent watermark；列表中 unmatched rows 使用 neutral `未关联` tag；Share/render title 保持 server-owned 并拒绝 client title/track_name override；同 PR 追加 Archive header stat + trip card absent measured elevation 渲染 `--`（FU-67 rule follow-through）。
+- **关键决策记录**:
+  · `titleSource` 数据语义为 `mountain | track_name | fallback`，避免把 GPX-derived track names 误命名为 user_location。
+  · whole-string filename-like track_name 被拒绝作为标题；`A.B线` / `1.5公里入口` 等 dotted location 保留。
+  · Share/poster no-location fallback 保持 `未知山峰`，但通过 shared resolver 注入，不再在 loader 里直接 `mountain?.name ?? '未知山峰'`。
+  · 本 release 零 schema / write-path / DB mutation；不动 mountain matching、Community、`/api/poster`、GPS/ranking semantics。
+- **准入**: `checkin-display-title` + `share-data` + `share-render-api` node tests 33/33 PASS；focused `screenshot-recognition-flow.spec.ts` 3/3 PASS；focused `screenshot-archive-share-a2.spec.ts` 4/4 PASS；lint 0 errors / 9 existing warnings；build PASS；git diff --check clean；Production deployment READY；public `/screenshot` health 200。
+- **关闭 commits**: `95d6864`, `6c75773`
+- **merge commit**: `7389c72`
+- **关闭时间**: 2026-06-11
+
+---
 
 ### FU-67 ✅ Activity 海拔空值渲染统一
 
@@ -1289,6 +1307,18 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.58（2026-06-11）
+
+FU-65 close · unmatched title chain shipped across activity / lists / share.
+
+- FU-65 关闭: PR #4 `95d6864` + `6c75773` 将 title chain `mountain.name → displayable track_name → fallback` 扩展到 Activity Detail、Archive list、Profile trips、Share editor、server poster、transparent watermark；列表 unmatched rows 使用 neutral `未关联` tag；Share/render title server-owned，并拒绝 client title / track_name override。
+- FU-67 rule follow-through: 同 PR 修 Archive header `最高 m` 与 trip card elevation 对 absent measured elevation 渲染 `--`，不再显示 fabricated `0 m`。
+- FU-68 追加 audit note: 后续同一 sprint 需 audit `/api/poster` 对 screenshot rows 的 exposure（community covers 可能走 honor-card system: title fallback + catalog-altitude semantics）。
+- 新增 FU-74: Calibration editor zoom-invariant control points；scope 限 `ScreenshotRouteCalibrationSection` rendering + focused A1 spec zoom-size assertion。
+- PR #4 merge commit: `7389c72`; Production deployment READY; public `/screenshot` health 200。
+- 本 release DB mutation: 0；无 schema / write-path change。
+- Active 12 → 12 · Closed 63 → 64
 
 ### v0.57（2026-06-11）
 

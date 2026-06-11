@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-11 · 最新版本记录: v0.59
+> Last Updated: 2026-06-12 · 最新版本记录: v0.60
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`3704afe`（Merge FU-74 zoom-invariant calibration points · 2026-06-11）
+`325e046`（Merge FU-71/72/73 render-debt cleanup trio · 2026-06-12）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（11 条）
+## Active Follow-ups（8 条）
 
 ### FU-16 · mountains 坐标精度审计
 
@@ -321,66 +321,6 @@ REMOTE_ONLY                -                                                    
 
 ---
 
-### FU-71 · Douglas-Peucker helper consolidation
-
-- **优先级**: P2
-- **归属阶段**: Route geometry cleanup
-- **状态**: 🟢 active
-
-**背景**: 当前存在两套 Douglas-Peucker 简化逻辑：persist-time pixel-space in `src/lib/screenshot-route-shape.ts` 与 render-time target-space in `src/lib/share-track-preview.ts`。它们参数不同但算法相近，后续可统一为一个参数化 helper。
-
-**实施建议**:
-- 抽出共享 geometry helper，支持不同 coordinate / target space 参数
-- 保持 persist-time 与 render-time 当前行为不回退
-- 加 fixtures 覆盖 noisy polyline、accepted_gap、short / degenerate shapes
-
-**验收**:
-- 两处调用结果与现有 baseline 等价或更稳定
-- accepted_gap 不被桥接
-- 分享渲染平滑度不回退
-
----
-
-### FU-72 · Route-render style token consolidation
-
-- **优先级**: P2
-- **归属阶段**: Share / Activity visual system cleanup
-- **状态**: 🟢 active
-
-**背景**: FU-66 / A2 后，截图路线在 Archive medallion、Share editor、server poster、Activity card 等表面有各自 stroke / glow / marker 常量。可后续统一为 token set，避免视觉漂移。
-
-**实施建议**:
-- 建立 per-surface route render token: stroke width、glow width / opacity、marker sizes、padding
-- 浏览器预览与 server render 继续共用 path-building + glow-layering 逻辑
-- 不改变已验收视觉，先 consolidation 再小步调整
-
-**验收**:
-- 四个 surface 的路线风格由 token 驱动
-- 现有 long / short route evidence 不回退
-- 无 renderer-specific divergence
-
----
-
-### FU-73 · Shared screenshot source predicate
-
-- **优先级**: P2
-- **归属阶段**: Source semantics cleanup
-- **状态**: 🟢 active
-
-**背景**: screenshot source 判断目前散落为 `source === 'screenshot_recognition'` 字符串检查。后续 source-gated badge、route shape、GPS isolation、share copy 都依赖同一语义，应抽为共享 predicate。
-
-**实施建议**:
-- 新增共享 `isScreenshotSource(source)` 或等价 helper
-- 替换 Share / Activity / confirm API / render policy 中的散落字符串判断
-- 保持 track_points / GPS semantics 不变
-
-**验收**:
-- 所有 screenshot source gate 通过共享 helper
-- GPS / uploaded / screenshot_recognition 语义不回退
-- focused tests 覆盖 source gate
-
----
-
 ## Known Issues
 
 ### Known Issue · checkin 数据字段写入路径异常 (2026-05-21 FU-11 sprint 期间发现)
@@ -393,7 +333,49 @@ REMOTE_ONLY                -                                                    
 
 ---
 
-## Closed Follow-ups（65 条）
+## Closed Follow-ups（68 条）
+
+### FU-73 ✅ Shared screenshot source predicate
+
+- **关闭原因**: FU-73 已在 PR #6 落地: `src/lib/trek-utils.ts` 新增 `SCREENSHOT_RECOGNITION_SOURCE` 与精确 predicate `isScreenshotRecognitionSource(value)`，集中截图来源语义判断；`src` 中裸 `=== 'screenshot_recognition'` 布尔比较已归零并有 standing scan test 覆盖。
+- **关键决策记录**:
+  · predicate 严格等价于 `value === 'screenshot_recognition'`，不做 source alias / 宽松归一化。
+  · DB 写入值、类型定义、fixtures、copy 中保留必要 literal；布尔 gate 统一使用 predicate，写入 / normalizer 使用 constant。
+  · 不改 GPS / uploaded / screenshot_recognition 语义，不改 DB / schema / copy。
+- **准入**: `trek-utils` truth-table test 覆盖 exact string true、`track_import` / `gps` / `uploaded` / empty / null / undefined false；render-debt focused node matrix 76/76 PASS；build PASS；`git diff --check` clean；evidence pointer: `output/fu71-73-render-debt-acceptance/`。
+- **关闭 commit**: `0cbedc3`
+- **merge commit**: `325e046`
+- **关闭时间**: 2026-06-12
+
+---
+
+### FU-72 ✅ Route-render style token consolidation
+
+- **关闭原因**: FU-72 已在 PR #6 落地: `SHARE_TRACK_RENDER_PROFILES` named-field style profiles 集中管理 route render 的 line / glow / marker / filter / simplify 参数，Share editor、Archive medallion、Activity screenshot route card、server poster templates 改为引用 profile；所有值按字段名测试 pin 住，零视觉行为变更。
+- **关键决策记录**:
+  · profile 使用与 `buildShareTrackRender` option 一致的 named fields（如 `lineWidth` / `glowWidth` / `glowOpacity` / `startRadius` / `startStrokeWidth` / `endRadius`），不使用 positional arrays。
+  · 每个 profile 保留调用点既有 literal value；dynamic poster trail formula 保持语义不变。
+  · browser preview 与 server-rendered poster 继续共享 path-building + glow-layering pipeline。
+- **准入**: profile-pinning unit test 按字段断言所有 profile 值；四个 deterministic render fixtures before/after diff 均 0 bytes；focused node matrix 76/76 PASS；build PASS；`git diff --check` clean；evidence pointer: `output/fu71-73-render-debt-acceptance/`。
+- **关闭 commit**: `df8d4bb`
+- **merge commit**: `325e046`
+- **关闭时间**: 2026-06-12
+
+---
+
+### FU-71 ✅ Douglas-Peucker helper consolidation
+
+- **关闭原因**: FU-71 已在 PR #6 落地: 新增共享 `src/lib/polyline-simplify.ts`，将 persist-time pixel-space 与 render-time target-space Douglas-Peucker 简化合并到同一个参数化 core；storage 与 render 两条路径保持既有 epsilon / endpoint / gap / sampling 语义。
+- **关键决策记录**:
+  · semantic freeze patch 保留 render path near-degenerate baseline guard: `distanceMode: 'line'` 可传 `degenerateEpsilon: COORDINATE_EPSILON`，恢复旧 `pointLineDistance` 行为；storage path 的 `distanceMode: 'segment'` 保持 exact-zero-only fallback。
+  · 不做算法优化或平滑调参；accepted_gap 仍保持断开，不合并 segments。
+  · fixed fixtures 覆盖 dense noisy polyline、small shape、multi-segment shape 与四个 render cases。
+- **准入**: simplification equivalence JSON `equalIgnoringCreatedAt: true`；四个 deterministic render fixtures（short simple、long complex、accepted_gap multi-segment、calibrated screenshot-shape server poster）before/after SVG/JSON diffs 均 0 bytes；focused node matrix 76/76 PASS；build PASS；`git diff --check` clean；evidence pointer: `output/fu71-73-render-debt-acceptance/`。
+- **关闭 commit**: `4dc3ef7`
+- **merge commit**: `325e046`
+- **关闭时间**: 2026-06-12
+
+---
 
 ### FU-74 ✅ Calibration editor: zoom-invariant control points
 
@@ -1289,6 +1271,19 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.60（2026-06-12）
+
+FU-71/72/73 close · render-debt refactor trio shipped.
+
+- FU-71 关闭: PR #6 `4dc3ef7` 将 persist-time 与 render-time Douglas-Peucker 简化合并到共享 `polyline-simplify` core；semantic freeze 保留 render near-degenerate baseline guard 与 storage exact-zero fallback。
+- FU-72 关闭: PR #6 `df8d4bb` 抽出 `SHARE_TRACK_RENDER_PROFILES` named-field profiles，四个 surface 使用字段化 style profile，值由 unit test pin 住。
+- FU-73 关闭: PR #6 `0cbedc3` 新增 `SCREENSHOT_RECOGNITION_SOURCE` 与 `isScreenshotRecognitionSource`，`src` 裸 `=== 'screenshot_recognition'` 布尔比较归零并有 scan test。
+- 零行为变更证据: `output/fu71-73-render-debt-acceptance/` 中四个 render fixtures before/after SVG/JSON diff 均 0 bytes；focused node matrix 76/76 PASS；build PASS；`git diff --check` clean。
+- PR #6 merge commit: `325e046`; Production deployment READY; public `/` → `/explore` health 200, public `/screenshot` health 200。
+- docs/map-weather-brief.md 已只读复核: 本 sprint 不改地图 / 天气行为，无需更新。
+- 本 release DB mutation: 0；无 schema / DB / copy / product flow change。
+- Active 11 → 8 · Closed 65 → 68
 
 ### v0.59（2026-06-11）
 

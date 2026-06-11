@@ -264,6 +264,10 @@ test('screenshot confirm omits disabled duration and missing elevation without f
   await expect(page.getByTestId('archive-trip-title').first()).toHaveText('未关联山行')
   await expect(page.getByTestId('archive-trip-unmatched-tag').first()).toHaveText('未关联')
   await expect(page.getByTestId('archive-trip-secondary').first()).toContainText('未知地点')
+  await expect(page.getByTestId('archive-summary-max-altitude-value')).toHaveText('--')
+  await expect(page.getByTestId('archive-summary-max-altitude-value')).not.toContainText('0')
+  await expect(page.getByTestId('archive-trip-max-altitude-value').first()).toHaveText('--')
+  await expect(page.getByTestId('archive-trip-max-altitude-value').first()).not.toContainText('0')
   await captureOptionalE2EScreenshot(page, 'screenshot-recognition-unmatched-no-location-archive.png')
 
   await page.goto(`${root}/profile`, { waitUntil: 'domcontentloaded' })
@@ -369,6 +373,10 @@ test('unmatched screenshot activity uses recognized location as title across act
   await expect(page.getByTestId('archive-trip-title').first()).toHaveText('阳江市')
   await expect(page.getByTestId('archive-trip-unmatched-tag').first()).toHaveText('未关联')
   await expect(page.getByTestId('archive-trip-secondary').first()).toContainText('未关联山峰')
+  await expect(page.getByTestId('archive-summary-max-altitude-value')).toHaveText('--')
+  await expect(page.getByTestId('archive-summary-max-altitude-value')).not.toContainText('0')
+  await expect(page.getByTestId('archive-trip-max-altitude-value').first()).toHaveText('--')
+  await expect(page.getByTestId('archive-trip-max-altitude-value').first()).not.toContainText('0')
   await captureOptionalE2EScreenshot(page, 'screenshot-recognition-unmatched-location-archive.png')
 
   await page.goto(`${root}/profile`, { waitUntil: 'domcontentloaded' })

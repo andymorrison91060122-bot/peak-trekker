@@ -65,6 +65,10 @@ function formatNumber(value: number) {
   return numberFormatter.format(Math.round(value))
 }
 
+function formatPositiveAltitude(value: number) {
+  return value > 0 ? formatNumber(value) : '--'
+}
+
 function formatDuration(totalSeconds: number) {
   const safeSeconds = Math.max(0, Math.round(totalSeconds))
   if (!safeSeconds) return '--'
@@ -318,14 +322,17 @@ function SummaryStat({
   label,
   value,
   accent = false,
+  valueTestId,
 }: {
   label: string
   value: string
   accent?: boolean
+  valueTestId?: string
 }) {
   return (
     <div style={{ minWidth: 0, textAlign: 'center' }}>
       <div
+        data-testid={valueTestId}
         style={{
           ...monoStyle,
           color: accent ? 'var(--color-success)' : 'var(--color-on-surface)',
@@ -381,7 +388,12 @@ function IdentityCard({
         >
           <SummaryStat label="山行" value={formatNumber(summary.totalTrips)} />
           <SummaryStat label="登顶" value={formatNumber(summary.summitCount)} />
-          <SummaryStat label="最高 m" value={formatNumber(summary.maxAltitudeM)} accent />
+          <SummaryStat
+            label="最高 m"
+            value={formatPositiveAltitude(summary.maxAltitudeM)}
+            accent
+            valueTestId="archive-summary-max-altitude-value"
+          />
         </div>
       </div>
     </section>
@@ -677,6 +689,7 @@ function TripMedia({ trip }: { trip: ArchiveTripViewModel }) {
         </div>
         <div style={{ flexShrink: 0, textAlign: 'right' }}>
           <div
+            data-testid="archive-trip-max-altitude-value"
             style={{
               ...monoStyle,
               color: 'var(--color-success)',
@@ -685,17 +698,23 @@ function TripMedia({ trip }: { trip: ArchiveTripViewModel }) {
               fontWeight: 800,
             }}
           >
-            {formatNumber(trip.metrics.maxAltitudeM)}
-            <span
-              style={{
-                marginLeft: 2,
-                color: 'color-mix(in srgb, var(--color-success) 70%, transparent)',
-                fontSize: 'var(--font-label-s-size)',
-                fontWeight: 700,
-              }}
-            >
-              m
-            </span>
+            {trip.metrics.maxAltitudeM > 0 ? (
+              <>
+                {formatNumber(trip.metrics.maxAltitudeM)}
+                <span
+                  style={{
+                    marginLeft: 2,
+                    color: 'color-mix(in srgb, var(--color-success) 70%, transparent)',
+                    fontSize: 'var(--font-label-s-size)',
+                    fontWeight: 700,
+                  }}
+                >
+                  m
+                </span>
+              </>
+            ) : (
+              '--'
+            )}
           </div>
         </div>
       </div>

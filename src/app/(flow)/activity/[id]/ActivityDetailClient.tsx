@@ -479,6 +479,8 @@ function SummitReachedCard({ activity }: { activity: ActivityDetailViewModel }) 
 }
 
 function MaxAltitudeCard({ activity }: { activity: ActivityDetailViewModel }) {
+  const hasMaxAltitude = activity.metrics.maxAltitudeM > 0
+
   return (
     <section style={sectionPadding('var(--space-4)')}>
       <div
@@ -504,6 +506,7 @@ function MaxAltitudeCard({ activity }: { activity: ActivityDetailViewModel }) {
               最高海拔
             </div>
             <div
+              data-testid="activity-hero-altitude-value"
               style={{
                 ...monoStyle,
                 marginTop: 4,
@@ -513,17 +516,23 @@ function MaxAltitudeCard({ activity }: { activity: ActivityDetailViewModel }) {
                 fontWeight: 800,
               }}
             >
-              {formatNumber(activity.metrics.maxAltitudeM)}
-              <span
-                style={{
-                  marginLeft: 4,
-                  color: 'var(--color-on-surface-variant)',
-                  fontSize: 14,
-                  fontWeight: 600,
-                }}
-              >
-                m
-              </span>
+              {hasMaxAltitude ? (
+                <>
+                  {formatNumber(activity.metrics.maxAltitudeM)}
+                  <span
+                    style={{
+                      marginLeft: 4,
+                      color: 'var(--color-on-surface-variant)',
+                      fontSize: 14,
+                      fontWeight: 600,
+                    }}
+                  >
+                    m
+                  </span>
+                </>
+              ) : (
+                '--'
+              )}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -606,6 +615,7 @@ function KeyDataGrid({ activity }: { activity: ActivityDetailViewModel }) {
 }
 
 function RouteSnapshot({ activity }: { activity: ActivityDetailViewModel }) {
+  const hasElevationRange = activity.metrics.maxAltitudeM > 0
   const samples = activity.elevationSamples.length
     ? activity.elevationSamples
     : routeFallbackSamples(activity.metrics.minAltitudeM, activity.metrics.maxAltitudeM)
@@ -705,8 +715,9 @@ function RouteSnapshot({ activity }: { activity: ActivityDetailViewModel }) {
               fontWeight: 700,
               textAlign: 'center',
             }}
+            data-testid="activity-route-memory-elevation-value"
           >
-            {formatNumber(min)}m → {formatNumber(max)}m
+            {hasElevationRange ? `${formatNumber(min)}m → ${formatNumber(max)}m` : '--'}
           </div>
         )}
       </div>

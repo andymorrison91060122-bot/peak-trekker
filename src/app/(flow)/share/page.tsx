@@ -6,7 +6,7 @@ import {
   buildShareTrackPreview,
   buildShareTrackPreviewFromScreenshotRouteShape,
 } from '@/lib/share-track-preview'
-import { resolveMeasuredShareAltitude } from '@/lib/share-data'
+import { resolveMeasuredShareAltitude, resolveShareMountainName } from '@/lib/share-data'
 import ShareClient, { type ShareActivityData } from './ShareClient'
 
 export const metadata: Metadata = {
@@ -35,6 +35,7 @@ type ShareCheckinRow = {
   elevation_gain_meters?: number | null
   max_elevation_meters?: number | null
   session_id?: string | null
+  track_name?: string | null
   track_points?: unknown
   screenshot_route_shape?: unknown
   mountains: MountainRelation | MountainRelation[] | null
@@ -61,6 +62,7 @@ const SHARE_CHECKIN_SELECT_FULL = `
   elevation_gain_meters,
   max_elevation_meters,
   session_id,
+  track_name,
   track_points,
   screenshot_route_shape,
   mountains(id, name, altitude, province)
@@ -77,6 +79,7 @@ const SHARE_CHECKIN_SELECT_WITHOUT_SCREENSHOT_ROUTE_SHAPE = `
   elevation_gain_meters,
   max_elevation_meters,
   session_id,
+  track_name,
   track_points,
   mountains(id, name, altitude, province)
 `
@@ -92,6 +95,7 @@ const SHARE_CHECKIN_SELECT_LEGACY = `
   elevation_gain_meters,
   max_elevation_meters,
   session_id,
+  track_name,
   mountains(id, name, altitude, province)
 `
 
@@ -201,7 +205,10 @@ async function loadShareData(checkinId: string): Promise<ShareActivityData | nul
     : buildShareTrackPreview(row.track_points) ?? buildShareTrackPreview(session?.track_points)
 
   return {
-    mountainName: mountain?.name ?? '未知山峰',
+    mountainName: resolveShareMountainName({
+      mountainName: mountain?.name,
+      trackName: row.track_name,
+    }),
     location: mountain?.province ?? '',
     date: formatShareDate(row.start_time ?? session?.started_at ?? row.created_at),
     altitude,

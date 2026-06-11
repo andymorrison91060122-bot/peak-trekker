@@ -366,6 +366,7 @@ function ActivityHero({ activity }: { activity: ActivityDetailViewModel }) {
           {formatHeroDate(activity.createdAt)}
         </div>
         <h1
+          data-testid="activity-detail-title"
           style={{
             margin: '6px 0 0',
             color: 'var(--color-on-surface)',
@@ -378,6 +379,7 @@ function ActivityHero({ activity }: { activity: ActivityDetailViewModel }) {
           {activity.mountain.name}
         </h1>
         <div
+          data-testid="activity-detail-subline"
           style={{
             color: 'var(--color-on-surface-variant)',
             marginTop: 6,

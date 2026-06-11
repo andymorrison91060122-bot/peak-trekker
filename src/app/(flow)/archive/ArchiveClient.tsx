@@ -7,6 +7,7 @@ import SecondaryButton from '@/components/ui/SecondaryButton'
 import IconButton from '@/components/ui/IconButton'
 import { BackIcon, MoreIcon, PinIcon } from '@/components/ui/Icons'
 import { getLicenseShortLabel } from '@/lib/license-ui'
+import type { CheckinDisplayTitleSource } from '@/lib/checkin-display-title'
 
 export type ArchiveUserViewModel = {
   displayName: string
@@ -28,6 +29,8 @@ export type ArchiveTripViewModel = {
   mountain: {
     id: string | null
     name: string
+    titleSource: CheckinDisplayTitleSource
+    unmatchedTag: '未关联' | null
     province: string
     region: string | null
     altitude: number
@@ -534,6 +537,30 @@ function ProofChip({ hasProof }: { hasProof: boolean }) {
   return hasProof ? <Chip tone="success">● 已留证</Chip> : <Chip>● 未留证</Chip>
 }
 
+function UnmatchedTag({ testId }: { testId?: string }) {
+  return (
+    <span
+      data-testid={testId}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        minHeight: 20,
+        padding: '2px 8px',
+        borderRadius: 'var(--radius-pill)',
+        border: '1px solid var(--color-outline)',
+        color: 'var(--color-on-surface-variant)',
+        background: 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
+        fontSize: 10,
+        lineHeight: '14px',
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      未关联
+    </span>
+  )
+}
+
 function ArchiveMediaChipShell({
   children,
   side,
@@ -612,18 +639,30 @@ function TripMedia({ trip }: { trip: ArchiveTripViewModel }) {
         <div style={{ minWidth: 0 }}>
           <div
             style={{
-              overflow: 'hidden',
-              color: 'var(--color-on-surface)',
-              fontSize: 17,
-              lineHeight: '24px',
-              fontWeight: 700,
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+              minWidth: 0,
             }}
           >
-            {trip.mountain.name}
+            <span
+              data-testid="archive-trip-title"
+              style={{
+                overflow: 'hidden',
+                color: 'var(--color-on-surface)',
+                fontSize: 17,
+                lineHeight: '24px',
+                fontWeight: 700,
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {trip.mountain.name}
+            </span>
+            {trip.mountain.unmatchedTag ? <UnmatchedTag testId="archive-trip-unmatched-tag" /> : null}
           </div>
           <div
+            data-testid="archive-trip-secondary"
             style={{
               ...monoStyle,
               marginTop: 3,

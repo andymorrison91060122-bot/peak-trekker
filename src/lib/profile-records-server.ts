@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ProfileV2TripPreview } from '@/components/profile/ProfileV2Client'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import { resolveCheckinSource, type CheckinSource } from '@/lib/trek-utils'
+import { resolveCheckinDisplayTitle } from '@/lib/checkin-display-title'
 
 type AnySupabase = SupabaseClient
 
@@ -25,16 +26,17 @@ type ProfileCheckinRow = {
   photo_url: string | null
   poster_url?: string | null
   max_elevation_meters?: number | string | null
+  track_name?: string | null
   mountains: MountainRelation | MountainRelation[] | null
 }
 
 const PROFILE_TRIP_SELECT_VARIANTS = [
   `
-    id, mountain_id, type, source, completion_status, created_at, verified_at, photo_url, poster_url, max_elevation_meters,
+    id, mountain_id, type, source, completion_status, created_at, verified_at, photo_url, poster_url, max_elevation_meters, track_name,
     mountains(id, name, altitude, province, difficulty, cover_image)
   `,
   `
-    id, mountain_id, type, created_at, verified_at, photo_url, max_elevation_meters,
+    id, mountain_id, type, created_at, verified_at, photo_url, max_elevation_meters, track_name,
     mountains(id, name, altitude, province, difficulty, cover_image)
   `,
   `
@@ -88,9 +90,12 @@ export async function listProfileTrips({
 
   return rows.map((checkin) => {
     const mountain = firstRelation(checkin.mountains)
-    const hasProof = Boolean(checkin.mountain_id)
     const mountainAltitude = toNumber(mountain?.altitude)
     const checkinMaxAltitude = toNumber(checkin.max_elevation_meters)
+    const displayTitle = resolveCheckinDisplayTitle({
+      mountainName: mountain?.name,
+      trackName: checkin.track_name,
+    })
 
     return {
       checkinId: checkin.id,
@@ -99,8 +104,12 @@ export async function listProfileTrips({
       sourceType: resolveCheckinSource({ source: checkin.source, type: checkin.type }),
       verifiedAt: checkin.verified_at ?? null,
       difficulty: mountain?.difficulty ?? null,
-      mountainName: mountain?.name?.trim() || (hasProof ? '已留证山行' : '未关联山行'),
-      province: mountain?.province?.trim() || (hasProof ? '未知地点' : '未留证'),
+      mountainName: displayTitle.title,
+      titleSource: displayTitle.titleSource,
+      unmatchedTag: displayTitle.unmatchedTag,
+      province: displayTitle.titleSource === 'mountain'
+        ? (mountain?.province?.trim() || '未知地点')
+        : displayTitle.secondaryLocation,
       createdAt: checkin.verified_at || checkin.created_at,
       altitudeM: Math.round(checkinMaxAltitude ?? mountainAltitude ?? 0),
       photoUrl: checkin.photo_url ?? mountain?.cover_image ?? checkin.poster_url ?? null,

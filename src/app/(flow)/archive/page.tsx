@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
+import { resolveCheckinDisplayTitle } from '@/lib/checkin-display-title'
 import ArchiveClient, {
   type ArchiveSummaryViewModel,
   type ArchiveTripViewModel,
@@ -47,6 +48,7 @@ type CheckinRow = {
   elevation_gain_meters?: number | string | null
   max_elevation_meters?: number | string | null
   session_id?: string | null
+  track_name?: string | null
   mountains: MountainRelation | MountainRelation[] | null
 }
 
@@ -78,13 +80,13 @@ const CHECKIN_SELECT_VARIANTS = [
   `
     id, user_id, mountain_id, type, source, photo_url, verified_at, created_at,
     summit_verified, altitude, distance_km, ascent_m, duration_seconds,
-    distance_meters, elevation_gain_meters, max_elevation_meters, session_id,
+    distance_meters, elevation_gain_meters, max_elevation_meters, session_id, track_name,
     mountains(id, name, altitude, province, region, cover_image, gallery_images)
   `,
   `
     id, user_id, mountain_id, type, source, photo_url, verified_at, created_at,
     distance_meters, elevation_gain_meters, max_elevation_meters, duration_seconds,
-    session_id,
+    session_id, track_name,
     mountains(id, name, altitude, province, cover_image, gallery_images)
   `,
   `
@@ -232,6 +234,10 @@ function normalizeTrip({
     checkin.summit_verified === true ||
     Boolean(checkin.verified_at)
   const hasProof = Boolean(checkin.mountain_id)
+  const displayTitle = resolveCheckinDisplayTitle({
+    mountainName: mountain?.name,
+    trackName: checkin.track_name,
+  })
   const photoUrl = checkin.photo_url ?? assets[0]?.thumbnail_url ?? assets[0]?.url ?? mountain?.cover_image ?? null
 
   return {
@@ -239,9 +245,13 @@ function normalizeTrip({
     createdAt: checkin.created_at,
     mountain: {
       id: mountain?.id ?? null,
-      name: mountain?.name ?? '未关联山行',
-      province: mountain?.province ?? (hasProof ? '未知地点' : '未留证'),
-      region: mountain?.region ?? null,
+      name: displayTitle.title,
+      titleSource: displayTitle.titleSource,
+      unmatchedTag: displayTitle.unmatchedTag,
+      province: displayTitle.titleSource === 'mountain'
+        ? (mountain?.province?.trim() || '未知地点')
+        : displayTitle.secondaryLocation,
+      region: displayTitle.titleSource === 'mountain' ? (mountain?.region ?? null) : null,
       altitude: Math.round(mountainAltitude ?? fallbackAltitude),
       coverImage: mountain?.cover_image ?? null,
     },

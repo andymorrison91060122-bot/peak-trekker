@@ -135,7 +135,20 @@ function BottomClassicBlock({ data, compact = false }: { data: ShareTemplateProp
         }}
       >
         {mountainLine ? (
-          <span style={{ color: C.fg, fontSize: compact ? 40 : 44, lineHeight: 1.2, fontWeight: 800, letterSpacing: '0' }}>
+          <span
+            style={{
+              color: C.fg,
+              display: 'block',
+              width: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              fontSize: compact ? 40 : 44,
+              lineHeight: 1.2,
+              fontWeight: 800,
+              letterSpacing: '0',
+            }}
+          >
             {mountainLine}
           </span>
         ) : null}
@@ -226,7 +239,23 @@ function WatermarkOverlay({ data }: ShareTemplateProps) {
         }}
       />
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 70, top: 250, width: 435 }}>
-        {mountainName ? <span style={{ color: C.fg, fontSize: 38, lineHeight: 1.2, fontWeight: 800 }}>{mountainName}</span> : null}
+        {mountainName ? (
+          <span
+            style={{
+              color: C.fg,
+              display: 'block',
+              width: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              fontSize: 38,
+              lineHeight: 1.2,
+              fontWeight: 800,
+            }}
+          >
+            {mountainName}
+          </span>
+        ) : null}
         {location ? <span style={{ color: C.fg2, fontSize: 28, lineHeight: 1.15, fontWeight: 800, marginTop: 30 }}>{location}</span> : null}
         {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 44 }}>
           <span style={{ color: C.success, fontSize: 138, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>

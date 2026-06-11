@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-11 · 最新版本记录: v0.58
+> Last Updated: 2026-06-11 · 最新版本记录: v0.59
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`7389c72`（Merge FU-65 location title chain + archive absent-elevation dash · 2026-06-11）
+`3704afe`（Merge FU-74 zoom-invariant calibration points · 2026-06-11）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（12 条）
+## Active Follow-ups（11 条）
 
 ### FU-16 · mountains 坐标精度审计
 
@@ -381,30 +381,6 @@ REMOTE_ONLY                -                                                    
 
 ---
 
-### FU-74 · Calibration editor: zoom-invariant control points
-
-- **优先级**: P2
-- **归属阶段**: Screenshot calibration editor polish
-- **状态**: 🟢 active
-
-**背景**: editor zoom rescales the viewBox while control-point radii/strokes are in viewBox units, so points grow with zoom, occluding the route exactly when the user zooms in to fine-edit.
-
-**实施建议**:
-- Primary: inverse-scale markers — visible radius `baseRadius / zoom`, strokeWidth `baseStroke / zoom`, glow likewise.
-- Keep a separate invisible hit-target circle `>=44px` on screen, inverse-scaled with a floor.
-- Secondary polish: active/dragged point slightly larger + highlighted, non-active points dimmed (~60%) during drag; start/end may stay slightly larger.
-- Deferred: hide-others-while-dragging interaction.
-
-**验收**:
-- Visible point size approximately constant at 1x/2x/3x.
-- At 3x points do not occlude the majority of the route line.
-- Tap/drag error stays `<=4px` (A1 gate, no regression).
-- Easy to hit/drag (hit target large, visual dot small).
-- Zero impact on persisted shape and share/poster rendering.
-- Scope: `ScreenshotRouteCalibrationSection` rendering only; extend the focused A1 calibration spec with a zoom-size assertion.
-
----
-
 ## Known Issues
 
 ### Known Issue · checkin 数据字段写入路径异常 (2026-05-21 FU-11 sprint 期间发现)
@@ -417,7 +393,13 @@ REMOTE_ONLY                -                                                    
 
 ---
 
-## Closed Follow-ups（64 条）
+## Closed Follow-ups（65 条）
+
+### FU-74 ✅ Calibration editor: zoom-invariant control points
+
+- **关闭原因**: FU-74 已在 PR #5 落地：校准编辑器可见控制点与路线线宽按 zoom 反向缩放，1x-3x marker 稳定为 `17.25px`，路线线宽稳定为 `4.09px`；可见 marker 关闭 pointer events，独立透明 hit circle 使用真实 css-px ↔ viewBox 换算保持 `44px` 命中区；3x tap/drag 误差保持 `<=4px`；仅影响 `ScreenshotRouteCalibrationSection` 渲染与 focused A1 spec，不改 geometry / persistence / share/poster。
+
+---
 
 ### FU-65 ✅ 截图未匹配山峰活动标题与列表副标签区分
 
@@ -1307,6 +1289,17 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.59（2026-06-11）
+
+FU-74 close · calibration editor zoom-invariant points shipped.
+
+- FU-74 关闭: PR #5 `13d192a` 将校准编辑器 visible markers 与 route line stroke 按 zoom 反向缩放；marker 在 1x-3x 稳定为 `17.25px`，route line 在 1x-3x 稳定为 `4.09px`。
+- 命中区改为独立透明 hit circle，并用真实 css-px ↔ viewBox 换算保持 `44px` screen target；visible marker `pointer-events: none`。
+- focused A1 spec 覆盖 marker size、hit-target size、3x tap/drag accuracy、route-line width、persisted-shape no-drift；无 geometry / persistence / share/poster change。
+- PR #5 merge commit: `3704afe`; Production deployment READY; public `/screenshot` health 200。
+- 本 release DB mutation: 仅执行用户已授权 residue cleanup，删除 1 条 `source='screenshot_recognition'` 测试残留；post-delete `screenshot_recognition` count = 0，其他 checkins count 保持 965。
+- Active 12 → 11 · Closed 64 → 65
 
 ### v0.58（2026-06-11）
 

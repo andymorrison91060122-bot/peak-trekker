@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-11 · 最新版本记录: v0.56
+> Last Updated: 2026-06-11 · 最新版本记录: v0.57
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`ae9ab0b`（Merge FU-66 / FU-36 A2 archive→share handoff · 2026-06-11）
+`c8f4027`（Merge FU-63/67 hygiene + empty activity altitude dash · 2026-06-11）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -83,7 +83,7 @@
 
 ---
 
-## Active Follow-ups（14 条）
+## Active Follow-ups（12 条）
 
 ### FU-16 · mountains 坐标精度审计
 
@@ -191,45 +191,70 @@
 
 ---
 
-### FU-63 · 仓库 pyc / __pycache__ hygiene PR
+### FU-64 · Supabase migration-history full reconciliation
 
 - **优先级**: P2
-- **归属阶段**: 工程卫生 / 后续独立 PR
+- **归属阶段**: 数据库运维卫生 / full reconciliation
 - **状态**: 🟢 active
 
-**背景**: FU-36 A1 release 期间确认当前 main 继承了已 tracked 的 `.codex/**/__pycache__/*.pyc` 文件。A1 PR 明确要求不混入 pyc cleanup，因此该项需独立 hygiene PR 处理。
+**背景**: FU-63/67 release 收尾时原计划对 `20260609090000_add_screenshot_route_shape.sql` 做单点 migration-history repair。只读全量 drift check 发现这不是单一 missing registration，而是 project-wide migration history drift: 远端已登记 `20260608161354 add_screenshot_route_shape_to_checkins`，repo 中同一意图文件后续被改名为 `20260609090000_add_screenshot_route_shape.sql`；同时还存在更早期 local-only、版本漂移与 remote-only 记录。单独登记 `20260609090000` 会让一致性更差。
 
-**实施建议**:
-- `git rm --cached` 已 tracked 的 `.codex/**/__pycache__/*.pyc`
-- `.gitignore` 补充 `__pycache__/` 与 `*.pyc`
-- 确认不删除用户本地必要缓存，只停止 Git 追踪
-- 独立 hygiene commit / PR，不与功能代码混合
+**只读 drift evidence（2026-06-11）**:
+
+```text
+LOCAL_ONLY                 20260430052932_align_schema_with_code.sql                         -
+LOCAL_ONLY                 20260430053217_allow_admin_select_checkins_for_review.sql         -
+LOCAL_ONLY                 20260501152445_n2c_verify_checkin_transaction.sql                 -
+LOCAL_ONLY                 20260505162548_track_data_columns.sql                             -
+LOCAL_ONLY                 20260505171842_screenshot_source.sql                              -
+LOCAL_ONLY                 20260505203730_n4_weather_cache.sql                               -
+LOCAL_ONLY                 20260505214945_monetization_schema.sql                            -
+LOCAL_ONLY                 20260505225050_track_import_schema.sql                            -
+LOCAL_ONLY                 20260505232301_stats_rpc_functions.sql                            -
+LOCAL_ONLY                 20260506000000_stats_rpc_security_definer.sql                     -
+EXACT_VERSION_NAME          20260512123133_backfill_orphan_profiles.sql                      20260512123133 backfill_orphan_profiles
+EXACT_VERSION_NAME          20260512131127_handle_new_user_trigger.sql                       20260512131127 handle_new_user_trigger
+NAME_MATCH_VERSION_DRIFT    20260514090000_checkins_completion_status.sql                    20260514152635 checkins_completion_status
+NAME_MATCH_VERSION_DRIFT    20260517061630_create_screenshot_quota.sql                       20260517063336 create_screenshot_quota
+NAME_MATCH_VERSION_DRIFT    20260517063534_harden_screenshot_quota_policy.sql                20260517063603 harden_screenshot_quota_policy
+NAME_MATCH_VERSION_DRIFT    20260517070147_fix_consume_quota_ambiguous_column.sql            20260517070301 fix_consume_quota_ambiguous_column
+NAME_MATCH_VERSION_DRIFT    20260517074236_checkins_track_content_hash.sql                   20260517074304 checkins_track_content_hash
+NAME_MATCH_VERSION_DRIFT    20260517124359_trek_session_pause_state.sql                      20260517124440 trek_session_pause_state
+EXACT_VERSION_NAME          20260521161903_backfill_checkins_verified_at_from_legacy_status.sql 20260521161903 backfill_checkins_verified_at_from_legacy_status
+NAME_MATCH_VERSION_DRIFT    20260522045459_drop_checkins_status_finalize_fu42.sql            20260522104503 drop_checkins_status_finalize_fu42
+NAME_MATCH_VERSION_DRIFT    20260526190604_fix_profiles_avatar_rls.sql                       20260526133859 fix_profiles_avatar_rls
+NAME_MATCH_VERSION_DRIFT    20260528093000_create_events_table.sql                           20260528113523 20260528093000_create_events_table
+NAME_MATCH_VERSION_DRIFT    20260530093000_create_mountain_requests_table.sql                20260530063134 20260530093000_create_mountain_requests_table
+LOCAL_ONLY                 20260609090000_add_screenshot_route_shape.sql                     -
+REMOTE_ONLY                -                                                                 20260513042900 create_a1_cleanup_archive_tables_20260513
+REMOTE_ONLY                -                                                                 20260608161354 add_screenshot_route_shape_to_checkins
+```
+
+**Diagnosis**:
+- Drift is project-wide, not isolated to `20260609090000`.
+- 11 `LOCAL_ONLY` entries include pre-2026-05-12 era migrations that appear to have been applied without remote migration-history registration.
+- 11 `NAME_MATCH_VERSION_DRIFT` entries appear to come from push-then-rename history where the logical migration name matches but the timestamp/version differs.
+- 2 `REMOTE_ONLY` entries include one deleted repo file (`create_a1_cleanup_archive_tables_20260513`) and the applied screenshot-route migration (`20260608161354 add_screenshot_route_shape_to_checkins`) whose repo file was later renamed.
+- The originally planned single repair of `20260609090000` would have worsened consistency by registering a second version for an already-applied logical migration.
+
+**Phase plan**:
+- **PHASE 1 · Read-only reconciliation plan**:
+  - Assign every local / remote entry one explicit action: `keep`, `git-mv local to remote version`, `restore missing local file`, `leave as historical`, or `needs manual schema verification`.
+  - Verify whether `LOCAL_ONLY` pre-2026-05-12 migrations correspond to current production schema before deciding repair vs historical baseline.
+  - Verify whether each `NAME_MATCH_VERSION_DRIFT` can be safely resolved by repo `git mv` only, without changing SQL contents or remote history.
+  - Inspect `REMOTE_ONLY` entries and decide whether to restore missing repo files from audit history or mark as historical applied-only records.
+  - Evaluate the alternative strategy: fresh baseline via `supabase db pull`, including risks of losing useful migration history vs clearing drift.
+- **PHASE 2 · Execute only after plan review + token setup**:
+  - No DB mutation or CLI repair before user-reviewed reconciliation plan.
+  - If CLI access is needed, set up `SUPABASE_ACCESS_TOKEN` / `supabase link` first; never improvise direct `psql`.
+  - Execute the approved repo renames/restores/metadata repairs in small commits with before/after migration list evidence.
+
+**GUARD RULE**: **until FU-64 completes, NOBODY runs `supabase db push` against the production project — it will trip over the unregistered local migrations.**
 
 **验收**:
-- `git ls-files | rg '\.pyc$|__pycache__'` 无结果
-- `.gitignore` 明确覆盖 `__pycache__/` 与 `*.pyc`
-- 不包含任何功能代码改动
-
----
-
-### FU-64 · Supabase migration history repair for 20260609090000
-
-- **优先级**: P2
-- **归属阶段**: 数据库运维卫生 / 上线后整理
-- **状态**: 🟢 active
-
-**背景**: FU-36 release Step 2b 已通过 PostgREST control probe 确认 `public.checkins.screenshot_route_shape` 已存在且为 nullable `jsonb`。但 `supabase_migrations.schema_migrations` 历史在只读探测中不可达 / 未确认。迁移文件 `20260609090000_add_screenshot_route_shape.sql` 是 `add column if not exists`，对当前列状态是安全 no-op，但迁移历史可能存在 drift。
-
-**实施建议**:
-- 使用 Supabase 插件核实 migration history
-- 若历史缺失，按 Supabase 推荐方式登记 / 修复 `20260609090000`
-- 不 drop / recreate 已存在列
-- 修复后再次确认 `public.checkins.screenshot_route_shape` 仍为 nullable `jsonb`
-
-**验收**:
-- `20260609090000` 在 migration history 中可见
-- `information_schema.columns` 仍显示 `screenshot_route_shape jsonb nullable`
-- 生产数据无删除 / 无重写
+- Local repo migrations and remote `schema_migrations` have a reviewed one-to-one reconciliation plan.
+- Any chosen repo rename / restore / metadata repair has before/after evidence.
+- No production schema/data mutation occurs without explicit user approval.
 
 ---
 
@@ -252,27 +277,6 @@
 - 「未关联山峰 / 地区」只作为副标签出现
 - 匹配山峰活动现有标题不回退
 - 375px Activity + Archive / Trek 列表视觉验收
-
----
-
-### FU-67 · Activity 海拔空值渲染统一
-
-- **优先级**: P2
-- **归属阶段**: Activity UI polish
-- **状态**: 🟢 active
-
-**背景**: FU-36 release smoke 中观察到同一个 null 海拔值在 Activity hero card 中渲染为 `0 m`，但在 grid 中渲染为 `--`。同一空值应统一表达，避免用户误以为系统记录了真实 0m 海拔。
-
-**实施建议**:
-- 梳理 Activity Detail 中 max elevation / elevation gain / related elevation metric 的空值 formatter
-- 统一 null / undefined / invalid 为空态 `--`
-- 仅真实数值 0 才允许显示 `0 m`，并确认该语义是否适合对应字段
-- 加 focused formatter test 或 Activity 静态测试
-
-**验收**:
-- 同一 null 海拔值在 hero 与 grid 中一致显示
-- 真实 0 值与 null 不被混淆
-- GPS / screenshot / imported activity 三类来源无回退
 
 ---
 
@@ -410,7 +414,36 @@
 
 ---
 
-## Closed Follow-ups（61 条）
+## Closed Follow-ups（63 条）
+
+### FU-67 ✅ Activity 海拔空值渲染统一
+
+- **关闭原因**: FU-67 已在 PR #3 落地: Activity Detail 的 hero `最高海拔` 与 `轨迹记忆` elevation range 对缺失 measured elevation 统一渲染为 `--`，与 stats grid 的 existing presence rule 对齐；不再把 absent elevation 显示为 fabricated `0 m` 或 `0m → 0m`。
+- **关键决策记录**:
+  · 渲染层最小修复，仅修改 client-side `ActivityDetailClient.tsx`。
+  · 不改 `/activity/[id]/page.tsx` view-model / DB semantics / verification semantics。
+  · 不引入 mountain catalog altitude fallback。
+  · `data-testid="activity-hero-altitude-value"` 与 `data-testid="activity-route-memory-elevation-value"` 仅用于 focused e2e 精准断言，不作为用户 UI 文案。
+- **准入**: focused `screenshot-recognition-flow.spec.ts` 2/2 PASS；lint 0 errors / 9 existing warnings；build PASS；git diff --check clean；用户授权 release merge。
+- **关闭 commit**: `714c361`
+- **merge commit**: `c8f4027`
+- **关闭时间**: 2026-06-11
+
+---
+
+### FU-63 ✅ 仓库 pyc / __pycache__ hygiene PR
+
+- **关闭原因**: FU-63 已在 PR #3 落地: 六个 tracked Python bytecode cache 文件已 `git rm --cached` 停止追踪，`.gitignore` 新增 `__pycache__/` 与 `*.pyc`；本地 cache 文件保留在磁盘，不做物理删除。
+- **关键决策记录**:
+  · Commit A 纯 hygiene: 仅 6 个 `.pyc` cached deletions + `.gitignore` 两行。
+  · 不混入功能代码、spike scripts 或 output evidence。
+  · `git ls-files | rg '\.pyc$|__pycache__'` 无结果。
+- **准入**: PR scope guard 确认 `origin/main..HEAD` exactly two commits；工作树仅剩两个 untracked FU-36 spike scripts；no output paths in PR diff。
+- **关闭 commit**: `1472cf7`
+- **merge commit**: `c8f4027`
+- **关闭时间**: 2026-06-11
+
+---
 
 ### FU-66 ✅ FU-36 A2 archive→share handoff / screenshot route badge guard
 
@@ -1256,6 +1289,18 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.57（2026-06-11）
+
+FU-63/67 close + FU-64 re-scope。
+
+- FU-63 关闭: PR #3 `1472cf7` 停止追踪六个 Python bytecode cache 文件, `.gitignore` 新增 `__pycache__/` 与 `*.pyc`; 本地 `.pyc` 文件保留在磁盘。
+- FU-67 关闭: PR #3 `714c361` 将 Activity hero `最高海拔` 与 `轨迹记忆` elevation range 的 absent measured elevation 渲染统一为 `--`, 与 grid rule 对齐; rendering-layer only, 不改 server view-model / DB / GPS semantics。
+- PR #3 merge commit: `c8f4027`; Production deployment READY; public `/screenshot` health 200。
+- FU-64 保持 active 并扩 scope: 从单点 `20260609090000` repair 改为 "Supabase migration-history full reconciliation"。只读 drift check 证明是 project-wide drift, 包含 local-only、name-match version drift、remote-only 三类; 原计划单点 repair 会恶化一致性。
+- FU-64 guard: 在 full reconciliation 完成前, 不得对 production project 运行 `supabase db push`。
+- 本 sprint DB mutation: 0。FU-64 未做 repair / rename / migration / psql。
+- Active 14 → 12 · Closed 61 → 63
 
 ### v0.54（2026-06-02）
 

@@ -63,7 +63,20 @@ export function BaseClassicTemplate({ data, photoDataUrl }: ShareTemplateProps) 
         }}
       >
         {mountainLine ? (
-          <span style={{ color: C.fg, fontSize: 40, lineHeight: 1.2, fontWeight: 800, letterSpacing: '0' }}>
+          <span
+            style={{
+              color: C.fg,
+              display: 'block',
+              width: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              fontSize: 40,
+              lineHeight: 1.2,
+              fontWeight: 800,
+              letterSpacing: '0',
+            }}
+          >
             {mountainLine}
           </span>
         ) : null}

@@ -5,16 +5,27 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 import {
+  createHistoricalCheckinViaApi,
   dismissActivationChecklistIfPresent,
   registerFreshUser,
 } from './community.helpers'
+import { HUASHAN } from './trek-regression.helpers'
 
 const OUTPUT_DIR = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu36-a2-archive-share-acceptance'
 const BUILD_DIR = join(OUTPUT_DIR, 'browser-build-screens')
 const POSTER_DIR = join(OUTPUT_DIR, 'server-posters')
+const FU65_OUTPUT_DIR = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu65-location-title-acceptance'
+const FU65_BUILD_DIR = join(FU65_OUTPUT_DIR, 'browser-build-screens')
+const FU65_POSTER_DIR = join(FU65_OUTPUT_DIR, 'server-posters')
 const DESIGN_DIR = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu36-design-source/road001-a2/project/screenshots'
 const SAMPLE_CROP_IMAGE = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu36-track-v2-acceptance/crops/keep-648-map-crop.jpg'
 const TALL_SAMPLE_IMAGE = join(OUTPUT_DIR, 'a2-upload-fixture.png')
+const DEFAULT_UNMATCHED_LOCATION = '鸡笼顶大草原'
+const THIRTY_CHAR_LOCATION = '广东阳江鸡笼顶大草原北坡风车山脊观景入口一号路线清晨云海环线'
+
+if (Array.from(THIRTY_CHAR_LOCATION).length !== 30) {
+  throw new Error('FU-65 long location fixture must stay at 30 characters.')
+}
 
 const CREATED_CHECKINS: string[] = []
 
@@ -44,6 +55,8 @@ function getSupabaseAdminClient() {
 async function ensureEvidenceDirs() {
   await mkdir(BUILD_DIR, { recursive: true })
   await mkdir(POSTER_DIR, { recursive: true })
+  await mkdir(FU65_BUILD_DIR, { recursive: true })
+  await mkdir(FU65_POSTER_DIR, { recursive: true })
 }
 
 async function ensureUploadFixture() {
@@ -78,7 +91,11 @@ async function ensureUploadFixture() {
   return TALL_SAMPLE_IMAGE
 }
 
-async function mockScreenshotRecognition(page: Page) {
+async function mockScreenshotRecognition(page: Page, {
+  location = DEFAULT_UNMATCHED_LOCATION,
+}: {
+  location?: string | null
+} = {}) {
   await page.route('**/api/screenshot/recognize', async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
@@ -115,7 +132,9 @@ async function mockScreenshotRecognition(page: Page) {
           textBlocks: [],
         },
         parsedFields: {
-          location: { value: '户外路线', raw: 'Keep 登山' },
+          ...(location
+            ? { location: { value: location, raw: location } }
+            : {}),
           distance: { value: 10.32, unit: 'km', raw: '10.32 公里' },
           duration: { value: 8168, raw: '02:16:08' },
           elevationGain: { value: 632, raw: '632 米' },
@@ -128,6 +147,12 @@ async function mockScreenshotRecognition(page: Page) {
 
 async function capture(page: Page, name: string) {
   const path = join(BUILD_DIR, name)
+  await page.screenshot({ path, fullPage: false })
+  return path
+}
+
+async function captureFu65(page: Page, name: string) {
+  const path = join(FU65_BUILD_DIR, name)
   await page.screenshot({ path, fullPage: false })
   return path
 }
@@ -222,9 +247,13 @@ async function calibrateRoute(page: Page, points: Array<{ x: number; y: number }
   await expect(page.locator('[data-route-calibration-editor="true"]')).toHaveCount(0, { timeout: 5000 })
 }
 
-async function uploadRecognizedScreenshot(page: Page, root: string) {
+async function uploadRecognizedScreenshot(
+  page: Page,
+  root: string,
+  options: Parameters<typeof mockScreenshotRecognition>[1] = {},
+) {
   await page.setViewportSize({ width: 375, height: 812 })
-  await mockScreenshotRecognition(page)
+  await mockScreenshotRecognition(page, options)
   await registerFreshUser(page, root, { returnTo: '/screenshot' })
   await hideDevelopmentChrome(page)
   await dismissActivationChecklistIfPresent(page)
@@ -310,24 +339,68 @@ async function writeRound2DeliveryReport() {
   )
 }
 
-async function renderServerPoster(page: Page, checkinId: string, name: string) {
+async function renderServerPoster(
+  page: Page,
+  checkinId: string,
+  name: string,
+  directory = POSTER_DIR,
+  {
+    template = 'base-classic',
+    transparent = false,
+  }: {
+    template?: string
+    transparent?: boolean
+  } = {},
+) {
   const response = await page.request.post('/api/share/render', {
     data: {
-      template: 'base-classic',
+      template,
       checkinId,
       fieldVisibility: {},
-      transparent: false,
+      transparent,
     },
   })
   const body = await response.body()
   expect(response.status(), body.toString('utf8')).toBe(200)
   expect(response.headers()['content-type']).toContain('image/png')
-  const output = join(POSTER_DIR, name)
+  const output = join(directory, name)
   await writeFile(output, body)
   const metadata = await sharp(body).metadata()
   expect(metadata.width).toBe(1080)
   expect(metadata.height).toBe(1920)
   return output
+}
+
+async function expectShareTitleVisible(page: Page, title: string) {
+  const preview = page.getByTestId('share-hero-preview')
+  const titleNode = preview.getByText(title).first()
+  await expect(titleNode).toBeVisible({ timeout: 10_000 })
+  return titleNode
+}
+
+async function expectShareTitleWithinPreview(page: Page, title: string) {
+  const titleNode = await expectShareTitleVisible(page, title)
+  const metrics = await titleNode.evaluate((node) => {
+    const rect = node.getBoundingClientRect()
+    const preview = node.closest('[data-testid="share-hero-preview"]')
+    const previewRect = preview?.getBoundingClientRect()
+    return {
+      titleWidth: rect.width,
+      titleLeft: rect.left,
+      titleRight: rect.right,
+      previewLeft: previewRect?.left ?? 0,
+      previewRight: previewRect?.right ?? 0,
+      overflow: getComputedStyle(node).overflow,
+      textOverflow: getComputedStyle(node).textOverflow,
+      whiteSpace: getComputedStyle(node).whiteSpace,
+    }
+  })
+
+  expect(metrics.titleLeft).toBeGreaterThanOrEqual(metrics.previewLeft - 1)
+  expect(metrics.titleRight).toBeLessThanOrEqual(metrics.previewRight + 1)
+  expect(metrics.overflow).toBe('hidden')
+  expect(metrics.textOverflow).toBe('ellipsis')
+  expect(metrics.whiteSpace).toBe('nowrap')
 }
 
 async function getShareRouteTopLineBounds(page: Page) {
@@ -475,6 +548,7 @@ test('FU-66 A2 calibrated screenshot archives, opens share, and renders screensh
   await page.getByRole('button', { name: '去分享' }).click()
   await expect(page).toHaveURL(new RegExp(`/share\\?checkinId=${checkinId}`), { timeout: 20_000 })
   await expect(page.getByTestId('share-hero-preview')).toBeVisible({ timeout: 20_000 })
+  await expectShareTitleVisible(page, DEFAULT_UNMATCHED_LOCATION)
   await expect(page.getByTestId('share-hero-preview').locator('path[data-real-track="true"]')).toHaveCount(2)
   const longBounds = await getShareRouteTopLineBounds(page)
   expect(longBounds.x).toBeGreaterThanOrEqual(50)
@@ -484,11 +558,21 @@ test('FU-66 A2 calibrated screenshot archives, opens share, and renders screensh
   await expectNoAltitudeHeroCopy(page)
   await expectNoGpsVerifiedCopy(page)
   await capture(page, 'share-editor-calibrated-route-build.png')
+  await captureFu65(page, 'fu65-share-editor-unmatched-location.png')
   await capture(page, 'long-share-editor-build.png')
   await renderServerPoster(page, checkinId, 'server-poster-calibrated.png')
+  await renderServerPoster(page, checkinId, 'fu65-server-poster-unmatched-location.png', FU65_POSTER_DIR)
   await renderServerPoster(page, checkinId, 'server-poster-long.png')
   await captureActivityRouteCard(page, checkinId, 'activity-card-long.png')
   await writeZoomedActivityLineCrop('activity-card-long.png', 'activity-card-long-line-zoom.png')
+
+  const matchedCheckinId = await createHistoricalCheckinViaApi(page, HUASHAN.id, `fu65-share-matched-${Date.now()}`)
+  CREATED_CHECKINS.push(matchedCheckinId)
+  await page.goto(`/share?checkinId=${matchedCheckinId}`, { waitUntil: 'domcontentloaded' })
+  await expect(page.getByTestId('share-hero-preview')).toBeVisible({ timeout: 20_000 })
+  await expectShareTitleVisible(page, HUASHAN.name)
+  await captureFu65(page, 'fu65-share-editor-matched-regression.png')
+  await renderServerPoster(page, matchedCheckinId, 'fu65-server-poster-matched-regression.png', FU65_POSTER_DIR)
 
   await writeFile(
     join(OUTPUT_DIR, 'design-deviations.md'),
@@ -541,7 +625,7 @@ test('FU-66 A2 text-only screenshot archives, can go back to activity, and share
   test.setTimeout(180_000)
   const root = baseURL ?? 'http://127.0.0.1:3100'
 
-  await uploadRecognizedScreenshot(page, root)
+  await uploadRecognizedScreenshot(page, root, { location: null })
   const checkinId = await submitAndWaitForArchive(page)
   await expect(page.getByTestId('screenshot-archive-text-medallion')).toBeVisible()
   await hideDevelopmentChrome(page)
@@ -553,11 +637,32 @@ test('FU-66 A2 text-only screenshot archives, can go back to activity, and share
 
   await page.goto(`/share?checkinId=${checkinId}`, { waitUntil: 'domcontentloaded' })
   await expect(page.getByTestId('share-hero-preview')).toBeVisible({ timeout: 20_000 })
+  await expectShareTitleVisible(page, '未知山峰')
   await expect(page.getByTestId('share-hero-preview').locator('[data-real-track]')).toHaveCount(0)
   await expect(page.getByTestId('share-hero-preview').locator('path[data-real-track="true"]')).toHaveCount(0)
   await expectNoAltitudeHeroCopy(page)
   await expectNoGpsVerifiedCopy(page)
   await capture(page, 'share-editor-text-only-no-route-build.png')
+  await captureFu65(page, 'fu65-share-editor-no-location.png')
   await renderServerPoster(page, checkinId, 'server-poster-text-only.png')
+  await renderServerPoster(page, checkinId, 'fu65-server-poster-no-location.png', FU65_POSTER_DIR)
   await writeRound2DeliveryReport()
+})
+
+test('FU-65 share title chain keeps a 30-character location inside share and poster layouts', async ({ page, baseURL }) => {
+  test.setTimeout(180_000)
+  const root = baseURL ?? 'http://127.0.0.1:3100'
+
+  await uploadRecognizedScreenshot(page, root, { location: THIRTY_CHAR_LOCATION })
+  const checkinId = await submitAndWaitForArchive(page)
+  await page.getByRole('button', { name: '去分享' }).click()
+  await expect(page).toHaveURL(new RegExp(`/share\\?checkinId=${checkinId}`), { timeout: 20_000 })
+  await expect(page.getByTestId('share-hero-preview')).toBeVisible({ timeout: 20_000 })
+  await expectShareTitleWithinPreview(page, THIRTY_CHAR_LOCATION)
+  await captureFu65(page, 'fu65-share-editor-30-char-location.png')
+  await renderServerPoster(page, checkinId, 'fu65-server-poster-30-char-location.png', FU65_POSTER_DIR)
+  await renderServerPoster(page, checkinId, 'fu65-server-poster-30-char-transparent-watermark.png', FU65_POSTER_DIR, {
+    template: 'premium-photo-overlay',
+    transparent: true,
+  })
 })

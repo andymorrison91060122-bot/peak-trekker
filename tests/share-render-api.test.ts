@@ -394,6 +394,21 @@ describe('share render API field policy regression', () => {
     }
   })
 
+  test('rejects client-supplied title and name overrides', async () => {
+    const { ShareRenderPayloadPolicyError, assertShareRenderPayload } = await loadPolicy()
+
+    for (const field of ['title', 'mountainName', 'mountain_name', 'trackName', 'track_name']) {
+      assert.throws(
+        () => assertShareRenderPayload({ template: 'base-classic', checkinId: 'fake-id', [field]: '鸡笼顶大草原' }),
+        (error) => matchesPolicyError(error, ShareRenderPayloadPolicyError, {
+          field,
+          message: /cannot be overridden/i,
+        }),
+        `${field} should be rejected`,
+      )
+    }
+  })
+
   test('rejects client-supplied track shapes and route paths', async () => {
     const { ShareRenderPayloadPolicyError, assertShareRenderPayload } = await loadPolicy()
 
@@ -420,6 +435,18 @@ describe('share render API field policy regression', () => {
         /const trackPreview = isScreenshotRecognition\s*\?\s*buildShareTrackPreviewFromScreenshotRouteShape\(row\.screenshot_route_shape\)\s*:\s*buildShareTrackPreview\(row\.track_points\) \?\? buildShareTrackPreview\(session\?\.track_points\)/,
       )
       assert.match(source, /const isScreenshotRecognition = row\.source === 'screenshot_recognition'/)
+    }
+  })
+
+  test('share data loaders resolve title from mountain, track_name, then share fallback', () => {
+    const sharePageSource = readSource('../src/app/(flow)/share/page.tsx')
+    const renderRouteSource = readSource('../src/app/api/share/render/route.ts')
+
+    for (const source of [sharePageSource, renderRouteSource]) {
+      assert.match(source, /resolveShareMountainName/)
+      assert.match(source, /track_name/)
+      assert.match(source, /trackName:\s*row\.track_name/)
+      assert.doesNotMatch(source, /mountainName:\s*mountain\?\.name\s*\?\?\s*'未知山峰'/)
     }
   })
 

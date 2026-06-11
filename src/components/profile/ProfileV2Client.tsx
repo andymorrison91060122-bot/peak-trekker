@@ -11,6 +11,7 @@ import { trackEventNow } from '@/lib/analytics/client'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import { MountainIcon } from '@/components/ui/Icons'
 import type { CheckinSource } from '@/types'
+import type { CheckinDisplayTitleSource } from '@/lib/checkin-display-title'
 import ProfileAvatarUploader from '@/components/profile/ProfileAvatarUploader'
 import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
 import ProvinceContributionSection from '@/components/profile/ProvinceContributionSection'
@@ -38,6 +39,8 @@ export type ProfileV2TripPreview = {
   verifiedAt?: string | null
   difficulty?: string | null
   mountainName: string
+  titleSource: CheckinDisplayTitleSource
+  unmatchedTag: '未关联' | null
   province: string
   createdAt: string
   altitudeM: number
@@ -193,6 +196,30 @@ function AltitudeBar({ altitudeM }: { altitudeM: number }) {
   )
 }
 
+function UnmatchedTripTag() {
+  return (
+    <span
+      data-testid="profile-trip-unmatched-tag"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        minHeight: 20,
+        padding: '2px 8px',
+        borderRadius: 'var(--radius-pill)',
+        border: '1px solid var(--color-outline)',
+        color: 'var(--color-on-surface-variant)',
+        background: 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
+        fontSize: 10,
+        lineHeight: '14px',
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      未关联
+    </span>
+  )
+}
+
 function TripThumb({ trip }: { trip: ProfileV2TripPreview }) {
   if (trip.photoUrl) {
     return (
@@ -285,17 +312,29 @@ function ArchivePreviewSection({ trips }: { trips: ProfileV2TripPreview[] }) {
               <div style={{ display: 'grid', gap: 'var(--space-2)', minWidth: 0, flex: '1 1 auto' }}>
                 <div style={{ display: 'grid', gap: 'var(--space-1)', minWidth: 0 }}>
                   <div
-                    className="pt-title-m"
                     style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-2)',
                       minWidth: 0,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
                     }}
                   >
-                    {trip.mountainName}
+                    <span
+                      data-testid="profile-trip-title"
+                      className="pt-title-m"
+                      style={{
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {trip.mountainName}
+                    </span>
+                    {trip.unmatchedTag ? <UnmatchedTripTag /> : null}
                   </div>
                   <div
+                    data-testid="profile-trip-secondary"
                     className="pt-label-s"
                     style={{
                       fontFamily: 'var(--font-mono)',

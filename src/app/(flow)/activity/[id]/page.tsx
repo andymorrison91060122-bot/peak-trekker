@@ -5,6 +5,7 @@ import type { SourceLabelProps } from '@/components/ui/SourceLabel'
 import { getSourceLabelType } from '@/lib/source-label-utils'
 import { resolveCheckinSource, type CheckinSource } from '@/lib/trek-utils'
 import { validateScreenshotRouteShape, type PersistedScreenshotRouteShape } from '@/lib/screenshot-route-shape'
+import { resolveCheckinDisplayTitle } from '@/lib/checkin-display-title'
 import ActivityDetailClient, {
   type ActivityDetailViewModel,
   type ActivityPhotoViewModel,
@@ -40,6 +41,7 @@ type CheckinRow = {
   min_elevation_meters?: number | string | null
   start_time?: string | null
   end_time?: string | null
+  track_name?: string | null
   track_points?: unknown
   screenshot_route_shape?: unknown
   mountains: MountainRelation | MountainRelation[] | null
@@ -75,14 +77,14 @@ type RawTrackPoint = {
 const CHECKIN_SELECT_FULL = `
   id, user_id, mountain_id, type, source, photo_url, note, session_id, verified_at, created_at,
   distance_meters, duration_seconds, elevation_gain_meters, max_elevation_meters, min_elevation_meters,
-  start_time, end_time, track_points, screenshot_route_shape,
+  start_time, end_time, track_name, track_points, screenshot_route_shape,
   mountains(id, name, altitude, province, difficulty, latitude, longitude, cover_image, gallery_images)
 `
 
 const CHECKIN_SELECT_WITHOUT_SCREENSHOT_ROUTE_SHAPE = `
   id, user_id, mountain_id, type, source, photo_url, note, session_id, verified_at, created_at,
   distance_meters, duration_seconds, elevation_gain_meters, max_elevation_meters, min_elevation_meters,
-  start_time, end_time, track_points,
+  start_time, end_time, track_name, track_points,
   mountains(id, name, altitude, province, difficulty, latitude, longitude, cover_image, gallery_images)
 `
 
@@ -241,6 +243,10 @@ export default async function ActivityDetailPage({
   })
   const isScreenshotRecognition = sourceType === 'screenshot_recognition'
   const sourceLabelType = deriveSourceLabelType(checkin, sourceType)
+  const displayTitle = resolveCheckinDisplayTitle({
+    mountainName: mountain?.name,
+    trackName: checkin.track_name,
+  })
 
   const [assetResult, sessionResult, countResult] = await Promise.all([
     supabase
@@ -329,10 +335,10 @@ export default async function ActivityDetailPage({
     hasMeaningfulActivityData,
     mountain: {
       id: mountain?.id ?? null,
-      name: mountain?.name ?? '未关联山峰',
+      name: displayTitle.title,
       altitude: Math.round(toNumber(mountain?.altitude) ?? maxAltitude),
-      province: mountain?.province ?? '未关联地区',
-      region: mountain?.province ?? '未关联地区',
+      province: mountain?.province ?? (displayTitle.titleSource === 'mountain' ? '未关联地区' : '未关联山峰'),
+      region: displayTitle.titleSource === 'mountain' ? (mountain?.province ?? '未关联地区') : '',
       coverImage: mountain?.cover_image ?? null,
       difficulty: mountain?.difficulty ?? null,
       latitude: toNumber(mountain?.latitude),

@@ -17,4 +17,30 @@ describe('share data mapping', () => {
     assert.equal(resolveMeasuredShareAltitude(1286, 884), 1286)
     assert.equal(resolveMeasuredShareAltitude(undefined, 884), 884)
   })
+
+  test('resolves share poster titles with mountain, track_name, then share fallback', async () => {
+    const { resolveShareMountainName } = await loadShareData()
+
+    assert.equal(
+      resolveShareMountainName({
+        mountainName: '泰山',
+        trackName: '鸡笼顶大草原',
+      }),
+      '泰山',
+    )
+    assert.equal(
+      resolveShareMountainName({
+        mountainName: null,
+        trackName: '鸡笼顶大草原',
+      }),
+      '鸡笼顶大草原',
+    )
+    assert.equal(
+      resolveShareMountainName({
+        mountainName: null,
+        trackName: '截图识别活动',
+      }),
+      '未知山峰',
+    )
+  })
 })

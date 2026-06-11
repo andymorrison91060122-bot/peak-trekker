@@ -7,6 +7,10 @@ async function loadTrackPreview() {
   return import(`../src/lib/share-track-preview.${sourceExtension}`)
 }
 
+async function loadPolylineSimplifier() {
+  return import(`../src/lib/polyline-simplify.${sourceExtension}`)
+}
+
 function assertPointClose(
   actual: { x: number; y: number } | undefined,
   expected: { x: number; y: number },
@@ -18,6 +22,43 @@ function assertPointClose(
 }
 
 describe('share track preview projection', () => {
+  test('preserves line-mode degenerate epsilon while segment mode keeps exact-zero fallback only', async () => {
+    const { simplifyPolyline } = await loadPolylineSimplifier()
+    const project = (point: { x: number; y: number }) => point
+
+    const nearZeroLine = [
+      { x: 0, y: 0 },
+      { x: 0.8, y: 0 },
+      { x: 1e-8, y: 0 },
+    ]
+    assert.deepEqual(
+      simplifyPolyline(nearZeroLine, {
+        epsilon: 0.5,
+        project,
+        distanceMode: 'line',
+        degenerateEpsilon: 1e-7,
+      }),
+      nearZeroLine,
+      'line mode should use the old near-degenerate fallback distance-to-start behavior',
+    )
+
+    const nearZeroSegment = [
+      { x: 0, y: 0 },
+      { x: 5e-9, y: 0 },
+      { x: 1e-8, y: 0 },
+    ]
+    assert.deepEqual(
+      simplifyPolyline(nearZeroSegment, {
+        epsilon: 1e-9,
+        project,
+        distanceMode: 'segment',
+        degenerateEpsilon: 1,
+      }),
+      [nearZeroSegment[0], nearZeroSegment[2]],
+      'segment mode should ignore degenerateEpsilon and preserve exact-zero-only semantics',
+    )
+  })
+
   test('normalizes imported track points without exposing raw coordinates', async () => {
     const { buildShareTrackPreview } = await loadTrackPreview()
 

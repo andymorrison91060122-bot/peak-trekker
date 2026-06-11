@@ -5,6 +5,7 @@ import type {
   ScreenshotRouteSegment,
   UnitPoint,
 } from './screenshot-track/calibration.ts'
+import { simplifyPolyline } from './polyline-simplify.ts'
 
 export const SCREENSHOT_ROUTE_SHAPE_LIMITS = {
   maxBytes: 256 * 1024,
@@ -114,42 +115,6 @@ function segmentDrawablePoints(segment: ScreenshotRouteSegment) {
   return [segment.from, segment.to]
 }
 
-function pointDistanceToSegmentPx(point: UnitPoint, start: UnitPoint, end: UnitPoint, width: number, height: number) {
-  const px = point.x * width
-  const py = point.y * height
-  const ax = start.x * width
-  const ay = start.y * height
-  const bx = end.x * width
-  const by = end.y * height
-  const dx = bx - ax
-  const dy = by - ay
-  if (dx === 0 && dy === 0) return Math.hypot(px - ax, py - ay)
-  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)))
-  return Math.hypot(px - (ax + dx * t), py - (ay + dy * t))
-}
-
-function douglasPeucker(points: UnitPoint[], epsilonPx: number, width: number, height: number): UnitPoint[] {
-  if (points.length <= 2) return points
-
-  let maxDistance = 0
-  let maxIndex = 0
-  const first = points[0]!
-  const last = points[points.length - 1]!
-  for (let index = 1; index < points.length - 1; index += 1) {
-    const distance = pointDistanceToSegmentPx(points[index]!, first, last, width, height)
-    if (distance > maxDistance) {
-      maxDistance = distance
-      maxIndex = index
-    }
-  }
-
-  if (maxDistance <= epsilonPx) return [first, last]
-
-  const left = douglasPeucker(points.slice(0, maxIndex + 1), epsilonPx, width, height)
-  const right = douglasPeucker(points.slice(maxIndex), epsilonPx, width, height)
-  return [...left.slice(0, -1), ...right]
-}
-
 function capPoints(points: UnitPoint[], maxPoints: number) {
   if (points.length <= maxPoints) return points
   if (maxPoints <= 2) return [points[0]!, points[points.length - 1]!]
@@ -173,7 +138,14 @@ function simplifyPointsForStorage({
   width: number
   height: number
 }) {
-  const simplified = douglasPeucker(points, epsilonPx, width, height)
+  const simplified = simplifyPolyline(points, {
+    epsilon: epsilonPx,
+    project: (point) => ({
+      x: point.x * width,
+      y: point.y * height,
+    }),
+    distanceMode: 'segment',
+  })
   return capPoints(simplified, maxPoints)
 }
 

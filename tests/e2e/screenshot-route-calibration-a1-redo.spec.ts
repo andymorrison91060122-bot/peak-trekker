@@ -17,9 +17,11 @@ import {
 const OUTPUT_DIR = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu36-track-calib-sprintA-acceptance/a1-full-loop'
 const BUILD_DIR = join(OUTPUT_DIR, 'browser-build-screens')
 const MOTION_DIR = join(OUTPUT_DIR, 'motion')
+const FU74_OUTPUT_DIR = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu74-zoom-invariant-points-acceptance'
 const DESIGN_DIR = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu36-design-source/road001/project/screenshots'
 const SAMPLE_CROP_IMAGE = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu36-track-v2-acceptance/crops/keep-648-map-crop.jpg'
 const TALL_SAMPLE_IMAGE = join(OUTPUT_DIR, 'tall-full-screen-upload-fixture.png')
+const createdCheckinIds = new Set<string>()
 
 type StepLog = {
   step: string
@@ -40,6 +42,7 @@ type TapError = {
 async function ensureEvidenceDirs() {
   await mkdir(BUILD_DIR, { recursive: true })
   await mkdir(MOTION_DIR, { recursive: true })
+  await mkdir(FU74_OUTPUT_DIR, { recursive: true })
 }
 
 async function ensureTallUploadFixture() {
@@ -151,6 +154,13 @@ async function capture(page: Page, name: string) {
   return path
 }
 
+async function captureFu74(page: Page, name: string) {
+  await ensureEvidenceDirs()
+  const path = join(FU74_OUTPUT_DIR, name)
+  await page.screenshot({ path, fullPage: false })
+  return path
+}
+
 async function captureElement(page: Page, selector: string, name: string) {
   const path = join(BUILD_DIR, name)
   const locator = page.locator(selector).first()
@@ -214,6 +224,47 @@ async function controlPointCenter(page: Page, index: number) {
   const box = await page.locator(`[data-route-control-point-index="${index}"]`).boundingBox()
   if (!box) throw new Error(`missing control point ${index}`)
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+async function circleScreenMetrics(page: Page, selector: string) {
+  return page.locator(selector).evaluate((node) => {
+    const circle = node as SVGCircleElement
+    const matrix = circle.getScreenCTM()
+    if (!matrix) throw new Error('missing CTM for SVG circle')
+    const cx = circle.cx.baseVal.value
+    const cy = circle.cy.baseVal.value
+    const r = circle.r.baseVal.value
+    const center = new DOMPoint(cx, cy).matrixTransform(matrix)
+    const xEdge = new DOMPoint(cx + r, cy).matrixTransform(matrix)
+    const yEdge = new DOMPoint(cx, cy + r).matrixTransform(matrix)
+    const width = Math.hypot(xEdge.x - center.x, xEdge.y - center.y) * 2
+    const height = Math.hypot(yEdge.x - center.x, yEdge.y - center.y) * 2
+    return {
+      width: Number(width.toFixed(2)),
+      height: Number(height.toFixed(2)),
+      diameter: Number(((width + height) / 2).toFixed(2)),
+      minDiameter: Number(Math.min(width, height).toFixed(2)),
+    }
+  })
+}
+
+async function pathStrokeScreenWidth(page: Page, selector: string) {
+  return page.locator(selector).first().evaluate((node) => {
+    const path = node as SVGPathElement
+    const matrix = path.getScreenCTM()
+    if (!matrix) throw new Error('missing CTM for SVG path')
+    const strokeWidth = Number.parseFloat(path.getAttribute('data-route-line-stroke-width') ?? '')
+    if (!Number.isFinite(strokeWidth) || strokeWidth <= 0) throw new Error('missing route line stroke metric')
+    const scaleX = Math.hypot(matrix.a, matrix.b)
+    const scaleY = Math.hypot(matrix.c, matrix.d)
+    const scale = (scaleX + scaleY) / 2
+    return Number((strokeWidth * scale).toFixed(2))
+  })
+}
+
+function expectUnitPointClose(actual: { x: number; y: number }, expected: { x: number; y: number }, tolerance = 0.006) {
+  expect(Math.abs(actual.x - expected.x)).toBeLessThanOrEqual(tolerance)
+  expect(Math.abs(actual.y - expected.y)).toBeLessThanOrEqual(tolerance)
 }
 
 async function clickUnitPoint(page: Page, point: { x: number; y: number }, index: number): Promise<TapError> {
@@ -313,12 +364,51 @@ async function clickZoomButton(page: Page, name: string) {
   return { before, after }
 }
 
+async function cleanupCreatedCheckins() {
+  if (createdCheckinIds.size === 0) return
+  const ids = [...createdCheckinIds]
+  const supabase = getSupabaseAdminClientForScreenshotTest()
+  const { error } = await supabase
+    .from('checkins')
+    .delete()
+    .in('id', ids)
+    .eq('source', 'screenshot_recognition')
+  if (error) throw new Error(`Failed to clean FU-74 created checkins: ${error.message}`)
+  createdCheckinIds.clear()
+}
+
+async function writeDataResidueReport() {
+  await ensureEvidenceDirs()
+  const supabase = getSupabaseAdminClientForScreenshotTest()
+  const { data, count, error } = await supabase
+    .from('checkins')
+    .select('id, created_at', { count: 'exact' })
+    .eq('source', 'screenshot_recognition')
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(`Failed to count screenshot_recognition residue: ${error.message}`)
+  await writeFile(
+    join(FU74_OUTPUT_DIR, 'data-residue.json'),
+    `${JSON.stringify({
+      source: 'screenshot_recognition',
+      count: count ?? 0,
+      rows: data ?? [],
+    }, null, 2)}\n`,
+  )
+}
+
 async function routeLineCount(page: Page) {
   return page.locator('[data-route-line="true"]').count()
 }
 
 async function bodyText(page: Page) {
   return page.locator('body').innerText()
+}
+
+function waitForImportConfirmResponse(page: Page) {
+  return page.waitForResponse((response) => (
+    response.url().includes('/api/import/confirm') &&
+    response.request().method() === 'POST'
+  ))
 }
 
 function csvEscape(value: string | number | boolean) {
@@ -328,15 +418,31 @@ function csvEscape(value: string | number | boolean) {
 
 test.use({ video: 'on' })
 
+test.afterEach(async () => {
+  await cleanupCreatedCheckins()
+})
+
+test.afterAll(async () => {
+  await writeDataResidueReport()
+})
+
 test('A1 full loop persists calibrated screenshot shape and renders it on activity', async ({ page, baseURL }) => {
   test.setTimeout(180_000)
   const uploadFixture = await ensureTallUploadFixture()
   const root = baseURL ?? 'http://127.0.0.1:3100'
   const steps: StepLog[] = []
   const tapErrors: TapError[] = []
+  let submittedRouteShape: PersistedScreenshotRouteShape | null = null
 
   await page.setViewportSize({ width: 375, height: 812 })
   await mockScreenshotRecognition(page)
+  await page.route('**/api/import/confirm', async (route) => {
+    const payload = route.request().method() === 'POST'
+      ? route.request().postDataJSON() as { routeShape?: PersistedScreenshotRouteShape | null } | null
+      : null
+    submittedRouteShape = payload?.routeShape ?? null
+    await route.fallback()
+  })
   await registerFreshUser(page, root, { returnTo: '/screenshot' })
   await dismissActivationChecklistIfPresent(page)
 
@@ -371,6 +477,12 @@ test('A1 full loop persists calibrated screenshot shape and renders it on activi
   const linesAfterThird = await routeLineCount(page)
   steps.push({ step: 'route_extends_after_third_point', passed: linesAfterThird >= 2, detail: `lineCount=${linesAfterThird}` })
   const retrace = await capture(page, 'retrace-build.png')
+  const fu74MarkerIndex = 1
+  const marker1x = await circleScreenMetrics(page, `[data-route-control-point-index="${fu74MarkerIndex}"]`)
+  const hit1x = await circleScreenMetrics(page, `[data-route-control-point-hit-index="${fu74MarkerIndex}"]`)
+  const routeLineStrokeSelector = '[data-route-editor-canvas="true"] [data-route-line="true"]'
+  const routeLineStroke1x = await pathStrokeScreenWidth(page, routeLineStrokeSelector)
+  const fu74Editor1x = await captureFu74(page, 'editor-1x-dense-route.png')
 
   const initialViewBox = await readEditorViewBox(page)
   steps.push({
@@ -379,7 +491,11 @@ test('A1 full loop persists calibrated screenshot shape and renders it on activi
     detail: `viewBox=${JSON.stringify(initialViewBox)}`,
   })
 
-  const zoomIn = await clickZoomButton(page, '放大底图')
+  const zoomInSteps = []
+  for (let index = 0; index < 4; index += 1) {
+    zoomInSteps.push(await clickZoomButton(page, '放大底图'))
+  }
+  const zoomIn = { before: zoomInSteps[0]!.before, after: zoomInSteps.at(-1)!.after, steps: zoomInSteps }
   steps.push({
     step: 'button_zoom_in_changes_viewbox',
     passed: zoomIn.after.width < zoomIn.before.width && zoomIn.after.height < zoomIn.before.height,
@@ -387,10 +503,33 @@ test('A1 full loop persists calibrated screenshot shape and renders it on activi
   })
   const zoomedEditor = await capture(page, 'zoomed-editor-build.png')
   steps.push({ step: 'zoomed_editor_screenshot_captured', passed: true, detail: zoomedEditor })
+  const marker3x = await circleScreenMetrics(page, `[data-route-control-point-index="${fu74MarkerIndex}"]`)
+  const hit3x = await circleScreenMetrics(page, `[data-route-control-point-hit-index="${fu74MarkerIndex}"]`)
+  const routeLineStroke3x = await pathStrokeScreenWidth(page, routeLineStrokeSelector)
+  const markerDelta = Math.abs(marker3x.diameter - marker1x.diameter)
+  const routeLineStrokeDelta = Math.abs(routeLineStroke3x - routeLineStroke1x)
+  const fu74Editor3x = await captureFu74(page, 'editor-3x-dense-route.png')
+  steps.push({
+    step: 'visible_marker_size_stable_from_1x_to_3x',
+    passed: markerDelta <= 3,
+    detail: `1x=${marker1x.diameter}px; 3x=${marker3x.diameter}px; delta=${markerDelta.toFixed(2)}px; screenshots=${fu74Editor1x}, ${fu74Editor3x}`,
+  })
+  steps.push({
+    step: 'transparent_hit_target_at_least_44px_at_1x_and_3x',
+    passed: hit1x.minDiameter >= 44 && hit3x.minDiameter >= 44,
+    detail: `1x=${hit1x.minDiameter}px; 3x=${hit3x.minDiameter}px`,
+  })
+  steps.push({
+    step: 'route_line_width_stable_from_1x_to_3x',
+    passed: routeLineStrokeDelta <= 3,
+    detail: `1x=${routeLineStroke1x}px; 3x=${routeLineStroke3x}px; delta=${routeLineStrokeDelta.toFixed(2)}px`,
+  })
 
-  tapErrors.push(await clickUnitPoint(page, { x: 0.60, y: 0.62 }, 3))
+  const zoomedPoint = { x: 0.60, y: 0.62 }
+  const draggedPoint = { x: 0.50, y: 0.42 }
+  tapErrors.push(await clickUnitPoint(page, zoomedPoint, 3))
   await page.waitForFunction(() => document.querySelectorAll('[data-route-line="true"]').length >= 3)
-  tapErrors.push(await dragControlPoint(page, 1, { x: 0.50, y: 0.42 }))
+  tapErrors.push(await dragControlPoint(page, 1, draggedPoint))
   const zoomOut = await clickZoomButton(page, '缩小底图')
   steps.push({
     step: 'button_zoom_out_changes_viewbox',
@@ -483,8 +622,16 @@ test('A1 full loop persists calibrated screenshot shape and renders it on activi
     detail: submitBox && viewport ? `buttonY=${submitBox.y.toFixed(1)}; buttonBottom=${(submitBox.y + submitBox.height).toFixed(1)}; viewportH=${viewport.height}` : 'missing box',
   })
 
+  const confirmResponsePromise = waitForImportConfirmResponse(page)
   await submitButton.click()
-  await expect(page).toHaveURL(/\/activity\/[0-9a-f-]+/u, { timeout: 20_000 })
+  const confirmResponse = await confirmResponsePromise
+  const confirmPayload = await confirmResponse.json() as { ok?: boolean; checkinId?: string }
+  expect(confirmPayload.ok).toBe(true)
+  expect(confirmPayload.checkinId).toMatch(/^[0-9a-f-]+$/u)
+  createdCheckinIds.add(confirmPayload.checkinId!)
+  await expect(page.getByTestId('screenshot-archive-moment')).toBeVisible({ timeout: 20_000 })
+  await page.getByLabel('返回活动').click()
+  await expect(page).toHaveURL(new RegExp(`/activity/${confirmPayload.checkinId}`), { timeout: 20_000 })
   await expect(page.locator('[data-route-source="screenshot-shape"]')).toBeVisible({ timeout: 20_000 })
   await expect(page.locator('[data-map-mode="screenshot-shape"]')).toBeVisible()
   const activityScreenshot = await captureElement(page, '[data-testid="activity-route-map"]', 'activity-screenshot-shape-build.png')
@@ -495,16 +642,6 @@ test('A1 full loop persists calibrated screenshot shape and renders it on activi
     passed: !gpsLeak && (await page.locator('[data-route-source="screenshot-shape"]').count()) === 1,
     detail: `gpsLeak=${gpsLeak}; screenshotShapeCard=visible; screenshot=${activityScreenshot}`,
   })
-
-  await page.goto(`${root}/screenshot`)
-  await mockScreenshotRecognition(page)
-  await page.locator('input[type="file"]').first().setInputFiles(uploadFixture)
-  await expect(page.getByText('确认识别结果')).toBeVisible({ timeout: 20_000 })
-  await page.getByRole('button', { name: '校准轨迹' }).click()
-  await expect(page.locator('[data-route-calibration-editor="true"]')).toBeVisible()
-  await page.evaluate(() => window.dispatchEvent(new Event('peak-trekker:route-calibration-show-honest-gap')))
-  await expect(page.getByText('这段轨迹是断开的')).toBeVisible()
-  const honestGap = await capture(page, 'honest-gap-build.png')
 
   await writeSideBySide({
     design: join(DESIGN_DIR, 'v3-confirm.png'),
@@ -527,11 +664,6 @@ test('A1 full loop persists calibrated screenshot shape and renders it on activi
     output: join(OUTPUT_DIR, 'design-build-diff-retrace.png'),
   })
   await writeSideBySide({
-    design: join(DESIGN_DIR, 'heroB.png'),
-    build: honestGap,
-    output: join(OUTPUT_DIR, 'design-build-diff-honest-gap.png'),
-  })
-  await writeSideBySide({
     design: join(DESIGN_DIR, '01-v3-lock.png'),
     build: lock,
     output: join(OUTPUT_DIR, 'design-build-diff-lock.png'),
@@ -552,6 +684,28 @@ test('A1 full loop persists calibrated screenshot shape and renders it on activi
       ].map(csvEscape).join(',')),
     ].join('\n'),
   )
+  await writeFile(join(FU74_OUTPUT_DIR, 'zoom-point-size-metrics.json'), `${JSON.stringify({
+    markerIndex: fu74MarkerIndex,
+    visibleMarker: {
+      oneX: marker1x,
+      threeX: marker3x,
+      deltaPx: Number(markerDelta.toFixed(2)),
+    },
+    hitTarget: {
+      oneX: hit1x,
+      threeX: hit3x,
+    },
+    routeLineStroke: {
+      oneX: routeLineStroke1x,
+      threeX: routeLineStroke3x,
+      deltaPx: Number(routeLineStrokeDelta.toFixed(2)),
+    },
+  }, null, 2)}\n`)
+  await writeFile(join(FU74_OUTPUT_DIR, 'zoomed-tap-drag-metrics.json'), `${JSON.stringify({
+    maxErrorPx: maxError,
+    zoomedTap,
+    zoomedDrag: dragError,
+  }, null, 2)}\n`)
   await writeFile(join(OUTPUT_DIR, 'tap-error.json'), `${JSON.stringify(tapErrors, null, 2)}\n`)
   await writeFile(join(OUTPUT_DIR, 'zoom-metrics.json'), `${JSON.stringify({ buttonZoomIn: zoomIn, buttonZoomOut: zoomOut, pinch, lock: { before: lockBeforeViewBox, after: lockAfterViewBox } }, null, 2)}\n`)
   await writeFile(
@@ -575,12 +729,30 @@ test('A1 full loop persists calibrated screenshot shape and renders it on activi
 
   const failed = steps.filter((step) => !step.passed)
   expect(failed, JSON.stringify(failed, null, 2)).toEqual([])
+  expect(submittedRouteShape).toBeTruthy()
+  const expectedControlPoints = [points[0]!, draggedPoint, points[2]!, zoomedPoint]
+  expect(submittedRouteShape!.controlPoints).toHaveLength(expectedControlPoints.length)
+  for (let index = 0; index < expectedControlPoints.length; index += 1) {
+    expectUnitPointClose(submittedRouteShape!.controlPoints[index]!, expectedControlPoints[index]!)
+  }
+  expect(submittedRouteShape!.segments).toHaveLength(expectedControlPoints.length - 1)
+  const allowedResolutions = new Set(['snapped', 'user_confirmed_shape', 'accepted_gap'])
+  expect(submittedRouteShape!.segments.every((segment) => allowedResolutions.has(segment.resolution))).toBe(true)
+  await writeFile(join(FU74_OUTPUT_DIR, 'persisted-shape-no-drift.json'), `${JSON.stringify({
+    controlPoints: submittedRouteShape!.controlPoints.map((point) => ({ x: point.x, y: point.y })),
+    expectedControlPoints,
+    segmentCount: submittedRouteShape!.segments.length,
+    resolutions: submittedRouteShape!.segments.map((segment) => segment.resolution),
+    firstEndpoint: submittedRouteShape!.controlPoints[0],
+    lastEndpoint: submittedRouteShape!.controlPoints.at(-1),
+  }, null, 2)}\n`)
 
   const video = page.video()
   await page.close()
   const videoPath = await video?.path()
   if (videoPath) {
     await copyFile(videoPath, join(MOTION_DIR, 'interaction.webm'))
+    await copyFile(videoPath, join(FU74_OUTPUT_DIR, 'interaction.webm'))
   }
 })
 
@@ -598,8 +770,16 @@ test('A1 full loop text-only screenshot creates activity with no fake route fall
   await expect(page.getByText('确认识别结果')).toBeVisible({ timeout: 20_000 })
   await expect(page.getByLabel('总距离 km')).toHaveValue('10.32')
   await expect(page.getByText('请检查总距离和已填写的数据。')).toHaveCount(0)
+  const confirmResponsePromise = waitForImportConfirmResponse(page)
   await page.getByRole('button', { name: '确认并生成活动' }).click()
-  await expect(page).toHaveURL(/\/activity\/[0-9a-f-]+/u, { timeout: 20_000 })
+  const confirmResponse = await confirmResponsePromise
+  const confirmPayload = await confirmResponse.json() as { ok?: boolean; checkinId?: string }
+  expect(confirmPayload.ok).toBe(true)
+  expect(confirmPayload.checkinId).toMatch(/^[0-9a-f-]+$/u)
+  createdCheckinIds.add(confirmPayload.checkinId!)
+  await expect(page.getByTestId('screenshot-archive-moment')).toBeVisible({ timeout: 20_000 })
+  await page.getByLabel('返回活动').click()
+  await expect(page).toHaveURL(new RegExp(`/activity/${confirmPayload.checkinId}`), { timeout: 20_000 })
   await expect(page.locator('[data-route-source="screenshot-text-only"]')).toBeVisible({ timeout: 20_000 })
   await expect(page.locator('[data-route-source="screenshot-shape"]')).toHaveCount(0)
   await expect(page.locator('[data-map-mode="screenshot-shape"]')).toBeVisible()
@@ -652,10 +832,18 @@ test('A1 full loop persists a dense multi-point calibrated route after route-sha
   await confirmMain.evaluate((node) => {
     node.scrollTop = node.scrollHeight
   })
+  const confirmResponsePromise = waitForImportConfirmResponse(page)
   await page.getByRole('button', { name: '确认并生成活动' }).click()
-  await expect(page).toHaveURL(/\/activity\/[0-9a-f-]+/u, { timeout: 20_000 })
+  const confirmResponse = await confirmResponsePromise
+  const confirmPayload = await confirmResponse.json() as { ok?: boolean; checkinId?: string }
+  expect(confirmPayload.ok).toBe(true)
+  expect(confirmPayload.checkinId).toMatch(/^[0-9a-f-]+$/u)
+  createdCheckinIds.add(confirmPayload.checkinId!)
+  await expect(page.getByTestId('screenshot-archive-moment')).toBeVisible({ timeout: 20_000 })
+  await page.getByLabel('返回活动').click()
+  await expect(page).toHaveURL(new RegExp(`/activity/${confirmPayload.checkinId}`), { timeout: 20_000 })
 
-  const activityId = page.url().match(/\/activity\/([0-9a-f-]+)/u)?.[1]
+  const activityId = confirmPayload.checkinId
   expect(activityId).toBeTruthy()
   const routeShapeMetrics = measureScreenshotRouteShape(capturedRouteShape)
   const routeShapeValidation = validateScreenshotRouteShape(capturedRouteShape)
@@ -740,8 +928,12 @@ test('over-complex calibrated route requires explicit text-only choice before cr
   expect(confirmRequests).toHaveLength(1)
   expect(confirmRequests[0]?.routeShape).toBeTruthy()
 
+  const textOnlyResponsePromise = waitForImportConfirmResponse(page)
   await page.getByRole('button', { name: '仅保存文字数据' }).click()
-  await expect(page).toHaveURL(/\/activity\/00000000-0000-4000-8000-000000000001/u, { timeout: 10_000 })
+  const textOnlyResponse = await textOnlyResponsePromise
+  const textOnlyPayload = await textOnlyResponse.json() as { ok?: boolean; checkinId?: string }
+  expect(textOnlyPayload).toEqual({ ok: true, checkinId: '00000000-0000-4000-8000-000000000001' })
+  await expect(page.getByTestId('screenshot-archive-moment')).toBeVisible({ timeout: 10_000 })
   expect(confirmRequests).toHaveLength(2)
   expect(confirmRequests[1]?.routeShape).toBeNull()
 

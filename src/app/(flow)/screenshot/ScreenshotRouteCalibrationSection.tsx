@@ -483,14 +483,16 @@ function CalibrationLineLayer({
   locked,
   width,
   height,
+  zoom,
 }: {
   segments: ScreenshotRouteSegment[]
   locked: boolean
   width: number
   height: number
+  zoom: number
 }) {
   const minDim = Math.min(width, height)
-  const baseStroke = clamp(minDim * 0.013, 9, 20)
+  const baseStroke = clamp(minDim * 0.013, 9, 20) / Math.max(1, zoom)
   return (
     <g>
       {segments.map((segment) => {
@@ -499,15 +501,17 @@ function CalibrationLineLayer({
         const unresolved = segment.resolution === 'unresolved'
         const d = unresolved ? directPath(segment, width, height) : pathFromUnitPoints(segment.points, width, height)
         if (!d) return null
+        const strokeWidth = unresolved ? baseStroke * 0.84 : locked ? baseStroke * 1.25 : baseStroke
 
         return (
           <g key={segment.id}>
             <path
               data-route-line="true"
+              data-route-line-stroke-width={strokeWidth}
               d={d}
               fill="none"
               stroke={ROUTE_COLOR}
-              strokeWidth={unresolved ? baseStroke * 0.84 : locked ? baseStroke * 1.25 : baseStroke}
+              strokeWidth={strokeWidth}
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeDasharray={unresolved ? '12 8' : undefined}
@@ -530,6 +534,8 @@ function ControlPointsLayer({
   locked,
   width,
   height,
+  zoom,
+  cssPxToSvgUnit,
   onPointerDown,
 }: {
   points: CalibrationControlPoint[]
@@ -537,12 +543,17 @@ function ControlPointsLayer({
   locked: boolean
   width: number
   height: number
+  zoom: number
+  cssPxToSvgUnit: number
   onPointerDown: (event: ReactPointerEvent<SVGCircleElement>, id: string) => void
 }) {
   if (locked) return null
   const minDim = Math.min(width, height)
-  const pointRadius = clamp(minDim * 0.023, 17, 34)
+  const pointRadius = clamp(minDim * 0.023, 17, 34) / Math.max(1, zoom)
   const activeRadius = pointRadius * 1.28
+  const strokeWidth = 3 / Math.max(1, zoom)
+  const activeStrokeWidth = 4 / Math.max(1, zoom)
+  const hitRadius = Math.max(22 * cssPxToSvgUnit, activeRadius + 8 / Math.max(1, zoom))
 
   return (
     <g>
@@ -559,23 +570,32 @@ function ControlPointsLayer({
               r={isActive ? activeRadius : pointRadius}
               fill={isEnd ? ROUTE_COLOR : '#0b0f0d'}
               stroke={ROUTE_COLOR}
-              strokeWidth={isActive ? 4 : 3}
+              strokeWidth={isActive ? activeStrokeWidth : strokeWidth}
+              pointerEvents="none"
               style={{
-                cursor: 'grab',
-                filter: isActive ? `drop-shadow(0 0 12px ${ROUTE_COLOR})` : undefined,
                 transition: 'r 140ms ease, filter 180ms ease',
               }}
-              onPointerDown={(event) => onPointerDown(event, point.id)}
             />
             {!isEnd ? (
               <circle
                 cx={point.x * width}
                 cy={point.y * height}
-                r={Math.max(4, pointRadius * 0.32)}
+                r={Math.max(4 / Math.max(1, zoom), pointRadius * 0.32)}
                 fill={ROUTE_COLOR}
                 pointerEvents="none"
               />
             ) : null}
+            <circle
+              data-route-control-point-hit="true"
+              data-route-control-point-hit-index={index}
+              cx={point.x * width}
+              cy={point.y * height}
+              r={hitRadius}
+              fill="transparent"
+              pointerEvents="all"
+              style={{ cursor: 'grab' }}
+              onPointerDown={(event) => onPointerDown(event, point.id)}
+            />
           </g>
         )
       })}
@@ -598,6 +618,7 @@ function RouteEntryCard({
   const previewWidth = calibration.imageSize?.width ?? image?.width ?? 9
   const previewHeight = calibration.imageSize?.height ?? image?.height ?? 16
   const previewRoi = previewRoiForCalibration(calibration, previewWidth, previewHeight)
+  const previewZoom = Math.max(1, previewWidth / previewRoi.width, previewHeight / previewRoi.height)
   const previewViewBox = `${previewRoi.x.toFixed(2)} ${previewRoi.y.toFixed(2)} ${previewRoi.width.toFixed(2)} ${previewRoi.height.toFixed(2)}`
 
   return (
@@ -701,7 +722,7 @@ function RouteEntryCard({
               />
               {hasUserLine ? (
                 <g filter="url(#routeGlowCard)">
-                  <CalibrationLineLayer segments={calibration.segments} locked={false} width={previewWidth} height={previewHeight} />
+                  <CalibrationLineLayer segments={calibration.segments} locked={false} width={previewWidth} height={previewHeight} zoom={previewZoom} />
                 </g>
               ) : null}
             </svg>
@@ -806,6 +827,8 @@ export default function ScreenshotRouteCalibrationSection({
   const fallbackImageDataRef = useRef<ImageData | null>(null)
   const calibrationRef = useRef(calibration)
   const lockTimerRef = useRef<number | null>(null)
+  const editorSvgRef = useRef<SVGSVGElement | null>(null)
+  const [editorCssPxToSvgUnit, setEditorCssPxToSvgUnit] = useState<number | null>(null)
 
   const contentWidth = Math.max(1, image?.width ?? calibration.imageSize?.width ?? 1)
   const contentHeight = Math.max(1, image?.height ?? calibration.imageSize?.height ?? 1)
@@ -814,6 +837,8 @@ export default function ScreenshotRouteCalibrationSection({
   const viewX = clamp(viewport.centerX * contentWidth - viewWidth / 2, 0, Math.max(0, contentWidth - viewWidth))
   const viewY = clamp(viewport.centerY * contentHeight - viewHeight / 2, 0, Math.max(0, contentHeight - viewHeight))
   const editorViewBox = `${viewX} ${viewY} ${viewWidth} ${viewHeight}`
+  const fallbackCssPxToSvgUnit = viewWidth / 375
+  const cssPxToSvgUnit = editorCssPxToSvgUnit ?? fallbackCssPxToSvgUnit
   const currentUnresolvedSegment = unresolvedSegment(calibration)
   const activePoint = activePointId ? calibration.controlPoints.find((point) => point.id === activePointId) ?? null : null
   const coach = CoachCopy({ calibration, solving, locked })
@@ -852,6 +877,48 @@ export default function ScreenshotRouteCalibrationSection({
   useEffect(() => {
     calibrationRef.current = calibration
   }, [calibration])
+
+  useEffect(() => {
+    if (!editorOpen) return
+    const svg = editorSvgRef.current
+    if (!svg) return
+
+    let frame = 0
+    const measure = () => {
+      const matrix = svg.getScreenCTM()
+      let next = fallbackCssPxToSvgUnit
+      if (matrix) {
+        const scaleX = Math.hypot(matrix.a, matrix.b)
+        const scaleY = Math.hypot(matrix.c, matrix.d)
+        const scale = Math.max(0.001, Math.min(scaleX, scaleY))
+        next = 1 / scale
+      } else {
+        const rect = svg.getBoundingClientRect()
+        const scale = Math.min(
+          rect.width / Math.max(1, viewWidth),
+          rect.height / Math.max(1, viewHeight),
+        )
+        if (Number.isFinite(scale) && scale > 0) next = 1 / scale
+      }
+      setEditorCssPxToSvgUnit((current) => (
+        current !== null && Math.abs(current - next) < 0.001 ? current : next
+      ))
+    }
+    const scheduleMeasure = () => {
+      if (frame) window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(measure)
+    }
+
+    scheduleMeasure()
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(scheduleMeasure) : null
+    observer?.observe(svg)
+    window.addEventListener('resize', scheduleMeasure)
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame)
+      observer?.disconnect()
+      window.removeEventListener('resize', scheduleMeasure)
+    }
+  }, [editorOpen, fallbackCssPxToSvgUnit, viewHeight, viewWidth])
 
   useEffect(() => {
     return () => {
@@ -1351,6 +1418,7 @@ export default function ScreenshotRouteCalibrationSection({
 
           <main style={{ flex: 1, position: 'relative', minHeight: 0 }}>
             <svg
+              ref={editorSvgRef}
               data-route-editor-canvas="true"
               data-route-content-width={contentWidth}
               data-route-content-height={contentHeight}
@@ -1384,8 +1452,23 @@ export default function ScreenshotRouteCalibrationSection({
                   style={{ filter: locked ? 'saturate(.35) brightness(.32)' : 'saturate(.42) brightness(.48) contrast(.86)', transition: 'opacity 420ms ease, filter 420ms ease' }}
                 />
               ) : null}
-              <CalibrationLineLayer segments={calibration.segments} locked={locked} width={contentWidth} height={contentHeight} />
-              <ControlPointsLayer points={calibration.controlPoints} activeId={activePointId} locked={locked} width={contentWidth} height={contentHeight} onPointerDown={onPointPointerDown} />
+              <CalibrationLineLayer
+                segments={calibration.segments}
+                locked={locked}
+                width={contentWidth}
+                height={contentHeight}
+                zoom={viewport.zoom}
+              />
+              <ControlPointsLayer
+                points={calibration.controlPoints}
+                activeId={activePointId}
+                locked={locked}
+                width={contentWidth}
+                height={contentHeight}
+                zoom={viewport.zoom}
+                cssPxToSvgUnit={cssPxToSvgUnit}
+                onPointerDown={onPointPointerDown}
+              />
               {locked && drawableSegments(calibration.segments).at(-1)?.points.at(-1) ? (
                 (() => {
                   const point = drawableSegments(calibration.segments).at(-1)!.points.at(-1)!
@@ -1432,7 +1515,7 @@ export default function ScreenshotRouteCalibrationSection({
                   preserveAspectRatio="xMidYMid meet"
                 >
                   <image href={imagePreview} x={0} y={0} width={contentWidth} height={contentHeight} opacity=".42" style={{ filter: 'saturate(.5) brightness(.56)' }} />
-                  <CalibrationLineLayer segments={calibration.segments} locked={false} width={contentWidth} height={contentHeight} />
+                  <CalibrationLineLayer segments={calibration.segments} locked={false} width={contentWidth} height={contentHeight} zoom={6.25} />
                   <circle cx={activePoint.x * contentWidth} cy={activePoint.y * contentHeight} r={Math.max(10, Math.min(contentWidth, contentHeight) * 0.01)} fill="#08120d" stroke={ROUTE_COLOR} strokeWidth="4" />
                 </svg>
               </div>

@@ -18,16 +18,16 @@ const mountainSearchRoute = readFileSync('src/app/api/mountains/search/route.ts'
 const trekVerifyHelpers = readFileSync('src/lib/trek-verify-helpers.ts', 'utf8')
 
 test('screenshot confirm path writes through import confirm without requiring track points', () => {
-  assert.match(importConfirmRoute, /source === 'screenshot_recognition'/)
+  assert.match(importConfirmRoute, /isScreenshotRecognitionSource\(source\)/)
   assert.match(importConfirmRoute, /handleScreenshotRecognitionConfirm/)
   assert.match(importConfirmRoute, /normalizeScreenshotData/)
   assert.match(importConfirmRoute, /validateScreenshotRouteShape/)
-  assert.match(importConfirmRoute, /source:\s*'screenshot_recognition'/)
+  assert.match(importConfirmRoute, /source:\s*SCREENSHOT_RECOGNITION_SOURCE/)
   assert.match(importConfirmRoute, /track_points:\s*\[\]/)
   assert.match(importConfirmRoute, /screenshot_route_shape:\s*routeShapeResult\.shape/)
   assert.match(importConfirmRoute, /insertCheckinWithFallback/)
 
-  const screenshotBranchIndex = importConfirmRoute.indexOf("source === 'screenshot_recognition'")
+  const screenshotBranchIndex = importConfirmRoute.indexOf('isScreenshotRecognitionSource(source)')
   const trackNormalizeIndex = importConfirmRoute.indexOf('normalizeImportedTrackData(rawParsedData)')
   assert.ok(screenshotBranchIndex >= 0)
   assert.ok(trackNormalizeIndex >= 0)
@@ -56,7 +56,7 @@ test('screenshot client uses real preview, editable fields, mountain search, and
   assert.match(screenshotClient, /aria-label="时长"/)
   assert.match(screenshotClient, /\{\s*key:\s*'elevationLoss',\s*label:\s*'下降 m'/)
   assert.match(screenshotClient, /\/api\/mountains\/search\?q=/)
-  assert.match(screenshotClient, /source:\s*'screenshot_recognition'/)
+  assert.match(screenshotClient, /source:\s*SCREENSHOT_RECOGNITION_SOURCE/)
   assert.match(screenshotClient, /\/api\/import\/confirm/)
   assert.match(screenshotClient, /data-testid="screenshot-archive-moment"/)
   assert.match(screenshotClient, /setStep\('success'\)/)

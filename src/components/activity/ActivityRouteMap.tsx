@@ -15,6 +15,7 @@ import {
   SHARE_TRACK_CONTENT_FIT,
   SHARE_TRACK_RENDER_PROFILES,
 } from '@/lib/share-track-preview'
+import { isScreenshotRecognitionSource } from '@/lib/trek-utils'
 
 type ProjectedPoint = {
   x: number
@@ -617,7 +618,7 @@ export default function ActivityRouteMap({
   const forceMountainError = forceMapError === 'mountain'
   const useMountainAsset = Boolean(mountainAsset && !mountainMapFailed)
   const summitTime = activity.summitAt
-  const isScreenshotRoute = activity.sourceType === 'screenshot_recognition'
+  const isScreenshotRoute = isScreenshotRecognitionSource(activity.sourceType)
   const trace = useMemo(
     () => buildProjectedTrace(activity.trackPoints, useMountainAsset && mountainAsset ? 'bbox' : 'visual', mountainAsset?.bbox),
     [activity.trackPoints, mountainAsset, useMountainAsset],

@@ -4,7 +4,7 @@ import type { CheckinSource, Mountain } from '@/types'
  * @deprecated Import TREK_RULES from trek-rules-client or trek-rules-server.
  * This facade keeps legacy client imports working while server code uses fixed rules.
  */
-export { TREK_RULES } from './trek-rules-client'
+export { TREK_RULES } from './trek-rules-client.ts'
 
 export type TrackPoint = {
   lat: number
@@ -15,6 +15,12 @@ export type TrackPoint = {
 }
 
 export type { CheckinSource } from '@/types'
+
+export const SCREENSHOT_RECOGNITION_SOURCE = 'screenshot_recognition' as const satisfies CheckinSource
+
+export function isScreenshotRecognitionSource(value: unknown): value is typeof SCREENSHOT_RECOGNITION_SOURCE {
+  return value === SCREENSHOT_RECOGNITION_SOURCE
+}
 
 export function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371000
@@ -44,7 +50,7 @@ export function resolveCheckinSource({
     source === 'realtime_gps' ||
     source === 'historical_photo' ||
     source === 'track_import' ||
-    source === 'screenshot_recognition'
+    isScreenshotRecognitionSource(source)
   ) {
     return source
   }

@@ -5,7 +5,7 @@ import {
   buildCommunitySourceLabel,
 } from '@/lib/community'
 import { listPublishableRecords } from '@/lib/community-server'
-import { resolveCheckinSource, type CheckinSource } from '@/lib/trek-utils'
+import { isScreenshotRecognitionSource, resolveCheckinSource, type CheckinSource } from '@/lib/trek-utils'
 import type { CheckinAsset } from '@/types'
 
 type AnySupabase = SupabaseClient
@@ -137,7 +137,7 @@ export async function getActivityDetail({
   })
   const isHistoricalPhoto = sourceType === 'historical_photo'
   const isTrackImport = sourceType === 'track_import'
-  const isScreenshotRecognition = sourceType === 'screenshot_recognition'
+  const isScreenshotRecognition = isScreenshotRecognitionSource(sourceType)
   const isUploadedData = isTrackImport || isScreenshotRecognition
 
   const [{ data: linkedPost }, sessionResult, assetResult] = await Promise.all([

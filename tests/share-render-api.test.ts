@@ -434,7 +434,7 @@ describe('share render API field policy regression', () => {
         source,
         /const trackPreview = isScreenshotRecognition\s*\?\s*buildShareTrackPreviewFromScreenshotRouteShape\(row\.screenshot_route_shape\)\s*:\s*buildShareTrackPreview\(row\.track_points\) \?\? buildShareTrackPreview\(session\?\.track_points\)/,
       )
-      assert.match(source, /const isScreenshotRecognition = row\.source === 'screenshot_recognition'/)
+      assert.match(source, /const isScreenshotRecognition = isScreenshotRecognitionSource\(row\.source\)/)
     }
   })
 

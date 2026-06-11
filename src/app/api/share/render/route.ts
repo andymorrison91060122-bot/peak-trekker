@@ -29,6 +29,7 @@ import {
 } from '@/lib/share-track-preview'
 import { resolveMeasuredShareAltitude, resolveShareMountainName } from '@/lib/share-data'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { isScreenshotRecognitionSource } from '@/lib/trek-utils'
 
 export const runtime = 'nodejs'
 
@@ -163,7 +164,7 @@ function formatShareDuration(value?: number | null) {
 }
 
 function sourceForRender(source?: string | null): ShareTemplateData['source'] {
-  return source === 'track_import' || source === 'screenshot_recognition' ? 'uploaded' : 'gps'
+  return source === 'track_import' || isScreenshotRecognitionSource(source) ? 'uploaded' : 'gps'
 }
 
 function parseRequestBody(body: unknown): ShareRenderApiRequest | Response {
@@ -297,7 +298,7 @@ async function buildServerRenderPayload(apiRequest: ShareRenderApiRequest): Prom
       : null)
   const elevationGain = row.elevation_gain_meters ?? session?.ascent_m ?? null
   const altitude = resolveMeasuredShareAltitude(row.max_elevation_meters, session?.max_altitude_m)
-  const isScreenshotRecognition = row.source === 'screenshot_recognition'
+  const isScreenshotRecognition = isScreenshotRecognitionSource(row.source)
   const trackPreview = isScreenshotRecognition
     ? buildShareTrackPreviewFromScreenshotRouteShape(row.screenshot_route_shape)
     : buildShareTrackPreview(row.track_points) ?? buildShareTrackPreview(session?.track_points)

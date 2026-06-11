@@ -13,6 +13,7 @@ import {
   buildShareTrackPreviewFromScreenshotRouteShape,
   buildShareTrackRender,
   SHARE_TRACK_CONTENT_FIT,
+  SHARE_TRACK_RENDER_PROFILES,
 } from '@/lib/share-track-preview'
 
 type ProjectedPoint = {
@@ -435,14 +436,7 @@ function ScreenshotRouteShapeCard({ activity }: { activity: ActivityDetailViewMo
     height,
     padding: Math.max(42, Math.min(width, height) * 0.12),
     ...SHARE_TRACK_CONTENT_FIT,
-  }, {
-    lineWidth: 8,
-    glowWidth: 28,
-    glowOpacity: 0.2,
-    startRadius: 15,
-    startStrokeWidth: 6,
-    endRadius: 21,
-  }), [height, preview, width])
+  }, SHARE_TRACK_RENDER_PROFILES.activityCard), [height, preview, width])
 
   if (!shape) return null
 

@@ -15,7 +15,7 @@ import { HelpTrigger } from '@/components/help/HelpTrigger'
 import { trackEvent } from '@/lib/analytics/client'
 import { formatShareAltitude, hasShareAltitude } from '@/lib/share-templates/shared'
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
-import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, type ShareTrackPreview } from '@/lib/share-track-preview'
+import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, SHARE_TRACK_RENDER_PROFILES, type ShareTrackPreview } from '@/lib/share-track-preview'
 
 type ShareViewMode = 'editor' | 'watermarkPreview'
 type ExportAction = 'save' | 'share' | 'transparent' | null
@@ -377,14 +377,7 @@ function TrailPath({ trackPreview }: { trackPreview?: ShareTrackPreview | null }
     height: 290,
     padding: 24,
     ...SHARE_TRACK_CONTENT_FIT,
-  }, {
-    lineWidth: 4.2,
-    glowWidth: 14,
-    glowOpacity: 0.18,
-    startRadius: 7,
-    startStrokeWidth: 3,
-    endRadius: 8,
-  }), [trackPreview])
+  }, SHARE_TRACK_RENDER_PROFILES.shareEditorHero), [trackPreview])
 
   if (!route) return null
 

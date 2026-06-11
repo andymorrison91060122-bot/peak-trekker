@@ -80,6 +80,57 @@ export const SHARE_TRACK_CONTENT_FIT = {
   minContentSpan: DEFAULT_MIN_CONTENT_SPAN,
 } as const
 
+export const SHARE_TRACK_RENDER_PROFILES = {
+  shareEditorHero: {
+    lineWidth: 4.2,
+    glowWidth: 14,
+    glowOpacity: 0.18,
+    startRadius: 7,
+    startStrokeWidth: 3,
+    endRadius: 8,
+  },
+  posterMini: {
+    lineWidth: 6,
+    glowWidth: 18,
+    glowOpacity: 0.18,
+    startRadius: 7,
+    startStrokeWidth: 4,
+    endRadius: 8,
+  },
+  archiveMedallion: {
+    lineWidth: 3.6,
+    glowWidth: 15,
+    glowOpacity: 0.14,
+    startRadius: 5.8,
+    startStrokeWidth: 2.8,
+    endRadius: 6.8,
+  },
+  activityCard: {
+    lineWidth: 8,
+    glowWidth: 28,
+    glowOpacity: 0.2,
+    startRadius: 15,
+    startStrokeWidth: 6,
+    endRadius: 21,
+  },
+  verticalStory: {
+    lineWidth: 12,
+    glowWidth: 42,
+    glowOpacity: 0.13,
+    startRadius: 19,
+    startStrokeWidth: 8,
+    endRadius: 27,
+  },
+  posterTrail: ({ lineWidth = 8, glow = 10 }: { lineWidth?: number; glow?: number } = {}) => ({
+    lineWidth,
+    glowWidth: Math.max(lineWidth * 4, glow * 2.4),
+    glowOpacity: 0.16,
+    startRadius: Math.max(13, lineWidth * 2.35),
+    startStrokeWidth: Math.max(5, lineWidth),
+    endRadius: Math.max(18, lineWidth * 3.2),
+  }),
+} as const
+
 function toFiniteNumber(value: unknown) {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : null

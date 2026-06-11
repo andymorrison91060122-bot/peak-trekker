@@ -28,6 +28,7 @@ import {
   buildShareTrackRender,
   buildShareTrackPreviewFromScreenshotRouteShape,
   SHARE_TRACK_CONTENT_FIT,
+  SHARE_TRACK_RENDER_PROFILES,
 } from '@/lib/share-track-preview'
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
@@ -1811,14 +1812,7 @@ function ArchiveRouteMedallion({ routeShape }: { routeShape?: PersistedScreensho
     height: 118,
     padding: 14,
     ...SHARE_TRACK_CONTENT_FIT,
-  }, {
-    lineWidth: 3.6,
-    glowWidth: 15,
-    glowOpacity: 0.14,
-    startRadius: 5.8,
-    startStrokeWidth: 2.8,
-    endRadius: 6.8,
-  }), [preview])
+  }, SHARE_TRACK_RENDER_PROFILES.archiveMedallion), [preview])
 
   if (!route) {
     return (

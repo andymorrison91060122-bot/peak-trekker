@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-12 · 最新版本记录: v0.60
+> Last Updated: 2026-06-12 · 最新版本记录: v0.61
 
 ---
 
@@ -50,7 +50,7 @@
 - destructive 操作走 plan 阶段先审 + 事务包裹 + archive 备份 + post-verify
 - 远程分支 push 后保留作为审计 trail，只清理本地分支
 - Codex 在 V1 plan 阶段必须包含 E2E 自测环节（Playwright 脚本 + 跑通报告 + 截图）；单元测试静态字符串 grep 不能替代运行时行为验证
-- 每次涉及 schema 改动的 sprint，V3 收尾必须包含"migration 已推送到远程 Supabase"的验证步骤（Codex 用 Supabase 插件主动推送 + service role 查 information_schema 验证）
+- 每次涉及 schema 改动的 sprint，V3 收尾必须包含"migration 已推送到远程 Supabase"的验证步骤（Codex 用 Supabase 插件主动推送 + service role 查 information_schema 验证）。⚠ FU-64 reconciliation 完成前本条暂停, 以 FU-64 GUARD RULE 为准。
 
 #### V3 收尾 preflight 协议增强（v0.15 引入 / v0.31 正式撤销 (revoked)）
 
@@ -83,52 +83,44 @@
 
 ---
 
-## Active Follow-ups（8 条）
+## 2026-06-12 业务方向修订
 
-### FU-16 · mountains 坐标精度审计
+- **省域排名**: 本期冻结。UI 已由 `PROVINCE_RANKING` flag 隐藏（`src/lib/feature-flags.ts`）；数据获取层止损归 FU-79 第一项；是否重启另议。Province Heat 归属叙事增强销项。
+- **FU-69 DEM**: 不做，见 Closed FU-69。
+- **商业化**: 第一期上线确定不收费；商业化思路登记为 FU-88 deferred，不占本期 Active。
+- **执照区荣誉感终验（2026-04 悬置项）**: 已被 FU-54 重设计实质消化，销项。
+- **微信真机分享终验**: 归 FU-81 上线技术收口门禁。
 
-- **优先级**: P3
-- **归属阶段**: 阶段 5 或随 mountain 物料补全
+---
+
+## Active Follow-ups（17 条）
+
+### FU-36 · 轨迹自动初稿接入校准编辑器
+
+- **优先级**: P2
+- **归属阶段**: 校准编辑器增强 / V1.1+
 - **状态**: 🟢 active
 
-**背景**: 已确认是 WGS-84 坐标系（与 GPS 一致）。但 19 座山的坐标点可能不是真实峰顶（如华山指向景区中心而非南峰落雁峰，误差约 400-500m）。会影响"登顶检测距离阈值"。
+**背景**: 原 PRD §13.2「轨迹色彩重绘」的产品结果已达成：通过手动校准（livewire 吸附）+ `screenshot_route_shape` 持久化 + 品牌绿矢量重绘，四个消费面（分享编辑器 / 海报 / 档案勋章 / 活动卡）已上线（PR #1/#2/#4/#5/#6 链）。剩余唯一缺口是自动初稿：给校准编辑器喂一个可靠 draft 作为起点，降低用户手画成本。
 
-**实施建议**: 物料完善时校准每座山的"峰顶坐标"为真实最高点。
+**产品定位**: 增强而非必须。现有「手画 + 吸附」已满足基本诉求；自动 draft 只有在足够忠实时才进入生产。
 
----
+**硬门槛**:
+- draft 不够忠实（coverage / 形态不达标）不得上生产。
+- 禁止把凭空捏造的线摆给用户确认。
+- 若只能作为参考，必须作为可开关、淡显的 reference ghost，不进入海报几何。
 
-### FU-35 · mimo-v2.5 多模态能力接入
+**资产指针**:
+- `scripts/fu36-mimo-draft-quality-checkpoint.ts`（untracked spike）
+- `scripts/fu36-track-calib-checkpoint.ts`（untracked spike）
+- `output/fu36-track-v1..v9-*`
+- `output/fu36-mimo-draft-checkpoint-acceptance/`
+- `output/fu36-historical-best-draft-audit/`
 
-- 优先级: P2
-- 归属阶段: 文字生产已上线；轨迹能力后续评估
-- 状态: 🟢 active
-
-背景: 原 FU 写作 "v2-omni 兜底" 属旧框架。2026-06 mimo spike 已确认模型更新为 `mimo-v2.5`，文字识别方向从"腾讯兜底"调整为"mimo 主路 + 腾讯降级兜底"。生产文字集成已由 FU-62 上线；轨迹能力仍不进入本 sprint，继续由 FU-36 跟踪。
-
-实施建议:
-- 文字识别: 已上线为同步主路，腾讯 Basic → Accurate 保留降级兜底
-- 轨迹识别: 继续研究截图像素轨迹复原，不与本次文字生产主路耦合
-- 成本 / 延迟 / JSON 可靠性继续按生产日志 / 后续 spike 报告口径记账
-
-涉及: src/lib/screenshot/mimo-v25-* + src/app/api/screenshot/recognize/route.ts + FU-36 轨迹后续
-
----
-
-### FU-36 · §13.2 轨迹色彩重绘（多模态图像处理）
-
-- 优先级: P2
-- 归属阶段: V1.1+
-- 状态: 🟢 active
-
-背景: PRD §13.2 提及"轨迹色彩重绘"功能，需要图像处理能力把原 App 自带轨迹色（黄/红/绿）重绘为 Peak Trekker 品牌色。mimo-v2.5 文字生产上线不代表截图轨迹已可用；轨迹复原仍必须单独解决，方案 pending。
-
-实施建议:
-- 多模态识别图像中轨迹位置（mask）
-- 重新着色 + 输出新图替换原截图轨迹层
-- 评估 CV 抠线 + mimo 点位 / 颜色提示的混合方案，达不到 faithful 则截图分享先走文字-only
-- 与 FU-35 mimo-v2.5 多模态能力共享模型 client / 研究报告
-
-涉及: 新 image processing pipeline + 与 FU-35 共享多模态模型 client
+**保留承诺**:
+- reference ghost A1.1: 可开关淡显参考层，不进海报几何。
+- Sprint B confirm-first 确认页: 设计稿 `v3-confirm` 已存在，`draftRoute` seam 待建。
+- 截图 speed 上限 `30` vs `50 km/h` 产品拍板未决；期间超界 optional 值静默 drop。
 
 ---
 
@@ -175,6 +167,8 @@
 **实施依据**: docs/map-weather-brief.md §9 (400 山缓存策略) + §9.5 (热度升降级) + §15.2 (天气验收)。
 
 **触发来源**: FU-50 Phase 4 验收讨论 — 用户判断 tier 准确性当前阶段不实施，作为上线前联合校验项独立跟踪。
+
+**互引更新**: per-mountain PMTiles 全量生成 + 上传 pipeline 归属已划 FU-77(c)，解除 FU-47 close 时对 FU-51 的委托；FU-51 只保留山峰信息完整性 / weather tier / refresh 逻辑联合校验。
 
 **涉及**:
 - supabase mountains 表数据补录（运营 / admin）
@@ -264,12 +258,12 @@ REMOTE_ONLY                -                                                    
 - **归属阶段**: Share / Poster product refinement
 - **状态**: 🟢 active
 
-**背景**: FU-66 / A2 将分享海报 hero altitude 改为 measured-only，并统一从「峰顶海拔」改为「最高海拔」。catalog summit altitude 不再作为普通 poster hero fallback。后续若要恢复「峰顶海拔」的仪式感，必须只面向 summit-verified checkins。
+**背景**: FU-66 / A2 将分享海报 hero altitude 改为 measured-only，并统一从「峰顶海拔」改为「最高海拔」。catalog summit altitude 不再作为普通 poster hero fallback。2026-06-12 用户拍板：仪式感槽位要做，但必须按状态守门。
 
 **实施建议**:
-- 产品先确认 summit-verified 状态下是否需要单独 ceremonial slot
-- 仅 summit-verified checkins 可考虑展示 catalog `峰顶海拔`
-- 同一决策覆盖 `/api/poster` 照片补签 card（目前仍使用 catalog altitude + `峰顶海拔` label）
+- 半边 A（必做对齐）: `/api/poster` 照片补签 card 仍用 catalog altitude +「峰顶海拔」label，与 A2 measured-only 决策不一致，需修齐口径。
+- 半边 B（设计先行）: summit-verified 专属 ceremonial slot，Claude Design 先挖坑位 / 标签形态 → 用户 review → 匹配样式实施。
+- 仅 summit-verified checkins 可考虑展示 catalog `峰顶海拔`。
 - 同时 audit `/api/poster` 对 screenshot rows 的 exposure（community covers 可能走 honor-card system：title fallback + catalog-altitude semantics）
 - 未 verified / uploaded / screenshot_recognition 不得展示 catalog summit altitude 作为 hero
 
@@ -280,44 +274,226 @@ REMOTE_ONLY                -                                                    
 
 ---
 
-### FU-69 · DEM elevation backfill for uploaded coordinate tracks lacking `<ele>`
+### FU-75 · 品牌视觉统一体系
 
-- **优先级**: P3
-- **归属阶段**: Elevation enrichment research
+- **优先级**: P2
+- **归属阶段**: 上线前产品品质
 - **状态**: 🟢 active
 
-**背景**: 一些 coordinate-bearing uploaded tracks 可能有 GPS 几何但缺少 `<ele>` 高程，导致 measured elevation 缺失。可研究 DEM backfill，但必须先评估中国大陆可达性与 MVP 成本。
+**背景**: 2026-05-29 用户提出 logo 未定稿、品牌元素呈现复杂且无规范；2026-06-10 A2 验收再次指出成功页中央非品牌 logo。现状是 `--green-primary` / `--green-bright` / `--green-neon` 混用，品牌绿存在 `#6ee7a1`（share 模板 / 编辑器）与 `#7ef0b4`（ActivityRouteMap / 验收单）hex 分叉；`BrandFooter` 是唯一系统化品牌组件，logo 形态各处不一。
 
 **实施建议**:
-- 调研中国大陆终端 / 服务端可访问的 DEM 来源
-- 评估单次 backfill 成本、延迟、缓存策略与合规风险
-- 只对 coordinate-bearing tracks 考虑，不适用于 normalized screenshot shapes
-- 未通过可达性 + 成本评估前不进入产品方案
+- logo 定稿（前置）
+- 品牌元素清单 + 使用规范
+- 全 App 盘点替换
+- `docs/color-debt.md` re-audit（P0 层已失真，30+ 新硬编码未入册）
+- 品牌绿 hex 统一
 
-**验收**:
-- 中国大陆可达性明确
-- MVP 成本可控且有上限
-- 数据来源与置信度可在产品中解释
+**互引**: `docs/color-debt.md`
 
 ---
 
-### FU-70 · Uploaded track summit-area neutral consistency label
+### FU-76 · 动效系统 + 人文化文案
 
-- **优先级**: P3
-- **归属阶段**: Product language discussion
+- **优先级**: P2
+- **归属阶段**: 上线前产品品质
 - **状态**: 🟢 active
 
-**背景**: 对于 uploaded tracks whose geometry reaches the summit area，可能需要一个中性表达（如「轨迹达峰」）来描述自报数据与几何一致性，但不能误读为 GPS VERIFIED / summit verified。
+**动效半边**: 建立动效 token（时长 / 缓动）与原则，做选型 spike（CSS-first vs 引库；包体积 / 低端机 / 大陆可达约束），再对关键节点分批落地：登顶确认、分享生成、转场、空态、加载。起点为 `docs/ui-interaction-spec.md` §12 微动效规范 + §4.9。现状：无动效库，`globals.css` 仅 1 个 `@keyframes`。
+
+**文案半边（2026-06-12 用户确认并入）**:
+- 人话化审查：从用户视角过全界面，把技术性 / 非面向用户的描述改为用户常规能听懂的语言（不必大白话，取度）。
+- 人文温度：梳理需要人文化表达的节点，给精神激励，弱化纯工具感。
+- 原 FU-70「轨迹达峰」中性标签并入此处，作为文案审查的一个具体节点。
+
+---
+
+### FU-77 · 300 山峰物料 pipeline
+
+- **优先级**: P1
+- **归属阶段**: 上线前数据物料
+- **状态**: 🟢 active
+
+**范围**: 300 山数据 / 物料生产（spec = `docs/mountain-content-spec.md`）。
+
+**显式子项**:
+- (a) `mountains` 上下线状态管理：schema 状态字段 + admin 开关，C 档山峰可前端隐藏。
+- (b) 风险提示 / 路线参考专用字段：spec 必填，现无字段。
+- (c) per-mountain PMTiles 全量生成 + 上传 pipeline：归属自 2026-06-12 起划入 FU-77，FU-51 条目已解除 FU-47 close 时的委托。
+- (d) 吸收 FU-16 坐标精度审计：原 FU-16 关闭，随 300 山统一验收。
+- (e) 山峰「节点」功能（登山口 / 营地，backlog）数据先行在此；FU-6 `mountain_requests` 审核 / 上新流程（backlog）按申请量触发。
+
+---
+
+### FU-78 · 中国大陆访问与基础设施评估
+
+- **优先级**: P1
+- **归属阶段**: 上线阻塞
+- **状态**: 🟢 active
+
+**背景**: 2026-05-30 用户提出（原 T1，旧编号被复用导致失踪）。Vercel + Supabase 均境外，大陆用户访问速度 / 可达性未验证。
+
+**Phase 1（只读调研）**:
+- 真机 / 大陆网络实测可达性与延迟
+- 评估迁移选项（国内云 / CDN / 双部署）
+- ICP 备案要求
+- 成本
+- 输出决策报告
+
+**约束**: 上线前置，几乎所有线上工作的前提；外部服务先过大陆可达关。
+
+---
+
+### FU-79 · 全站性能审计
+
+- **优先级**: P1
+- **归属阶段**: 上线前
+- **状态**: 🟢 active
+
+**背景**: 2026-05-30 用户反馈每页都卡（原 T2，编号复用失踪）。
+
+**第一项（已定位，止损性质）**: `PROVINCE_RANKING` flag 只关了渲染层，数据获取层未接：
+- `src/app/(main)/profile/page.tsx:100` 每次加载 1 次整月 `checkins` 全表扫描 + 应用内聚合。
+- `src/app/(main)/explore/page.tsx:54-59` 每次加载 2 次（当月 + 上月），结果全被丢弃。
+- 修法：三处数据获取接 `isFeatureEnabled('PROVINCE_RANKING')` 跳过。
+
+**其余审计**:
+- RSC 数据瀑布
+- bundle 体积
+- 图片优化
+- 渲染阻塞审计
+
+**原则**: 先测量后改。
+
+---
+
+### FU-80 · 线上稳定性与错误边界
+
+- **优先级**: P2
+- **归属阶段**: 稳定性 / 体验兜底
+- **状态**: 🟢 active
+
+**背景**: 2026-05-30 用户报 `/profile` 与山友圈 404（原 T3，编号复用失踪；可能已自愈，需复查确认并记录结论）。
 
 **实施建议**:
-- 先做产品讨论，明确「轨迹达峰」是否有必要
-- 文案必须保持 self-reported-data framing
-- 不影响 verified_at / ranking_weight / GPS VERIFIED 体系
+- 全站 `error.tsx` / `not-found.tsx` 边界补齐。
+- 中文友好文案，不裸露工程错误。
+- dev console 6 条资源 403 验证一次；若为环境噪音，直接记录销项。
 
-**验收**:
-- 标签语义不会与 GPS VERIFIED 混淆
-- 排名 / 证据 / 社区信任层不被误提升
-- UI 位置与文案经视觉验收
+---
+
+### FU-81 · 上线技术收口门禁
+
+- **优先级**: P1
+- **归属阶段**: 上线前执行（现在登记，上线窗口执行）
+- **状态**: 🟢 active
+
+**范围**: `docs/acceptance-checklist.md` §16 整章无人认领的统一收口。
+
+**必须覆盖**:
+- `verify_summit_checkin` 主链路专项回归
+- 真实上传 + 存储 bucket 生产环境端到端验证
+- poster 分享主链路稳定性
+- env 配置审计
+- 微信真机分享路径终验（2026-04 起悬置）
+- `docs/acceptance-checklist.md` 全量回写（对齐 FU-42 / FU-61 之后现实 + 清理省域条目）
+
+---
+
+### FU-82 · FAQ 与现状功能对账
+
+- **优先级**: P2
+- **归属阶段**: 上线前内容对账
+- **状态**: 🟢 active
+
+**背景**: 功能调整频繁，FAQ 内容与现状脱节。
+
+**实施建议**:
+- 对照现状功能逐条过 `src/lib/faq-content.ts`
+- 改过时描述
+- 删冗余 / 不存在功能（省域热力等随方向修订移除）
+- 补真实缺口
+- 一并解决 Profile「问题反馈 / 设置」占位 toast 与 FAQ 承诺路径的矛盾
+
+---
+
+### FU-83 · 地图遗留债
+
+- **优先级**: P3
+- **归属阶段**: FU-47 系列书面承诺的独立项
+- **状态**: 🟢 active
+
+**范围**:
+- Activity `trackPoint` 超 mountain-bbox envelope 检测 + auto-fallback trace-only
+- `waypoints` 表加 `lat` / `lng`，解锁 Mountain Detail 状态(a)真实数据触发
+- MapLibre 24-layer allowlist 扩等高线等地形细节（独立 visual review）
+
+---
+
+### FU-84 · 校准编辑器工程债
+
+- **优先级**: P3
+- **归属阶段**: 工程债
+- **状态**: 🟢 active
+
+**范围**:
+- livewire 性能（FIX#6 #8）：拖动 throttle、worker evidence field 720² 重建复用。
+- FIX#6 #10 剩余：`clamp` ×3 / `bbox-normalize` ×3 去重、`geometry.ts` 死导出清理、编辑器 `pathFromUnitPoints` 与 ActivityRouteMap `screenshotSegmentPath` 双份 SVG path builder 合一（lockstep 发散风险）。
+- 拖拽态二级打磨残留：非活动点压暗 ~60%、hide-others-while-dragging（FU-74 未覆盖）。
+
+---
+
+### FU-85 · 分享/模板门面改造
+
+- **优先级**: P1
+- **归属阶段**: 产品主线（设计先行）
+- **状态**: 🟢 active
+
+**背景（2026-06-12 用户重述确认）**: 分享模板是核心卖点但藏得太深。把出发 tab 触发按钮改为分享模板门面：用户先浏览水印模板样例，再按手头素材三选一录入（截图上传 / 轨迹上传 / 真实记录）。无登山记录时，该界面引导先完成录入。
+
+**流程**: Claude Design 先出整体方案 → 用户 review → 实施 sprint。
+
+**守门约束**: community / share 路线预览接入 `screenshot_route_shape` 时，badge 必须按 source 守门，`screenshot_recognition` 来源禁显「GPS 真实轨迹」。
+
+**互引**: 吸收 memory deferred task「导航分享门面」。
+
+---
+
+### FU-86 · 首页样式探索
+
+- **优先级**: P2
+- **归属阶段**: 设计先行，可保留现状
+- **状态**: 🟢 active
+
+**背景**: 现首页已做一部分但样式刻板。Claude Design 再出一套可能性作探索；无更好方案则保留现有 + 小修。
+
+**Quick win 子项**: 探索页顶部「探索」二字标题移除。
+
+---
+
+### FU-87 · 档案馆化 + 记忆锚点
+
+- **优先级**: P2
+- **归属阶段**: 设计 gate
+- **状态**: 🟢 active
+
+**方向**: 我的记录档案馆化表达（一层记忆 / 二层事实 / 三层传播）+ 活动详情记忆锚点（代表图 / 关键时刻 / 一句话）。
+
+**硬 gate（2026-06-12 用户拍板）**: 设计稿先行，达到「灵动 + 承载功能 + 人文 + 可用」才进实施；达不到则保留现状不做。
+
+---
+
+## Deferred Registration
+
+### Deferred · FU-88 · 商业化专项
+
+- **状态**: ⏸ deferred
+- **归属阶段**: 下一大版本，不占本期 Active
+
+**2026-06-12 用户拍板**: 第一期上线确定不收费。记录商业化思路备启动：
+- 两个已识别卡点 = 商业化验证信号：截图识别次数限制的使用量 / 限免水印模板的使用量（admin 后台已有商业化场景数据收集）。
+- 品牌相关商业化方向（更远期）。
+- 启动时做专项讨论：基于产品形态盘可扩展功能点；若上架应用商店，评估直接作为付费软件（产品具备工具功能属性）。
 
 ---
 
@@ -333,7 +509,39 @@ REMOTE_ONLY                -                                                    
 
 ---
 
-## Closed Follow-ups（68 条）
+## Closed Follow-ups（73 条）
+
+### FU-70 ✅ Uploaded track summit-area neutral consistency label
+
+- **关闭原因**: 2026-06-12 用户确认并入 FU-76 文案审查，作为「轨迹达峰」中性标签 / 自报数据 framing 的具体节点；不再作为独立 FU 推进。
+- **关闭 commit**: 待本次 docs reconciliation commit
+- **关闭时间**: 2026-06-12
+
+---
+
+### FU-69 ✅ DEM elevation backfill for uploaded coordinate tracks lacking `<ele>`
+
+- **关闭原因**: 2026-06-12 用户拍板不做。境外 DEM 服务难过大陆可达关，受益面小；不进入当前产品路线。若未来重新讨论，必须先过中国大陆可达性 + MVP 成本评估。
+- **关闭 commit**: 待本次 docs reconciliation commit
+- **关闭时间**: 2026-06-12
+
+---
+
+### FU-35 ✅ mimo-v2.5 多模态能力接入
+
+- **关闭原因**: 文字半边已由 FU-62 生产上线；轨迹半边与重写后的 FU-36 剩余 scope 完全重叠，并入 FU-36。2026-06-12 用户确认合并。
+- **关闭 commit**: 待本次 docs reconciliation commit
+- **关闭时间**: 2026-06-12
+
+---
+
+### FU-16 ✅ mountains 坐标精度审计
+
+- **关闭原因**: 并入 FU-77「300 山峰物料 pipeline」子项 (d)，随 300 山统一验收；不再单独占 Active。
+- **关闭 commit**: 待本次 docs reconciliation commit
+- **关闭时间**: 2026-06-12
+
+---
 
 ### FU-73 ✅ Shared screenshot source predicate
 
@@ -1272,6 +1480,21 @@ Codex 在视觉验证通过、merge 前必须执行：
 
 ## 版本记录
 
+### v0.61（2026-06-12）
+
+FOLLOW-UPS GRAND RECONCILIATION · 全景对账 docs patch。
+
+- 新增 Active FU-75..87：品牌视觉统一体系、动效系统 + 人文化文案、300 山峰物料 pipeline、中国大陆访问与基础设施评估、全站性能审计、线上稳定性与错误边界、上线技术收口门禁、FAQ 与现状功能对账、地图遗留债、校准编辑器工程债、分享 / 模板门面改造、首页样式探索、档案馆化 + 记忆锚点。
+- 新增 Deferred FU-88：商业化专项。2026-06-12 用户拍板第一期上线不收费，商业化专项留到下一大版本，不占本期 Active。
+- FU-36 重写为「轨迹自动初稿接入校准编辑器」：手动校准 + `screenshot_route_shape` + 品牌绿矢量重绘已上线，剩余缺口收敛为 automatic draft / reference ghost / confirm-first 的忠实初稿能力。
+- 关闭 FU-16 / FU-35 / FU-69 / FU-70：FU-16 并入 FU-77；FU-35 文字半边已由 FU-62 上线、轨迹半边并入 FU-36；FU-69 用户拍板不做；FU-70 并入 FU-76 文案审查。
+- FU-68 更新为「必做对齐 + 设计先行」两半结构：`/api/poster` 照片补签 card 口径需与 measured-only 决策对齐，summit-verified ceremonial slot 设计先行。
+- FU-51 增加互引：per-mountain PMTiles pipeline 归属 FU-77(c)，解除 FU-47 close 时对 FU-51 的委托。
+- 新增「2026-06-12 业务方向修订」小节：省域排名本期冻结、FU-69 DEM 不做、第一期商业化不收费、执照区荣誉感终验销项、微信真机分享终验归 FU-81。
+- 协作规范 schema sprint 条目追加 FU-64 暂停批注；`docs/target-prd.md` 与 `docs/release-priority-matrix.md` 增加省域排名冻结的最小标注。
+- Active 8 → 17 · Closed 69 → 73 · FU-88 deferred 单列不计入 Active。
+- 计数修正: Closed 头部数字与 grep 实际条目数对齐（历史 off-by-one, 源于 FU-47 家族父 + 子条目计数），自检规则以 grep 为准。
+
 ### v0.60（2026-06-12）
 
 FU-71/72/73 close · render-debt refactor trio shipped.
@@ -1894,5 +2117,5 @@ v0.8 机械化清单第九次实战。Active / Closed 数字均不变（FU-46 um
 每次 V3 收尾必须运行下面命令，并与 Active / Closed 标题数字对比：
 
 ```bash
-awk '/^## Active Follow-ups/{a=1;b=0;ac=0;next} /^## Closed Follow-ups/{a=0;b=1;cc=0;next} /^## /{a=0;b=0;next} a==1 && /^### FU-/{ac++} b==1 && /^### FU-/{cc++} END{print "Active actual:", ac; print "Closed actual:", cc}' docs/follow-ups.md
+awk '/^## Active Follow-ups/{a=1;b=0;d=0;ac=0;next} /^## Deferred Registration/{a=0;b=0;d=1;dc=0;next} /^## Known Issues/{d=0;next} /^## Closed Follow-ups/{a=0;b=1;d=0;cc=0;next} /^## /{a=0;b=0;d=0;next} a==1 && /^### (FU-|Issue-)/{ac++} d==1 && /^### Deferred · FU-/{dc++} b==1 && /^### (FU-|Issue-)/{cc++} END{print "Active actual:", ac; print "Closed actual:", cc; print "Deferred actual:", dc}' docs/follow-ups.md
 ```

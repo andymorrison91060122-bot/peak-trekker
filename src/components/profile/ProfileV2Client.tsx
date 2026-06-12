@@ -101,6 +101,20 @@ function Chevron() {
   )
 }
 
+function ShareGlyph() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path
+        d="M7.5 12.5l9-5M7.5 12.5l9 5M6.5 15.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm11-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 function SummaryTiles({ summary }: { summary: ProfileV2Summary }) {
   const items = [
     { label: '山行', value: formatNumber(summary.tripCount), accent: false },
@@ -292,62 +306,94 @@ function ArchivePreviewSection({ trips }: { trips: ProfileV2TripPreview[] }) {
       ) : (
         <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
           {trips.map((trip) => (
-            <Link
+            <article
               key={trip.checkinId}
-              href={`/activity/${trip.checkinId}`}
+              data-testid="profile-trip-card"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-3)',
                 padding: 'var(--space-3)',
                 minWidth: 0,
                 borderRadius: 'var(--radius-lg)',
                 border: '1px solid var(--color-outline)',
                 background: 'var(--color-surface-variant)',
                 color: 'var(--color-on-surface)',
-                textDecoration: 'none',
               }}
             >
-              <TripThumb trip={trip} />
-              <div style={{ display: 'grid', gap: 'var(--space-2)', minWidth: 0, flex: '1 1 auto' }}>
-                <div style={{ display: 'grid', gap: 'var(--space-1)', minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 'var(--space-2)',
-                      minWidth: 0,
-                    }}
-                  >
-                    <span
-                      data-testid="profile-trip-title"
-                      className="pt-title-m"
+              <Link
+                href={`/activity/${trip.checkinId}`}
+                data-testid="profile-trip-activity-link"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-3)',
+                  minWidth: 0,
+                  color: 'var(--color-on-surface)',
+                  textDecoration: 'none',
+                }}
+              >
+                <TripThumb trip={trip} />
+                <div style={{ display: 'grid', gap: 'var(--space-2)', minWidth: 0, flex: '1 1 auto' }}>
+                  <div style={{ display: 'grid', gap: 'var(--space-1)', minWidth: 0 }}>
+                    <div
                       style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-2)',
                         minWidth: 0,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {trip.mountainName}
-                    </span>
-                    {trip.unmatchedTag ? <UnmatchedTripTag /> : null}
+                      <span
+                        data-testid="profile-trip-title"
+                        className="pt-title-m"
+                        style={{
+                          minWidth: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {trip.mountainName}
+                      </span>
+                      {trip.unmatchedTag ? <UnmatchedTripTag /> : null}
+                    </div>
+                    <div
+                      data-testid="profile-trip-secondary"
+                      className="pt-label-s"
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontVariantNumeric: 'tabular-nums',
+                        color: 'var(--color-on-surface-variant)',
+                      }}
+                    >
+                      {formatDate(trip.createdAt)} · {trip.province}
+                    </div>
                   </div>
-                  <div
-                    data-testid="profile-trip-secondary"
-                    className="pt-label-s"
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontVariantNumeric: 'tabular-nums',
-                      color: 'var(--color-on-surface-variant)',
-                    }}
-                  >
-                    {formatDate(trip.createdAt)} · {trip.province}
-                  </div>
+                  <AltitudeBar altitudeM={trip.altitudeM} />
                 </div>
-                <AltitudeBar altitudeM={trip.altitudeM} />
-              </div>
-            </Link>
+              </Link>
+              <Link
+                href={`/share?checkinId=${encodeURIComponent(trip.checkinId)}`}
+                data-testid="profile-trip-share-link"
+                aria-label={`${trip.mountainName} 分享素材`}
+                className="pt-label-m"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  minHeight: 36,
+                  marginTop: 'var(--space-3)',
+                  padding: '0 var(--space-3)',
+                  borderRadius: 'var(--radius-pill)',
+                  border: '1px solid var(--color-outline)',
+                  color: 'var(--color-success)',
+                  background: 'color-mix(in srgb, var(--color-success) 8%, transparent)',
+                  textDecoration: 'none',
+                }}
+              >
+                <ShareGlyph />
+                分享素材
+              </Link>
+            </article>
           ))}
           <Link
             href="/archive"

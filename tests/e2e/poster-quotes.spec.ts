@@ -30,10 +30,39 @@ test('poster share story copy uses literary quotes and trek snapshots expose the
 
   expect(summitSvg).toContain('GPS VERIFIED')
   expect(summitSvg).toContain('SUMMIT VERIFIED')
+  expect(summitSvg).toContain('最高海拔')
+  expect(summitSvg).not.toContain('峰顶海拔')
+  expect(summitSvg).not.toContain('GPS 31.')
   expect(summitSvg).not.toContain('记录中')
   expect(summitSvg).not.toContain('峰顶硬文案占位')
   expect(SUMMIT_QUOTES.some((quote) => summitSvg.includes(quote.text))).toBeTruthy()
   expect(SUMMIT_QUOTES.some((quote) => summitSvg.includes(`— ${quote.author}`))).toBeTruthy()
+
+  const uploadedResponse = await request.get('/api/poster?checkinId=demo&template=summit_card&renderMode=classic_card&format=svg&source=track_import&verified=0')
+  expect(uploadedResponse.ok()).toBeTruthy()
+  const uploadedSvg = await uploadedResponse.text()
+
+  expect(uploadedSvg).toContain('UPLOADED')
+  expect(uploadedSvg).toContain('上传数据')
+  expect(uploadedSvg).toContain('最高海拔')
+  expect(uploadedSvg).not.toContain('GPS VERIFIED')
+  expect(uploadedSvg).not.toMatch(/verified/i)
+  expect(uploadedSvg).not.toContain('PHOTO RECORD')
+  expect(uploadedSvg).not.toContain('历史补签')
+  expect(uploadedSvg).not.toContain('峰顶海拔')
+  expect(uploadedSvg).not.toContain('GPS 31.')
+
+  const missingAltitudeResponse = await request.get('/api/poster?checkinId=demo&template=summit_card&renderMode=classic_card&format=svg&source=screenshot_recognition&altitude=none')
+  expect(missingAltitudeResponse.ok()).toBeTruthy()
+  const missingAltitudeSvg = await missingAltitudeResponse.text()
+
+  expect(missingAltitudeSvg).toContain('UPLOADED')
+  expect(missingAltitudeSvg).not.toContain('最高海拔')
+  expect(missingAltitudeSvg).not.toContain('峰顶海拔')
+  expect(missingAltitudeSvg).not.toContain('0 m')
+  expect(missingAltitudeSvg).not.toContain('GPS VERIFIED')
+  expect(missingAltitudeSvg).not.toMatch(/verified/i)
+  expect(missingAltitudeSvg).not.toContain('PHOTO RECORD')
 })
 
 test('classic poster keeps long literary quotes multiline with stable spacing across snapshot summit and historical templates', async ({ request }) => {
@@ -49,12 +78,12 @@ test('classic poster keeps long literary quotes multiline with stable spacing ac
     {
       url: `/api/poster?checkinId=demo&template=summit_card&renderMode=classic_card&format=svg&verified=1&quoteIndex=${summitIndex}`,
       quote: SUMMIT_QUOTES[summitIndex],
-      mustContain: ['GPS VERIFIED', 'SUMMIT VERIFIED'],
+      mustContain: ['GPS VERIFIED', 'SUMMIT VERIFIED', '最高海拔'],
     },
     {
       url: `/api/poster?checkinId=demo&template=summit_card&renderMode=classic_card&format=svg&verified=0&quoteIndex=${historicalIndex}`,
       quote: SUMMIT_QUOTES[historicalIndex],
-      mustContain: ['PHOTO RECORD', '历史补签'],
+      mustContain: ['PHOTO RECORD', '历史补签', '最高海拔'],
     },
   ]
 
@@ -68,7 +97,7 @@ test('classic poster keeps long literary quotes multiline with stable spacing ac
     expect(svg).toContain('data-quote-author-gap="8"')
     expect(svg).toContain('data-author-footer-gap="16"')
     expect(svg).toContain('PEAK TREKKER')
-    expect(svg).toContain('MOUNTAIN VERIFIED STORY')
+    expect(svg).toContain('MOUNTAIN STORY')
 
     const lineCount = Number(svg.match(/data-quote-line-count="(\d+)"/)?.[1] ?? '0')
     expect(lineCount).toBeGreaterThan(1)
@@ -80,6 +109,8 @@ test('classic poster keeps long literary quotes multiline with stable spacing ac
     for (const marker of scenario.mustContain) {
       expect(svg).toContain(marker)
     }
+    expect(svg).not.toContain('峰顶海拔')
+    expect(svg).not.toContain('GPS 31.')
   }
 })
 

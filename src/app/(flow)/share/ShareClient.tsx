@@ -32,7 +32,7 @@ type ShareFieldKey =
   | 'pace'
   | 'mountainName'
 
-type ShareActivitySource = 'gps' | 'track_import' | 'screenshot_recognition'
+type ShareActivitySource = 'gps' | 'uploaded'
 
 export interface ShareActivityData {
   mountainName?: string

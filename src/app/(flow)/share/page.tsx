@@ -6,8 +6,8 @@ import {
   buildShareTrackPreview,
   buildShareTrackPreviewFromScreenshotRouteShape,
 } from '@/lib/share-track-preview'
-import { resolveMeasuredShareAltitude, resolveShareMountainName } from '@/lib/share-data'
-import { isScreenshotRecognitionSource, SCREENSHOT_RECOGNITION_SOURCE } from '@/lib/trek-utils'
+import { resolveMeasuredShareAltitude, resolveShareMountainName, resolveShareRenderSource } from '@/lib/share-data'
+import { isScreenshotRecognitionSource } from '@/lib/trek-utils'
 import ShareClient, { type ShareActivityData } from './ShareClient'
 
 export const metadata: Metadata = {
@@ -122,12 +122,6 @@ function formatShareDate(value?: string | null) {
   return `${year}.${month}.${day}`
 }
 
-function sourceForShare(source?: string | null): ShareActivityData['source'] {
-  if (source === 'track_import') return source
-  if (isScreenshotRecognitionSource(source)) return SCREENSHOT_RECOGNITION_SOURCE
-  return 'gps'
-}
-
 async function fetchShareCheckin(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   checkinId: string,
@@ -217,7 +211,7 @@ async function loadShareData(checkinId: string): Promise<ShareActivityData | nul
     distance: typeof distanceMeters === 'number' ? Number((distanceMeters / 1000).toFixed(1)) : undefined,
     duration: durationSeconds ?? undefined,
     elevationGain: elevationGain ?? undefined,
-    source: sourceForShare(row.source),
+    source: resolveShareRenderSource(row.source),
     trackPreview,
   }
 }

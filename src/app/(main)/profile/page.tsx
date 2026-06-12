@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { listUserCommunityPosts } from '@/lib/community-server'
 import { listProfileTrips } from '@/lib/profile-records-server'
 import { getUserMonthlyContribution } from '@/lib/province-ranking-queries'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import { buildLicenseProgressSummary, syncUserLicenseLevel } from '@/lib/license-progress'
 import ProfileV2Client, {
   type ProfileV2Identity,
@@ -82,6 +83,7 @@ export default async function ProfilePage() {
   if (!user) redirect('/auth/login?from=/profile')
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+  const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
   const currentMonth = getShanghaiYearMonth()
 
   const [trips, myPosts, provinceContribution] = await Promise.all([
@@ -93,7 +95,9 @@ export default async function ProfilePage() {
       supabase,
       userId: user.id,
     }),
-    getUserMonthlyContribution(user.id, currentMonth.year, currentMonth.month),
+    provinceRankingEnabled
+      ? getUserMonthlyContribution(user.id, currentMonth.year, currentMonth.month)
+      : Promise.resolve(null),
   ])
 
   const storedLicenseLevel = profile?.license_level ?? 'none'

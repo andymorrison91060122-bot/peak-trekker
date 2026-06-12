@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import type { ProvinceBannerData } from '@/components/explore/ProvinceBannerStrip'
 import { listProvinceMonthlyRankings } from '@/lib/province-ranking-queries'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import ExploreClient from './ExploreClient'
 
 function getShanghaiYearMonth(date = new Date()) {
@@ -39,6 +40,7 @@ function getPreviousShanghaiYearMonth({
 export default async function ExplorePage() {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
+  const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
   const currentMonth = getShanghaiYearMonth()
   const previousMonth = getPreviousShanghaiYearMonth(currentMonth)
 
@@ -51,19 +53,19 @@ export default async function ExplorePage() {
     user
       ? supabase.from('profiles').select('province').eq('id', user.id).single()
       : Promise.resolve({ data: null }),
-    user
+    user && provinceRankingEnabled
       ? listProvinceMonthlyRankings(currentMonth.year, currentMonth.month)
       : Promise.resolve(undefined),
-    user
+    user && provinceRankingEnabled
       ? listProvinceMonthlyRankings(previousMonth.year, previousMonth.month)
       : Promise.resolve(undefined),
   ])
 
   const mountains = mountainsRes.data ?? []
   const hometownProvince = profileRes.data?.province ?? null
-  let provinceBanner: ProvinceBannerData | null | undefined = user ? null : undefined
+  let provinceBanner: ProvinceBannerData | null | undefined = user && provinceRankingEnabled ? null : undefined
 
-  if (user && hometownProvince) {
+  if (user && provinceRankingEnabled && hometownProvince) {
     const currentProvinceRow = currentRankings?.find((row) => row.province === hometownProvince) ?? null
     const previousProvinceRow = previousRankings?.find((row) => row.province === hometownProvince) ?? null
 

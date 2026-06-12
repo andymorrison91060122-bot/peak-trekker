@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-13 · 最新版本记录: v0.63
+> Last Updated: 2026-06-13 · 最新版本记录: v0.64
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`8d7a798`（Merge FU-68A/R6 poster/share alignment · 2026-06-13）
+`d20a5df`（Merge FU-83 (d)+(a) render pair · 2026-06-13）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -427,10 +427,17 @@ REMOTE_ONLY                -                                                    
 - **状态**: 🟢 active
 
 **范围**:
-- Activity `trackPoint` 超 mountain-bbox envelope 检测 + auto-fallback trace-only
-- `waypoints` 表加 `lat` / `lng`，解锁 Mountain Detail 状态(a)真实数据触发
-- MapLibre 24-layer allowlist 扩等高线等地形细节（独立 visual review）
-- GPS trace fallback aspect-ratio distortion：`normalizeVisualTrace`（`ActivityRouteMap.tsx`）独立归一化 lng / lat（stretch-to-fill），且无 `cos(lat)` 修正；repro activity `49609d3c-0bcf-4645-a284-58734e1a50c8`（portrait 0.6 W/H track 在 landscape card 中被横向压扁约 2.6x；用户持有 GPX，FU-83 sprint 中转为 fixture）。修复方向：uniform content-fit（single scale + `cos(lat)` + center + padding，参考已验证的 `share-track-preview` pattern）；同 sprint 必须 audit `TrekReferenceMap` 的独立 trace 实现是否有同类缺陷。
+- ✅ (a) Activity `trackPoint` 超 mountain-bbox envelope 检测 + auto-fallback trace-only：PR #9 / merge `d20a5df` 已落地。策略 = mountain bbox 每轴扩 8%，raw valid points 中 >1% 超出扩展 bbox 才降级；`data-map-mode` 记录 `mountain-pmtiles` / `trace-only-no-asset` / `trace-only-map-error` / `trace-only-out-of-envelope` / `screenshot-shape`。
+- `waypoints` 表加 `lat` / `lng`，解锁 Mountain Detail 状态(a)真实数据触发。
+- MapLibre 24-layer allowlist 扩等高线等地形细节（独立 visual review）。
+- ✅ (d) GPS trace fallback aspect-ratio distortion：PR #9 / merge `d20a5df` 已落地。新增 shared WGS-84 aspect-correct projector（`src/lib/geo-trace-projector.ts`），以 `cos(midLat)` + single range + centered letterbox 统一投影，服务 Activity trace-only / Trek reference fallback / Community detail preview；删除 dead `CommunityRouteVisualization.tsx`；`tests/fixtures/gpx/fu83-portrait-49609d3c.gpx` 固定 portrait ratio。before-state renders 可从 pre-merge main git history 复现。
+
+**剩余 Active**:
+- (b) `waypoints` lat/lng 数据化。
+- (c) contour / terrain layer allowlist 扩展。
+
+**DATA RESIDUE 记录**:
+- FU-83 evidence run leftover `bf333b44-9931-4971-97e8-ada79af158a5` 已按用户授权删除。删除前五项验证通过：`source='screenshot_recognition'` / `verified_at=null` / `ranking_weight=0` / `track_points=[]` / posts refs `0`；计数对账 total `966 → 965`，`screenshot_recognition 1 → 0`，other-source `965 → 965`。
 
 ---
 
@@ -1483,6 +1490,19 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.64（2026-06-13）
+
+FU-83 (d)+(a) render pair closeout · 等比投影器与 envelope fallback shipped, FU-83 保持 Active。
+
+- PR #9 merge commit: `d20a5df`；完成 (d) GPS trace fallback aspect-ratio distortion：shared WGS-84 aspect-correct projector（`src/lib/geo-trace-projector.ts`）现在服务 Activity trace-only / Trek reference fallback / Community detail preview，使用 `cos(midLat)` + single range + centered letterbox，避免独立 lng/lat stretch-to-fill。
+- 完成 (a) Activity mountain-bbox envelope auto-fallback：策略 = bbox 每轴扩 8%，raw valid points 中 >1% 超出扩展 bbox 才降级；`data-map-mode` 携带 fallback reason；edge-hugging / <=1% synthetic far spike 不误降级。
+- 删除 dead `CommunityRouteVisualization.tsx`；`tests/fixtures/gpx/fu83-portrait-49609d3c.gpx` 固定 portrait ratio；before-state renders 可从 pre-merge main git history 复现。
+- DATA RESIDUE: evidence run leftover `bf333b44-9931-4971-97e8-ada79af158a5` 已按用户授权五项验证后精确删除；计数 total `966 → 965`，`screenshot_recognition 1 → 0`，other-source `965 → 965`。
+- FU-83 剩余 (b) waypoints lat/lng 与 (c) contour layers 保持 Active。
+- Production deployment `dpl_9Yg6sD6XmCzHVvcuaqgnyfLjMFbB` READY；public `/` → `/explore` health 200，public `/screenshot` health 200。
+- `docs/map-weather-brief.md` 已随 PR #9 c2 更新至 v0.3.7，cross-check 与 shipped behavior 一致。
+- Active 17 → 17 · Closed 73 → 73
 
 ### v0.63（2026-06-13）
 

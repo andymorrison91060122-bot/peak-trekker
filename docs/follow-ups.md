@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-12 · 最新版本记录: v0.62
+> Last Updated: 2026-06-13 · 最新版本记录: v0.63
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`325e046`（Merge FU-71/72/73 render-debt cleanup trio · 2026-06-12）
+`8d7a798`（Merge FU-68A/R6 poster/share alignment · 2026-06-13）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -261,10 +261,13 @@ REMOTE_ONLY                -                                                    
 **背景**: FU-66 / A2 将分享海报 hero altitude 改为 measured-only，并统一从「峰顶海拔」改为「最高海拔」。catalog summit altitude 不再作为普通 poster hero fallback。2026-06-12 用户拍板：仪式感槽位要做，但必须按状态守门。
 
 **实施建议**:
-- 半边 A（必做对齐）: `/api/poster` 照片补签 card 仍用 catalog altitude +「峰顶海拔」label，与 A2 measured-only 决策不一致，需修齐口径。
-- 半边 B（设计先行）: summit-verified 专属 ceremonial slot，Claude Design 先挖坑位 / 标签形态 → 用户 review → 匹配样式实施。
+- 半边 A（必做对齐）: ✅ 已完成（PR #8 merge `8d7a798`）。`/api/poster` 对齐 A2 measured-only altitude：实测 `最高海拔`、真实 metrics、source semantics、移除 raw coordinates；R6 同步把 Profile archive「分享素材」入口改到 `/share` editor，并统一 share source mapping，修正 pre-existing `historical_photo` 被误标 GPS 的问题。
+- 半边 B（设计先行）: summit-verified 专属 ceremonial slot 仍 Active。Claude Design 先挖坑位 / 标签形态 → 用户 review → 匹配样式实施。
 - 仅 summit-verified checkins 可考虑展示 catalog `峰顶海拔`。
-- 同时 audit `/api/poster` 对 screenshot rows 的 exposure（community covers 可能走 honor-card system：title fallback + catalog-altitude semantics）
+- Exposure audit（current-main 口径）: owner-or-public-post 404 gate 与 admin client 为 pre-existing；本 sprint 已移除 raw coordinates；剩余 exposure = public-post rows 可被持 id 访问者渲染 username / mountain / province / note，public cache 86400s；是否继续收紧属独立产品 / 安全决策。
+- `/share` 对 `historical_photo` 暂用 neutral `UPLOADED` 是 anti-mislabel interim semantic，非最终产品文案；最终 PHOTO RECORD-style share treatment 归 Half-B 设计工作。
+- `/api/poster` 本轮刻意保留 `historical_photo` 的 PHOTO RECORD 语义，因此与 `/share` surface 在此处阶段性不同。
+- `/api/poster` deprecation follow-up: R6 后 `/api/poster` 的唯一生产消费面是 community cover fallback。新增 pre-existing production bug: Vercel PNG rasterization 缺 CJK font fallback，community fallback covers 生产环境中文会变 tofu（SVG 正确；`/api/share/render` 已通过 `loadShareFonts` 避免）。修复方向 = sharp 前嵌 font，或在 FU-85-era work 中整体替换 cover pipeline / 并入新 share pipeline。
 - 未 verified / uploaded / screenshot_recognition 不得展示 catalog summit altitude 作为 hero
 
 **验收**:
@@ -427,6 +430,7 @@ REMOTE_ONLY                -                                                    
 - Activity `trackPoint` 超 mountain-bbox envelope 检测 + auto-fallback trace-only
 - `waypoints` 表加 `lat` / `lng`，解锁 Mountain Detail 状态(a)真实数据触发
 - MapLibre 24-layer allowlist 扩等高线等地形细节（独立 visual review）
+- GPS trace fallback aspect-ratio distortion：`normalizeVisualTrace`（`ActivityRouteMap.tsx`）独立归一化 lng / lat（stretch-to-fill），且无 `cos(lat)` 修正；repro activity `49609d3c-0bcf-4645-a284-58734e1a50c8`（portrait 0.6 W/H track 在 landscape card 中被横向压扁约 2.6x；用户持有 GPX，FU-83 sprint 中转为 fixture）。修复方向：uniform content-fit（single scale + `cos(lat)` + center + padding，参考已验证的 `share-track-preview` pattern）；同 sprint 必须 audit `TrekReferenceMap` 的独立 trace 实现是否有同类缺陷。
 
 ---
 
@@ -1479,6 +1483,20 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.63（2026-06-13）
+
+FU-68A/R6 closeout · poster/share alignment shipped, FU-68 保持 Active。
+
+- PR #8 merge commit: `8d7a798`；Half-A 已完成：`/api/poster` measured-only altitude + `最高海拔` label、honest metrics、source semantics、raw coordinates removed；R6 Profile archive「分享素材」入口改为 `/share` editor；统一 share source mapping，修正 pre-existing `historical_photo` GPS mislabel。
+- Half-B 仍 Active：summit-verified ceremonial altitude slot 设计先行，Claude Design 出坑位 / 标签形态后再实施。
+- FU-68 exposure audit 更新为 current-main 口径：owner-or-public-post gate 预先存在；本 sprint 移除 coordinates；剩余 exposure = public-post rows 对持 id 访问者渲染 username / mountain / province / note，public cache 86400s，是否收紧另行决策。
+- `/share` neutral `UPLOADED` for `historical_photo` 记为 anti-mislabel interim semantic；最终 PHOTO RECORD-style share treatment 归 FU-68B。`/api/poster` 本轮刻意保留 `historical_photo` 的 PHOTO RECORD 语义。
+- `/api/poster` deprecation follow-up 扩充：R6 后其唯一生产消费面是 community cover fallback；登记 pre-existing production bug：Vercel PNG rasterization 缺 CJK font fallback，community fallback covers 生产中文会变 tofu（SVG 正确，`/api/share/render` 不受影响）。
+- FU-83 扩容 GPS trace fallback aspect-ratio distortion 项：ActivityRouteMap `normalizeVisualTrace` 独立 lng/lat 归一化导致 portrait GPX 在 landscape card 压扁；后续用 uniform content-fit + `cos(lat)` + padding 方案修，同时 audit `TrekReferenceMap`。
+- Production deployment `dpl_HhafQZknnJWAyfTXzDgXgqZxBNbn` READY；public `/` → `/explore` health 200，public `/screenshot` health 200。
+- `docs/map-weather-brief.md` 已只读复核：本 sprint 不改地图 / 天气行为，无需更新。
+- Active 17 → 17 · Closed 73 → 73
 
 ### v0.62（2026-06-12）
 

@@ -1,4 +1,5 @@
 import { resolveCheckinDisplayTitle } from './checkin-display-title.ts'
+import type { ShareRenderSource } from './share-templates/types.ts'
 
 export const SHARE_UNKNOWN_MOUNTAIN_TITLE = '未知山峰'
 
@@ -24,4 +25,8 @@ export function resolveShareMountainName({
     trackName,
     fallbackTitle: SHARE_UNKNOWN_MOUNTAIN_TITLE,
   }).title
+}
+
+export function resolveShareRenderSource(source?: string | null): ShareRenderSource {
+  return source === 'realtime_gps' ? 'gps' : 'uploaded'
 }

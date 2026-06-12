@@ -27,7 +27,7 @@ import {
   buildShareTrackPreview,
   buildShareTrackPreviewFromScreenshotRouteShape,
 } from '@/lib/share-track-preview'
-import { resolveMeasuredShareAltitude, resolveShareMountainName } from '@/lib/share-data'
+import { resolveMeasuredShareAltitude, resolveShareMountainName, resolveShareRenderSource } from '@/lib/share-data'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isScreenshotRecognitionSource } from '@/lib/trek-utils'
 
@@ -161,10 +161,6 @@ function formatShareDuration(value?: number | null) {
   const hours = Math.floor(safeSeconds / 3600)
   const minutes = Math.floor((safeSeconds % 3600) / 60)
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-}
-
-function sourceForRender(source?: string | null): ShareTemplateData['source'] {
-  return source === 'track_import' || isScreenshotRecognitionSource(source) ? 'uploaded' : 'gps'
 }
 
 function parseRequestBody(body: unknown): ShareRenderApiRequest | Response {
@@ -314,7 +310,7 @@ async function buildServerRenderPayload(apiRequest: ShareRenderApiRequest): Prom
     distance: typeof distanceMeters === 'number' ? Number((distanceMeters / 1000).toFixed(1)) : 0,
     duration: formatShareDuration(durationSeconds),
     elevationGain: elevationGain ?? 0,
-    source: sourceForRender(row.source),
+    source: resolveShareRenderSource(row.source),
     trackPreview,
     visibleFields: {
       duration: apiRequest.fieldVisibility.duration !== false,

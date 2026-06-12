@@ -459,11 +459,13 @@ describe('share render API field policy regression', () => {
 
     for (const source of [sharePageSource, renderRouteSource]) {
       assert.match(source, /screenshot_route_shape/)
+      assert.match(source, /source:\s*resolveShareRenderSource\(row\.source\)/)
       assert.match(
         source,
         /const trackPreview = isScreenshotRecognition\s*\?\s*buildShareTrackPreviewFromScreenshotRouteShape\(row\.screenshot_route_shape\)\s*:\s*buildShareTrackPreview\(row\.track_points\) \?\? buildShareTrackPreview\(session\?\.track_points\)/,
       )
       assert.match(source, /const isScreenshotRecognition = isScreenshotRecognitionSource\(row\.source\)/)
+      assert.doesNotMatch(source, /function sourceFor(?:Share|Render)\(/)
     }
   })
 

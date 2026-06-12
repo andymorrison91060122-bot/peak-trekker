@@ -43,4 +43,15 @@ describe('share data mapping', () => {
       '未知山峰',
     )
   })
+
+  test('resolves share source badges with realtime GPS as the only verified branch', async () => {
+    const { resolveShareRenderSource } = await loadShareData()
+
+    assert.equal(resolveShareRenderSource('realtime_gps'), 'gps')
+    assert.equal(resolveShareRenderSource('track_import'), 'uploaded')
+    assert.equal(resolveShareRenderSource('screenshot_recognition'), 'uploaded')
+    assert.equal(resolveShareRenderSource('historical_photo'), 'uploaded')
+    assert.equal(resolveShareRenderSource(null), 'uploaded')
+    assert.equal(resolveShareRenderSource(undefined), 'uploaded')
+  })
 })

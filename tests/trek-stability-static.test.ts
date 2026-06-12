@@ -7,6 +7,7 @@ const trekActions = readFileSync('src/app/api/trek/actions/route.ts', 'utf8')
 const trekPhotoUpload = readFileSync('src/app/api/trek/photo-upload/route.ts', 'utf8')
 const trekRules = readFileSync('src/lib/trek-verification-rules.ts', 'utf8')
 const profilePage = readFileSync('src/app/(main)/profile/page.tsx', 'utf8')
+const profileClient = readFileSync('src/components/profile/ProfileV2Client.tsx', 'utf8')
 const trekPauseMigration = readFileSync('supabase/migrations/20260517124359_trek_session_pause_state.sql', 'utf8')
 
 test('near summit continue CTA is wired to summit photo flow', () => {
@@ -157,6 +158,14 @@ test('trek photo upload route and client normalize thrown fetch failures', () =>
 test('profile summary excludes incomplete completion_status records', () => {
   assert.match(profilePage, /\(trip\.completionStatus \?\? 'complete'\) === 'complete'/)
   assert.doesNotMatch(profilePage, /trip\.status === 'approved'/)
+})
+
+test('profile archive cards open the new share editor without deleting legacy poster generation', () => {
+  assert.match(profileClient, /data-testid="profile-trip-share-link"/)
+  assert.match(profileClient, /href=\{`\/share\?checkinId=\$\{encodeURIComponent\(trip\.checkinId\)\}`\}/)
+  assert.doesNotMatch(profileClient, /\/api\/poster\?checkinId=/)
+  assert.match(trekActions, /if \(action === 'generate_share_card'\)/)
+  assert.match(trekActions, /\/api\/poster\?checkinId=\$\{encodeURIComponent\(checkin\.id\)\}/)
 })
 
 test('summit verification can persist uploaded summit photo url', () => {

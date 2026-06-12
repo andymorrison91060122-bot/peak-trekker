@@ -7,7 +7,6 @@ import PmtilesSnapshotMap from '@/components/map/PmtilesSnapshotMap'
 import {
   getMountainPmtilesAsset,
   type MapTileAsset,
-  type MapTileBbox,
 } from '@/lib/map/map-assets'
 import {
   buildShareTrackPreviewFromScreenshotRouteShape,
@@ -15,6 +14,7 @@ import {
   SHARE_TRACK_CONTENT_FIT,
   SHARE_TRACK_RENDER_PROFILES,
 } from '@/lib/share-track-preview'
+import { createGeoTraceProjector } from '@/lib/geo-trace-projector'
 import { isScreenshotRecognitionSource } from '@/lib/trek-utils'
 
 type ProjectedPoint = {
@@ -34,7 +34,6 @@ type ProjectedTrace = {
 
 const routeNumberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
 const TRACE_FRAME = { width: 343, height: 343, padding: 38 }
-const COORDINATE_EPSILON = 0.0000001
 const ACTIVITY_LAYER_PREFIX = 'fu47b-activity-route'
 const SCREENSHOT_ROUTE_COLOR = '#76e8a8'
 
@@ -200,52 +199,12 @@ function addActivityGeoJsonLayers(map: MapLibreMap, rawPoints: ActivityTrackPoin
   })
 }
 
-function projectUnitPoint(x: number, y: number): Pick<ProjectedPoint, 'x' | 'y'> {
-  const usableWidth = TRACE_FRAME.width - TRACE_FRAME.padding * 2
-  const usableHeight = TRACE_FRAME.height - TRACE_FRAME.padding * 2
-  return {
-    x: Number((TRACE_FRAME.padding + Math.max(0, Math.min(1, x)) * usableWidth).toFixed(2)),
-    y: Number((TRACE_FRAME.padding + Math.max(0, Math.min(1, y)) * usableHeight).toFixed(2)),
-  }
-}
-
-function normalizeVisualTrace(points: ActivityTrackPointViewModel[]) {
-  const lats = points.map((point) => point.lat)
-  const lngs = points.map((point) => point.lng)
-  const minLat = Math.min(...lats)
-  const maxLat = Math.max(...lats)
-  const minLng = Math.min(...lngs)
-  const maxLng = Math.max(...lngs)
-  const latRange = maxLat - minLat
-  const lngRange = maxLng - minLng
-
-  return points.map((point) => {
-    const x = lngRange <= COORDINATE_EPSILON ? 0.5 : (point.lng - minLng) / lngRange
-    const y = latRange <= COORDINATE_EPSILON ? 0.5 : (maxLat - point.lat) / latRange
-    return { ...projectUnitPoint(x, y), altitude: point.altitude, time: point.time }
-  })
-}
-
-function normalizeBboxTrace(points: ActivityTrackPointViewModel[], bbox: MapTileBbox) {
-  const lngRange = bbox[2] - bbox[0]
-  const latRange = bbox[3] - bbox[1]
-
-  return points.map((point) => {
-    const x = lngRange <= COORDINATE_EPSILON ? 0.5 : (point.lng - bbox[0]) / lngRange
-    const y = latRange <= COORDINATE_EPSILON ? 0.5 : (bbox[3] - point.lat) / latRange
-    return { ...projectUnitPoint(x, y), altitude: point.altitude, time: point.time }
-  })
-}
-
-function buildProjectedTrace(
-  rawPoints: ActivityTrackPointViewModel[],
-  mode: 'bbox' | 'visual',
-  bbox?: MapTileBbox,
-): ProjectedTrace | null {
+function buildProjectedTrace(rawPoints: ActivityTrackPointViewModel[]): ProjectedTrace | null {
   const points = sampleTrackPoints(rawPoints.filter(isValidTrackPoint))
   if (!points.length) return null
 
-  const projected = mode === 'bbox' && bbox ? normalizeBboxTrace(points, bbox) : normalizeVisualTrace(points)
+  const projector = createGeoTraceProjector(points, TRACE_FRAME)
+  const projected = projector.projectPoints(points)
   const start = projected[0]!
   const end = projected.at(-1)!
   const summit =
@@ -287,9 +246,9 @@ function TraceOverlay({
     <svg
       className="act-route__svg"
       viewBox="0 0 343 343"
-      preserveAspectRatio="none"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
-      style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}
     >
       <defs>
         <linearGradient id="act-route-trace" x1="0" y1="1" x2="1" y2="0">
@@ -573,24 +532,18 @@ function NoMapTraceCard({ trace, summitTime }: { trace: ProjectedTrace | null; s
 
 function MapTraceCard({
   asset,
-  trace,
   rawPoints,
-  summitTime,
   forceError,
   onError,
-  useGeoJsonTrace,
 }: {
   asset: MapTileAsset
-  trace: ProjectedTrace | null
   rawPoints: ActivityTrackPointViewModel[]
-  summitTime: string | null
   forceError: boolean
   onError: (error: Error) => void
-  useGeoJsonTrace: boolean
 }) {
   const handleMapReady = useCallback((map: MapLibreMap) => {
-    if (useGeoJsonTrace) addActivityGeoJsonLayers(map, rawPoints)
-  }, [rawPoints, useGeoJsonTrace])
+    addActivityGeoJsonLayers(map, rawPoints)
+  }, [rawPoints])
 
   return (
     <PmtilesSnapshotMap
@@ -600,7 +553,6 @@ function MapTraceCard({
       onMapReady={handleMapReady}
       onError={onError}
     >
-      {useGeoJsonTrace ? null : <TraceOverlay trace={trace} summitTime={summitTime} />}
       <MapChrome />
     </PmtilesSnapshotMap>
   )
@@ -616,13 +568,10 @@ export default function ActivityRouteMap({
   const mountainAsset = getMountainPmtilesAsset(activity.mountain.id)
   const [mountainMapFailed, setMountainMapFailed] = useState(false)
   const forceMountainError = forceMapError === 'mountain'
-  const useMountainAsset = Boolean(mountainAsset && !mountainMapFailed)
   const summitTime = activity.summitAt
   const isScreenshotRoute = isScreenshotRecognitionSource(activity.sourceType)
-  const trace = useMemo(
-    () => buildProjectedTrace(activity.trackPoints, useMountainAsset && mountainAsset ? 'bbox' : 'visual', mountainAsset?.bbox),
-    [activity.trackPoints, mountainAsset, useMountainAsset],
-  )
+  const useMountainAsset = Boolean(mountainAsset && !mountainMapFailed)
+  const trace = useMemo(() => buildProjectedTrace(activity.trackPoints), [activity.trackPoints])
 
   if (isScreenshotRoute) {
     return (
@@ -653,11 +602,8 @@ export default function ActivityRouteMap({
         ) : (
           <MapTraceCard
             asset={mountainAsset}
-            trace={trace}
             rawPoints={activity.trackPoints}
-            summitTime={summitTime}
             forceError={forceMountainError}
-            useGeoJsonTrace
             onError={() => {
               setMountainMapFailed(true)
             }}

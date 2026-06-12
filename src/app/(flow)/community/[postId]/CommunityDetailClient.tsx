@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { startTransition, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import type { CheckinAsset, CommunityPostMetrics, CommunityPostViewModel, CommunityTrackPreview } from '@/types'
 import { normalizeCommunityActionError } from '@/lib/community'
+import { createGeoTraceProjector } from '@/lib/geo-trace-projector'
 import { getSourceLabelType } from '@/lib/source-label-utils'
 import { trackEvent } from '@/lib/analytics/client'
 import { sanitizeCommunityText, sanitizeCommunityUsername } from '@/components/community/communityRender'
@@ -361,22 +362,7 @@ function buildRoutePath(points: CommunityTrackPreview['points']) {
   const width = 320
   const height = 190
   const padding = 22
-  const lats = points.map((point) => point.lat)
-  const lngs = points.map((point) => point.lng)
-  const minLat = Math.min(...lats)
-  const maxLat = Math.max(...lats)
-  const minLng = Math.min(...lngs)
-  const maxLng = Math.max(...lngs)
-  const latRange = Math.max(0.000001, maxLat - minLat)
-  const lngRange = Math.max(0.000001, maxLng - minLng)
-
-  return points
-    .map((point, pointIndex) => {
-      const x = padding + ((point.lng - minLng) / lngRange) * (width - padding * 2)
-      const y = height - padding - ((point.lat - minLat) / latRange) * (height - padding * 2)
-      return `${pointIndex === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`
-    })
-    .join(' ')
+  return createGeoTraceProjector(points, { width, height, padding }).buildPath(points) ?? ''
 }
 
 function RoutePreviewBlock({

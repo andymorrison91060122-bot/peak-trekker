@@ -159,6 +159,35 @@ describe('share render API field policy regression', () => {
     assert.match(clientSource, /formatShareAltitude\(data\)/)
   })
 
+  test('/api/poster altitude source labels and coordinate text align with share semantics', () => {
+    const posterSource = readSource('../src/app/api/poster/route.ts')
+
+    assert.match(posterSource, /resolveMeasuredShareAltitude\(checkin\.max_elevation_meters,\s*session\?\.max_altitude_m\)/)
+    assert.doesNotMatch(posterSource, /mountain\?\.altitude|mountain\.altitude/)
+    assert.doesNotMatch(posterSource, /峰顶海拔/)
+    assert.doesNotMatch(posterSource, /MOUNTAIN VERIFIED STORY/)
+    assert.doesNotMatch(posterSource, /formatShortCoordinates|footerCoordinates|formatCoordinate/)
+    assert.match(posterSource, /headlineLabel:\s*altitudeLabel\s*\?\s*'最高海拔'\s*:\s*undefined/)
+    assert.match(posterSource, /value === 'none' \|\| value === 'null' \|\| value === 'absent'/)
+
+    assert.match(posterSource, /source === 'realtime_gps'/)
+    assert.match(posterSource, /source === 'historical_photo'/)
+    assert.match(posterSource, /model\.source === 'track_import' \|\| isScreenshotRecognitionSource\(model\.source\)/)
+    assert.match(posterSource, /'GPS VERIFIED'/)
+    assert.match(posterSource, /'PHOTO RECORD'/)
+    assert.match(posterSource, /'UPLOADED'/)
+  })
+
+  test('/api/poster keeps altitude-derived metrics demo-only', () => {
+    const posterSource = readSource('../src/app/api/poster/route.ts')
+    const realCheckinModelBlock = posterSource.match(/const measuredAltitude[\s\S]*?const coverImageHref/)?.[0] ?? ''
+
+    assert.match(posterSource, /function deriveDemoMetrics\(/)
+    assert.match(posterSource, /if \(model\.isDemo\) {\s*return deriveDemoMetrics\(model\.altitude \?\? 6250, model\.metricOverrides\)/)
+    assert.match(posterSource, /metrics:\s*\{\s*distanceKm:\s*typeof distanceMeters === 'number' \? distanceMeters \/ 1000 : undefined,/)
+    assert.doesNotMatch(realCheckinModelBlock, /deriveDemoMetrics|altitude \/ 260/)
+  })
+
   test('premium mono-film template does not render trail', () => {
     const monoFilmSource = readSource('../src/lib/share-templates/premium-mono-film.tsx')
 

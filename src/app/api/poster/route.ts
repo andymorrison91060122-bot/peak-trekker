@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
-import { resolveCheckinSource } from '@/lib/trek-utils'
+import { resolveMeasuredShareAltitude } from '@/lib/share-data'
+import {
+  isScreenshotRecognitionSource,
+  resolveCheckinSource,
+  type CheckinSource,
+} from '@/lib/trek-utils'
 import { getMountainPosterBackgroundImage } from '@/lib/mountain-media'
 import { parseCommunityPostPayload } from '@/lib/community'
 import { getRandomQuote, IN_PROGRESS_QUOTES, SUMMIT_QUOTES } from '@/lib/sharing-quotes'
@@ -18,19 +23,24 @@ type PreviewBackground = 'none' | 'checker' | 'scenic'
 type PosterModel = {
   template: ShareCardTemplate
   mountainName: string
-  altitude: number
+  altitude?: number
   province: string
-  latitude?: number | null
-  longitude?: number | null
   username: string
   checkinDate: string
   note: string
-  verified: boolean
+  source: CheckinSource
   renderMode: ShareRenderMode
   anchorPosition: ShareAnchorPosition
   previewBackground: PreviewBackground
   coverImageHref?: string | null
   quoteOverride?: { text: string; author: string } | null
+  isDemo?: boolean
+  metrics?: {
+    distanceKm?: number | null
+    ascentM?: number | null
+    durationSec?: number | null
+    pace?: string | null
+  } | null
   metricOverrides?: {
     distanceKm?: number | null
     ascentM?: number | null
@@ -41,13 +51,12 @@ type PosterModel = {
 
 type TemplateContent = {
   eyebrow: string
-  headline: string
-  headlineLabel: string
+  headline?: string
+  headlineLabel?: string
   quote: { text: string; author: string }
   spotlight?: { label: string; value: string }
   metrics: Array<{ label: string; value: string }>
   footer: string
-  footerCoordinates?: string | null
   note: string
   routeLabel: string
 }
@@ -105,7 +114,7 @@ function formatDurationFromSeconds(totalSeconds: number) {
   return `${seconds}s`
 }
 
-function deriveMetrics(
+function deriveDemoMetrics(
   altitude: number,
   overrides?: PosterModel['metricOverrides']
 ) {
@@ -134,6 +143,52 @@ function deriveMetrics(
     pace:
       overrides?.pace?.trim() ||
       `${String(Math.max(7, 14 - Math.floor(distanceKm / 2))).padStart(2, '0')}:20/km`,
+  }
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function positiveNumber(value: unknown) {
+  return isFiniteNumber(value) && value > 0 ? value : undefined
+}
+
+function formatDistanceKm(value: number) {
+  return Number(value.toFixed(1)).toLocaleString()
+}
+
+function formatAltitudeMeters(value: number) {
+  return Math.round(value).toLocaleString()
+}
+
+function formatPaceFromDuration(durationSec?: number, distanceKm?: number) {
+  const safeDurationSec = positiveNumber(durationSec)
+  const safeDistanceKm = positiveNumber(distanceKm)
+  if (safeDurationSec == null || safeDistanceKm == null) return undefined
+  const secondsPerKm = Math.max(1, Math.round(safeDurationSec / safeDistanceKm))
+  const minutes = Math.floor(secondsPerKm / 60)
+  const seconds = secondsPerKm % 60
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}/km`
+}
+
+function resolvePosterMetrics(model: PosterModel) {
+  if (model.isDemo) {
+    return deriveDemoMetrics(model.altitude ?? 6250, model.metricOverrides)
+  }
+
+  const distanceKm = positiveNumber(model.metrics?.distanceKm)
+  const ascentM = positiveNumber(model.metrics?.ascentM)
+  const durationSec = positiveNumber(model.metrics?.durationSec)
+  const pace = model.metrics?.pace?.trim() || formatPaceFromDuration(durationSec, distanceKm)
+
+  return {
+    distanceKm,
+    ascentM: typeof ascentM === 'number' ? Math.round(ascentM) : undefined,
+    descentM: undefined,
+    durationSec,
+    duration: typeof durationSec === 'number' ? formatDurationFromSeconds(durationSec) : undefined,
+    pace,
   }
 }
 
@@ -406,21 +461,6 @@ function formatDateParts(checkinDate: string) {
   }
 }
 
-function hasValidCoordinates(latitude?: number | null, longitude?: number | null) {
-  if (typeof latitude !== 'number' || typeof longitude !== 'number') return false
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return false
-  return latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180
-}
-
-function formatCoordinate(value: number, positive: string, negative: string) {
-  return `${Math.abs(value).toFixed(4)}°${value >= 0 ? positive : negative}`
-}
-
-function formatShortCoordinates(latitude?: number | null, longitude?: number | null) {
-  if (!hasValidCoordinates(latitude, longitude)) return null
-  return `GPS ${formatCoordinate(latitude!, 'N', 'S')}, ${formatCoordinate(longitude!, 'E', 'W')}`
-}
-
 function normalizeTemplate(value: string | null): ShareCardTemplate {
   return VALID_TEMPLATES.includes(value as ShareCardTemplate) ? (value as ShareCardTemplate) : 'summit_card'
 }
@@ -495,17 +535,20 @@ function compactHeadlineFontSize(headline: string) {
 }
 
 function buildTemplateContent(model: PosterModel): TemplateContent {
-  const metrics = deriveMetrics(model.altitude, model.metricOverrides)
+  const metrics = resolvePosterMetrics(model)
   const { dateLabel, timeLabel } = formatDateParts(model.checkinDate)
   const cleanNote = truncateText(model.note || '', 66)
   const cleanProvince = truncateText(model.province || '', 18)
-  const footerCoordinates = formatShortCoordinates(model.latitude, model.longitude)
-  const isHistoricalRecord = model.template === 'summit_card' && !model.verified
+  const isHistoricalRecord = model.source === 'historical_photo'
+  const isUploadedRecord = model.source === 'track_import' || isScreenshotRecognitionSource(model.source)
+  const altitudeLabel = isFiniteNumber(model.altitude) ? `${formatAltitudeMeters(model.altitude)} m` : undefined
   const quote = model.quoteOverride ?? getRandomQuote(model.template !== 'trek_snapshot')
   const noteFallback = {
     trek_snapshot: '途中快照已存档，关键状态清楚可读，适合叠到当下的真实照片上。',
     summit_card: isHistoricalRecord
-      ? '这次补签记录以海拔为主线保留，方便直接分享最核心的山峰信息。'
+      ? '这次补签记录已整理成可分享的山行卡片。'
+      : isUploadedRecord
+        ? '这次上传记录已整理成可分享的山行卡片。'
       : '登顶已完成核验，仪式感和可信证明都被浓缩进这一张卡里。',
     activity_summary: '整段活动已汇总完成，适合做一次完整的活动分享与留档。',
   }[model.template]
@@ -513,38 +556,43 @@ function buildTemplateContent(model: PosterModel): TemplateContent {
   if (model.template === 'trek_snapshot') {
     return {
       eyebrow: 'TREK SNAPSHOT',
-      headline: `${model.altitude.toLocaleString()} m`,
-      headlineLabel: 'CURRENT ALTITUDE',
+      headline: altitudeLabel,
+      headlineLabel: altitudeLabel ? '最高海拔' : undefined,
       quote,
       metrics: [
-        { label: '累计距离', value: `${metrics.distanceKm} km` },
-        { label: '累计爬升', value: `${metrics.ascentM} m` },
-        {
-          label: model.metricOverrides?.durationSec != null ? '已记录时长' : '本地时间',
-          value: model.metricOverrides?.durationSec != null ? metrics.duration : timeLabel,
-        },
+        ...(typeof metrics.distanceKm === 'number'
+          ? [{ label: '累计距离', value: `${formatDistanceKm(metrics.distanceKm)} km` }]
+          : []),
+        ...(typeof metrics.ascentM === 'number'
+          ? [{ label: '累计爬升', value: `${metrics.ascentM.toLocaleString()} m` }]
+          : []),
+        ...(metrics.duration
+          ? [{ label: '已记录时长', value: metrics.duration }]
+          : model.isDemo
+            ? [{ label: '本地时间', value: timeLabel }]
+            : []),
       ],
       footer: `${dateLabel} · ${cleanProvince || '当前位置'}`,
-      footerCoordinates,
       note: cleanNote || noteFallback,
-      routeLabel: model.metricOverrides?.durationSec != null ? '当前进度' : '途中过线',
+      routeLabel: metrics.duration ? '当前进度' : '途中过线',
     }
   }
 
   if (model.template === 'activity_summary') {
     return {
       eyebrow: 'ACTIVITY SUMMARY',
-      headline: `${metrics.distanceKm} km`,
-      headlineLabel: 'TOTAL DISTANCE',
+      headline: typeof metrics.distanceKm === 'number' ? `${formatDistanceKm(metrics.distanceKm)} km` : undefined,
+      headlineLabel: typeof metrics.distanceKm === 'number' ? 'TOTAL DISTANCE' : undefined,
       quote,
       metrics: [
-        { label: '累计爬升', value: `${metrics.ascentM} m` },
-        { label: '运动时长', value: metrics.duration },
-        { label: '最高海拔', value: `${model.altitude.toLocaleString()} m` },
-        { label: '平均配速', value: metrics.pace },
+        ...(typeof metrics.ascentM === 'number'
+          ? [{ label: '累计爬升', value: `${metrics.ascentM.toLocaleString()} m` }]
+          : []),
+        ...(metrics.duration ? [{ label: '运动时长', value: metrics.duration }] : []),
+        ...(altitudeLabel ? [{ label: '最高海拔', value: altitudeLabel }] : []),
+        ...(metrics.pace ? [{ label: '平均配速', value: metrics.pace }] : []),
       ],
       footer: `${dateLabel} · ${truncateText(model.username, 18)}`,
-      footerCoordinates,
       note: cleanNote || noteFallback,
       routeLabel: '活动轨迹',
     }
@@ -553,8 +601,8 @@ function buildTemplateContent(model: PosterModel): TemplateContent {
   if (isHistoricalRecord) {
     return {
       eyebrow: 'PHOTO RECORD',
-      headline: `${model.altitude.toLocaleString()} m`,
-      headlineLabel: '峰顶海拔',
+      headline: altitudeLabel,
+      headlineLabel: altitudeLabel ? '最高海拔' : undefined,
       quote,
       spotlight: { label: '记录时间', value: timeLabel },
       metrics: [
@@ -562,24 +610,41 @@ function buildTemplateContent(model: PosterModel): TemplateContent {
         { label: '记录地点', value: cleanProvince || '历史记录' },
       ],
       footer: `${dateLabel} · ${cleanProvince || '历史记录'}`,
-      footerCoordinates,
       note: cleanNote || noteFallback,
       routeLabel: '照片记录摘要',
     }
   }
 
+  if (isUploadedRecord) {
+    return {
+      eyebrow: 'UPLOADED RECORD',
+      headline: altitudeLabel,
+      headlineLabel: altitudeLabel ? '最高海拔' : undefined,
+      quote,
+      spotlight: { label: '记录时间', value: timeLabel },
+      metrics: [
+        { label: '记录方式', value: '上传数据' },
+        { label: '记录地点', value: cleanProvince || '上传记录' },
+      ],
+      footer: `${dateLabel} · ${cleanProvince || '上传记录'}`,
+      note: cleanNote || noteFallback,
+      routeLabel: '上传轨迹摘要',
+    }
+  }
+
   return {
     eyebrow: '峰顶荣誉卡',
-    headline: `${model.altitude.toLocaleString()} m`,
-    headlineLabel: '峰顶海拔',
+    headline: altitudeLabel,
+    headlineLabel: altitudeLabel ? '最高海拔' : undefined,
     quote,
     spotlight: { label: '登顶时间', value: timeLabel },
     metrics: [
-      { label: '累计爬升', value: `${metrics.ascentM} m` },
-      { label: '活动时长', value: metrics.duration },
+      ...(typeof metrics.ascentM === 'number'
+        ? [{ label: '累计爬升', value: `${metrics.ascentM.toLocaleString()} m` }]
+        : []),
+      ...(metrics.duration ? [{ label: '活动时长', value: metrics.duration }] : []),
     ],
     footer: `${dateLabel} · ${cleanProvince || '山顶已核验'}`,
-    footerCoordinates,
     note: cleanNote || noteFallback,
     routeLabel: '登顶轨迹证明',
   }
@@ -712,31 +777,45 @@ function buildVerificationBadge({
   x,
   y,
   template,
-  verified,
+  source,
 }: {
   x: number
   y: number
   template: ShareCardTemplate
-  verified: boolean
+  source: CheckinSource
 }) {
   const isInProgress = template === 'trek_snapshot'
+  const isGpsVerified = source === 'realtime_gps'
+  const isHistoricalPhoto = source === 'historical_photo'
   const toneStroke = isInProgress
     ? 'rgba(126,240,180,0.72)'
-    : verified
+    : isGpsVerified
       ? 'rgba(126,240,180,0.34)'
       : 'rgba(245,247,248,0.18)'
   const toneFill = isInProgress
     ? '#7EF0B4'
-    : verified
+    : isGpsVerified
       ? 'rgba(14,26,22,0.64)'
       : 'rgba(26,28,30,0.64)'
-  const toneText = isInProgress ? '#0E1A16' : verified ? '#7EF0B4' : '#D9DDE1'
+  const toneText = isInProgress ? '#0E1A16' : isGpsVerified ? '#7EF0B4' : '#D9DDE1'
   const secondaryText = isInProgress ? 'rgba(14,26,22,0.74)' : 'rgba(245,247,248,0.62)'
   const iconRingFill = isInProgress ? 'rgba(14,26,22,0.12)' : 'rgba(255,255,255,0.04)'
   const iconAccent = isInProgress ? '#0E1A16' : toneText
   const iconCheck = isInProgress ? '#0E1A16' : '#F5F7F8'
-  const secondaryLabel = isInProgress ? 'IN PROGRESS' : verified ? 'Certified Summit' : 'Historical Entry'
-  const primaryLabel = isInProgress ? '记录中' : verified ? 'GPS VERIFIED' : 'PHOTO RECORD'
+  const secondaryLabel = isInProgress
+    ? 'IN PROGRESS'
+    : isGpsVerified
+      ? 'Certified Summit'
+      : isHistoricalPhoto
+        ? 'Historical Entry'
+        : 'Uploaded Record'
+  const primaryLabel = isInProgress
+    ? '记录中'
+    : isGpsVerified
+      ? 'GPS VERIFIED'
+      : isHistoricalPhoto
+        ? 'PHOTO RECORD'
+        : 'UPLOADED'
 
   return `
     <g filter="url(#shadow)">
@@ -772,11 +851,22 @@ function buildHistoricalRecordLockup({ x, y }: { x: number; y: number }) {
   `
 }
 
+function buildUploadedRecordLockup({ x, y }: { x: number; y: number }) {
+  return `
+    <g filter="url(#shadow)">
+      <text x="${x}" y="${y}" font-family="IBM Plex Mono, monospace" font-size="18" fill="#D9DDE1">UPLOADED</text>
+      <rect x="${x}" y="${y + 18}" width="164" height="50" rx="25" fill="rgba(38,42,46,0.58)" stroke="rgba(217,221,225,0.24)" />
+      <circle cx="${x + 24}" cy="${y + 43}" r="8" fill="#D9DDE1" />
+      <text x="${x + 42}" y="${y + 51}" font-family="Manrope, sans-serif" font-size="26" font-weight="800" fill="#F5F7F8">上传数据</text>
+    </g>
+  `
+}
+
 function buildFooterBrandSignature({ x, y }: { x: number; y: number }) {
   return `
     <g opacity="0.92" data-footer-brand="true" data-footer-brand-y="${y}">
       <text x="${x}" y="${y}" dominant-baseline="text-before-edge" font-family="IBM Plex Mono, monospace" font-size="17" fill="#7EF0B4">PEAK TREKKER</text>
-      <text x="${x + 160}" y="${y}" dominant-baseline="text-before-edge" font-family="IBM Plex Mono, monospace" font-size="17" fill="rgba(245,247,248,0.54)">MOUNTAIN VERIFIED STORY</text>
+      <text x="${x + 160}" y="${y}" dominant-baseline="text-before-edge" font-family="IBM Plex Mono, monospace" font-size="17" fill="rgba(245,247,248,0.54)">MOUNTAIN STORY</text>
     </g>
   `
 }
@@ -966,7 +1056,8 @@ function buildOverlaySVG(model: PosterModel) {
   const content = buildTemplateContent(model)
   const title = truncateText(model.mountainName, 14)
   const province = truncateText(model.province || '中国山地', 18)
-  const isHistoricalSummitCard = model.template === 'summit_card' && !model.verified
+  const isHistoricalSummitCard = model.template === 'summit_card' && model.source === 'historical_photo'
+  const isUploadedSummitCard = model.template === 'summit_card' && (model.source === 'track_import' || isScreenshotRecognitionSource(model.source))
   const previewBackground = model.previewBackground === 'none'
     ? (model.renderMode === 'photo_composite' ? 'scenic' : 'none')
     : model.previewBackground
@@ -978,12 +1069,13 @@ function buildOverlaySVG(model: PosterModel) {
 
   if (model.template === 'summit_card') {
     const badgeX = POSTER_WIDTH - 80 - 324
+    const hasHero = Boolean(content.headline && content.headlineLabel)
     const titleY = contentTop + 186
     const provinceY = contentTop + 236
     const honorY = contentTop + 280
     const headlineY = contentTop + 560
     const headlineLabelY = contentTop + 616
-    const cardY = contentTop + 692
+    const cardY = hasHero ? contentTop + 692 : contentTop + 448
     const cardWidth = 448
     const cardHeight = 272
     const leftCardX = 72
@@ -992,14 +1084,20 @@ function buildOverlaySVG(model: PosterModel) {
     return svgShell(`
       ${scrim}
       ${buildBrandLockup({ x: 80, y: contentTop, compact: true })}
-      ${buildVerificationBadge({ x: badgeX, y: contentTop, template: model.template, verified: model.verified })}
+      ${buildVerificationBadge({ x: badgeX, y: contentTop, template: model.template, source: model.source })}
 
       <g filter="url(#textShadow)">
         <text x="80" y="${titleY}" font-family="Manrope, sans-serif" font-size="92" font-weight="800" fill="#F5F7F8">${escapeSvg(title)}</text>
         <text x="80" y="${provinceY}" font-family="Manrope, sans-serif" font-size="34" fill="rgba(245,247,248,0.84)">${escapeSvg(province)}</text>
-        ${isHistoricalSummitCard ? buildHistoricalRecordLockup({ x: 80, y: honorY }) : buildSummitHonorLockup({ x: 80, y: honorY })}
-        <text x="80" y="${headlineY}" font-family="Manrope, sans-serif" font-size="188" font-weight="800" fill="#F5F7F8">${escapeSvg(content.headline)}</text>
-        <text x="80" y="${headlineLabelY}" font-family="IBM Plex Mono, monospace" font-size="28" fill="rgba(245,247,248,0.76)">${content.headlineLabel}</text>
+        ${isHistoricalSummitCard
+          ? buildHistoricalRecordLockup({ x: 80, y: honorY })
+          : isUploadedSummitCard
+            ? buildUploadedRecordLockup({ x: 80, y: honorY })
+            : buildSummitHonorLockup({ x: 80, y: honorY })}
+        ${hasHero
+          ? `<text x="80" y="${headlineY}" font-family="Manrope, sans-serif" font-size="188" font-weight="800" fill="#F5F7F8">${escapeSvg(content.headline ?? '')}</text>
+        <text x="80" y="${headlineLabelY}" font-family="IBM Plex Mono, monospace" font-size="28" fill="rgba(245,247,248,0.76)">${escapeSvg(content.headlineLabel ?? '')}</text>`
+          : ''}
       </g>
 
       <g filter="url(#shadow)">
@@ -1007,7 +1105,6 @@ function buildOverlaySVG(model: PosterModel) {
         <text x="${leftCardX + 34}" y="${cardY + 44}" font-family="IBM Plex Mono, monospace" font-size="20" fill="rgba(245,247,248,0.64)">${content.spotlight?.label ?? '登顶时间'}</text>
         <text x="${leftCardX + 34}" y="${cardY + 124}" font-family="Manrope, sans-serif" font-size="78" font-weight="800" fill="#F5F7F8">${escapeSvg(content.spotlight?.value ?? '')}</text>
         <text x="${leftCardX + 34}" y="${cardY + 192}" font-family="IBM Plex Mono, monospace" font-size="22" fill="rgba(245,247,248,0.74)">${escapeSvg(content.footer)}</text>
-        ${content.footerCoordinates ? `<text x="${leftCardX + 34}" y="${cardY + 228}" font-family="IBM Plex Mono, monospace" font-size="18" fill="rgba(245,247,248,0.6)">${escapeSvg(content.footerCoordinates)}</text>` : ''}
       </g>
 
       ${buildRouteModule({
@@ -1017,12 +1114,13 @@ function buildOverlaySVG(model: PosterModel) {
         height: cardHeight,
         label: content.routeLabel,
         transparent: true,
-        caption: isHistoricalSummitCard ? 'Photo Record' : 'Peak Route',
+        caption: isHistoricalSummitCard ? 'Photo Record' : isUploadedSummitCard ? 'Uploaded Record' : 'Peak Route',
       })}
     `, previewBackground)
   }
 
   if (model.renderMode === 'photo_composite' || model.renderMode === 'overlay_only') {
+    const hasHero = Boolean(content.headline && content.headlineLabel)
     const badgeX = POSTER_WIDTH - 80 - 324
     const titleY = contentTop + 146
     const provinceY = contentTop + 190
@@ -1039,28 +1137,28 @@ function buildOverlaySVG(model: PosterModel) {
     return svgShell(`
       ${scrim}
       ${buildBrandLockup({ x: 80, y: contentTop, compact: true })}
-      ${buildVerificationBadge({ x: badgeX, y: contentTop, template: model.template, verified: model.verified })}
+      ${buildVerificationBadge({ x: badgeX, y: contentTop, template: model.template, source: model.source })}
 
       <g filter="url(#textShadow)">
         <text x="80" y="${titleY}" font-family="Manrope, sans-serif" font-size="74" font-weight="800" fill="#F5F7F8">${escapeSvg(title)}</text>
         <text x="80" y="${provinceY}" font-family="Manrope, sans-serif" font-size="28" fill="rgba(245,247,248,0.82)">${escapeSvg(province)}</text>
       </g>
 
-      ${buildMetricProofCard({
+      ${hasHero ? buildMetricProofCard({
         x: heroCardX,
         y: heroCardY,
         width: heroCardWidth,
         height: heroCardHeight,
         label: content.eyebrow,
-        headline: content.headline,
-        caption: content.headlineLabel,
+        headline: content.headline ?? '',
+        caption: content.headlineLabel ?? '',
         transparent: true,
-      })}
+      }) : ''}
 
       ${buildRouteModule({
-        x: routeCardX,
+        x: hasHero ? routeCardX : heroCardX,
         y: heroCardY,
-        width: routeCardWidth,
+        width: hasHero ? routeCardWidth : heroCardWidth + 32 + routeCardWidth,
         height: routeCardHeight,
         label: content.routeLabel,
         transparent: true,
@@ -1071,26 +1169,28 @@ function buildOverlaySVG(model: PosterModel) {
 
       <g filter="url(#textShadow)">
         <text x="${heroCardX}" y="${footerY}" font-family="IBM Plex Mono, monospace" font-size="18" fill="rgba(245,247,248,0.68)">${escapeSvg(content.footer)}</text>
-        ${content.footerCoordinates ? `<text x="${heroCardX}" y="${footerY + 28}" font-family="IBM Plex Mono, monospace" font-size="16" fill="rgba(245,247,248,0.56)">${escapeSvg(content.footerCoordinates)}</text>` : ''}
       </g>
     `, previewBackground)
   }
 
-  const headlineSize = headlineFontSize(content.headline)
+  const hasHero = Boolean(content.headline && content.headlineLabel)
+  const headlineSize = hasHero ? headlineFontSize(content.headline ?? '') : 0
   const headlineY = contentTop + 320
-  const panelY = contentTop + 452
+  const panelY = hasHero ? contentTop + 452 : contentTop + 292
 
   return svgShell(`
     ${scrim}
     ${buildBrandLockup({ x: 80, y: contentTop, compact: true })}
-    ${buildVerificationBadge({ x: POSTER_WIDTH - 80 - 324, y: contentTop, template: model.template, verified: model.verified })}
+    ${buildVerificationBadge({ x: POSTER_WIDTH - 80 - 324, y: contentTop, template: model.template, source: model.source })}
 
     <g filter="url(#textShadow)">
       <text x="80" y="${contentTop + 138}" font-family="Manrope, sans-serif" font-size="76" font-weight="800" fill="#F5F7F8">${escapeSvg(title)}</text>
       <text x="80" y="${contentTop + 182}" font-family="Manrope, sans-serif" font-size="28" fill="rgba(245,247,248,0.82)">${escapeSvg(province)}</text>
       <text x="80" y="${contentTop + 232}" font-family="IBM Plex Mono, monospace" font-size="19" fill="#7EF0B4">${content.eyebrow}</text>
-      <text x="80" y="${headlineY}" font-family="Manrope, sans-serif" font-size="${headlineSize}" font-weight="800" fill="#F5F7F8">${escapeSvg(content.headline)}</text>
-      <text x="80" y="${headlineY + 44}" font-family="IBM Plex Mono, monospace" font-size="22" fill="rgba(245,247,248,0.72)">${content.headlineLabel}</text>
+      ${hasHero
+        ? `<text x="80" y="${headlineY}" font-family="Manrope, sans-serif" font-size="${headlineSize}" font-weight="800" fill="#F5F7F8">${escapeSvg(content.headline ?? '')}</text>
+      <text x="80" y="${headlineY + 44}" font-family="IBM Plex Mono, monospace" font-size="22" fill="rgba(245,247,248,0.72)">${escapeSvg(content.headlineLabel ?? '')}</text>`
+        : ''}
     </g>
 
     ${buildOverlayMetrics(content.metrics, 80, panelY)}
@@ -1114,13 +1214,24 @@ function buildClassicSVG(model: PosterModel) {
   const content = buildTemplateContent(model)
   const title = truncateText(model.mountainName, 14)
   const province = truncateText(model.province || '中国山地', 18)
-  const headlineSize = model.template === 'summit_card' ? 188 : headlineFontSize(content.headline)
-  const isHistoricalSummitCard = model.template === 'summit_card' && !model.verified
+  const hasHero = Boolean(content.headline && content.headlineLabel)
+  const headlineSize = hasHero
+    ? model.template === 'summit_card'
+      ? 188
+      : headlineFontSize(content.headline ?? '')
+    : 0
+  const isHistoricalSummitCard = model.template === 'summit_card' && model.source === 'historical_photo'
+  const isUploadedSummitCard = model.template === 'summit_card' && (model.source === 'track_import' || isScreenshotRecognitionSource(model.source))
 
   if (model.template === 'summit_card') {
-    const metricCardY = 1158
+    const infoCardY = hasHero ? 764 : 548
+    const metricCardY = hasHero ? 1158 : 944
     const metricCardHeight = 112
-    const metricsBottomY = metricCardY + metricCardHeight
+    const visibleMetricCount = Math.min(content.metrics.length, 4)
+    const metricRowCount = Math.ceil(visibleMetricCount / 2)
+    const metricsBottomY = metricRowCount > 0
+      ? metricCardY + (metricRowCount - 1) * 128 + metricCardHeight
+      : metricCardY
     const quoteRegion = buildClassicQuoteRegion({
       template: model.template,
       panelX: 92,
@@ -1140,41 +1251,40 @@ function buildClassicSVG(model: PosterModel) {
     return svgShell(`
       ${buildClassicBackgroundArt(model)}
       ${buildBrandLockup({ x: 84, y: 84 })}
-      ${buildVerificationBadge({ x: 672, y: 90, template: model.template, verified: model.verified })}
+      ${buildVerificationBadge({ x: 672, y: 90, template: model.template, source: model.source })}
 
       <g filter="url(#textShadow)">
         <text x="84" y="256" font-family="Manrope, sans-serif" font-size="92" font-weight="800" fill="#F5F7F8">${escapeSvg(title)}</text>
         <text x="84" y="308" font-family="Manrope, sans-serif" font-size="34" fill="rgba(245,247,248,0.84)">${escapeSvg(province)}</text>
-        ${isHistoricalSummitCard ? buildHistoricalRecordLockup({ x: 84, y: 354 }) : buildSummitHonorLockup({ x: 84, y: 354 })}
-        <text x="84" y="632" font-family="Manrope, sans-serif" font-size="${headlineSize + 14}" font-weight="800" fill="#F5F7F8">${escapeSvg(content.headline)}</text>
-        <text x="84" y="688" font-family="IBM Plex Mono, monospace" font-size="28" fill="rgba(245,247,248,0.74)">${content.headlineLabel}</text>
+        ${isHistoricalSummitCard
+          ? buildHistoricalRecordLockup({ x: 84, y: 354 })
+          : isUploadedSummitCard
+            ? buildUploadedRecordLockup({ x: 84, y: 354 })
+            : buildSummitHonorLockup({ x: 84, y: 354 })}
+        ${hasHero
+          ? `<text x="84" y="632" font-family="Manrope, sans-serif" font-size="${headlineSize + 14}" font-weight="800" fill="#F5F7F8">${escapeSvg(content.headline ?? '')}</text>
+        <text x="84" y="688" font-family="IBM Plex Mono, monospace" font-size="28" fill="rgba(245,247,248,0.74)">${escapeSvg(content.headlineLabel ?? '')}</text>`
+          : ''}
       </g>
 
       <g filter="url(#shadow)">
-        <rect x="72" y="764" width="452" height="292" rx="34" fill="rgba(18,20,22,0.58)" stroke="rgba(126,240,180,0.22)" />
-        <text x="106" y="810" font-family="IBM Plex Mono, monospace" font-size="20" fill="rgba(245,247,248,0.66)">${content.spotlight?.label ?? '登顶时间'}</text>
-        <text x="106" y="900" font-family="Manrope, sans-serif" font-size="92" font-weight="800" fill="#F5F7F8">${escapeSvg(content.spotlight?.value ?? '')}</text>
-        <text x="106" y="972" font-family="IBM Plex Mono, monospace" font-size="22" fill="rgba(245,247,248,0.72)">${escapeSvg(content.footer)}</text>
-        ${content.footerCoordinates ? `<text x="106" y="1010" font-family="IBM Plex Mono, monospace" font-size="18" fill="rgba(245,247,248,0.58)">${escapeSvg(content.footerCoordinates)}</text>` : ''}
+        <rect x="72" y="${infoCardY}" width="452" height="292" rx="34" fill="rgba(18,20,22,0.58)" stroke="rgba(126,240,180,0.22)" />
+        <text x="106" y="${infoCardY + 46}" font-family="IBM Plex Mono, monospace" font-size="20" fill="rgba(245,247,248,0.66)">${content.spotlight?.label ?? '登顶时间'}</text>
+        <text x="106" y="${infoCardY + 136}" font-family="Manrope, sans-serif" font-size="92" font-weight="800" fill="#F5F7F8">${escapeSvg(content.spotlight?.value ?? '')}</text>
+        <text x="106" y="${infoCardY + 208}" font-family="IBM Plex Mono, monospace" font-size="22" fill="rgba(245,247,248,0.72)">${escapeSvg(content.footer)}</text>
       </g>
 
       ${buildRouteModule({
         x: 556,
-        y: 764,
+        y: infoCardY,
         width: 452,
         height: 292,
         label: content.routeLabel,
         transparent: false,
-        caption: isHistoricalSummitCard ? 'Photo Record' : 'Peak Route',
+        caption: isHistoricalSummitCard ? 'Photo Record' : isUploadedSummitCard ? 'Uploaded Record' : 'Peak Route',
       })}
 
-      <rect x="92" y="1158" width="412" height="112" rx="28" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" />
-      <text x="124" y="1198" font-family="IBM Plex Mono, monospace" font-size="18" fill="rgba(245,247,248,0.64)">${escapeSvg(content.metrics[0]?.label ?? '')}</text>
-      <text x="124" y="1244" font-family="Manrope, sans-serif" font-size="52" font-weight="800" fill="#F5F7F8">${escapeSvg(content.metrics[0]?.value ?? '')}</text>
-
-      <rect x="576" y="1158" width="412" height="112" rx="28" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" />
-      <text x="608" y="1198" font-family="IBM Plex Mono, monospace" font-size="18" fill="rgba(245,247,248,0.64)">${escapeSvg(content.metrics[1]?.label ?? '')}</text>
-      <text x="608" y="1244" font-family="Manrope, sans-serif" font-size="52" font-weight="800" fill="#F5F7F8">${escapeSvg(content.metrics[1]?.value ?? '')}</text>
+      ${buildClassicMetrics(content.metrics, 92, metricCardY)}
 
       ${quoteRegion.markup}
       ${buildFooterBrandSignature({ x: 124, y: quoteRegion.footerY })}
@@ -1200,16 +1310,18 @@ function buildClassicSVG(model: PosterModel) {
   })
 
   return svgShell(`
-    ${buildClassicBackgroundArt(model)}
-    ${buildBrandLockup({ x: 84, y: 84 })}
-    ${buildVerificationBadge({ x: 672, y: 90, template: model.template, verified: model.verified })}
+      ${buildClassicBackgroundArt(model)}
+      ${buildBrandLockup({ x: 84, y: 84 })}
+    ${buildVerificationBadge({ x: 672, y: 90, template: model.template, source: model.source })}
 
     <g filter="url(#textShadow)">
       <text x="84" y="246" font-family="Manrope, sans-serif" font-size="78" font-weight="800" fill="#F5F7F8">${escapeSvg(title)}</text>
       <text x="84" y="294" font-family="Manrope, sans-serif" font-size="30" fill="rgba(245,247,248,0.78)">${escapeSvg(province)}</text>
       <text x="84" y="350" font-family="IBM Plex Mono, monospace" font-size="19" fill="#7EF0B4">${content.eyebrow}</text>
-      <text x="84" y="528" font-family="Manrope, sans-serif" font-size="${headlineSize}" font-weight="800" fill="#F5F7F8">${escapeSvg(content.headline)}</text>
-      <text x="84" y="578" font-family="IBM Plex Mono, monospace" font-size="24" fill="rgba(245,247,248,0.72)">${content.headlineLabel}</text>
+      ${hasHero
+        ? `<text x="84" y="528" font-family="Manrope, sans-serif" font-size="${headlineSize}" font-weight="800" fill="#F5F7F8">${escapeSvg(content.headline ?? '')}</text>
+      <text x="84" y="578" font-family="IBM Plex Mono, monospace" font-size="24" fill="rgba(245,247,248,0.72)">${escapeSvg(content.headlineLabel ?? '')}</text>`
+        : ''}
     </g>
 
     <g filter="url(#shadow)">
@@ -1269,11 +1381,65 @@ function parseNumericSearchParam(value: string | null) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function parseDemoAltitudeSearchParam(value: string | null) {
+  if (value === 'none' || value === 'null' || value === 'absent') return undefined
+  return parseNumericSearchParam(value) ?? 6250
+}
+
 function parseBooleanSearchParam(value: string | null, fallback: boolean) {
   if (value == null) return fallback
   if (value === '1' || value.toLowerCase() === 'true') return true
   if (value === '0' || value.toLowerCase() === 'false') return false
   return fallback
+}
+
+function parseDemoSource(value: string | null, verified: boolean): CheckinSource {
+  if (
+    value === 'realtime_gps' ||
+    value === 'historical_photo' ||
+    value === 'track_import' ||
+    isScreenshotRecognitionSource(value)
+  ) {
+    return value
+  }
+
+  return verified ? 'realtime_gps' : 'historical_photo'
+}
+
+type PosterTrekSessionRow = {
+  id: string
+  started_at: string | null
+  ended_at: string | null
+  distance_m: number | null
+  ascent_m: number | null
+  max_altitude_m: number | null
+}
+
+const POSTER_TREK_SESSION_SELECT = 'id, started_at, ended_at, distance_m, ascent_m, max_altitude_m'
+
+async function fetchPosterTrekSession(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  sessionId: string,
+) {
+  const result = await supabase
+    .from('trek_sessions')
+    .select(POSTER_TREK_SESSION_SELECT)
+    .eq('id', sessionId)
+    .maybeSingle()
+
+  if (result.error && isSchemaCompatibilityErrorMessage(result.error.message)) {
+    return null
+  }
+
+  return (result.data ?? null) as PosterTrekSessionRow | null
+}
+
+function secondsBetween(startedAt?: string | null, endedAt?: string | null) {
+  if (!startedAt || !endedAt) return undefined
+  const started = new Date(startedAt).getTime()
+  const ended = new Date(endedAt).getTime()
+  if (!Number.isFinite(started) || !Number.isFinite(ended) || ended <= started) return undefined
+  return Math.round((ended - started) / 1000)
 }
 
 export async function GET(request: NextRequest) {
@@ -1294,22 +1460,24 @@ export async function GET(request: NextRequest) {
   const asSvg = searchParams.get('format') === 'svg'
 
   if (checkinId === 'demo') {
+    const demoAltitude = parseDemoAltitudeSearchParam(searchParams.get('altitude'))
+    const demoVerified = parseBooleanSearchParam(searchParams.get('verified'), true)
+    const demoSource = parseDemoSource(searchParams.get('source'), demoVerified)
     const svg = buildPosterSVG({
       template,
       mountainName: searchParams.get('mountainName') || '四姑娘山',
-      altitude: parseNumericSearchParam(searchParams.get('altitude')) ?? 6250,
+      altitude: demoAltitude,
       province: searchParams.get('province') || '四川',
-      latitude: parseNumericSearchParam(searchParams.get('latitude')) ?? 31.1042,
-      longitude: parseNumericSearchParam(searchParams.get('longitude')) ?? 102.8874,
       username: searchParams.get('username') || 'PeakTrekker',
       checkinDate: searchParams.get('checkinDate') || new Date().toISOString(),
       note: searchParams.get('note') || '山顶风很大，但这次活动完整记录下来了。',
-      verified: parseBooleanSearchParam(searchParams.get('verified'), true),
+      source: demoSource,
       renderMode,
       anchorPosition,
       previewBackground,
       coverImageHref: null,
       quoteOverride: resolvePosterQuote(template, quoteIndex, quotePoolMode),
+      isDemo: true,
       metricOverrides: {
         distanceKm: parseNumericSearchParam(searchParams.get('distanceKm')),
         ascentM: parseNumericSearchParam(searchParams.get('ascentM')),
@@ -1337,18 +1505,20 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser()
   const checkinSelectVariants = [
     `
-      id, user_id, type, source, note, created_at, latitude, longitude,
-      mountains(name, altitude, province, cover_image, gallery_images, route_preview_image, route_preview_image_url, latitude, longitude),
+      id, user_id, type, source, note, created_at, session_id,
+      distance_meters, duration_seconds, elevation_gain_meters, max_elevation_meters,
+      mountains(name, province, cover_image, gallery_images, route_preview_image, route_preview_image_url),
       profiles(username)
     `,
     `
-      id, user_id, type, source, note, created_at, latitude, longitude,
-      mountains(name, altitude, province, cover_image, latitude, longitude),
+      id, user_id, type, source, note, created_at, session_id,
+      distance_meters, duration_seconds, elevation_gain_meters, max_elevation_meters,
+      mountains(name, province, cover_image),
       profiles(username)
     `,
     `
-      id, user_id, type, note, created_at, latitude, longitude,
-      mountains(name, altitude, province, cover_image, latitude, longitude),
+      id, user_id, type, note, created_at,
+      mountains(name, province, cover_image),
       profiles(username)
     `,
   ]
@@ -1390,8 +1560,11 @@ export async function GET(request: NextRequest) {
     type: string
     note: string | null
     created_at: string
-    latitude?: number | null
-    longitude?: number | null
+    session_id?: string | null
+    distance_meters?: number | null
+    duration_seconds?: number | null
+    elevation_gain_meters?: number | null
+    max_elevation_meters?: number | null
     mountains: unknown
     profiles: unknown
     source?: string | null
@@ -1404,14 +1577,11 @@ export async function GET(request: NextRequest) {
 
   const mountain = checkin.mountains as {
     name?: string
-    altitude?: number
     province?: string
     cover_image?: string | null
     gallery_images?: string[] | null
     route_preview_image?: string | null
     route_preview_image_url?: string | null
-    latitude?: number | null
-    longitude?: number | null
   } | null
   const profile = checkin.profiles as { username?: string } | null
   const source = resolveCheckinSource({
@@ -1441,12 +1611,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Checkin not found' }, { status: 404 })
     }
   }
-  const latitude = hasValidCoordinates(checkin.latitude ?? null, checkin.longitude ?? null)
-    ? checkin.latitude ?? null
-    : mountain?.latitude ?? null
-  const longitude = hasValidCoordinates(checkin.latitude ?? null, checkin.longitude ?? null)
-    ? checkin.longitude ?? null
-    : mountain?.longitude ?? null
+  const session = checkin.session_id
+    ? await fetchPosterTrekSession(adminSupabase, checkin.session_id)
+    : null
+  const measuredAltitude = resolveMeasuredShareAltitude(checkin.max_elevation_meters, session?.max_altitude_m)
+  const distanceMeters = positiveNumber(checkin.distance_meters) ?? positiveNumber(session?.distance_m)
+  const durationSeconds =
+    positiveNumber(checkin.duration_seconds) ??
+    secondsBetween(session?.started_at, session?.ended_at)
+  const elevationGain = positiveNumber(checkin.elevation_gain_meters) ?? positiveNumber(session?.ascent_m)
 
   const coverImageHref = renderMode === 'classic_card'
     ? await resolveCoverImageHref(getMountainPosterBackgroundImage(mountain ?? {}) ?? null, request.nextUrl.origin)
@@ -1455,19 +1628,21 @@ export async function GET(request: NextRequest) {
   const svg = buildPosterSVG({
     template,
     mountainName,
-    altitude: mountain?.altitude ?? 0,
+    altitude: measuredAltitude,
     province: mountain?.province ?? '',
-    latitude,
-    longitude,
     username: profile?.username ?? '登山者',
     checkinDate: checkin.created_at,
     note: checkin.note ?? '',
-    verified: source === 'realtime_gps',
+    source,
     renderMode,
     anchorPosition,
     previewBackground,
     coverImageHref,
-    metricOverrides: null,
+    metrics: {
+      distanceKm: typeof distanceMeters === 'number' ? distanceMeters / 1000 : undefined,
+      ascentM: elevationGain,
+      durationSec: durationSeconds,
+    },
   })
 
   if (asSvg) {

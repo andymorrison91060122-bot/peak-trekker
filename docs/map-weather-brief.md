@@ -695,8 +695,8 @@ PMTiles object path 一旦被客户端引用，就按长期缓存处理。失效
 * app registry 只登记 production baseline，不登记实验候选
 * Storage 仅保留 production baseline per-mountain 包；FU-52 确认删除 z=7 全国包与 Huashan 实验候选前必须先人工 review 删除清单
 * Mountain Detail 对无 PMTiles 山不走全国 z=7 兜底
-* Activity Detail 缺 mountain-bbox PMTiles 时走 trace-only（无底图 + SVG fit-bounds trace overlay），不再使用 z=7 背景（见 §15.5.4 v0.3.4）
-* 浏览器证据覆盖 PMTiles ok / text fallback / unavailable / Activity trace-only fallback
+* Activity Detail 缺 mountain-bbox PMTiles 或活动轨迹超出 mountain-bbox envelope 时走 trace-only（无底图 + aspect-correct SVG fit-bounds trace overlay），不再使用 z=7 背景（见 §15.5.4 v0.3.7）
+* 浏览器证据覆盖 PMTiles ok / text fallback / unavailable / Activity trace-only fallback / out-of-envelope fallback
 
 ---
 
@@ -759,6 +759,10 @@ NavigationControl 提供原生 +/− 按钮。product surface 由 NavigationCont
 - 视觉尺寸等同 share poster
 
 z=7 全国主包不作为 Activity Detail 产品 fallback。FU-52 起 `src/lib/map/map-assets.ts` 也不再登记 national z7 包；`/debug/map-prototype` 改用 Huashan per-mountain baseline 验证。SVG fit-bounds overlay 不挂 MapLibre layer 是为了保持分享海报视觉尺寸（若挂 MapLibre layer 会按底图 zoom 比例压成几像素无法分享）。
+
+**FU-83 v0.3.7 trace-only 投影口径**：所有 trace-only SVG 轨迹投影必须使用共享 WGS-84 geo projector：`lngRange * cos(midLat)` 修正经度量纲，`range = max(latRange, effectiveLngRange, epsilon)`，经纬两轴使用同一个 range，再按目标 frame 短边统一 scale、居中 letterbox、保留 padding。Activity / Trek / Community detail 的 trace-only 路径与 marker 必须共用同一个 projector 实例，避免线与标记相对位置漂移。坐标 datum 已按 FU-16 确认为 WGS-84；本阶段不做 GCJ 偏移处理。
+
+**Activity Detail out-of-envelope fallback**：当 activity 有 mountain-bbox PMTiles，但轨迹点超出 PMTiles bbox 的扩展 envelope 时，必须在 MapLibre mount 之前切到 trace-only。判定策略：将 bbox 每轴扩展 8%，若超过 1% 的有效轨迹点落在扩展 bbox 外，则 `data-map-mode="trace-only-out-of-envelope"`；边缘贴近但仍在 8% margin 内的轨迹、或仅有少量异常尖点（≤1%）不得降级。正常 in-bbox 活动继续 `data-map-mode="mountain-pmtiles"` 并保持 GeoJSON 叠加层。
 
 ### 15.5.5 Layer allowlist
 
@@ -854,6 +858,12 @@ product surface 需要外部按钮触发 zoomIn / zoomOut / fitBounds 时，通�
 > **地图可控、天气分层、热门优先、长尾可降级、边界清楚。**
 
 Peak Trekker 当前阶段不应该为了“所有山都实时天气”而牺牲主线的稳定性、可控性和上线速度。
+
+### v0.3.7 — 2026-06-13
+
+- FU-83: Activity / Trek / Community detail 的 trace-only 轨迹投影统一为共享 WGS-84 geo projector：`cos(midLat)` 修正经度量纲、单一 range、短边统一 scale、居中 letterbox，避免 GPS 轨迹被 stretch-to-fill 拉伸。
+- Activity Detail 新增 mountain-bbox envelope 判定：bbox 每轴扩展 8%，超过 1% 有效点落在扩展 bbox 外时，在 MapLibre mount 前切换 `trace-only-out-of-envelope`；正常 in-bbox 轨迹仍走 mountain-bbox PMTiles + GeoJSON。
+- 明确 trace-only frame / viewBox / CSS aspect 必须一致；Activity trace-only 为 1:1，Community detail 为 320×190；禁止 `preserveAspectRatio="none"` 拉伸轨迹。
 
 ### v0.3.6 — 2026-05-29
 

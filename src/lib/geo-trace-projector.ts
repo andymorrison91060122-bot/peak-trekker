@@ -41,6 +41,14 @@ export type GeoTraceProjector = {
   meta: GeoTraceProjectorMeta
 }
 
+export type TrackEnvelopeResult = {
+  inside: boolean
+  validPointCount: number
+  outsidePointCount: number
+  outsideRatio: number
+  expandedBbox: readonly [number, number, number, number]
+}
+
 const COORDINATE_EPSILON = 0.0000001
 
 function clampUnit(value: number) {
@@ -150,5 +158,43 @@ export function createGeoTraceProjector(boundsPoints: GeoTracePoint[], frame: Ge
     projectPoints,
     buildPath,
     meta,
+  }
+}
+
+export function evaluateTrackBboxEnvelope(
+  points: GeoTracePoint[],
+  bbox: readonly [number, number, number, number],
+  {
+    marginRatio = 0.08,
+    maxOutsideRatio = 0.01,
+  }: {
+    marginRatio?: number
+    maxOutsideRatio?: number
+  } = {},
+): TrackEnvelopeResult {
+  const validPoints = points.filter(isValidGeoTracePoint)
+  const lngSpan = Math.max(COORDINATE_EPSILON, bbox[2] - bbox[0])
+  const latSpan = Math.max(COORDINATE_EPSILON, bbox[3] - bbox[1])
+  const safeMarginRatio = Math.max(0, marginRatio)
+  const expandedBbox = [
+    bbox[0] - lngSpan * safeMarginRatio,
+    bbox[1] - latSpan * safeMarginRatio,
+    bbox[2] + lngSpan * safeMarginRatio,
+    bbox[3] + latSpan * safeMarginRatio,
+  ] as const
+  const outsidePointCount = validPoints.filter((point) =>
+    point.lng < expandedBbox[0] ||
+    point.lng > expandedBbox[2] ||
+    point.lat < expandedBbox[1] ||
+    point.lat > expandedBbox[3]
+  ).length
+  const outsideRatio = validPoints.length ? outsidePointCount / validPoints.length : 0
+
+  return {
+    inside: outsideRatio <= maxOutsideRatio,
+    validPointCount: validPoints.length,
+    outsidePointCount,
+    outsideRatio,
+    expandedBbox,
   }
 }

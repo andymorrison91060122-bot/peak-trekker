@@ -14,7 +14,7 @@ import {
   SHARE_TRACK_CONTENT_FIT,
   SHARE_TRACK_RENDER_PROFILES,
 } from '@/lib/share-track-preview'
-import { createGeoTraceProjector } from '@/lib/geo-trace-projector'
+import { createGeoTraceProjector, evaluateTrackBboxEnvelope } from '@/lib/geo-trace-projector'
 import { isScreenshotRecognitionSource } from '@/lib/trek-utils'
 
 type ProjectedPoint = {
@@ -570,7 +570,20 @@ export default function ActivityRouteMap({
   const forceMountainError = forceMapError === 'mountain'
   const summitTime = activity.summitAt
   const isScreenshotRoute = isScreenshotRecognitionSource(activity.sourceType)
-  const useMountainAsset = Boolean(mountainAsset && !mountainMapFailed)
+  const validTrackPoints = useMemo(() => activity.trackPoints.filter(isValidTrackPoint), [activity.trackPoints])
+  const envelope = useMemo(
+    () => mountainAsset ? evaluateTrackBboxEnvelope(validTrackPoints, mountainAsset.bbox) : null,
+    [mountainAsset, validTrackPoints],
+  )
+  const outOfMountainEnvelope = Boolean(mountainAsset && validTrackPoints.length >= 2 && envelope && !envelope.inside)
+  const useMountainAsset = Boolean(mountainAsset && !mountainMapFailed && !outOfMountainEnvelope)
+  const mapMode = !mountainAsset
+    ? 'trace-only-no-asset'
+    : outOfMountainEnvelope
+      ? 'trace-only-out-of-envelope'
+      : mountainMapFailed
+        ? 'trace-only-map-error'
+        : 'mountain-pmtiles'
   const trace = useMemo(() => buildProjectedTrace(activity.trackPoints), [activity.trackPoints])
 
   if (isScreenshotRoute) {
@@ -590,7 +603,7 @@ export default function ActivityRouteMap({
   }
 
   return (
-    <section className="act-route" data-testid="activity-route-map" data-map-mode={useMountainAsset ? 'mountain-pmtiles' : 'trace-only'}>
+    <section className="act-route" data-testid="activity-route-map" data-map-mode={mapMode}>
       <div className="act-route__section-head">
         <div className="act-route__section-title">走过的路线</div>
         <div className="act-route__section-right">完整轨迹</div>

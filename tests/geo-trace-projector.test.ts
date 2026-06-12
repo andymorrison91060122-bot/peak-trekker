@@ -118,6 +118,38 @@ describe('geo trace projector', () => {
     assert.notEqual(projectedRatio.toFixed(2), '1.00', 'portrait GPX must not stretch to the square frame')
   })
 
+  test('classifies bbox envelope cases with 8% margin and 1% spike tolerance', async () => {
+    const { evaluateTrackBboxEnvelope } = await loadProjector()
+    const bbox = [109.924223, 34.352153, 110.251177, 34.621647] as const
+    const inside = [
+      { lat: 34.4, lng: 110.0 },
+      { lat: 34.45, lng: 110.05 },
+      { lat: 34.5, lng: 110.1 },
+    ]
+    const outside = [
+      { lat: 31.6, lng: 117.1 },
+      { lat: 31.7, lng: 117.2 },
+      { lat: 31.8, lng: 117.3 },
+    ]
+    const edgeWithinMargin = [
+      { lat: 34.621647 + (34.621647 - 34.352153) * 0.07, lng: 110.1 },
+      { lat: 34.55, lng: 110.12 },
+    ]
+    const spike = [
+      ...Array.from({ length: 100 }, (_, index) => ({
+        lat: 34.42 + index * 0.0001,
+        lng: 110.04 + index * 0.0001,
+      })),
+      { lat: 32, lng: 117 },
+    ]
+
+    assert.equal(evaluateTrackBboxEnvelope(inside, bbox).inside, true)
+    assert.equal(evaluateTrackBboxEnvelope(outside, bbox).inside, false)
+    assert.equal(evaluateTrackBboxEnvelope(edgeWithinMargin, bbox).inside, true)
+    assert.equal(evaluateTrackBboxEnvelope(spike, bbox).inside, true)
+    assert.equal(evaluateTrackBboxEnvelope([...spike, { lat: 32.1, lng: 117.1 }], bbox).inside, false)
+  })
+
   test('pins touched render surfaces to aspect-safe frame/viewBox correspondence', () => {
     const activityRouteMap = readFileSync(join(process.cwd(), 'src/components/activity/ActivityRouteMap.tsx'), 'utf8')
     const trekReferenceMap = readFileSync(join(process.cwd(), 'src/components/map/TrekReferenceMap.tsx'), 'utf8')

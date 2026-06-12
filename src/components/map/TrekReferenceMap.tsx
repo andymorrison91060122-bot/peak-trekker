@@ -6,6 +6,7 @@ import type { Mountain } from '@/types'
 import type { TrackPoint } from '@/lib/trek-utils'
 import { getMountainPmtilesAsset } from '@/lib/map/map-assets'
 import PmtilesSnapshotMap from '@/components/map/PmtilesSnapshotMap'
+import { createGeoTraceProjector } from '@/lib/geo-trace-projector'
 
 type TrekGpsState = { lat: number; lng: number; accuracy: number; altitude?: number | null } | null
 type TrekGpsStatus = 'idle' | 'checking' | 'ready' | 'weak' | 'denied' | 'unsupported' | 'error'
@@ -39,7 +40,6 @@ type TrekReferenceMapProps = {
 
 const TREK_LAYER_PREFIX = 'fu47c-trek-reference'
 const TRACE_FRAME = { width: 343, height: 343, padding: 38 }
-const COORDINATE_EPSILON = 0.0000001
 
 function clamp01(value: number) {
   if (!Number.isFinite(value)) return 0
@@ -71,15 +71,6 @@ function sampleTrackPoints(points: TrackPoint[], maxPoints = 120) {
   return sampled.at(-1) === lastPoint ? sampled : [...sampled, lastPoint]
 }
 
-function projectUnitPoint(x: number, y: number): Pick<ProjectedPoint, 'x' | 'y'> {
-  const usableWidth = TRACE_FRAME.width - TRACE_FRAME.padding * 2
-  const usableHeight = TRACE_FRAME.height - TRACE_FRAME.padding * 2
-  return {
-    x: Number((TRACE_FRAME.padding + clamp01(x) * usableWidth).toFixed(2)),
-    y: Number((TRACE_FRAME.padding + clamp01(y) * usableHeight).toFixed(2)),
-  }
-}
-
 function buildProjectedTrace({
   mountain,
   gps,
@@ -100,24 +91,10 @@ function buildProjectedTrace({
   ].filter((point): point is { lat: number; lng: number; label?: string } => Boolean(point))
   if (!rawPoints.length) return null
 
-  const lats = rawPoints.map((point) => point.lat)
-  const lngs = rawPoints.map((point) => point.lng)
-  const minLat = Math.min(...lats)
-  const maxLat = Math.max(...lats)
-  const minLng = Math.min(...lngs)
-  const maxLng = Math.max(...lngs)
-  const latRange = maxLat - minLat
-  const lngRange = maxLng - minLng
-  const project = (point: { lat: number; lng: number; label?: string }) => ({
-    ...projectUnitPoint(
-      lngRange <= COORDINATE_EPSILON ? 0.5 : (point.lng - minLng) / lngRange,
-      latRange <= COORDINATE_EPSILON ? 0.5 : (maxLat - point.lat) / latRange,
-    ),
-    label: point.label,
-  })
-  const projectedTrack = sampledTrack.map(project)
-  const projectedCurrent = current ? project(current) : projectedTrack.at(-1) ?? null
-  const projectedSummit = project(summit)
+  const projector = createGeoTraceProjector(rawPoints, TRACE_FRAME)
+  const projectedTrack = projector.projectPoints(sampledTrack)
+  const projectedCurrent = current ? projector.projectPoint(current) : projectedTrack.at(-1) ?? null
+  const projectedSummit = projector.projectPoint(summit)
 
   return {
     d: projectedTrack.length >= 2

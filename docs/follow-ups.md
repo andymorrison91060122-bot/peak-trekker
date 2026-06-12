@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-12 · 最新版本记录: v0.61
+> Last Updated: 2026-06-12 · 最新版本记录: v0.62
 
 ---
 
@@ -352,10 +352,10 @@ REMOTE_ONLY                -                                                    
 
 **背景**: 2026-05-30 用户反馈每页都卡（原 T2，编号复用失踪）。
 
-**第一项（已定位，止损性质）**: `PROVINCE_RANKING` flag 只关了渲染层，数据获取层未接：
-- `src/app/(main)/profile/page.tsx:100` 每次加载 1 次整月 `checkins` 全表扫描 + 应用内聚合。
-- `src/app/(main)/explore/page.tsx:54-59` 每次加载 2 次（当月 + 上月），结果全被丢弃。
-- 修法：三处数据获取接 `isFeatureEnabled('PROVINCE_RANKING')` 跳过。
+**第一项（✅ 已完成，止损性质）**: `PROVINCE_RANKING=false` 时数据获取层已接入 flag：
+- `/explore`: 每次加载省域月榜查询从 2 次降为 0 次（当月 + 上月均跳过）。
+- `/profile`: 每次加载用户省域贡献查询从 1 次降为 0 次。
+- Flag-on 路径由静态测试钉住，仍调用原函数与原参数；落地 PR #7 / merge `f97016f3`。
 
 **其余审计**:
 - RSC 数据瀑布
@@ -1479,6 +1479,14 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.62（2026-06-12）
+
+FU-79 第一项省域查询止损完成。
+
+- `PROVINCE_RANKING=false` 时 `/explore` 省域月榜查询 2 → 0、`/profile` 用户省域贡献查询 1 → 0；flag-on 原调用路径由静态测试冻结。
+- FU-79 保持 Active，剩余 RSC waterfall / bundle / images / render-blocking 审计继续按「先测量后改」推进。
+- `docs/map-weather-brief.md` 已核对，本 sprint 无地图 / 天气行为变更。
 
 ### v0.61（2026-06-12）
 

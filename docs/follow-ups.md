@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-13 · 最新版本记录: v0.68
+> Last Updated: 2026-06-14 · 最新版本记录: v0.69
 
 ---
 
@@ -50,7 +50,7 @@
 - destructive 操作走 plan 阶段先审 + 事务包裹 + archive 备份 + post-verify
 - 远程分支 push 后保留作为审计 trail，只清理本地分支
 - Codex 在 V1 plan 阶段必须包含 E2E 自测环节（Playwright 脚本 + 跑通报告 + 截图）；单元测试静态字符串 grep 不能替代运行时行为验证
-- 每次涉及 schema 改动的 sprint，V3 收尾必须包含"migration 已推送到远程 Supabase"的验证步骤（Codex 用 Supabase 插件主动推送 + service role 查 information_schema 验证）。⚠ FU-64 reconciliation 完成前本条暂停, 以 FU-64 GUARD RULE 为准。
+- 每次涉及 schema 改动的 sprint，V3 收尾必须包含"migration 已推送到远程 Supabase"的验证步骤（Codex 用 Supabase 插件主动推送 + service role 查 information_schema 验证）。FU-64 已完成，暂停解除，migration 推送验证恢复，按正常发布审批执行。
 
 #### V3 收尾 preflight 协议增强（v0.15 引入 / v0.31 正式撤销 (revoked)）
 
@@ -182,73 +182,6 @@
 - 不重写 QWeather adapter
 
 **实施时机**: 不立即启动，作为上线门禁项跟踪。所有功能性 sprint 完成 / 接近上线时启动。
-
----
-
-### FU-64 · Supabase migration-history full reconciliation
-
-- **优先级**: P2
-- **归属阶段**: 数据库运维卫生 / full reconciliation
-- **状态**: 🟢 active
-
-**背景**: FU-63/67 release 收尾时原计划对 `20260609090000_add_screenshot_route_shape.sql` 做单点 migration-history repair。只读全量 drift check 发现这不是单一 missing registration，而是 project-wide migration history drift: 远端已登记 `20260608161354 add_screenshot_route_shape_to_checkins`，repo 中同一意图文件后续被改名为 `20260609090000_add_screenshot_route_shape.sql`；同时还存在更早期 local-only、版本漂移与 remote-only 记录。单独登记 `20260609090000` 会让一致性更差。
-
-**只读 drift evidence（2026-06-11）**:
-
-```text
-LOCAL_ONLY                 20260430052932_align_schema_with_code.sql                         -
-LOCAL_ONLY                 20260430053217_allow_admin_select_checkins_for_review.sql         -
-LOCAL_ONLY                 20260501152445_n2c_verify_checkin_transaction.sql                 -
-LOCAL_ONLY                 20260505162548_track_data_columns.sql                             -
-LOCAL_ONLY                 20260505171842_screenshot_source.sql                              -
-LOCAL_ONLY                 20260505203730_n4_weather_cache.sql                               -
-LOCAL_ONLY                 20260505214945_monetization_schema.sql                            -
-LOCAL_ONLY                 20260505225050_track_import_schema.sql                            -
-LOCAL_ONLY                 20260505232301_stats_rpc_functions.sql                            -
-LOCAL_ONLY                 20260506000000_stats_rpc_security_definer.sql                     -
-EXACT_VERSION_NAME          20260512123133_backfill_orphan_profiles.sql                      20260512123133 backfill_orphan_profiles
-EXACT_VERSION_NAME          20260512131127_handle_new_user_trigger.sql                       20260512131127 handle_new_user_trigger
-NAME_MATCH_VERSION_DRIFT    20260514090000_checkins_completion_status.sql                    20260514152635 checkins_completion_status
-NAME_MATCH_VERSION_DRIFT    20260517061630_create_screenshot_quota.sql                       20260517063336 create_screenshot_quota
-NAME_MATCH_VERSION_DRIFT    20260517063534_harden_screenshot_quota_policy.sql                20260517063603 harden_screenshot_quota_policy
-NAME_MATCH_VERSION_DRIFT    20260517070147_fix_consume_quota_ambiguous_column.sql            20260517070301 fix_consume_quota_ambiguous_column
-NAME_MATCH_VERSION_DRIFT    20260517074236_checkins_track_content_hash.sql                   20260517074304 checkins_track_content_hash
-NAME_MATCH_VERSION_DRIFT    20260517124359_trek_session_pause_state.sql                      20260517124440 trek_session_pause_state
-EXACT_VERSION_NAME          20260521161903_backfill_checkins_verified_at_from_legacy_status.sql 20260521161903 backfill_checkins_verified_at_from_legacy_status
-NAME_MATCH_VERSION_DRIFT    20260522045459_drop_checkins_status_finalize_fu42.sql            20260522104503 drop_checkins_status_finalize_fu42
-NAME_MATCH_VERSION_DRIFT    20260526190604_fix_profiles_avatar_rls.sql                       20260526133859 fix_profiles_avatar_rls
-NAME_MATCH_VERSION_DRIFT    20260528093000_create_events_table.sql                           20260528113523 20260528093000_create_events_table
-NAME_MATCH_VERSION_DRIFT    20260530093000_create_mountain_requests_table.sql                20260530063134 20260530093000_create_mountain_requests_table
-LOCAL_ONLY                 20260609090000_add_screenshot_route_shape.sql                     -
-REMOTE_ONLY                -                                                                 20260513042900 create_a1_cleanup_archive_tables_20260513
-REMOTE_ONLY                -                                                                 20260608161354 add_screenshot_route_shape_to_checkins
-```
-
-**Diagnosis**:
-- Drift is project-wide, not isolated to `20260609090000`.
-- 11 `LOCAL_ONLY` entries include pre-2026-05-12 era migrations that appear to have been applied without remote migration-history registration.
-- 11 `NAME_MATCH_VERSION_DRIFT` entries appear to come from push-then-rename history where the logical migration name matches but the timestamp/version differs.
-- 2 `REMOTE_ONLY` entries include one deleted repo file (`create_a1_cleanup_archive_tables_20260513`) and the applied screenshot-route migration (`20260608161354 add_screenshot_route_shape_to_checkins`) whose repo file was later renamed.
-- The originally planned single repair of `20260609090000` would have worsened consistency by registering a second version for an already-applied logical migration.
-
-**Phase plan**:
-- **PHASE 1 · Read-only reconciliation plan**:
-  - Assign every local / remote entry one explicit action: `keep`, `git-mv local to remote version`, `restore missing local file`, `leave as historical`, or `needs manual schema verification`.
-  - Verify whether `LOCAL_ONLY` pre-2026-05-12 migrations correspond to current production schema before deciding repair vs historical baseline.
-  - Verify whether each `NAME_MATCH_VERSION_DRIFT` can be safely resolved by repo `git mv` only, without changing SQL contents or remote history.
-  - Inspect `REMOTE_ONLY` entries and decide whether to restore missing repo files from audit history or mark as historical applied-only records.
-  - Evaluate the alternative strategy: fresh baseline via `supabase db pull`, including risks of losing useful migration history vs clearing drift.
-- **PHASE 2 · Execute only after plan review + token setup**:
-  - No DB mutation or CLI repair before user-reviewed reconciliation plan.
-  - If CLI access is needed, set up `SUPABASE_ACCESS_TOKEN` / `supabase link` first; never improvise direct `psql`.
-  - Execute the approved repo renames/restores/metadata repairs in small commits with before/after migration list evidence.
-
-**GUARD RULE**: **until FU-64 completes, NOBODY runs `supabase db push` against the production project — it will trip over the unregistered local migrations.**
-
-**验收**:
-- Local repo migrations and remote `schema_migrations` have a reviewed one-to-one reconciliation plan.
-- Any chosen repo rename / restore / metadata repair has before/after evidence.
-- No production schema/data mutation occurs without explicit user approval.
 
 ---
 
@@ -520,6 +453,23 @@ REMOTE_ONLY                -                                                    
 
 ---
 
+### FU-91 · Supabase schema baseline / fresh-apply 能力恢复
+
+- **优先级**: P3（非上线阻塞）
+- **归属阶段**: 数据库运维卫生 / 灾备与环境初始化
+- **状态**: 🟢 active
+
+**背景**: FU-64 对账时发现——repo migration 假设了一个未入库的前置 baseline：核心表 `checkins` / `posts` / `profiles` / `checkin_assets` / `mountains` 由任何 repo migration 都未创建（首条 migration 即 `ALTER TABLE profiles` 假设其存在）。故当前 migration 集无法 fresh-apply-from-zero（新环境 / 灾备 / 本地全新 DB 会在第 1 条失败）。这是既有限制，FU-64 已对齐 drift 但未补 baseline。
+
+**范围（Phase 1 只读分析先行）**:
+1. 评估 `supabase db pull` 生成 baseline 的覆盖完整性：是否抓全 public 之外的对象——auth schema（尤其 auth.users 上的 handle_new_user trigger）、storage policy、RLS、function / trigger。
+2. 决定方案：db pull 生成前置 baseline migration vs 重组 migration 史 vs 其他。
+3. 恢复 fresh env / reset 能力的路径与验收标准。
+
+**约束**: 禁止直接 db reset / db push；Phase 1 只读覆盖分析，方案经用户审核后再执行。MVP 单库不 reset，本项非上线阻塞。来源 FU-64，单独立项。
+
+---
+
 ## Deferred Registration
 
 ### Deferred · FU-88 · 商业化专项
@@ -551,14 +501,24 @@ REMOTE_ONLY                -                                                    
 - **消费面影响**: A 的 258 条 NULL 在 Activity / Share / Poster / Archive 已被 session fallback 兜住；仅 Profile 行程列表海拔 degraded，因为 `/Users/liuhongyuan/Desktop/peak-trekker/src/lib/profile-records-server.ts` 不读 linked session。因此不是上线阻塞级。
 - **修复约束：存量 vs 未来必须分开**:
   - **存量**: 截至 2026-06-13 只读核验，258 条可用一次性 UPDATE / backfill 从 linked session 修复，理论上不需要 schema migration；但这是 DB 批量写入，必须走数据操作批准 + 五项核验 + 前后对账。
-  - **未来**: 写入缺口治本仍需改 `verify_and_record_checkin` RPC / 调用链，涉及 migration / DB function 变更，受 FU-64 db push 禁令约束；FU-64 对账完成前不可 push。backfill 不治未来。
+  - **未来**: 写入缺口治本仍需改 `verify_and_record_checkin` RPC / 调用链，涉及 migration / DB function 变更；FU-64 已完成，drift 禁令解除，未来 RPC / DB function 修复走正常 migration + 发布审批。backfill 不治未来。
   - **5 条 zero-triplet**: linked session 也是 0，无法从现有数据恢复；三选一待定：保留弱记录 / 隐藏指标 / 清理。
 - **优先级**: 修复排在 FU-78 / FU-79 之后；是否升级正式 FU 或继续保持 Known Issue 待用户定。
 - **证据指针**: local evidence: `output/known-issue-0-60-investigation/report.md` (not committed)。
 
 ---
 
-## Closed Follow-ups（74 条）
+## Closed Follow-ups（75 条）
+
+### FU-64 ✅ Supabase migration-history full reconciliation
+
+- **关闭原因**: Supabase migration-history drift 全量对账完成：本地 25 ↔ 远端 25 全 matched，drift=0。2A 通过 PR #10 / merge `879b759` 完成 11 个 migration 文件名对齐远端版本，并从远端 statements 重建 create_a1 `20260513042900`；2B 对 10 条早期 LOCAL_ONLY 逐条执行 `supabase migration repair --status applied`，remote ledger `15 → 25`。2B 仅写 `supabase_migrations.schema_migrations` 元数据，无 schema / data 写入。
+- **GUARD 更新**: FU-64 migration-history drift 对账已完成（2026-06-14，本地↔远端 25/25 matched，drift=0）。原「FU-64 drift 导致的 db push 禁令」解除。注意：这不等于生产可随意 db push——任何生产 schema / DB 变更仍需单独走 migration + 发布审批。
+- **证据（未入 git）**: `output/fu64-phase2b-metadata-repair/`（`step0-start.txt` / `step1-repairs.txt` / `final-migration-list.txt` / `final-remote-ledger.txt` + 每条 before / after list）。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-14
+
+---
 
 ### FU-82 ✅ FAQ 与现状功能对账
 
@@ -1537,6 +1497,15 @@ Codex 在视觉验证通过、merge 前必须执行：
 
 ## 版本记录
 
+### v0.69（2026-06-14）
+
+FU-64 drift 对账关闭 · migration-history 本地↔远端 25/25 matched，登记 FU-91 baseline follow-up。
+
+- FU-64 从 Active 移入 Closed：2A PR #10 / merge `879b759` 完成 11 个 migration 文件名对齐远端版本 + 从远端 statements 重建 create_a1 `20260513042900`；2B 对 10 条早期 LOCAL_ONLY 逐条 `migration repair --status applied`，remote ledger `15 → 25`。
+- FU-64 migration-history drift 对账已完成（2026-06-14，本地↔远端 25/25 matched，drift=0）。原「FU-64 drift 导致的 db push 禁令」解除。注意：这不等于生产可随意 db push——任何生产 schema / DB 变更仍需单独走 migration + 发布审批。
+- 新增 Active FU-91：Supabase schema baseline / fresh-apply 能力恢复，跟进核心表缺少 in-repo baseline 导致 fresh-apply-from-zero 失败的既有限制。
+- Active 18 → 18 · Closed 74 → 75 · Deferred 1 → 1
+
 ### v0.68（2026-06-13）
 
 FU-90 登记昵称链路 bug + Profile 昵称编辑；仅 docs，不实现功能。
@@ -1569,7 +1538,7 @@ Known Issue 0/60 root-cause closeout · 纯 docs 更新，根因调查结论入�
 - 重写 `Known Issue · checkin 数据字段写入路径异常`：状态改为「根因已查明 (2026-06-13)，修复待排期」，并将关键结论表直接写入正文；证据指针为本地未提交 `output/known-issue-0-60-investigation/report.md`。
 - 修正原始误记：FU-11 原记录中的 `7707122f-bebe-4b04-b904-1ad4397b706a = 0/0/0/60 + linked session 真实 8300m / 1465m / 3h`，经截至 2026-06-13 只读核验判定为记录时印象误记；生产库严格签名为 0 条，该 activity 实为 0-session 弱 incomplete。
 - 拆分三个独立子问题：RPC 测量字段缺口、`finish_incomplete` 0 兜底、`mountains.checkin_count` 漂移；每项记录 owner path、截至 2026-06-13 只读核验规模、是否仍在发生、影响面与修复约束。
-- 明确修复优先级：排在 FU-78 / FU-79 之后；存量 backfill 与未来 RPC / DB function 修复分开决策，且未来修复受 FU-64 db push 禁令约束。
+- 明确修复优先级：排在 FU-78 / FU-79 之后；存量 backfill 与未来 RPC / DB function 修复分开决策。FU-64 已完成，drift 禁令解除；未来 RPC / DB function 修复走正常 migration + 发布审批。
 - Active 17 → 17 · Closed 73 → 73 · Deferred 1 → 1（Known Issue 不计入）
 
 ### v0.64（2026-06-13）
@@ -1665,8 +1634,8 @@ FU-63/67 close + FU-64 re-scope。
 - FU-63 关闭: PR #3 `1472cf7` 停止追踪六个 Python bytecode cache 文件, `.gitignore` 新增 `__pycache__/` 与 `*.pyc`; 本地 `.pyc` 文件保留在磁盘。
 - FU-67 关闭: PR #3 `714c361` 将 Activity hero `最高海拔` 与 `轨迹记忆` elevation range 的 absent measured elevation 渲染统一为 `--`, 与 grid rule 对齐; rendering-layer only, 不改 server view-model / DB / GPS semantics。
 - PR #3 merge commit: `c8f4027`; Production deployment READY; public `/screenshot` health 200。
-- FU-64 保持 active 并扩 scope: 从单点 `20260609090000` repair 改为 "Supabase migration-history full reconciliation"。只读 drift check 证明是 project-wide drift, 包含 local-only、name-match version drift、remote-only 三类; 原计划单点 repair 会恶化一致性。
-- FU-64 guard: 在 full reconciliation 完成前, 不得对 production project 运行 `supabase db push`。
+- FU-64 当时保持 active 并扩 scope: 从单点 `20260609090000` repair 改为 "Supabase migration-history full reconciliation"。只读 drift check 证明是 project-wide drift, 包含 local-only、name-match version drift、remote-only 三类; 原计划单点 repair 会恶化一致性。
+- 后续 v0.69 已完成 FU-64 migration-history drift 对账（本地↔远端 25/25 matched，drift=0），原 drift 禁令已解除；生产 schema / DB 变更仍需单独走 migration + 发布审批。
 - 本 sprint DB mutation: 0。FU-64 未做 repair / rename / migration / psql。
 - Active 14 → 12 · Closed 61 → 63
 

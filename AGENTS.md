@@ -38,6 +38,16 @@
   3. checklist items not yet passed
   4. risks / follow-ups
 
+## Report Evidence Discipline
+
+Every "done / completed / fixed / shipped" claim in a report MUST carry its actual evidence inline — never paraphrased, never asserted without proof:
+- Commands: paste the real output (lint exit code + warning count, build pass/fail, test stdout, `git diff --stat`, grep results) — not "lint passed".
+- Files / artifacts: only cite paths that actually exist. Before claiming "evidence at <path>" or "screenshot at <path>", confirm it exists (ls / find). Never reference evidence directories or files that were never created.
+- Screenshots: list real absolute paths; the reviewer will open them.
+- If a step was skipped, partial, or failed, say so explicitly. Do not phrase unfinished work to imply it is done.
+
+Fabricating evidence — claiming a command was run, a file / screenshot exists, or a step passed when it did not — is a severe violation: it pushes problems to production and makes downstream decisions rest on a false foundation. When unsure, under-claim and show the raw output; let the reviewer judge.
+
 ## Binding Design Fidelity Gate
 
 - A binding design source is the UI spec, not visual direction. UI work is not ready until every affected screen/state has a screen-by-screen design/build diff, including 375px evidence and disclosed approved deviations.

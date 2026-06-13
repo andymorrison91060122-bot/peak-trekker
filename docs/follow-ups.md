@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-13 · 最新版本记录: v0.64
+> Last Updated: 2026-06-13 · 最新版本记录: v0.65
 
 ---
 
@@ -510,13 +510,25 @@ REMOTE_ONLY                -                                                    
 
 ## Known Issues
 
-### Known Issue · checkin 数据字段写入路径异常 (2026-05-21 FU-11 sprint 期间发现)
+### Known Issue · checkin 数据字段写入路径异常 — 根因已查明 (2026-06-13)，修复待排期
 
-- **现象**: 某些 checkin 数据 (如 activity `7707122f-bebe-4b04-b904-1ad4397b706a`) 的 `checkin.distance_meters` / `checkin.elevation_gain_meters` / `checkin.max_elevation_meters` 字段被写入 0 而非 null；`checkin.duration_seconds` 被写入 60 (1 分钟)。同条 checkin 关联的 session 数据真实 (`distance_m=8300m` / `ascent_m=1465m` / 时长 3h)。
-- **关联现象**: Activity Detail 优先用 checkin 字段 → 显示 `0m / 1m / -- / --`；FU-11 sprint 已加入口 gate 隐藏脏数据活动 publish UI，Activity Detail 数据展示保持真实异常以便用户看到数据问题。
-- **待 root cause 调查**: trek 服务定时写入 / N2C close action / `verify_summit_checkin` RPC 等写入路径中哪一条产生了 0/60 异常值；是否其他 source type (用户上传 / 截图识别) 也有类似问题。
-- **补充发现 (FU-4)**: 另发现 `mountains.checkin_count` 缓存与实际 `checkins` 行数漂移 (华山 cached 153 vs 实际 454 / 421 complete / 196 verified), 同属 checkin 写入 / 统计完整性, 留待数据完整性 audit；非 FU-4 引入。
-- **处理方向**: 后续 sprint 单独调查 (体量未定，可能开新 FU 或并入 FU-42 整体废除 status + 字段写入完整性审计)。
+- **状态**: 根因已查明 (2026-06-13)，修复待排期；是否升级正式 FU 或继续保持 Known Issue 待用户定。
+- **原始记录 (FU-11, 2026-05-21)**: activity `7707122f-bebe-4b04-b904-1ad4397b706a` 被记录为 "0/0/0/60 脏 checkin + linked session 真实 8300m / 1465m / 3h"。
+- **一手核实修正**: 截至 2026-06-13 只读核验，严格 `0/0/0/60 + linked session 真实数据` 签名在生产库为 0 条；`7707122f-bebe-4b04-b904-1ad4397b706a` 实为 0-session 弱 incomplete：checkin `0 / 0 / 0 / 63`，linked session 也是 `0 / 0 / 0`，2 个静止点，约 68s。代码侧无任何回写测量字段的 UPDATE 路径，故原始描述判定为 FU-11 记录时印象误记，保留历史但以本次核验为准。
+
+| 子问题 | owner path | 截至 2026-06-13 只读核验规模 / 时间 | 是否仍在发生 | 判读 |
+|--------|------------|--------------------------------------|--------------|------|
+| A. RPC 测量字段缺口 | `/Users/liuhongyuan/Desktop/peak-trekker/supabase/migrations/20260522045459_drop_checkins_status_finalize_fu42.sql:94-121` | 截至 2026-06-13 只读核验，有 258 条 complete `realtime_gps` checkin 测量字段全 NULL，而 linked session 有真实测量值；截至 2026-06-13 只读核验，2026-05-30T04:18 后无新 GPS 打卡 | 代码缺口仍在；未来 server-session 登顶仍会产生 NULL checkin 测量字段 | `verify_and_record_checkin` INSERT 不含 `distance_meters` / `duration_seconds` / `elevation_gain_meters` / `max_elevation_meters` / `track_points`；数据没有被写坏，而是 checkin 层没有写入 |
+| B. `finish_incomplete` 0 兜底 | `/Users/liuhongyuan/Desktop/peak-trekker/src/app/api/trek/actions/route.ts:105-108` | 截至 2026-06-13 只读核验，有 5 条 zero-triplet incomplete 行；截至 2026-06-13 只读核验，时间窗为 2026-05-14~2026-05-17 | 不判断为当前主路径仍发生；样本均为旧 incomplete | `finiteNumber(null) -> 0` 使 `?? body ?? 0` 兜底链失效，session 初始 0 状态被复制进 checkin；linked session 本身也是 0，非破坏真实数据 |
+| C. `mountains.checkin_count` 漂移 | `/Users/liuhongyuan/Desktop/peak-trekker/supabase/migrations/20260506000000_stats_rpc_security_definer.sql:6-9` / `/Users/liuhongyuan/Desktop/peak-trekker/src/lib/trek-verify-helpers.ts:195-209` | 截至 2026-06-13 只读核验，泰山 -451 / 华山 -301 / 武当山 +7 | 机制性持续 | `increment_checkin_count` 是 best-effort +1 RPC，无触发器 / 重算 / 递减；recount 前需产品先定语义：全部 / complete / verified / publishable |
+
+- **消费面影响**: A 的 258 条 NULL 在 Activity / Share / Poster / Archive 已被 session fallback 兜住；仅 Profile 行程列表海拔 degraded，因为 `/Users/liuhongyuan/Desktop/peak-trekker/src/lib/profile-records-server.ts` 不读 linked session。因此不是上线阻塞级。
+- **修复约束：存量 vs 未来必须分开**:
+  - **存量**: 截至 2026-06-13 只读核验，258 条可用一次性 UPDATE / backfill 从 linked session 修复，理论上不需要 schema migration；但这是 DB 批量写入，必须走数据操作批准 + 五项核验 + 前后对账。
+  - **未来**: 写入缺口治本仍需改 `verify_and_record_checkin` RPC / 调用链，涉及 migration / DB function 变更，受 FU-64 db push 禁令约束；FU-64 对账完成前不可 push。backfill 不治未来。
+  - **5 条 zero-triplet**: linked session 也是 0，无法从现有数据恢复；三选一待定：保留弱记录 / 隐藏指标 / 清理。
+- **优先级**: 修复排在 FU-78 / FU-79 之后；是否升级正式 FU 或继续保持 Known Issue 待用户定。
+- **证据指针**: local evidence: `output/known-issue-0-60-investigation/report.md` (not committed)。
 
 ---
 
@@ -1490,6 +1502,16 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.65（2026-06-13）
+
+Known Issue 0/60 root-cause closeout · 纯 docs 更新，根因调查结论入库，Known Issue 不计入 Active / Closed / Deferred。
+
+- 重写 `Known Issue · checkin 数据字段写入路径异常`：状态改为「根因已查明 (2026-06-13)，修复待排期」，并将关键结论表直接写入正文；证据指针为本地未提交 `output/known-issue-0-60-investigation/report.md`。
+- 修正原始误记：FU-11 原记录中的 `7707122f-bebe-4b04-b904-1ad4397b706a = 0/0/0/60 + linked session 真实 8300m / 1465m / 3h`，经截至 2026-06-13 只读核验判定为记录时印象误记；生产库严格签名为 0 条，该 activity 实为 0-session 弱 incomplete。
+- 拆分三个独立子问题：RPC 测量字段缺口、`finish_incomplete` 0 兜底、`mountains.checkin_count` 漂移；每项记录 owner path、截至 2026-06-13 只读核验规模、是否仍在发生、影响面与修复约束。
+- 明确修复优先级：排在 FU-78 / FU-79 之后；存量 backfill 与未来 RPC / DB function 修复分开决策，且未来修复受 FU-64 db push 禁令约束。
+- Active 17 → 17 · Closed 73 → 73 · Deferred 1 → 1（Known Issue 不计入）
 
 ### v0.64（2026-06-13）
 

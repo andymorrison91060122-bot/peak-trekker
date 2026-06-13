@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-13 · 最新版本记录: v0.65
+> Last Updated: 2026-06-13 · 最新版本记录: v0.67
 
 ---
 
@@ -403,23 +403,6 @@ REMOTE_ONLY                -                                                    
 
 ---
 
-### FU-82 · FAQ 与现状功能对账
-
-- **优先级**: P2
-- **归属阶段**: 上线前内容对账
-- **状态**: 🟢 active
-
-**背景**: 功能调整频繁，FAQ 内容与现状脱节。
-
-**实施建议**:
-- 对照现状功能逐条过 `src/lib/faq-content.ts`
-- 改过时描述
-- 删冗余 / 不存在功能（省域热力等随方向修订移除）
-- 补真实缺口
-- 一并解决 Profile「问题反馈 / 设置」占位 toast 与 FAQ 承诺路径的矛盾
-
----
-
 ### FU-83 · 地图遗留债
 
 - **优先级**: P3
@@ -494,6 +477,33 @@ REMOTE_ONLY                -                                                    
 
 ---
 
+### FU-89 · FAQ 暴露的未接通功能债梳理
+
+- **优先级**: P2
+- **归属阶段**: 产品功能债池（上线前梳理）
+- **状态**: 🟢 active（本项仅调研归类，不进入功能实现）
+
+**背景**: 来源为 FU-82 FAQ 对账暴露。逐条 trace FAQ 与代码现状时，发现多处 FAQ 承诺的功能在代码里仍是空壳 / 未接通。本项集中登记，先调研归类与排优先级，不在本项写功能。
+
+**边界原则**:
+- 本项只做调研 / 拆分 / 排期，不在本项写功能。
+- 登记这些债不代表对应功能已开放或即将开放。
+- 每项具体实现需另行立项、单独计划与验收。
+
+**已识别功能债**:
+1. 屏幕常亮 (wakelock) 缺失 —— 记录态 (`TrekClient` locating / tracking) 无 `navigator.wakeLock`，长记录可能被息屏打断定位。
+2. 登顶留证 `/late-proof` 空壳 —— 入口不可达 (`buildLateProofHref` 为 dead code) + 假提交不落库 (`LateProofClient` 无 fetch / API，`setTimeout` 切成功态)；后端 `submit_historical_checkin` 已就绪 (`trek/actions/route.ts:1265`) 待接。
+3. 手动补签空壳 —— 无照片无轨迹的手动记录入口仅占位 toast (`TrekClient.tsx:2036`)。
+4. 未归属 + 事后认领全缺 —— 无 unattributed 会话态、无认领流程；占位入口按钮 (`TrekClient.tsx:3729`) 建议一并清理（FAQ 已删 `record.unattributed` 条）。
+5. 轨迹本地持久化 + 离线重传缺失 —— 仅内存 + 每约 4s 服务器同步，离线失败静默吞 (`TrekClient.tsx:928`)。
+6. 个人资料编辑缺失 —— 昵称 / 省份只读，无编辑页 / 更新 API（`src/app/api/profile` 仅 avatar-upload）。
+7. 反馈通道缺失 —— 设置 / 反馈占位 toast (`ProfileV2Client.tsx:500-501`)，无路由 / API / 落库；是否公开邮箱或做站内表单待用户定，再单独排期实现。
+8. 来源标签映射 —— `source-label-utils` 把 `historical_photo` 映射成 `gps_verified`；待 late-proof 接通时定标签语义（当前因 late-proof 是壳，无实际影响）。
+
+**不重复登记**: 地图 waypoint 经纬度数据化已在 FU-83(b)，等高线在 FU-83(c)；海拔剖面 path 死代码、底图仅华山覆盖归 FU-83 地图债一并考虑。
+
+---
+
 ## Deferred Registration
 
 ### Deferred · FU-88 · 商业化专项
@@ -532,7 +542,15 @@ REMOTE_ONLY                -                                                    
 
 ---
 
-## Closed Follow-ups（73 条）
+## Closed Follow-ups（74 条）
+
+### FU-82 ✅ FAQ 与现状功能对账
+
+- **关闭原因**: FAQ 诚实化已落地：`src/lib/faq-content.ts` 完成 13 条回答改写、2 条不存在能力条目删除（`record.unattributed` / `review.review-failed`），并删除 FAQ 卡片底部「查看完整说明」死入口；反馈通道建设转 FU-89，本轮不公开邮箱。
+- **关闭 commit**: 待 FU-82 收尾 commit
+- **关闭时间**: 2026-06-13
+
+---
 
 ### FU-70 ✅ Uploaded track summit-area neutral consistency label
 
@@ -1502,6 +1520,23 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.67（2026-06-13）
+
+FU-82 收尾关闭 · FAQ 诚实化进入 Closed，保留 FU-89 跟进未接通功能债。
+
+- FU-82 从 Active 移入 Closed：13 条回答改写、2 条不存在能力条目删除、FAQ 卡片「查看完整说明」死入口删除。
+- 反馈通道建设转 FU-89；本轮不公开邮箱、不实现反馈功能。
+- Active 18 → 17 · Closed 73 → 74 · Deferred 1 → 1
+
+### v0.66（2026-06-13）
+
+FU-82 FAQ 诚实化 · FAQ 文案对齐当前可用能力，登记 FU-89 功能债，不提交功能实现。
+
+- `src/lib/faq-content.ts` 完成 13 条回答改写、2 条不存在能力条目删除（`record.unattributed` / `review.review-failed`），保留 `id` / `anchor` / `q` / `long` 结构不变。
+- 反馈通道仍为占位，不公开邮箱；FAQ 明确「问题反馈 / 设置」入口接通后才可在 App 内反馈。
+- 新增 Active FU-89：FAQ 暴露的未接通功能债梳理。来源为 FU-82 FAQ 对账暴露，本项只做调研 / 拆分 / 排期，不代表对应功能已开放或即将开放。
+- Active 17 → 18 · Closed 73 → 73 · Deferred 1 → 1
 
 ### v0.65（2026-06-13）
 

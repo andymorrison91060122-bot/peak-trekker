@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-13 · 最新版本记录: v0.67
+> Last Updated: 2026-06-13 · 最新版本记录: v0.68
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（17 条）
+## Active Follow-ups（18 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -504,6 +504,22 @@ REMOTE_ONLY                -                                                    
 
 ---
 
+### FU-90 · 昵称链路修复 + Profile 昵称编辑
+
+- **优先级**: P2（山友圈上线前置）
+- **归属阶段**: 山友圈上线前 / bug 修 + 轻量功能
+- **状态**: 🟢 active
+
+**背景（bug，Claude 已一手核 2026-06-13）**: 注册表单收"登山者昵称"（`register/page.tsx:202-204`），但 upsert payload 只写 `profiles.username`、不写 `display_name`（`register/page.tsx:73-79`）。展示侧字段不统一：Profile / 档案优先 `display_name` → 兜底邮箱前缀（代码型）（`profile/page.tsx:50`、`archive/page.tsx:193`）；山友圈 feed/detail 只取 `username`（`community-server.ts:93/98/110`、`community/actions/route.ts:619`）。无 `nickname` 列，无改昵称 UI（`src/app/api/profile` 唯一写库 route 是 avatar-upload）。山友圈上线前用户看到代码型默认名不可接受。
+
+**Phase 1 待钉**: ①有无 DB trigger（handle_new_user 类）在注册前给 display_name/username 塞代码型默认值 shadow 注册值；②register upsert 是否可靠落库（`register/page.tsx:90` 有 fallback upsert，疑时序/RLS）；③统一到单一昵称字段。
+
+**范围**: 当 bug 修注册写入/展示链（非纯加编辑器）+ Profile 页加昵称编辑（仿头像入口风格、轻量 bottom sheet / 小弹层，不进"设置"）+ 展示面 audit（Profile header / 山友圈 feed / 详情 / 活动详情作者 / 分享海报用户名）。昵称规则：2–12 字符、trim、禁纯空白/换行/控制字符、允许中英数空格 `_` `-`、不强制唯一。
+
+**注**: 来源为 FU-82 FAQ 对账（account.edit-profile）暴露；与 FU-89 平行。FU-82 已把 account.edit-profile 文案诚实化为"昵称/省份暂不能改"，本项落地后该文案需同步回改。
+
+---
+
 ## Deferred Registration
 
 ### Deferred · FU-88 · 商业化专项
@@ -547,7 +563,7 @@ REMOTE_ONLY                -                                                    
 ### FU-82 ✅ FAQ 与现状功能对账
 
 - **关闭原因**: FAQ 诚实化已落地：`src/lib/faq-content.ts` 完成 13 条回答改写、2 条不存在能力条目删除（`record.unattributed` / `review.review-failed`），并删除 FAQ 卡片底部「查看完整说明」死入口；反馈通道建设转 FU-89，本轮不公开邮箱。
-- **关闭 commit**: 待 FU-82 收尾 commit
+- **关闭 commit**: `c8bfa2f`（feature）/ `64a452f`（merge）
 - **关闭时间**: 2026-06-13
 
 ---
@@ -1520,6 +1536,14 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.68（2026-06-13）
+
+FU-90 登记昵称链路 bug + Profile 昵称编辑；仅 docs，不实现功能。
+
+- 新增 Active FU-90：昵称链路修复 + Profile 昵称编辑，来源为 FU-82 FAQ 对账暴露的 account.edit-profile 债。
+- FU-82 Closed 条目补全关闭 commit：`c8bfa2f`（feature）/ `64a452f`（merge）。
+- Active 17 → 18 · Closed 74 → 74 · Deferred 1 → 1
 
 ### v0.67（2026-06-13）
 

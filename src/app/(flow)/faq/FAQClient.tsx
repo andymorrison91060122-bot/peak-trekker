@@ -260,7 +260,7 @@ function FAQSearchField({
   )
 }
 
-function AnswerCard({ question, onLongClick }: { question: FaqQuestion; onLongClick: () => void }) {
+function AnswerCard({ question }: { question: FaqQuestion }) {
   return (
     <div style={{ padding: '0 var(--space-4) var(--space-4)' }}>
       <div
@@ -276,36 +276,6 @@ function AnswerCard({ question, onLongClick }: { question: FaqQuestion; onLongCl
         }}
       >
         {question.a}
-        {question.long ? (
-          <div
-            style={{
-              marginTop: 'var(--space-3)',
-              paddingTop: 'var(--space-3)',
-              borderTop: '1px solid var(--color-outline)',
-            }}
-          >
-            <button
-              type="button"
-              onClick={onLongClick}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 'var(--space-1)',
-                border: 0,
-                padding: 0,
-                background: 'transparent',
-                color: 'var(--color-on-surface)',
-                cursor: 'pointer',
-                fontSize: 'var(--font-label-m-size)',
-                lineHeight: 'var(--font-label-m-line)',
-                fontWeight: 600,
-              }}
-            >
-              查看完整说明
-              <span aria-hidden="true">→</span>
-            </button>
-          </div>
-        ) : null}
       </div>
     </div>
   )
@@ -320,7 +290,6 @@ function FAQGroupCard({
   targetRef,
   onToggleGroup,
   onToggleQuestion,
-  onLongClick,
 }: {
   group: FaqGroup
   open: boolean
@@ -330,7 +299,6 @@ function FAQGroupCard({
   targetRef: RefObject<HTMLDivElement | null>
   onToggleGroup: (groupId: string) => void
   onToggleQuestion: (groupId: string, anchor: string) => void
-  onLongClick: () => void
 }) {
   return (
     <section
@@ -442,7 +410,7 @@ function FAQGroupCard({
                     <ChevronIcon open={expanded} />
                   </span>
                 </button>
-                {expanded ? <AnswerCard question={question} onLongClick={onLongClick} /> : null}
+                {expanded ? <AnswerCard question={question} /> : null}
               </div>
             )
           })}
@@ -790,7 +758,6 @@ export default function FAQClient({ initialAnchor }: FAQClientProps) {
               targetRef={targetRef}
               onToggleGroup={handleToggleGroup}
               onToggleQuestion={handleToggleQuestion}
-              onLongClick={() => handlePlaceholder('完整说明页面即将上线')}
             />
           ))}
           <FAQFooter onFeedback={() => handlePlaceholder('反馈功能即将上线')} />

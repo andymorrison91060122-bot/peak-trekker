@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { isMissingStorageError } from '@/lib/storage-errors'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import IconButton from '@/components/ui/IconButton'
 import { getLicenseLevelLabel } from '@/lib/license-ui'
 import { LicenseTierGlyph } from '@/components/profile/LicenseProgressSheet'
+import ProfileNicknameSheet, { EditNicknameButton } from '@/components/profile/ProfileNicknameSheet'
 
 const AVATAR_TOAST_STORAGE_KEY = 'peak-trekker:avatar-uploaded'
 const AVATAR_STATUS_STORAGE_KEY = 'peak-trekker:avatar-status'
@@ -30,10 +31,68 @@ export default function ProfileAvatarUploader({
   const router = useRouter()
   const { showToast } = useAppToast()
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const nicknameHistoryEntryActiveRef = useRef(false)
+  const savedUsernameRef = useRef<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl)
   const [isUploading, setIsUploading] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [statusTone, setStatusTone] = useState<'success' | 'error'>('success')
+  const [displayUsername, setDisplayUsername] = useState(username)
+  const [nicknameSheetOpen, setNicknameSheetOpen] = useState(false)
+  const [nicknameValue, setNicknameValue] = useState(username)
+  const [isSavingNickname, setIsSavingNickname] = useState(false)
+  const [nicknameServerError, setNicknameServerError] = useState('')
+  const [nicknameJustUpdated, setNicknameJustUpdated] = useState(false)
+  const [nicknameToastVisible, setNicknameToastVisible] = useState(false)
+
+  useEffect(() => {
+    const savedUsername = savedUsernameRef.current
+    if (savedUsername) {
+      if (username === savedUsername) {
+        savedUsernameRef.current = null
+      } else {
+        return
+      }
+    }
+    setDisplayUsername(username)
+    setNicknameValue(username)
+  }, [username])
+
+  const closeNicknameSheet = useCallback(() => {
+    setNicknameSheetOpen(false)
+    setIsSavingNickname(false)
+    setNicknameServerError('')
+    if (typeof window !== 'undefined' && nicknameHistoryEntryActiveRef.current) {
+      nicknameHistoryEntryActiveRef.current = false
+      window.history.back()
+    }
+  }, [])
+
+  useEffect(() => {
+    function handlePopState() {
+      if (!nicknameHistoryEntryActiveRef.current) return
+      nicknameHistoryEntryActiveRef.current = false
+      setNicknameSheetOpen(false)
+      setIsSavingNickname(false)
+      setNicknameServerError('')
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [])
+
+  function openNicknameSheet() {
+    setNicknameValue(displayUsername)
+    setNicknameServerError('')
+    setIsSavingNickname(false)
+    setNicknameSheetOpen(true)
+    if (typeof window !== 'undefined' && !nicknameHistoryEntryActiveRef.current) {
+      window.history.pushState({ peakTrekkerNicknameSheet: true }, '', window.location.href)
+      nicknameHistoryEntryActiveRef.current = true
+    }
+  }
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -63,6 +122,47 @@ export default function ProfileAvatarUploader({
       throw new Error(String(data?.error ?? '头像上传失败，请稍后重试。'))
     }
     return data.avatarUrl as string
+  }
+
+  async function updateNicknameViaRoute(nickname: string) {
+    const response = await fetch('/api/profile/nickname', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname }),
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok || data?.ok !== true || typeof data?.username !== 'string') {
+      throw new Error(String(data?.error ?? '昵称保存失败，请稍后重试。'))
+    }
+    return data.username as string
+  }
+
+  async function saveNickname() {
+    setIsSavingNickname(true)
+    setNicknameServerError('')
+    try {
+      const nextUsername = await updateNicknameViaRoute(nicknameValue)
+      savedUsernameRef.current = nextUsername
+      setDisplayUsername(nextUsername)
+      setNicknameValue(nextUsername)
+      setNicknameJustUpdated(true)
+      setNicknameToastVisible(true)
+      closeNicknameSheet()
+      window.setTimeout(() => {
+        router.refresh()
+      }, 1200)
+      window.setTimeout(() => {
+        setNicknameJustUpdated(false)
+      }, 2600)
+      window.setTimeout(() => {
+        setNicknameToastVisible(false)
+      }, 2400)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '昵称保存失败，请稍后重试。'
+      setNicknameServerError(message)
+    } finally {
+      setIsSavingNickname(false)
+    }
   }
 
   async function uploadAvatar(file: File) {
@@ -162,7 +262,7 @@ export default function ProfileAvatarUploader({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={avatarUrl}
-                  alt={`${username} 的头像`}
+                  alt={`${displayUsername} 的头像`}
                   data-testid="profile-avatar-image"
                   style={{
                     display: 'block',
@@ -191,7 +291,7 @@ export default function ProfileAvatarUploader({
                       'linear-gradient(180deg, color-mix(in srgb, var(--color-success) 28%, var(--color-surface-variant)), color-mix(in srgb, var(--color-success) 8%, var(--color-surface)))',
                   }}
                 >
-                  {username.trim().slice(0, 1) || '山'}
+                  {displayUsername.trim().slice(0, 1) || '山'}
                 </span>
               )}
             </button>
@@ -221,15 +321,54 @@ export default function ProfileAvatarUploader({
 
           <div style={{ display: 'grid', gap: 'var(--space-2)', minWidth: 0, flex: '1 1 auto' }}>
             <div
-              className="pt-title-l"
               style={{
-                color: 'var(--color-on-surface)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                minWidth: 0,
               }}
             >
-              {username}
+              <span
+                className="pt-title-l"
+                data-testid="profile-nickname-value"
+                style={{
+                  minWidth: 0,
+                  color: 'var(--color-on-surface)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {displayUsername}
+              </span>
+              <EditNicknameButton pressed={nicknameSheetOpen} onClick={openNicknameSheet} />
+              {nicknameJustUpdated ? (
+                <span
+                  data-testid="profile-nickname-updated-badge"
+                  className="pt-label-s"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    marginLeft: 2,
+                    color: 'var(--color-success)',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    animation: 'pt-nickname-success-fade 240ms ease',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M5 12.5l4 4 10-10"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  已更新
+                </span>
+              ) : null}
             </div>
             <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', minWidth: 0, flexWrap: 'wrap' }}>
               <button
@@ -288,6 +427,60 @@ export default function ProfileAvatarUploader({
           </div>
         ) : null}
       </section>
+      {nicknameToastVisible ? (
+        <div
+          data-testid="profile-nickname-success-toast"
+          style={{
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 'calc(96px + env(safe-area-inset-bottom))',
+            zIndex: 155,
+            display: 'flex',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            animation: 'pt-nickname-success-fade 240ms ease',
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 16px',
+              background: 'var(--color-surface-elevated)',
+              border: '1px solid var(--color-outline)',
+              borderRadius: 'var(--radius-pill)',
+              boxShadow: 'var(--shadow-float)',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="var(--color-success)" strokeWidth="1.8" />
+              <path
+                d="M8 12.2l2.6 2.6L16 9"
+                stroke="var(--color-success)"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span className="pt-label-m" style={{ color: 'var(--color-on-surface)', fontWeight: 600 }}>
+              昵称已更新
+            </span>
+          </div>
+        </div>
+      ) : null}
+      <ProfileNicknameSheet
+        open={nicknameSheetOpen}
+        value={nicknameValue}
+        original={displayUsername}
+        saving={isSavingNickname}
+        serverError={nicknameServerError}
+        onChange={setNicknameValue}
+        onSave={saveNickname}
+        onClose={closeNicknameSheet}
+        onClearServerError={() => setNicknameServerError('')}
+      />
     </>
   )
 }

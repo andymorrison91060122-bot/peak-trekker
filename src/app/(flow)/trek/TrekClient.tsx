@@ -26,6 +26,7 @@ import { formatElapsedHMS } from '@/lib/trek-time'
 import { haversineMeters, safeTrackPoints, type TrackPoint } from '@/lib/trek-utils'
 import { summarizeTrekTrackPoints } from '@/lib/trek-track-metrics'
 import {
+  classifyDrainState,
   clearTrekOutboxSession,
   listTrekOutboxPoints,
   markTrekOutboxPointsRejected,
@@ -33,6 +34,7 @@ import {
   putTrekOutboxPoint,
   readTrekFinishIntent,
   writeTrekFinishIntent,
+  type TrekOutboxDrainResult,
 } from '@/lib/trek-outbox'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import AltitudeBar from '@/components/ui/AltitudeBar'
@@ -71,10 +73,6 @@ type Fu47cGpsMock = 'ready' | 'weak' | 'live' | 'offline'
 type PrepGpsStatus = 'idle' | 'checking' | 'ready' | 'weak' | 'denied' | 'unsupported' | 'error'
 type EntryValidationStatus = 'idle' | 'checking' | 'passed' | 'blocked'
 type TrekRestoreStatus = 'idle' | 'checking' | 'restored' | 'none'
-type TrekOutboxDrainResult =
-  | { ok: true; status: 'drained' }
-  | { ok: false; status: 'retryable'; reason: 'offline' | 'network' | 'degraded'; message?: string }
-  | { ok: false; status: 'terminal'; reason: 'not_tracking' | 'cap_exceeded' | 'invalid' | 'forbidden' | 'unknown'; message: string }
 type TrekViewState =
   | 'loading'
   | 'permissionDenied'
@@ -146,7 +144,22 @@ function getSummitConfirmRadiusM(mountain: Pick<Mountain, 'summit_radius_m'> | n
   return Math.max(mountain?.summit_radius_m ?? TREK_RULES.defaultSummitRadiusM, MIN_SUMMIT_CONFIRM_RADIUS_M)
 }
 
+function isNetworkTrekActionError(error: unknown) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  const normalized = message.toLowerCase()
+  if (error instanceof TypeError) return true
+  return (
+    normalized.includes('failed to fetch') ||
+    normalized.includes('fetch failed') ||
+    normalized.includes('networkerror') ||
+    normalized.includes('network request failed') ||
+    normalized.includes('load failed')
+  )
+}
+
 function normalizeTrekActionError(error: unknown) {
+  if (isNetworkTrekActionError(error)) return '网络不可用，请联网后重试。'
   const message = error instanceof Error ? error.message : ''
   if (!message) return '确认登顶失败，请稍后重试。'
   if (message.startsWith('outside_summit_radius:')) {
@@ -1010,6 +1023,11 @@ export default function TrekClient({
       const runDrainToEmpty = async (): Promise<TrekOutboxDrainResult> => {
         for (;;) {
           const { points, degraded } = await listTrekOutboxPoints(sid)
+          const drainState = classifyDrainState({
+            degraded,
+            online: typeof navigator === 'undefined' || navigator.onLine,
+            hasPoints: points.length > 0,
+          })
           if (degraded) {
             setOutboxDegraded(true)
             if (!options.silent) {
@@ -1019,14 +1037,8 @@ export default function TrekClient({
                 durationMs: 4200,
               })
             }
-            return typeof navigator === 'undefined' || navigator.onLine
-              ? drained
-              : { ok: false, status: 'retryable', reason: 'degraded', message: '本机存储不可用，无法保证离线恢复。' }
           }
-          if (!points.length) return drained
-          if (typeof navigator !== 'undefined' && !navigator.onLine) {
-            return { ok: false, status: 'retryable', reason: 'offline', message: '当前离线，轨迹点待补传。' }
-          }
+          if (drainState !== 'continue') return drainState
 
           for (let index = 0; index < points.length; index += 500) {
             const batch = points.slice(index, index + 500)
@@ -1186,6 +1198,14 @@ export default function TrekClient({
         showToast({ key: 'summit_verify_success', durationMs: 5200 })
         return true
       } catch (error) {
+        if (isNetworkTrekActionError(error)) {
+          showToast({
+            tone: 'info',
+            message: '网络不可用，待同步任务会在联网后继续。',
+            durationMs: 6200,
+          })
+          return false
+        }
         showToast({
           key: 'trek_record_save_failure',
           message: error instanceof Error ? normalizeTrekActionError(error) : undefined,
@@ -1519,7 +1539,7 @@ export default function TrekClient({
     } catch (error) {
       showToast({
         key: 'trek_session_create_failure',
-        message: error instanceof Error ? error.message : undefined,
+        message: isNetworkTrekActionError(error) ? '网络不可用，请联网后再开始记录。' : undefined,
       })
       return
     }
@@ -1670,22 +1690,51 @@ export default function TrekClient({
         return
       }
 
-      const data = await callTrekAction({
-        action: 'finish_incomplete_trek',
-        sessionId: activeSessionId,
-        mountainId: targetMountain.id,
-        note: checkinNote,
-        elapsedSeconds,
-        distanceMeters: Math.round(distanceKm * 1000),
-        ascentMeters: ascentM,
-        testMode: trekTestMode,
-        ...(isClientLocalSessionId(activeSessionId)
-          ? {
-              trackPoints: trackRef.current,
-              startedAt: startTimeRef.current,
-            }
-          : {}),
-      })
+      let data: Record<string, unknown>
+      try {
+        data = await callTrekAction({
+          action: 'finish_incomplete_trek',
+          sessionId: activeSessionId,
+          mountainId: targetMountain.id,
+          note: checkinNote,
+          elapsedSeconds,
+          distanceMeters: Math.round(distanceKm * 1000),
+          ascentMeters: ascentM,
+          testMode: trekTestMode,
+          ...(isClientLocalSessionId(activeSessionId)
+            ? {
+                trackPoints: trackRef.current,
+                startedAt: startTimeRef.current,
+              }
+            : {}),
+        })
+      } catch (error) {
+        if (!isNetworkTrekActionError(error)) throw error
+        const intentResult = await writeTrekFinishIntent({
+          kind: 'finish_incomplete',
+          sessionId: activeSessionId,
+          mountainId: targetMountain.id,
+          note: checkinNote,
+          elapsedSeconds,
+          distanceMeters: Math.round(distanceKm * 1000),
+          ascentMeters: ascentM,
+          startedAt: startTimeRef.current,
+          testMode: trekTestMode,
+          createdAt: Date.now(),
+        })
+        setIsPaused(true)
+        isPausedRef.current = true
+        trackingTickStartedAtRef.current = null
+        elapsedBeforePauseRef.current = elapsedSecondsRef.current
+        showToast({
+          tone: 'info',
+          message: intentResult.degraded || outboxDegraded
+            ? '本机存储不可用，无法保证离线恢复。请联网后再完成保存。'
+            : '已进入待同步状态，网络恢复后会先补传轨迹再保存活动。',
+          durationMs: 6200,
+        })
+        return
+      }
       const checkinId = typeof data.checkinId === 'string' ? data.checkinId : null
       const autoVerified = data.autoVerified === true || data.completionStatus === 'complete'
       await clearTrekOutboxSession(activeSessionId)
@@ -1803,20 +1852,49 @@ export default function TrekClient({
         setCheckinLoading(false)
         return
       }
-      const data = await callTrekAction({
-        action: 'verify_summit_checkin',
-        sessionId,
-        note: checkinNote,
-        photoUrl,
-        mountainId: nearbyMountain?.id ?? targetMountain?.id ?? null,
-        testMode: trekTestMode,
-        ...(isClientLocalSessionId(sessionId)
-          ? {
-              trackPoints: trackRef.current,
-              startedAt: startTimeRef.current,
-            }
-          : {}),
-      })
+      let data: Record<string, unknown>
+      try {
+        data = await callTrekAction({
+          action: 'verify_summit_checkin',
+          sessionId,
+          note: checkinNote,
+          photoUrl,
+          mountainId: nearbyMountain?.id ?? targetMountain?.id ?? null,
+          testMode: trekTestMode,
+          ...(isClientLocalSessionId(sessionId)
+            ? {
+                trackPoints: trackRef.current,
+                startedAt: startTimeRef.current,
+              }
+            : {}),
+        })
+      } catch (error) {
+        if (!isNetworkTrekActionError(error)) throw error
+        const intentResult = await writeTrekFinishIntent({
+          kind: 'verify_summit',
+          sessionId,
+          mountainId: nearbyMountain?.id ?? targetMountain?.id ?? null,
+          note: checkinNote,
+          photoUrl: photoUrl ?? null,
+          startedAt: startTimeRef.current,
+          testMode: trekTestMode,
+          createdAt: Date.now(),
+        })
+        clearTrackingRuntime()
+        setIsPaused(true)
+        isPausedRef.current = true
+        trackingTickStartedAtRef.current = null
+        elapsedBeforePauseRef.current = elapsedSecondsRef.current
+        showToast({
+          tone: 'info',
+          message: intentResult.degraded || outboxDegraded
+            ? '本机存储不可用，无法保证离线恢复。请联网后再确认登顶。'
+            : '已进入待同步状态，网络恢复后会先补传轨迹再确认登顶。',
+          durationMs: 6200,
+        })
+        setCheckinLoading(false)
+        return
+      }
       const checkinId = typeof data.checkinId === 'string' ? data.checkinId : null
       if (!checkinId) {
         throw new Error('确认登顶失败，请稍后重试。')

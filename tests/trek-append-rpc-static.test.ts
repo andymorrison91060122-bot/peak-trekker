@@ -52,6 +52,13 @@ test('client outbox writes before drain and clears only after finish or abort co
   assert.match(trekClient, /putTrekOutboxPoint\(sid, point\)/)
   assert.match(trekClient, /drainQueueRef/)
   assert.match(trekClient, /for \(;;\) \{[\s\S]*listTrekOutboxPoints\(sid\)/)
+  assert.match(trekClient, /classifyDrainState\(\{[\s\S]*hasPoints:\s*points\.length > 0/)
+  const drainBlock = trekClient.match(/const runDrainToEmpty = async \(\): Promise<TrekOutboxDrainResult> => \{[\s\S]*?const previous = drainQueueRef/)?.[0] ?? ''
+  assert.ok(drainBlock.indexOf('classifyDrainState') > -1, 'drain should use the pure early-return classifier')
+  assert.ok(
+    drainBlock.indexOf("if (drainState !== 'continue') return drainState") < drainBlock.indexOf("action: 'append_trek_points'"),
+    'offline/degraded/empty state must be classified before appending batches'
+  )
   assert.doesNotMatch(trekClient, /if \(drainInFlightRef\.current\) return drainInFlightRef\.current/)
   assert.match(trekClient, /action:\s*'append_trek_points'/)
   assert.match(trekClient, /markTrekOutboxPointsSynced\(sid, acceptedIds\)/)
@@ -73,4 +80,35 @@ test('IndexedDB outbox schema is session-scoped and stores finish intents separa
   assert.match(trekOutbox, /markTrekOutboxPoints\(sessionId, ids, 'rejected'\)/)
   assert.match(trekOutbox, /pendingCount > 0 && !options\.allowPending/)
   assert.match(trekClient, /clearTrekOutboxSession\(activeSessionId, \{ allowPending: true \}\)/)
+})
+
+test('offline finalize fallbacks preserve finish intent and do not bounce or clear outbox', () => {
+  const stopTrekBlock = trekClient.match(/async function stopTrek\(\) \{[\s\S]*?\n  async function handleGpsCheckin/)?.[0] ?? ''
+  const finishFallback = stopTrekBlock.match(/action:\s*'finish_incomplete_trek'[\s\S]*?catch \(error\) \{([\s\S]*?)\n\s*\}\n\s*const checkinId/)?.[1] ?? ''
+  assert.match(finishFallback, /if \(!isNetworkTrekActionError\(error\)\) throw error/)
+  assert.match(finishFallback, /writeTrekFinishIntent\({[\s\S]*kind:\s*'finish_incomplete'/)
+  assert.match(finishFallback, /已进入待同步状态，网络恢复后会先补传轨迹再保存活动。/)
+  assert.doesNotMatch(finishFallback, /resetLiveTrekState\(/)
+  assert.doesNotMatch(finishFallback, /clearTrekOutboxSession\(/)
+
+  const gpsBlock = trekClient.match(/async function handleGpsCheckin\(photoUrl\?: string \| null\) \{[\s\S]*?\n  async function handlePhotoCheckin/)?.[0] ?? ''
+  const verifyFallback = gpsBlock.match(/action:\s*'verify_summit_checkin'[\s\S]*?catch \(error\) \{([\s\S]*?)\n\s*\}\n\s*const checkinId/)?.[1] ?? ''
+  assert.match(verifyFallback, /if \(!isNetworkTrekActionError\(error\)\) throw error/)
+  assert.match(verifyFallback, /writeTrekFinishIntent\({[\s\S]*kind:\s*'verify_summit'/)
+  assert.match(verifyFallback, /已进入待同步状态，网络恢复后会先补传轨迹再确认登顶。/)
+  assert.doesNotMatch(verifyFallback, /resetLiveTrekState\(/)
+  assert.doesNotMatch(verifyFallback, /clearTrekOutboxSession\(/)
+})
+
+test('network errors use friendly copy and pending finish processing keeps intent for retry', () => {
+  assert.match(trekClient, /function isNetworkTrekActionError\(error: unknown\)/)
+  assert.match(trekClient, /normalized\.includes\('failed to fetch'\)/)
+  assert.match(trekClient, /if \(isNetworkTrekActionError\(error\)\) return '网络不可用，请联网后重试。'/)
+  assert.match(trekClient, /key:\s*'trek_session_create_failure'[\s\S]*网络不可用，请联网后再开始记录。/)
+
+  const pendingBlock = trekClient.match(/const processPendingFinishIntent = useCallback\([\s\S]*?\n  const persistPauseTrekSession/)?.[0] ?? ''
+  assert.match(pendingBlock, /if \(isNetworkTrekActionError\(error\)\) \{[\s\S]*网络不可用，待同步任务会在联网后继续。[\s\S]*return false/)
+  const pendingNetworkFallback = pendingBlock.match(/if \(isNetworkTrekActionError\(error\)\) \{([\s\S]*?)\n\s*\}/)?.[1] ?? ''
+  assert.doesNotMatch(pendingNetworkFallback, /clearTrekOutboxSession\(/)
+  assert.doesNotMatch(pendingNetworkFallback, /resetLiveTrekState\(/)
 })

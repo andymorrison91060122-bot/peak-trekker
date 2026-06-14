@@ -29,6 +29,35 @@ export type TrekFinishIntent =
       createdAt: number
     }
 
+export type TrekOutboxDrainResult =
+  | { ok: true; status: 'drained' }
+  | { ok: false; status: 'retryable'; reason: 'offline' | 'network' | 'degraded'; message?: string }
+  | { ok: false; status: 'terminal'; reason: 'not_tracking' | 'cap_exceeded' | 'invalid' | 'forbidden' | 'unknown'; message: string }
+
+export function classifyDrainState({
+  degraded,
+  online,
+  hasPoints,
+}: {
+  degraded: boolean
+  online: boolean
+  hasPoints: boolean
+}): TrekOutboxDrainResult | 'continue' {
+  if (degraded) {
+    return online
+      ? { ok: true, status: 'drained' }
+      : { ok: false, status: 'retryable', reason: 'degraded', message: '本机存储不可用，无法保证离线恢复。' }
+  }
+
+  if (!online) {
+    return { ok: false, status: 'retryable', reason: 'offline', message: '当前离线，轨迹点待补传。' }
+  }
+
+  if (!hasPoints) return { ok: true, status: 'drained' }
+
+  return 'continue'
+}
+
 type StoredOutboxPoint = {
   key: string
   sessionId: string

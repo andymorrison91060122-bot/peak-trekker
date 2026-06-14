@@ -8,6 +8,7 @@ import {
   isScreenshotRecognitionSource,
   safeTrackPoints,
 } from '../src/lib/trek-utils.ts'
+import { classifyDrainState } from '../src/lib/trek-outbox.ts'
 
 test('screenshot recognition source predicate matches only the exact persisted source', () => {
   assert.equal(isScreenshotRecognitionSource(SCREENSHOT_RECOGNITION_SOURCE), true)
@@ -74,4 +75,31 @@ test('safeTrackPoints preserves point ids and capture sequence for offline repla
       ts: 1710000005000,
     },
   ])
+})
+
+test('classifyDrainState treats offline as retryable even when the outbox is empty', () => {
+  assert.deepEqual(
+    classifyDrainState({ degraded: false, online: false, hasPoints: false }),
+    { ok: false, status: 'retryable', reason: 'offline', message: '当前离线，轨迹点待补传。' }
+  )
+  assert.deepEqual(
+    classifyDrainState({ degraded: false, online: false, hasPoints: true }),
+    { ok: false, status: 'retryable', reason: 'offline', message: '当前离线，轨迹点待补传。' }
+  )
+  assert.deepEqual(
+    classifyDrainState({ degraded: false, online: true, hasPoints: false }),
+    { ok: true, status: 'drained' }
+  )
+  assert.equal(
+    classifyDrainState({ degraded: false, online: true, hasPoints: true }),
+    'continue'
+  )
+  assert.deepEqual(
+    classifyDrainState({ degraded: true, online: false, hasPoints: false }),
+    { ok: false, status: 'retryable', reason: 'degraded', message: '本机存储不可用，无法保证离线恢复。' }
+  )
+  assert.deepEqual(
+    classifyDrainState({ degraded: true, online: true, hasPoints: true }),
+    { ok: true, status: 'drained' }
+  )
 })

@@ -3,13 +3,13 @@
 import { Suspense, useEffect, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import {
-  ONBOARDING_VERSION,
   getProvinceDraft,
   setIntroSeen,
   setProvinceDraft,
 } from '@/lib/onboarding'
 import { clearClientAuthReturnPath, resolveClientAuthReturnPath } from '@/lib/auth-redirect'
 import { PROVINCES, getProvinceCode } from '@/lib/provinces'
+import { validateNickname } from '@/lib/profile-nickname'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { attributionProperties, clearShareAttribution } from '@/lib/analytics/attribution'
@@ -38,6 +38,13 @@ function RegisterPageContent() {
     e.preventDefault()
     if (step === 1) { setStep(2); return }
 
+    const nicknameResult = validateNickname(username)
+    if (!nicknameResult.ok) {
+      setError(nicknameResult.error)
+      return
+    }
+    const provinceCode = getProvinceCode(province)
+
     setLoading(true)
     setError('')
     trackEvent({
@@ -46,7 +53,17 @@ function RegisterPageContent() {
       properties: { return_to: returnTo },
     })
 
-    const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          nickname: nicknameResult.value,
+          province,
+          province_code: provinceCode,
+        },
+      },
+    })
     if (signUpError) {
       setError(signUpError.message)
       setLoading(false)
@@ -67,37 +84,8 @@ function RegisterPageContent() {
     setProvinceDraft(province)
     setIntroSeen()
 
-    const syncProfile = async () => {
-      if (!activeUserId) return
-
-      const payload = {
-        id: activeUserId,
-        username,
-        province,
-        province_code: getProvinceCode(province),
-        license_level: 'none',
-      }
-
-      const { error: onboardingSyncError } = await supabase.from('profiles').upsert(
-        {
-          ...payload,
-          onboarding_version: ONBOARDING_VERSION,
-        },
-        { onConflict: 'id' }
-      )
-
-      if (onboardingSyncError) {
-        await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
-      }
-    }
-
     // 会话已建立时优先整页回跳，避免客户端路由在 cookie 同步阶段卡住。
     if (activeSession) {
-      try {
-        await syncProfile()
-      } catch (err) {
-        console.error('Profile sync failed during register:', err)
-      }
       if (activeUserId) {
         await trackEventNow({
           event_type: 'auth',
@@ -119,7 +107,6 @@ function RegisterPageContent() {
       return
     }
 
-    await syncProfile()
     if (activeUserId) {
       await trackEventNow({
         event_type: 'auth',

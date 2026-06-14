@@ -8,7 +8,7 @@ const trekPhotoUpload = readFileSync('src/app/api/trek/photo-upload/route.ts', '
 const trekRules = readFileSync('src/lib/trek-verification-rules.ts', 'utf8')
 const profilePage = readFileSync('src/app/(main)/profile/page.tsx', 'utf8')
 const profileClient = readFileSync('src/components/profile/ProfileV2Client.tsx', 'utf8')
-const trekPauseMigration = readFileSync('supabase/migrations/20260517124359_trek_session_pause_state.sql', 'utf8')
+const trekPauseMigration = readFileSync('supabase/migrations/20260517124440_trek_session_pause_state.sql', 'utf8')
 
 test('near summit continue CTA is wired to summit photo flow', () => {
   assert.match(trekClient, /status === 'summit_photo'/)
@@ -58,7 +58,9 @@ test('trek dev test mode persists only through non-production session storage', 
 })
 
 test('watchPosition errors preserve trek session state for paused save', () => {
-  const watchErrorBlock = trekClient.match(/\(error\) => \{[\s\S]*?showToast\(\{ key: 'location_error', message \}\)/)?.[0] ?? ''
+  const watchErrorBlock = trekClient.match(
+    /navigator\.geolocation\.watchPosition\([\s\S]*?,\s*\(error\) => \{[\s\S]*?showToast\(\{ key: 'location_error', message \}\)[\s\S]*?\},\s*\{ enableHighAccuracy/
+  )?.[0] ?? ''
   assert.match(watchErrorBlock, /clearTrackingRuntime\(\)/)
   assert.match(watchErrorBlock, /setIsPaused\(true\)/)
   assert.match(watchErrorBlock, /elapsedBeforePauseRef\.current = elapsedSecondsRef\.current/)

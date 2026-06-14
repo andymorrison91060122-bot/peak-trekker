@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-14 · 最新版本记录: v0.69
+> Last Updated: 2026-06-14 · 最新版本记录: v0.70
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`d20a5df`（Merge FU-83 (d)+(a) render pair · 2026-06-13）
+`327dd0a`（Merge FU-90 Phase 2B Profile nickname editing UI · 2026-06-14）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -437,22 +437,6 @@
 
 ---
 
-### FU-90 · 昵称链路修复 + Profile 昵称编辑
-
-- **优先级**: P2（山友圈上线前置）
-- **归属阶段**: 山友圈上线前 / bug 修 + 轻量功能
-- **状态**: 🟢 active
-
-**背景（bug，Claude 已一手核 2026-06-13）**: 注册表单收"登山者昵称"（`register/page.tsx:202-204`），但 upsert payload 只写 `profiles.username`、不写 `display_name`（`register/page.tsx:73-79`）。展示侧字段不统一：Profile / 档案优先 `display_name` → 兜底邮箱前缀（代码型）（`profile/page.tsx:50`、`archive/page.tsx:193`）；山友圈 feed/detail 只取 `username`（`community-server.ts:93/98/110`、`community/actions/route.ts:619`）。无 `nickname` 列，无改昵称 UI（`src/app/api/profile` 唯一写库 route 是 avatar-upload）。山友圈上线前用户看到代码型默认名不可接受。
-
-**Phase 1 待钉**: ①有无 DB trigger（handle_new_user 类）在注册前给 display_name/username 塞代码型默认值 shadow 注册值；②register upsert 是否可靠落库（`register/page.tsx:90` 有 fallback upsert，疑时序/RLS）；③统一到单一昵称字段。
-
-**范围**: 当 bug 修注册写入/展示链（非纯加编辑器）+ Profile 页加昵称编辑（仿头像入口风格、轻量 bottom sheet / 小弹层，不进"设置"）+ 展示面 audit（Profile header / 山友圈 feed / 详情 / 活动详情作者 / 分享海报用户名）。昵称规则：2–12 字符、trim、禁纯空白/换行/控制字符、允许中英数空格 `_` `-`、不强制唯一。
-
-**注**: 来源为 FU-82 FAQ 对账（account.edit-profile）暴露；与 FU-89 平行。FU-82 已把 account.edit-profile 文案诚实化为"昵称/省份暂不能改"，本项落地后该文案需同步回改。
-
----
-
 ### FU-91 · Supabase schema baseline / fresh-apply 能力恢复
 
 - **优先级**: P3（非上线阻塞）
@@ -467,6 +451,23 @@
 3. 恢复 fresh env / reset 能力的路径与验收标准。
 
 **约束**: 禁止直接 db reset / db push；Phase 1 只读覆盖分析，方案经用户审核后再执行。MVP 单库不 reset，本项非上线阻塞。来源 FU-64，单独立项。
+
+---
+
+### FU-92 · onboarding_version 跨设备重复展示修复
+
+- **优先级**: P3（非上线阻塞）
+- **归属阶段**: onboarding / profile metadata hygiene
+- **状态**: 🟢 active
+
+**背景**: FU-90 Phase 2A 注册链路改为 `options.data` → `handle_new_user` trigger 持久化昵称 / 省份。实施中澄清：register 端原本的 `setIntroSeen` 只是本机 localStorage 抑制，未写 `profiles.onboarding_version`；新用户跨设备 / 清缓存后可能重复看到 onboarding。这不是 FU-90 2A/2B 回归，而是既有 onboarding 持久化缺口被昵称链路复核暴露。
+
+**范围**:
+- 复核 onboarding display gate：`onboarding_version`、localStorage、profile fetch / update 路径。
+- 设计跨设备一致的完成态写入：用户完成 onboarding 后持久化到 `profiles.onboarding_version` 或等效 server-owned 字段。
+- 明确新用户 / 旧用户 / 清缓存 / 换设备的预期行为。
+
+**约束**: 不夹带进 FU-90；如需 schema / RLS / API 变更，单独 plan + 发布审批。
 
 ---
 
@@ -508,7 +509,16 @@
 
 ---
 
-## Closed Follow-ups（75 条）
+## Closed Follow-ups（76 条）
+
+### FU-90 ✅ 昵称链路修复 + Profile 昵称编辑
+
+- **关闭原因**: 昵称链路整体收口。Phase 2A 通过 PR #11 / merge `f727e22` 上线：注册 `options.data` → `handle_new_user` trigger 持久化昵称 / 省份，drop `profiles.username` unique，生产 migration 已 apply，valid / no-metadata / dirty / duplicate 四条 smoke 通过并 exact cleanup。Phase 2B 通过 PR #12 / merge `327dd0a` 上线：Profile 页新增昵称铅笔入口、bottom sheet 编辑器、`POST /api/profile/nickname`、本地成功态「已更新」，FAQ `account.edit-profile` 同步改为「昵称可编辑，省份暂不支持修改」。
+- **证据**: Phase 2B 用户视觉验收 PASS；`npm run test:profile-nickname` 20/20；`npx playwright test tests/e2e/profile-nickname-edit.spec.ts --reporter=line` 1 passed；`npm run lint` 0 errors（9 existing warnings）；`npm run build` passed；DATA RESIDUE `FU90 test auth users remaining: 0`。2B 本地证据目录 `output/fu90-nickname-edit-acceptance/`（不入 git）。设计源仅存 output 作本轮验收证据，不进仓库 / docs。分享 / 海报用户名为生成时快照，不随改名回写，属预期。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-14
+
+---
 
 ### FU-64 ✅ Supabase migration-history full reconciliation
 
@@ -1496,6 +1506,15 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.70（2026-06-14）
+
+FU-90 整体关闭 · 昵称链路修复 + Profile 昵称编辑 UI 上线；登记 FU-92 onboarding 持久化跟进。
+
+- FU-90 从 Active 移入 Closed：2A PR #11 / merge `f727e22` 完成注册 metadata → trigger 持久化、username 去唯一与四条生产 smoke；2B PR #12 / merge `327dd0a` 完成 Profile 昵称编辑 bottom sheet、`POST /api/profile/nickname`、成功态与 FAQ 文案回改。
+- 2B 证据：用户视觉验收 PASS；`npm run test:profile-nickname` 20/20；focused e2e `tests/e2e/profile-nickname-edit.spec.ts` 1 passed；lint/build/diff-check 通过；DATA RESIDUE 为 0。设计源只保留在 `output/fu90-nickname-edit-acceptance/`，不提交。
+- 新增 Active FU-92：`onboarding_version` 跨设备重复展示修复。该问题由 FU-90 复核暴露，非 2A/2B 回归。
+- Active 18 → 18 · Closed 75 → 76 · Deferred 1 → 1
 
 ### v0.69（2026-06-14）
 

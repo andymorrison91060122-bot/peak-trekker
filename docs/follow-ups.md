@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-14 · 最新版本记录: v0.70
+> Last Updated: 2026-06-14 · 最新版本记录: v0.71
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（18 条）
+## Active Follow-ups（23 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -410,30 +410,99 @@
 
 ---
 
-### FU-89 · FAQ 暴露的未接通功能债梳理
+### FU-93 · 离线轨迹持久化与重传
+
+- **优先级**: P1（上线阻塞）
+- **归属阶段**: 核心记录可靠性 / 上线阻塞
+- **状态**: 🟢 active
+
+**背景 / 证据（Claude + workflow 一手核 2026-06-14）**: 活动轨迹只存内存 `trackRef.current`（`src/app/(flow)/trek/TrekClient.tsx:1018`），约 4s 同步服务器（`:1031`），append 失败 `} catch {}` 静默吞、不重传（`:928`），无 localStorage / IndexedDB，崩溃恢复纯靠服务器（`restoreActiveTrekSession:1061`）。穿蜂窝盲区时，距离 / 爬升 / 轨迹可能被悄悄写错，用户无感。核心用途数据可靠性问题，**非新功能**。
+
+**Scope（修复，非加功能）**:
+1. 轨迹随增长本地持久化（IndexedDB，按 `sessionId`，finish / abort 清）。
+2. `} catch {}` 改为标记未同步 + 入队。
+3. 离线 outbox 重传：已有 online 监听（`TrekClient.tsx:517`）；append 端点 `src/app/api/trek/actions/route.ts:318` 最好支持批量 + 按 `ts` 幂等去重，防重复计距。
+4. 恢复时本地优先 / 合并。
+
+**依赖 / 互补**: server `append_trek_point` 批量 + 幂等；与 FU-96 wakelock 互补（息屏也会掉点）。
+
+---
+
+### FU-94 · 截图识别额度墙文案 + 需求埋点
+
+- **优先级**: P1
+- **归属阶段**: 产品策略 / 诚实文案 / 轻改
+- **状态**: 🟢 active
+
+**背景 / 证据**: 截图识别服务端真扣配额（免费首月 5、之后每月 2），用尽返回 402（`src/app/api/screenshot/recognize/route.ts:99-100`）；前端 UpgradeSheet「了解付费方案」→ `window.alert('付费方案即将上线。')`（`src/app/(flow)/screenshot/ScreenshotClient.tsx:2160`）是死路；**全仓无支付路由**。第一期免费上线（商业化 deferred FU-88），此墙与决策冲突。
+
+**Scope（明确不做支付 / 订阅 / 付费页）**:
+1. 去掉「了解付费方案」这类承诺付费的死 CTA。
+2. 文案改诚实，例如「本月识别次数已用完，后续我们会开放更多额度」。
+3. **保留**额度机制（可配置，MVP 期可按需调高）。
+4. 用现有 `trackEvent` 基建加埋点：触达额度墙、点击「想要更多额度」；用于后续付费意愿 / 需求判断（产品验证，非商业化实现）。
+
+**边界**: 不新增任何支付 / checkout / 订阅路由或页面。
+
+---
+
+### FU-95 · 上线前死入口 / 假成功清理
+
+- **优先级**: P2（before-launch）
+- **归属阶段**: 上线前死面清理
+- **状态**: 🟢 active
+
+**定位**: 删除 / 隐藏 / 降级假入口，不补完整功能。打包处理以下「广告了不存在的能力」或语义 bug：
+
+1. **late-proof 假成功壳**: `buildLateProofHref` 死代码（`src/lib/trek-gps-preflight.ts:49`，仅 URL 可达）、`LateProofClient` `setTimeout` 假成功不落库（`src/app/(flow)/late-proof/LateProofClient.tsx:617-625`）。下线前端壳（页面 + 死 href + 死 `handlePhotoCheckin` + `void` 抑制）；后端 `submit_historical_checkin` 保持休眠不删。
+2. **无归属 / 事后认领死按钮**（DEBT-3≡4，同一条）: 「直接记为无归属·事后再认领」（`src/app/(flow)/trek/TrekClient.tsx:3729`）只 `showManualPlaceholder` toast（`:2036`）。删按钮 + 该 placeholder。
+3. **GPS-weak 空按钮**: `<PrimaryButton onClick={()=>{}}>继续记录</PrimaryButton>`（`TrekClient.tsx:2644`）。底层行为本就对（信号回来自动续），删该假按钮或接成真动作。
+4. **Profile「设置」死 toast**: `src/components/profile/ProfileV2Client.tsx:501` `{label:'设置',toast:'设置功能即将上线'}`。撤掉该行或降级；问题反馈行归 FU-97。
+5. **historical_photo 误标 GPS（语义 bug 一并修）**: `src/lib/source-label-utils.ts:6-8` 把 `historical_photo` 映射成绿「GPS VERIFIED」。改成「UPLOADED / 用户自报」。当前因无产线无害，但属语义错，顺手修。
+
+**边界**: 只删 / 隐藏 / 降级，不补任何完整功能。
+
+---
+
+### FU-96 · wakelock 记录可靠性增强
 
 - **优先级**: P2
-- **归属阶段**: 产品功能债池（上线前梳理）
-- **状态**: 🟢 active（本项仅调研归类，不进入功能实现）
+- **归属阶段**: 记录可靠性增强
+- **状态**: 🟢 active
 
-**背景**: 来源为 FU-82 FAQ 对账暴露。逐条 trace FAQ 与代码现状时，发现多处 FAQ 承诺的功能在代码里仍是空壳 / 未接通。本项集中登记，先调研归类与排优先级，不在本项写功能。
+**背景 / 证据**: 长记录无 `navigator.wakeLock`（全仓 0 hits），息屏会增加掉点 / 停表风险。
 
-**边界原则**:
-- 本项只做调研 / 拆分 / 排期，不在本项写功能。
-- 登记这些债不代表对应功能已开放或即将开放。
-- 每项具体实现需另行立项、单独计划与验收。
+**Scope**: 加 `useWakeLock`：locating / tracking 请求，finish / pause / abort 释放，`visibilitychange` 重取；guard 不支持环境。
 
-**已识别功能债**:
-1. 屏幕常亮 (wakelock) 缺失 —— 记录态 (`TrekClient` locating / tracking) 无 `navigator.wakeLock`，长记录可能被息屏打断定位。
-2. 登顶留证 `/late-proof` 空壳 —— 入口不可达 (`buildLateProofHref` 为 dead code) + 假提交不落库 (`LateProofClient` 无 fetch / API，`setTimeout` 切成功态)；后端 `submit_historical_checkin` 已就绪 (`trek/actions/route.ts:1265`) 待接。
-3. 手动补签空壳 —— 无照片无轨迹的手动记录入口仅占位 toast (`TrekClient.tsx:2036`)。
-4. 未归属 + 事后认领全缺 —— 无 unattributed 会话态、无认领流程；占位入口按钮 (`TrekClient.tsx:3729`) 建议一并清理（FAQ 已删 `record.unattributed` 条）。
-5. 轨迹本地持久化 + 离线重传缺失 —— 仅内存 + 每约 4s 服务器同步，离线失败静默吞 (`TrekClient.tsx:928`)。
-6. 个人资料编辑缺失 —— 昵称 / 省份只读，无编辑页 / 更新 API（`src/app/api/profile` 仅 avatar-upload）。
-7. 反馈通道缺失 —— 设置 / 反馈占位 toast (`ProfileV2Client.tsx:500-501`)，无路由 / API / 落库；是否公开邮箱或做站内表单待用户定，再单独排期实现。
-8. 来源标签映射 —— `source-label-utils` 把 `historical_photo` 映射成 `gps_verified`；待 late-proof 接通时定标签语义（当前因 late-proof 是壳，无实际影响）。
+**注**: WeChat webview / 老 iOS 不支持，只能缓解。**是否进上线窗口看 FU-93 修复后剩余风险**。
 
-**不重复登记**: 地图 waypoint 经纬度数据化已在 FU-83(b)，等高线在 FU-83(c)；海拔剖面 path 死代码、底图仅华山覆盖归 FU-83 地图债一并考虑。
+---
+
+### FU-97 · 反馈通道
+
+- **优先级**: P2
+- **归属阶段**: 反馈入口 / 用户支持
+- **状态**: 🟢 active（先登记，不做完整系统）
+
+**背景 / 证据**: 问题反馈无路由 / API / 落库，`src/components/profile/ProfileV2Client.tsx:500` 是死 toast；FAQ `account.feedback` 已诚实标「准备中」。
+
+**Scope（后续如需）**: 极简真实渠道（站内 sheet + `/api/feedback` + 表，或外链小程序 / 微信 / 邮箱）。
+
+**边界**: 本轮**只登记不实施**。
+
+---
+
+### FU-98 · 省份编辑
+
+- **优先级**: P3
+- **归属阶段**: Profile 轻量资料编辑
+- **状态**: 🟢 active
+
+**背景**: 昵称已被 FU-90 修好可编辑；省份仍只读、无 picker / API（`profiles.province` 只展示）。
+
+**Scope（后续迭代）**: 复用 FU-90 昵称 sheet 模式 + 省份 picker + 写 `profiles.province` + 同步改 FAQ。
+
+**边界**: **MVP 初期不做**。
 
 ---
 
@@ -509,7 +578,23 @@
 
 ---
 
-## Closed Follow-ups（76 条）
+## Closed Follow-ups（77 条）
+
+### FU-89 ✅ FAQ 暴露的未接通功能债梳理
+
+- **关闭原因**: FAQ 功能债调研归类完成，产出上线前债务收口清单，spawned FU-93..98。23 条 FAQ 已完成全审 + 全仓 grep；多数 FAQ 承诺能力已由 FU-82 诚实化成果对齐真实现状；FU-90 已了结昵称编辑（原 DEBT-6 部分）。原则：上线前债务收口，涉新产品能力的项只登记不实施。
+- **登记结果**:
+  - FU-93 离线轨迹持久化与重传（P1 上线阻塞）。
+  - FU-94 截图识别额度墙文案 + 需求埋点（P1，不做商业化）。
+  - FU-95 上线前死入口 / 假成功清理（P2 before-launch）。
+  - FU-96 wakelock 记录可靠性增强（P2）。
+  - FU-97 反馈通道（P2，先登记，不做完整系统）。
+  - FU-98 省份编辑（P3，MVP 初期不做）。
+- **NEW-B 备注（不单独开 FU）**: 分享高级模板水印付费墙（`src/app/(main)/share/ShareClient.tsx:2348` `window.alert('付费功能即将上线')`）被 env `ENABLE_PREMIUM_TEMPLATE_PAYWALL`（关）挡住，生产不可达。保持 flag 关闭，不要打开，不做实现。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-14
+
+---
 
 ### FU-90 ✅ 昵称链路修复 + Profile 昵称编辑
 
@@ -1506,6 +1591,15 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.71（2026-06-14）
+
+FU-89 收口 · FAQ 暴露功能债完成上线前归类，登记 FU-93..98。
+
+- FU-89 从 Active 移入 Closed：FAQ 功能债调研归类完成，产出上线前债务收口清单；23 条 FAQ 已全审 + 全仓 grep；多数 FAQ 承诺能力已由 FU-82 诚实化成果对齐真实现状，FU-90 已了结昵称编辑。
+- 新增 Active FU-93..98：离线轨迹持久化与重传、截图识别额度墙文案 + 需求埋点、上线前死入口 / 假成功清理、wakelock 记录可靠性增强、反馈通道、省份编辑。
+- NEW-B 不单独开 FU：分享高级模板水印付费墙被 `ENABLE_PREMIUM_TEMPLATE_PAYWALL=false` 挡住，生产不可达；保持 flag 关闭，不打开、不实现。
+- Active 18 → 23 · Closed 76 → 77 · Deferred 1 → 1
 
 ### v0.70（2026-06-14）
 

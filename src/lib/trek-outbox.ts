@@ -166,20 +166,23 @@ export function markTrekOutboxPointsRejected(sessionId: string, ids: string[]) {
   return markTrekOutboxPoints(sessionId, ids, 'rejected')
 }
 
-export async function clearTrekOutboxSession(sessionId: string) {
+export async function clearTrekOutboxSession(sessionId: string, options: { allowPending?: boolean } = {}) {
   const db = await openDb()
   if (!db) return { cleared: false, degraded: true }
   try {
     const transaction = db.transaction([POINTS_STORE, FINISH_STORE], 'readwrite')
     const pointsStore = transaction.objectStore(POINTS_STORE)
     const rows = await requestToPromise<StoredOutboxPoint[]>(pointsStore.getAll())
+    const sessionRows = rows.filter((row) => row.sessionId === sessionId)
+    const pendingCount = sessionRows.filter((row) => row.state === 'pending').length
+    if (pendingCount > 0 && !options.allowPending) {
+      return { cleared: false, degraded: false, pendingCount }
+    }
     await Promise.all(
-      rows
-        .filter((row) => row.sessionId === sessionId)
-        .map((row) => requestToPromise(pointsStore.delete(row.key)))
+      sessionRows.map((row) => requestToPromise(pointsStore.delete(row.key)))
     )
     await requestToPromise(transaction.objectStore(FINISH_STORE).delete(sessionId))
-    return { cleared: true, degraded: false }
+    return { cleared: true, degraded: false, pendingCount: 0 }
   } catch {
     initFailed = true
     return { cleared: false, degraded: true }

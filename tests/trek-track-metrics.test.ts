@@ -27,7 +27,7 @@ function point(index: number, overrides: Partial<TrackPoint> = {}): TrackPoint {
 
 test('append point limits are pinned for client and server parity', () => {
   assert.equal(TREK_APPEND_BATCH_LIMIT, 500)
-  assert.equal(TREK_SESSION_POINT_HARD_LIMIT, 20_000)
+  assert.equal(TREK_SESSION_POINT_HARD_LIMIT, 30_000)
 })
 
 test('normalizeAppendTrackPoint rejects malformed ids and unsafe coordinates', () => {
@@ -37,6 +37,10 @@ test('normalizeAppendTrackPoint rejects malformed ids and unsafe coordinates', (
   assert.equal(normalizeAppendTrackPoint({ ...point(1), accuracy: -1 }), null)
   assert.equal(normalizeAppendTrackPoint({ ...point(1), captureSeq: -1 }), null)
   assert.deepEqual(normalizeAppendTrackPoint(point(1)), point(1))
+  assert.equal(
+    normalizeAppendTrackPoint({ ...point(1), id: '00000000-0000-4000-8000-0000000000AB' })?.id,
+    '00000000-0000-4000-8000-0000000000ab'
+  )
 })
 
 test('mergeTrekTrackPoints is deterministic for replay, duplicate, and out-of-order batches', () => {
@@ -102,4 +106,18 @@ test('drift-rejected new points are dropped and returned as rejectedIds', () => 
   assert.deepEqual(result.acceptedIds, [])
   assert.deepEqual(result.rejectedIds, [drift.id])
   assert.deepEqual(result.points, [normal])
+})
+
+test('mixed valid and invalid incoming points still merge valid points', () => {
+  const valid = point(1)
+  const invalid = point(2, { accuracy: 15_000 })
+  const result = mergeTrekTrackPoints({
+    existingPoints: [],
+    incomingPoints: [valid, invalid],
+  })
+
+  assert.deepEqual(result.points, [valid])
+  assert.deepEqual(result.acceptedIds, [valid.id])
+  assert.deepEqual(result.rejectedIds, [])
+  assert.equal(result.summary.distanceM, 0)
 })

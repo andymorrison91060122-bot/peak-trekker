@@ -38,7 +38,7 @@ test('source code uses the shared screenshot recognition predicate instead of li
 test('safeTrackPoints preserves point ids and capture sequence for offline replay', () => {
   const points = safeTrackPoints([
     {
-      id: '11111111-1111-4111-8111-111111111111',
+      id: '11111111-1111-4111-8111-1111111111AA',
       lat: 30.1,
       lng: 120.1,
       accuracy: 8,
@@ -58,7 +58,7 @@ test('safeTrackPoints preserves point ids and capture sequence for offline repla
 
   assert.deepEqual(points, [
     {
-      id: '11111111-1111-4111-8111-111111111111',
+      id: '11111111-1111-4111-8111-1111111111aa',
       lat: 30.1,
       lng: 120.1,
       accuracy: 8,

@@ -19,12 +19,12 @@ test('append_trek_points RPC uses auth.uid ownership with row lock and no truste
 
 test('append_trek_points RPC pins caps, validation, deterministic order, and ack semantics', () => {
   assert.match(migration, /batch_count > 500/)
-  assert.match(migration, /existing_count \+ batch_count > 20000/)
-  assert.match(migration, /invalid point id/)
-  assert.match(migration, /invalid point coordinates/)
-  assert.match(migration, /invalid point accuracy/)
-  assert.match(migration, /invalid point timestamp/)
-  assert.match(migration, /invalid point captureSeq/)
+  assert.doesNotMatch(migration, /existing_count \+ batch_count >/)
+  assert.match(migration, /array_length\(stored_points, 1\), 0\) > 30000/)
+  assert.match(migration, /point_lat IS NULL/)
+  assert.match(migration, /jsonb_typeof\(raw_point -> 'captureSeq'\) <> 'number'/)
+  assert.match(migration, /rejected_ids := array_append\(rejected_ids, point_id\)/)
+  assert.match(migration, /point_id := lower\(NULLIF\(BTRIM\(raw_point ->> 'id'\), ''\)\)/)
   assert.match(migration, /ORDER BY \(point ->> 'ts'\)::DOUBLE PRECISION,\s*COALESCE\(\(point ->> 'captureSeq'\)::DOUBLE PRECISION, 9007199254740991\), point ->> 'id'/)
   assert.match(migration, /accepted_ids := array_append\(accepted_ids, point_id\)/)
   assert.match(migration, /rejected_ids := array_append\(rejected_ids, point_id\)/)
@@ -41,6 +41,7 @@ test('append_trek_points RPC grants are explicit and hardened by DO assertion', 
 test('trek action route forwards append batches to RPC and requires ack before success', () => {
   assert.match(trekActions, /'append_trek_points'/)
   assert.match(trekActions, /points\.length > TREK_APPEND_BATCH_LIMIT/)
+  assert.doesNotMatch(trekActions, /normalized\.some\(\(point\) => point === null\)/)
   assert.match(trekActions, /\.rpc\('append_trek_points',\s*\{[\s\S]*p_session_id:\s*sessionId,[\s\S]*p_points:\s*points/)
   assert.match(trekActions, /acceptedIds/)
   assert.match(trekActions, /rejectedIds/)
@@ -49,9 +50,13 @@ test('trek action route forwards append batches to RPC and requires ack before s
 
 test('client outbox writes before drain and clears only after finish or abort confirmation', () => {
   assert.match(trekClient, /putTrekOutboxPoint\(sid, point\)/)
+  assert.match(trekClient, /drainQueueRef/)
+  assert.match(trekClient, /for \(;;\) \{[\s\S]*listTrekOutboxPoints\(sid\)/)
+  assert.doesNotMatch(trekClient, /if \(drainInFlightRef\.current\) return drainInFlightRef\.current/)
   assert.match(trekClient, /action:\s*'append_trek_points'/)
   assert.match(trekClient, /markTrekOutboxPointsSynced\(sid, acceptedIds\)/)
   assert.match(trekClient, /markTrekOutboxPointsRejected\(sid, rejectedIds\)/)
+  assert.match(trekClient, /status:\s*'terminal'/)
   assert.match(trekClient, /writeTrekFinishIntent\({[\s\S]*kind:\s*'finish_incomplete'/)
   assert.match(trekClient, /writeTrekFinishIntent\({[\s\S]*kind:\s*'verify_summit'/)
   assert.match(trekClient, /clearTrekOutboxSession\(activeSessionId\)/)
@@ -66,4 +71,6 @@ test('IndexedDB outbox schema is session-scoped and stores finish intents separa
   assert.match(trekOutbox, /state:\s*'pending' \| 'synced' \| 'rejected'/)
   assert.match(trekOutbox, /markTrekOutboxPoints\(sessionId, ids, 'synced'\)/)
   assert.match(trekOutbox, /markTrekOutboxPoints\(sessionId, ids, 'rejected'\)/)
+  assert.match(trekOutbox, /pendingCount > 0 && !options\.allowPending/)
+  assert.match(trekClient, /clearTrekOutboxSession\(activeSessionId, \{ allowPending: true \}\)/)
 })

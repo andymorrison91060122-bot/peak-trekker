@@ -68,7 +68,7 @@ BEGIN
     RAISE EXCEPTION 'p_session_id required' USING ERRCODE = '22023';
   END IF;
 
-  IF jsonb_typeof(p_points) <> 'array' THEN
+  IF p_points IS NULL OR jsonb_typeof(p_points) <> 'array' THEN
     RAISE EXCEPTION 'p_points must be an array' USING ERRCODE = '22023';
   END IF;
 
@@ -99,22 +99,44 @@ BEGIN
       CONTINUE;
     END IF;
 
+    point_altitude := NULL;
+    point_capture_seq := NULL;
+    point_id := lower(NULLIF(BTRIM(raw_point ->> 'id'), ''));
+
+    IF jsonb_typeof(raw_point -> 'lat') <> 'number'
+      OR jsonb_typeof(raw_point -> 'lng') <> 'number'
+      OR jsonb_typeof(raw_point -> 'accuracy') <> 'number'
+      OR jsonb_typeof(raw_point -> 'ts') <> 'number'
+    THEN
+      CONTINUE;
+    END IF;
+
     point_lat := (raw_point ->> 'lat')::DOUBLE PRECISION;
     point_lng := (raw_point ->> 'lng')::DOUBLE PRECISION;
     point_accuracy := (raw_point ->> 'accuracy')::DOUBLE PRECISION;
     point_ts := (raw_point ->> 'ts')::DOUBLE PRECISION;
-    point_altitude := NULL;
-    point_capture_seq := NULL;
-    point_id := NULLIF(BTRIM(raw_point ->> 'id'), '');
 
     IF raw_point ? 'altitude' AND raw_point ->> 'altitude' IS NOT NULL THEN
+      IF jsonb_typeof(raw_point -> 'altitude') <> 'number' THEN
+        CONTINUE;
+      END IF;
       point_altitude := (raw_point ->> 'altitude')::DOUBLE PRECISION;
     END IF;
     IF raw_point ? 'captureSeq' AND raw_point ->> 'captureSeq' IS NOT NULL THEN
+      IF jsonb_typeof(raw_point -> 'captureSeq') <> 'number' THEN
+        CONTINUE;
+      END IF;
       point_capture_seq := (raw_point ->> 'captureSeq')::DOUBLE PRECISION;
     END IF;
 
-    IF point_lat < -90 OR point_lat > 90 OR point_lng < -180 OR point_lng > 180 THEN
+    IF point_lat IS NULL OR point_lng IS NULL OR point_accuracy IS NULL OR point_ts IS NULL
+      OR point_lat < -90 OR point_lat > 90
+      OR point_lng < -180 OR point_lng > 180
+      OR point_accuracy < 0 OR point_accuracy > 10000
+      OR point_ts < 0 OR point_ts > 4102444800000
+      OR (point_capture_seq IS NOT NULL AND (point_capture_seq < 0 OR point_capture_seq > 9007199254740991))
+      OR (point_altitude IS NOT NULL AND (point_altitude < -1000 OR point_altitude > 10000))
+    THEN
       CONTINUE;
     END IF;
 
@@ -138,45 +160,67 @@ BEGIN
   END LOOP;
 
   existing_count := COALESCE(array_length(legacy_points, 1), 0) + COALESCE(array_length(keyed_points, 1), 0);
-  IF existing_count + batch_count > 20000 THEN
-    RAISE EXCEPTION 'trek session track point cap exceeded' USING ERRCODE = '54000';
-  END IF;
 
   FOR raw_point IN SELECT value FROM jsonb_array_elements(p_points)
   LOOP
     IF jsonb_typeof(raw_point) <> 'object' THEN
-      RAISE EXCEPTION 'invalid point payload' USING ERRCODE = '22023';
+      CONTINUE;
     END IF;
 
-    point_id := NULLIF(BTRIM(raw_point ->> 'id'), '');
+    point_id := lower(NULLIF(BTRIM(raw_point ->> 'id'), ''));
+    point_altitude := NULL;
+
+    IF point_id IS NULL OR point_id !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
+      CONTINUE;
+    END IF;
+
+    IF jsonb_typeof(raw_point -> 'lat') <> 'number'
+      OR jsonb_typeof(raw_point -> 'lng') <> 'number'
+      OR jsonb_typeof(raw_point -> 'accuracy') <> 'number'
+      OR jsonb_typeof(raw_point -> 'ts') <> 'number'
+      OR jsonb_typeof(raw_point -> 'captureSeq') <> 'number'
+    THEN
+      IF NOT point_id = ANY(rejected_ids) THEN
+        rejected_ids := array_append(rejected_ids, point_id);
+      END IF;
+      CONTINUE;
+    END IF;
+
     point_lat := (raw_point ->> 'lat')::DOUBLE PRECISION;
     point_lng := (raw_point ->> 'lng')::DOUBLE PRECISION;
     point_accuracy := (raw_point ->> 'accuracy')::DOUBLE PRECISION;
     point_ts := (raw_point ->> 'ts')::DOUBLE PRECISION;
     point_capture_seq := (raw_point ->> 'captureSeq')::DOUBLE PRECISION;
-    point_altitude := NULL;
 
     IF raw_point ? 'altitude' AND raw_point ->> 'altitude' IS NOT NULL THEN
+      IF jsonb_typeof(raw_point -> 'altitude') <> 'number' THEN
+        IF NOT point_id = ANY(rejected_ids) THEN
+          rejected_ids := array_append(rejected_ids, point_id);
+        END IF;
+        CONTINUE;
+      END IF;
       point_altitude := (raw_point ->> 'altitude')::DOUBLE PRECISION;
     END IF;
 
-    IF point_id IS NULL OR point_id !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
-      RAISE EXCEPTION 'invalid point id' USING ERRCODE = '22023';
+    IF point_lat IS NULL OR point_lng IS NULL OR point_accuracy IS NULL OR point_ts IS NULL OR point_capture_seq IS NULL
+      OR point_lat < -90 OR point_lat > 90
+      OR point_lng < -180 OR point_lng > 180
+    THEN
+      IF NOT point_id = ANY(rejected_ids) THEN
+        rejected_ids := array_append(rejected_ids, point_id);
+      END IF;
+      CONTINUE;
     END IF;
-    IF point_lat < -90 OR point_lat > 90 OR point_lng < -180 OR point_lng > 180 THEN
-      RAISE EXCEPTION 'invalid point coordinates' USING ERRCODE = '22023';
-    END IF;
-    IF point_accuracy < 0 OR point_accuracy > 10000 THEN
-      RAISE EXCEPTION 'invalid point accuracy' USING ERRCODE = '22023';
-    END IF;
-    IF point_ts < 0 OR point_ts > 4102444800000 THEN
-      RAISE EXCEPTION 'invalid point timestamp' USING ERRCODE = '22023';
-    END IF;
-    IF point_capture_seq < 0 OR point_capture_seq > 9007199254740991 THEN
-      RAISE EXCEPTION 'invalid point captureSeq' USING ERRCODE = '22023';
-    END IF;
-    IF point_altitude IS NOT NULL AND (point_altitude < -1000 OR point_altitude > 10000) THEN
-      RAISE EXCEPTION 'invalid point altitude' USING ERRCODE = '22023';
+
+    IF point_accuracy < 0 OR point_accuracy > 10000
+      OR point_ts < 0 OR point_ts > 4102444800000
+      OR point_capture_seq < 0 OR point_capture_seq > 9007199254740991
+      OR (point_altitude IS NOT NULL AND (point_altitude < -1000 OR point_altitude > 10000))
+    THEN
+      IF NOT point_id = ANY(rejected_ids) THEN
+        rejected_ids := array_append(rejected_ids, point_id);
+      END IF;
+      CONTINUE;
     END IF;
 
     IF NOT point_id = ANY(incoming_ids) THEN
@@ -245,7 +289,7 @@ BEGIN
     END IF;
   END LOOP;
 
-  IF COALESCE(array_length(stored_points, 1), 0) > 20000 THEN
+  IF COALESCE(array_length(stored_points, 1), 0) > 30000 THEN
     RAISE EXCEPTION 'trek session track point cap exceeded' USING ERRCODE = '54000';
   END IF;
 

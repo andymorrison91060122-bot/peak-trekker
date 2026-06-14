@@ -68,7 +68,7 @@ export function safeTrackPoints(value: unknown): TrackPoint[] {
     const lng = Number(raw.lng)
     const accuracy = Number(raw.accuracy)
     const ts = Number(raw.ts)
-    const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : undefined
+    const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim().toLowerCase() : undefined
     const captureSeq = Number(raw.captureSeq)
     const altitudeValue = raw.altitude
     const altitude =

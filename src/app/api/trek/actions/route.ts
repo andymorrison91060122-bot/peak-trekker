@@ -152,19 +152,28 @@ type AppendTrekPointsRpcRow = {
   max_altitude_m?: number | null
 }
 
+function rejectablePointId(value: unknown) {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Record<string, unknown>
+  const id = typeof raw.id === 'string' ? raw.id.trim().toLowerCase() : ''
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id)
+    ? id
+    : null
+}
+
 function ensureAppendPointIdentity(value: unknown): unknown {
   if (!value || typeof value !== 'object') return value
   const raw = value as Record<string, unknown>
   const ts = Number.isFinite(Number(raw.ts)) ? Number(raw.ts) : Date.now()
   return {
     ...raw,
-    id: typeof raw.id === 'string' && raw.id.trim() ? raw.id : crypto.randomUUID(),
+    id: typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim().toLowerCase() : crypto.randomUUID(),
     ts,
     captureSeq: Number.isFinite(Number(raw.captureSeq)) ? Number(raw.captureSeq) : ts,
   }
 }
 
-function normalizeAppendPointsPayload(action: ActionName, body: Record<string, unknown>): TrackPoint[] | null {
+function normalizeAppendPointsPayload(action: ActionName, body: Record<string, unknown>): unknown[] | null {
   const rawPoints =
     action === 'append_trek_points'
       ? Array.isArray(body?.points)
@@ -173,9 +182,25 @@ function normalizeAppendPointsPayload(action: ActionName, body: Record<string, u
       : [ensureAppendPointIdentity(body?.point)]
 
   if (!rawPoints || rawPoints.length > TREK_APPEND_BATCH_LIMIT) return null
-  const normalized = rawPoints.map((point) => normalizeAppendTrackPoint(point))
-  if (normalized.some((point) => point === null)) return null
-  return normalized as TrackPoint[]
+  return rawPoints
+}
+
+function summarizeLocalAppendPoints(points: unknown[]) {
+  const acceptedPoints = points.flatMap((point) => {
+    const normalized = normalizeAppendTrackPoint(point)
+    return normalized ? [normalized] : []
+  })
+  const acceptedIds = acceptedPoints.map((point) => point.id).filter(Boolean) as string[]
+  const rejectedIds = points
+    .map(rejectablePointId)
+    .filter((id): id is string => Boolean(id))
+    .filter((id) => !acceptedIds.includes(id))
+  return {
+    acceptedPoints,
+    acceptedIds,
+    rejectedIds: Array.from(new Set(rejectedIds)),
+    summary: summarizeTrekTrackPoints(acceptedPoints),
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -372,12 +397,12 @@ export async function POST(request: NextRequest) {
       if (isTestLocalSession && !ALLOW_LOCAL_TREK_SESSION) {
         return NextResponse.json({ error: 'local_trek_session_disabled' }, { status: 403 })
       }
-      const summary = summarizeTrekTrackPoints(points)
+      const { acceptedIds, rejectedIds, summary } = summarizeLocalAppendPoints(points)
       return NextResponse.json({
         ok: true,
         fallback: 'client',
-        acceptedIds: points.map((point) => point.id).filter(Boolean),
-        rejectedIds: [],
+        acceptedIds,
+        rejectedIds,
         pointCount: summary.pointCount,
         summary,
       })
@@ -396,7 +421,11 @@ export async function POST(request: NextRequest) {
         ? 404
         : message.includes('not tracking')
           ? 409
-          : 500
+          : message.includes('cap exceeded') || message.includes('batch too large')
+            ? 413
+            : message.includes('invalid point')
+              ? 400
+              : 500
       return NextResponse.json({ error: message }, { status })
     }
 

@@ -71,6 +71,10 @@ type Fu47cGpsMock = 'ready' | 'weak' | 'live' | 'offline'
 type PrepGpsStatus = 'idle' | 'checking' | 'ready' | 'weak' | 'denied' | 'unsupported' | 'error'
 type EntryValidationStatus = 'idle' | 'checking' | 'passed' | 'blocked'
 type TrekRestoreStatus = 'idle' | 'checking' | 'restored' | 'none'
+type TrekOutboxDrainResult =
+  | { ok: true; status: 'drained' }
+  | { ok: false; status: 'retryable'; reason: 'offline' | 'network' | 'degraded'; message?: string }
+  | { ok: false; status: 'terminal'; reason: 'not_tracking' | 'cap_exceeded' | 'invalid' | 'forbidden' | 'unknown'; message: string }
 type TrekViewState =
   | 'loading'
   | 'permissionDenied'
@@ -160,7 +164,47 @@ function normalizeTrekActionError(error: unknown) {
   if (message.includes('invalid_session_start_time')) return '记录会话异常，请重新开始记录后再试。'
   if (message.includes('no_active_mountains')) return '当前没有可核验的山峰，请稍后再试。'
   if (message.includes('session not found')) return '本次记录会话已失效，请重新开始记录。'
+  if (message.includes('cap exceeded') || message.includes('batch too large')) return '轨迹点数量已达到安全上限，未同步部分仍保留在本机，请联系支持后再处理。'
+  if (message.includes('session is not tracking')) return '这次记录会话已结束，未同步轨迹仍保留在本机，无法自动补传。'
   return message
+}
+
+function classifyTrekDrainFailure(error: unknown): TrekOutboxDrainResult {
+  const rawMessage = error instanceof Error ? error.message : String(error ?? '')
+  const message = rawMessage || '轨迹补传失败，请稍后重试。'
+  const normalized = message.toLowerCase()
+
+  if (normalized.includes('not tracking')) {
+    return {
+      ok: false,
+      status: 'terminal',
+      reason: 'not_tracking',
+      message: '这次记录会话已结束，未同步轨迹仍保留在本机，无法自动补传。',
+    }
+  }
+  if (normalized.includes('cap exceeded') || normalized.includes('batch too large')) {
+    return {
+      ok: false,
+      status: 'terminal',
+      reason: 'cap_exceeded',
+      message: '轨迹点数量已达到安全上限，未同步部分仍保留在本机，请联系支持后再处理。',
+    }
+  }
+  if (normalized.includes('invalid point') || normalized.includes('forbidden') || normalized.includes('not found')) {
+    return {
+      ok: false,
+      status: 'terminal',
+      reason: normalized.includes('forbidden') || normalized.includes('not found') ? 'forbidden' : 'invalid',
+      message: normalizeTrekActionError(error),
+    }
+  }
+
+  return {
+    ok: false,
+    status: 'retryable',
+    reason: 'network',
+    message: normalizeTrekActionError(error),
+  }
 }
 
 type RestoredTrekSession = {
@@ -413,7 +457,7 @@ export default function TrekClient({
   const exitPauseInFlightRef = useRef(false)
   const popstatePauseGuardRef = useRef(false)
   const finishInFlightRef = useRef(false)
-  const drainInFlightRef = useRef<Promise<boolean> | null>(null)
+  const drainQueueRef = useRef<Map<string, Promise<TrekOutboxDrainResult>>>(new Map())
   const pendingFinishProcessingRef = useRef(false)
 
   const clearTrackingRuntime = useCallback(() => {
@@ -959,52 +1003,71 @@ export default function TrekClient({
 
   const drainTrekOutbox = useCallback(
     async (sid: string, options: { silent?: boolean } = {}) => {
-      if (!sid) return false
-      if (isClientLocalSessionId(sid)) return true
-      if (drainInFlightRef.current) return drainInFlightRef.current
+      const drained: TrekOutboxDrainResult = { ok: true, status: 'drained' }
+      if (!sid) return { ok: false, status: 'retryable', reason: 'network', message: '缺少记录会话。' }
+      if (isClientLocalSessionId(sid)) return drained
 
-      const promise = (async () => {
-        const { points, degraded } = await listTrekOutboxPoints(sid)
-        if (degraded) {
-          setOutboxDegraded(true)
-          if (!options.silent) {
-            showToast({
-              tone: 'info',
-              message: '本机存储不可用，无法保证离线恢复。',
-              durationMs: 4200,
-            })
+      const runDrainToEmpty = async (): Promise<TrekOutboxDrainResult> => {
+        for (;;) {
+          const { points, degraded } = await listTrekOutboxPoints(sid)
+          if (degraded) {
+            setOutboxDegraded(true)
+            if (!options.silent) {
+              showToast({
+                tone: 'info',
+                message: '本机存储不可用，无法保证离线恢复。',
+                durationMs: 4200,
+              })
+            }
+            return typeof navigator === 'undefined' || navigator.onLine
+              ? drained
+              : { ok: false, status: 'retryable', reason: 'degraded', message: '本机存储不可用，无法保证离线恢复。' }
           }
-          return typeof navigator === 'undefined' || navigator.onLine
-        }
-        if (!points.length) return true
-        if (typeof navigator !== 'undefined' && !navigator.onLine) return false
+          if (!points.length) return drained
+          if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            return { ok: false, status: 'retryable', reason: 'offline', message: '当前离线，轨迹点待补传。' }
+          }
 
-        for (let index = 0; index < points.length; index += 500) {
-          const batch = points.slice(index, index + 500)
-          try {
-            const data = await callTrekAction({
-              action: 'append_trek_points',
-              sessionId: sid,
-              points: batch,
-            })
-            const acceptedIds = Array.isArray(data.acceptedIds) ? data.acceptedIds.map(String) : []
-            const rejectedIds = Array.isArray(data.rejectedIds) ? data.rejectedIds.map(String) : []
-            if (acceptedIds.length) await markTrekOutboxPointsSynced(sid, acceptedIds)
-            if (rejectedIds.length) await markTrekOutboxPointsRejected(sid, rejectedIds)
-            const terminalIds = new Set([...acceptedIds, ...rejectedIds])
-            if (batch.some((point) => point.id && !terminalIds.has(point.id))) return false
-          } catch {
-            return false
+          for (let index = 0; index < points.length; index += 500) {
+            const batch = points.slice(index, index + 500)
+            try {
+              const data = await callTrekAction({
+                action: 'append_trek_points',
+                sessionId: sid,
+                points: batch,
+              })
+              const acceptedIds = Array.isArray(data.acceptedIds) ? data.acceptedIds.map(String) : []
+              const rejectedIds = Array.isArray(data.rejectedIds) ? data.rejectedIds.map(String) : []
+              if (acceptedIds.length) await markTrekOutboxPointsSynced(sid, acceptedIds)
+              if (rejectedIds.length) await markTrekOutboxPointsRejected(sid, rejectedIds)
+              const terminalIds = new Set([...acceptedIds, ...rejectedIds])
+              if (batch.some((point) => point.id && !terminalIds.has(point.id))) {
+                return {
+                  ok: false,
+                  status: 'retryable',
+                  reason: 'network',
+                  message: '部分轨迹点还没有收到服务端确认，将继续保留并重试。',
+                }
+              }
+            } catch (error) {
+              return classifyTrekDrainFailure(error)
+            }
           }
         }
-        return true
-      })()
+      }
 
-      drainInFlightRef.current = promise
+      const previous = drainQueueRef.current.get(sid) ?? Promise.resolve(drained)
+      const promise = previous
+        .catch((): TrekOutboxDrainResult => ({ ok: false, status: 'retryable', reason: 'network' }))
+        .then(runDrainToEmpty)
+
+      drainQueueRef.current.set(sid, promise)
       try {
         return await promise
       } finally {
-        drainInFlightRef.current = null
+        if (drainQueueRef.current.get(sid) === promise) {
+          drainQueueRef.current.delete(sid)
+        }
       }
     },
     [callTrekAction, showToast]
@@ -1022,7 +1085,21 @@ export default function TrekClient({
               sessionId: sid,
               points: [point],
             })
-          } catch {}
+          } catch {
+            try {
+              await callTrekAction({
+                action: 'append_trek_points',
+                sessionId: sid,
+                points: [point],
+              })
+            } catch {
+              showToast({
+                tone: 'info',
+                message: '本机存储不可用，且本次轨迹点在线补传失败。请保持联网并稍后保存。',
+                durationMs: 5200,
+              })
+            }
+          }
         }
       }
 
@@ -1030,7 +1107,7 @@ export default function TrekClient({
         void drainTrekOutbox(sid, { silent: true })
       }
     },
-    [callTrekAction, drainTrekOutbox]
+    [callTrekAction, drainTrekOutbox, showToast]
   )
 
   const finishSession = useCallback(
@@ -1059,8 +1136,17 @@ export default function TrekClient({
       try {
         const { intent, degraded } = await readTrekFinishIntent(sid)
         if (degraded || !intent) return false
-        const drained = await drainTrekOutbox(sid, { silent: true })
-        if (!drained) return false
+        const drainResult = await drainTrekOutbox(sid, { silent: true })
+        if (!drainResult.ok) {
+          if (drainResult.status === 'terminal') {
+            showToast({
+              tone: 'info',
+              message: `${drainResult.message} 已保留待同步轨迹，未完成最终保存。`,
+              durationMs: 6200,
+            })
+          }
+          return false
+        }
 
         if (intent.kind === 'finish_incomplete') {
           const data = await callTrekAction({
@@ -1290,8 +1376,8 @@ export default function TrekClient({
       if (restoredSession.status === 'tracking') {
         startTrackingRuntime(restoredSession.sessionId)
       }
-      void drainTrekOutbox(restoredSession.sessionId, { silent: true }).then(() => {
-        void processPendingFinishIntent(restoredSession.sessionId)
+      void drainTrekOutbox(restoredSession.sessionId, { silent: true }).then((drainResult) => {
+        if (drainResult.ok) void processPendingFinishIntent(restoredSession.sessionId)
       })
       showToast({
         tone: 'info',
@@ -1336,6 +1422,7 @@ export default function TrekClient({
 
         const serverTrack = safeTrackPoints(restoredSession.trackPoints)
         const localTailResult = await listTrekOutboxPoints(restoredSession.sessionId)
+        if (cancelled) return
         if (localTailResult.degraded) setOutboxDegraded(true)
         const restoredTrack = localTailResult.degraded
           ? serverTrack
@@ -1383,8 +1470,8 @@ export default function TrekClient({
 
   useEffect(() => {
     if (!sessionId || !isOnline) return
-    void drainTrekOutbox(sessionId, { silent: true }).then(() => {
-      void processPendingFinishIntent(sessionId)
+    void drainTrekOutbox(sessionId, { silent: true }).then((drainResult) => {
+      if (drainResult.ok) void processPendingFinishIntent(sessionId)
     })
   }, [drainTrekOutbox, isOnline, processPendingFinishIntent, sessionId])
 
@@ -1495,7 +1582,7 @@ export default function TrekClient({
       if (recordTooShort) {
         const aborted = await finishSession(activeSessionId, 'aborted')
         if (aborted && activeSessionId) {
-          await clearTrekOutboxSession(activeSessionId)
+          await clearTrekOutboxSession(activeSessionId, { allowPending: true })
         }
         resetLiveTrekState()
         if (targetIdForRetry) {
@@ -1525,16 +1612,18 @@ export default function TrekClient({
       }
 
       if (createdCheckinId) {
-        const drained = activeSessionId ? await drainTrekOutbox(activeSessionId) : true
-        if (!drained) {
+        const drainResult = activeSessionId ? await drainTrekOutbox(activeSessionId) : ({ ok: true, status: 'drained' } as TrekOutboxDrainResult)
+        if (!drainResult.ok) {
           setIsPaused(true)
           isPausedRef.current = true
           trackingTickStartedAtRef.current = null
           elapsedBeforePauseRef.current = elapsedSecondsRef.current
           showToast({
             tone: 'info',
-            message: '还有轨迹点待补传，网络恢复后会继续完成保存。',
-            durationMs: 5200,
+            message: drainResult.status === 'terminal'
+              ? `${drainResult.message} 未同步轨迹已保留，未完成最终保存。`
+              : '还有轨迹点待补传，网络恢复后会继续完成保存。',
+            durationMs: 6200,
           })
           return
         }
@@ -1551,8 +1640,8 @@ export default function TrekClient({
         return
       }
 
-      const drained = await drainTrekOutbox(activeSessionId)
-      if (!drained) {
+      const drainResult = await drainTrekOutbox(activeSessionId)
+      if (!drainResult.ok) {
         const intentResult = await writeTrekFinishIntent({
           kind: 'finish_incomplete',
           sessionId: activeSessionId,
@@ -1571,7 +1660,9 @@ export default function TrekClient({
         elapsedBeforePauseRef.current = elapsedSecondsRef.current
         showToast({
           tone: 'info',
-          message: intentResult.degraded || outboxDegraded
+          message: drainResult.status === 'terminal'
+            ? `${drainResult.message} 已保留待同步轨迹，未完成最终保存。`
+            : intentResult.degraded || outboxDegraded
             ? '本机存储不可用，无法保证离线恢复。请联网后再完成保存。'
             : '已进入待同步状态，网络恢复后会先补传轨迹再保存活动。',
           durationMs: 6200,
@@ -1683,8 +1774,8 @@ export default function TrekClient({
       captureSeqRef.current += 1
       trackRef.current.push(summitPoint)
       await persistCapturedPoint(sessionId, summitPoint)
-      const drained = await drainTrekOutbox(sessionId)
-      if (!drained) {
+      const drainResult = await drainTrekOutbox(sessionId)
+      if (!drainResult.ok) {
         const intentResult = await writeTrekFinishIntent({
           kind: 'verify_summit',
           sessionId,
@@ -1702,7 +1793,9 @@ export default function TrekClient({
         elapsedBeforePauseRef.current = elapsedSecondsRef.current
         showToast({
           tone: 'info',
-          message: intentResult.degraded || outboxDegraded
+          message: drainResult.status === 'terminal'
+            ? `${drainResult.message} 已保留待同步轨迹，未完成登顶确认。`
+            : intentResult.degraded || outboxDegraded
             ? '本机存储不可用，无法保证离线恢复。请联网后再确认登顶。'
             : '已进入待同步状态，网络恢复后会先补传轨迹再确认登顶。',
           durationMs: 6200,

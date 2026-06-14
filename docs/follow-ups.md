@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-14 · 最新版本记录: v0.71
+> Last Updated: 2026-06-15 · 最新版本记录: v0.72
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`327dd0a`（Merge FU-90 Phase 2B Profile nickname editing UI · 2026-06-14）
+`ce02928`（Merge FU-93 offline track outbox + atomic append RPC · 2026-06-15）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -410,24 +410,6 @@
 
 ---
 
-### FU-93 · 离线轨迹持久化与重传
-
-- **优先级**: P1（上线阻塞）
-- **归属阶段**: 核心记录可靠性 / 上线阻塞
-- **状态**: 🟢 active
-
-**背景 / 证据（Claude + workflow 一手核 2026-06-14）**: 活动轨迹只存内存 `trackRef.current`（`src/app/(flow)/trek/TrekClient.tsx:1018`），约 4s 同步服务器（`:1031`），append 失败 `} catch {}` 静默吞、不重传（`:928`），无 localStorage / IndexedDB，崩溃恢复纯靠服务器（`restoreActiveTrekSession:1061`）。穿蜂窝盲区时，距离 / 爬升 / 轨迹可能被悄悄写错，用户无感。核心用途数据可靠性问题，**非新功能**。
-
-**Scope（修复，非加功能）**:
-1. 轨迹随增长本地持久化（IndexedDB，按 `sessionId`，finish / abort 清）。
-2. `} catch {}` 改为标记未同步 + 入队。
-3. 离线 outbox 重传：已有 online 监听（`TrekClient.tsx:517`）；append 端点 `src/app/api/trek/actions/route.ts:318` 最好支持批量 + 按 `ts` 幂等去重，防重复计距。
-4. 恢复时本地优先 / 合并。
-
-**依赖 / 互补**: server `append_trek_point` 批量 + 幂等；与 FU-96 wakelock 互补（息屏也会掉点）。
-
----
-
 ### FU-94 · 截图识别额度墙文案 + 需求埋点
 
 - **优先级**: P1
@@ -506,6 +488,25 @@
 
 ---
 
+### FU-99 · auto-summit verify_and_record_checkin measured-field gap
+
+- **优先级**: P3（数据一致性 / 非本轮上线阻塞）
+- **归属阶段**: GPS summit verification / measured metrics persistence
+- **状态**: 🟢 active
+
+**背景 / 证据（FU-93 closeout 一手核 2026-06-15）**: `verify_and_record_checkin` 自动登顶验证路径不会把 linked `trek_sessions` 的 measured metrics 写入 `checkins.distance_meters` / `duration_seconds` / `elevation_gain_meters` / `max_elevation_meters` 等 measured columns。FU-93 修复后，server session metrics 已通过 `append_trek_points` 重算并持久化，但 summit-verified GPS checkin 仍保留 NULL measured columns。生产核验样本：checkin `492617f7-4a1b-42c6-bf9f-bf66541d038f` measured fields 为 NULL，而 linked session `50401e67-d9d6-44e3-9d86-f2ec90622537` 有 `distance_m=1488`、`track_points` 16。
+
+**判断**: 这是 pre-existing RPC gap，不是 FU-93 regression。FU-93 的责任边界是让 `trek_sessions` track / metrics 正确、离线补传不丢点、finalize 不重复；checkin measured-field 写入缺口需单独处理。
+
+**Scope（后续）**:
+1. 修改 `verify_and_record_checkin` / 相关 RPC，使 auto-summit verified GPS checkin 创建时复制 recomputed session metrics 到 checkin measured columns。
+2. 增加回归测试：summit-verified checkin 的 measured columns 与 linked session metrics 一致。
+3. 评估是否需要 backfill 既有 summit-verified GPS checkins（若涉及生产写入，单独数据操作审批 + exact-id / count 对账）。
+
+**边界**: 本次不实施；如改 DB function，走正常 migration + 发布审批。
+
+---
+
 ### FU-91 · Supabase schema baseline / fresh-apply 能力恢复
 
 - **优先级**: P3（非上线阻塞）
@@ -578,7 +579,17 @@
 
 ---
 
-## Closed Follow-ups（77 条）
+## Closed Follow-ups（78 条）
+
+### FU-93 ✅ 离线轨迹持久化与重传
+
+- **关闭原因**: 离线记录可靠性链路已落地并验收。PR #13 / merge `ce02928` 合入 3 个 FU-93 commits（`149ec8d` / `e3a840d` / `4438a25`）：IndexedDB outbox + finishIntent、ack 后才标 synced、restore 合并 server∪local、离线 finish / verify 进入「待同步」而不伪造成功、network finalize leak 2 轮客户端修复。生产 migration `20260614120000_append_trek_points_rpc` 已在 merge 前 gated apply 到 `mngofocdsmqrqimsdyzf`：`append_trek_points(uuid,jsonb)` 使用 `auth.uid()` ownership、`FOR UPDATE` 原子合并、per-point reject、deterministic recompute、30k session cap、authenticated / service_role EXECUTE grant。
+- **验收 / 证据**: STOP#2 real-device acceptance PASS：offline finish → 待同步，reconnect → saves。生产只读 DB 核验：summit session `50401e67-d9d6-44e3-9d86-f2ec90622537` 为 `summit_verified`、`ended_at` 已设置、`track_points` 16、exactly one checkin `492617f7-4a1b-42c6-bf9f-bf66541d038f`；session `fab1b069-aaa3-4741-b09c-18a86a3a70c4` 为 `finished`、exactly one incomplete checkin `69ecaa8c-82d5-4e9a-880a-dbc9b79ca421`；近 3 小时华山测试集 `no_session_has_more_than_one_checkin = true`，duplicate-finalize guard held。生产 DB smokes（pre-merge）覆盖 concurrent overlap / replay idempotency / mixed invalid per-point reject，test auth/profile/session exact cleanup 完成。
+- **残留测试数据（用户拍板暂留）**: `andymorrison91060122@gmail.com` 下 11 条华山 mock sessions + 2 条 checkins 暂不清理，包含 summit session `50401e67`、finished incomplete session `fab1b069`、paused orphan `27f2e9dc`。后续如需处理，走单独 exact-id cleanup pass。
+- **已知非回归后续**: auto-summit `verify_and_record_checkin` 不把 session measured metrics 写入 checkin measured columns，导致 summit-verified GPS checkins 的 `distance_meters` / `duration_seconds` 等仍为 NULL；本次确认 checkin `492617f7` 为 NULL，而 linked session `50401e67` 有 `distance_m=1488`。这是 pre-existing RPC gap，已登记为 FU-99。
+- **map/weather brief**: 本 sprint 仅涉及 Trek 记录可靠性、outbox 与 append/finalize 链路；不改变地图 / 天气产品边界或 MapLibre / PMTiles / weather policy，因此 `docs/map-weather-brief.md` 无需更新。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-15
 
 ### FU-89 ✅ FAQ 暴露的未接通功能债梳理
 
@@ -1591,6 +1602,16 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.72（2026-06-15）
+
+FU-93 closeout · 离线轨迹 outbox + 原子 append RPC 上线并完成 real-device / DB 验收；登记 FU-99 measured-field gap。
+
+- FU-93 从 Active 移入 Closed：PR #13 / merge `ce02928` 完成 IndexedDB outbox、ack-based drain、pending finish intent、offline finalize leak 2 轮客户端修复；生产 migration `20260614120000_append_trek_points_rpc` 已 gated apply，RPC 使用 `auth.uid()` ownership + `FOR UPDATE` + per-point reject + 30k cap。
+- 验收证据：STOP#2 real-device acceptance PASS；生产 DB 只读核验 session `50401e67` exactly one summit checkin、session `fab1b069` exactly one incomplete checkin，近 3 小时华山测试集无 session 多 checkin；测试数据暂留待单独 exact-id cleanup。
+- 新增 Active FU-99：auto-summit `verify_and_record_checkin` measured-field gap。checkin `492617f7` measured columns NULL vs linked session `50401e67` distance_m=1488，判定为 pre-existing 非 FU-93 regression。
+- `docs/map-weather-brief.md` 只读 cross-check：FU-93 是 Trek recording reliability，不改变地图 / 天气边界，无需更新。
+- Active 23 → 23 · Closed 77 → 78 · Deferred 1 → 1
 
 ### v0.71（2026-06-14）
 

@@ -13,16 +13,21 @@ test('M1 drops profiles username unique constraint and index defensively', () =>
 test('M2 reads auth metadata and validates nickname with the agreed SQL rules', () => {
   assert.match(migrationM2, /CREATE OR REPLACE FUNCTION public\.validate_nickname\(value TEXT\)/)
   assert.match(migrationM2, /NEW\.raw_user_meta_data ->> 'nickname'/)
-  assert.match(migrationM2, /NEW\.raw_user_meta_data ->> 'province'/)
   assert.match(migrationM2, /NEW\.raw_user_meta_data ->> 'province_code'/)
   assert.match(migrationM2, /char_length\(normalized\) < 2 OR char_length\(normalized\) > 12/)
-  assert.match(migrationM2, /\^\[A-Za-z0-9 _一-鿿㐀-䶿豈-﫿-\]\+\$/)
+  assert.match(migrationM2, /chr\(13312\) \|\| '-' \|\| chr\(19903\)/)
+  assert.match(migrationM2, /chr\(19968\) \|\| '-' \|\| chr\(40959\)/)
+  assert.match(migrationM2, /chr\(63744\) \|\| '-' \|\| chr\(64255\)/)
   assert.doesNotMatch(migrationM2, /display_name/)
 })
 
 test('M2 uses province_stats as the DB-side province code source', () => {
+  assert.match(migrationM2, /SELECT province_name\s+INTO profile_province\s+FROM public\.province_stats/)
   assert.match(migrationM2, /FROM public\.province_stats/)
   assert.match(migrationM2, /WHERE province_code = metadata_province_code/)
+  assert.match(migrationM2, /profile_province_code := metadata_province_code/)
+  assert.doesNotMatch(migrationM2, /profile_province := metadata_province/)
+  assert.doesNotMatch(migrationM2, /NEW\.raw_user_meta_data ->> 'province'/)
   assert.match(migrationM2, /province_code = 'ZJ'/)
   assert.match(migrationM2, /province_code = 'BAD'/)
 })
@@ -48,6 +53,8 @@ test('M2 contains fail-fast DO assertions for nickname boundaries', () => {
     "E'山\\n友'",
     "E'山\\t友'",
     '山友!',
+    '가나',
+    "U&'\\E000\\E001'",
     '一二三四五六七八九十甲乙丙',
   ]) {
     assert.match(migrationM2, new RegExp(fixture.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))

@@ -27,7 +27,13 @@ BEGIN
     RETURN NULL;
   END IF;
 
-  IF normalized !~ '^[A-Za-z0-9 _一-鿿㐀-䶿豈-﫿-]+$' THEN
+  IF normalized !~ (
+    '^[A-Za-z0-9 _'
+    || chr(13312) || '-' || chr(19903)
+    || chr(19968) || '-' || chr(40959)
+    || chr(63744) || '-' || chr(64255)
+    || '-]+$'
+  ) THEN
     RETURN NULL;
   END IF;
 
@@ -43,23 +49,20 @@ SET search_path = ''
 AS $$
 DECLARE
   metadata_nickname TEXT := public.validate_nickname(NEW.raw_user_meta_data ->> 'nickname');
-  metadata_province TEXT := NULLIF(BTRIM(COALESCE(NEW.raw_user_meta_data ->> 'province', '')), '');
   metadata_province_code TEXT := NULLIF(BTRIM(COALESCE(NEW.raw_user_meta_data ->> 'province_code', '')), '');
   profile_username TEXT := COALESCE(metadata_nickname, 'user_' || LEFT(NEW.id::TEXT, 12));
   profile_province TEXT := NULL;
   profile_province_code TEXT := NULL;
 BEGIN
-  IF metadata_province IS NOT NULL
-    AND char_length(metadata_province) <= 20
-    AND metadata_province_code IS NOT NULL
-    AND EXISTS (
-      SELECT 1
-      FROM public.province_stats
-      WHERE province_code = metadata_province_code
-    )
-  THEN
-    profile_province := metadata_province;
-    profile_province_code := metadata_province_code;
+  IF metadata_province_code IS NOT NULL THEN
+    SELECT province_name
+    INTO profile_province
+    FROM public.province_stats
+    WHERE province_code = metadata_province_code;
+
+    IF profile_province IS NOT NULL THEN
+      profile_province_code := metadata_province_code;
+    END IF;
   END IF;
 
   INSERT INTO public.profiles (
@@ -133,6 +136,14 @@ BEGIN
 
   IF public.validate_nickname('山友!') IS NOT NULL THEN
     RAISE EXCEPTION 'validate_nickname accepted punctuation';
+  END IF;
+
+  IF public.validate_nickname('가나') IS NOT NULL THEN
+    RAISE EXCEPTION 'validate_nickname accepted Hangul';
+  END IF;
+
+  IF public.validate_nickname(U&'\E000\E001') IS NOT NULL THEN
+    RAISE EXCEPTION 'validate_nickname accepted PUA';
   END IF;
 
   IF public.validate_nickname('一二三四五六七八九十甲乙丙') IS NOT NULL THEN

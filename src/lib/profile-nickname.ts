@@ -1,4 +1,4 @@
-const NICKNAME_ALLOWED_PATTERN = /^[A-Za-z0-9 _\-\u3400-\u4DBF\u4E00-\u9FFF\u8C48-\uFAFF]+$/u
+const NICKNAME_ALLOWED_PATTERN = /^[A-Za-z0-9 _\-\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]+$/u
 const NICKNAME_CONTROL_PATTERN = /[\p{Cc}\p{Cf}]/u
 
 export const PROFILE_NICKNAME_ERRORS = {

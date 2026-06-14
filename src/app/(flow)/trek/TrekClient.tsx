@@ -24,6 +24,16 @@ import {
 } from '@/lib/trek-verification-rules'
 import { formatElapsedHMS } from '@/lib/trek-time'
 import { haversineMeters, safeTrackPoints, type TrackPoint } from '@/lib/trek-utils'
+import { summarizeTrekTrackPoints } from '@/lib/trek-track-metrics'
+import {
+  clearTrekOutboxSession,
+  listTrekOutboxPoints,
+  markTrekOutboxPointsRejected,
+  markTrekOutboxPointsSynced,
+  putTrekOutboxPoint,
+  readTrekFinishIntent,
+  writeTrekFinishIntent,
+} from '@/lib/trek-outbox'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import AltitudeBar from '@/components/ui/AltitudeBar'
 import IconButton from '@/components/ui/IconButton'
@@ -118,6 +128,14 @@ async function uploadTrekPhoto(file: File, options: { sessionId?: string | null;
 
 function isClientLocalSessionId(value: string) {
   return value.startsWith(LOCAL_TREK_SESSION_PREFIX) || value.startsWith(LOCAL_FALLBACK_SESSION_PREFIX)
+}
+
+function createTrackPointId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  const suffix = Array.from({ length: 12 }, () => Math.floor(Math.random() * 16).toString(16)).join('')
+  return `00000000-0000-4000-8000-${suffix}`
 }
 
 function getSummitConfirmRadiusM(mountain: Pick<Mountain, 'summit_radius_m'> | null | undefined) {
@@ -239,15 +257,44 @@ function buildFu47cMapTrack(mountain: Mountain | null, mock: Fu47cGpsMock | null
 }
 
 function normalizeReferenceMapTrack(
-  points: Array<{ lat: number; lng: number; ts: number; altitude?: number | null; accuracy: number }>
+  points: TrackPoint[]
 ): TrackPoint[] {
   return points.map((point) => ({
+    ...(point.id ? { id: point.id } : {}),
     lat: point.lat,
     lng: point.lng,
     ts: point.ts,
     accuracy: point.accuracy,
     altitude: point.altitude ?? null,
+    ...(Number.isFinite(Number(point.captureSeq)) ? { captureSeq: Number(point.captureSeq) } : {}),
   }))
+}
+
+function compareTrackPointOrder(a: TrackPoint, b: TrackPoint) {
+  if (a.ts !== b.ts) return a.ts - b.ts
+  const aSeq = Number.isFinite(Number(a.captureSeq)) ? Number(a.captureSeq) : Number.MAX_SAFE_INTEGER
+  const bSeq = Number.isFinite(Number(b.captureSeq)) ? Number(b.captureSeq) : Number.MAX_SAFE_INTEGER
+  if (aSeq !== bSeq) return aSeq - bSeq
+  return (a.id ?? '').localeCompare(b.id ?? '')
+}
+
+function mergeRestoredTrackPoints(serverPoints: TrackPoint[], localPoints: TrackPoint[]) {
+  const legacyPrefix = serverPoints.filter((point) => !point.id)
+  const keyed = [...serverPoints.filter((point) => point.id), ...localPoints.filter((point) => point.id)]
+    .sort(compareTrackPointOrder)
+  const byId = new Map<string, TrackPoint>()
+  for (const point of keyed) {
+    if (!point.id) continue
+    if (!byId.has(point.id)) byId.set(point.id, point)
+  }
+  return [...legacyPrefix, ...Array.from(byId.values()).sort(compareTrackPointOrder)]
+}
+
+function nextCaptureSeq(points: TrackPoint[]) {
+  return points.reduce((max, point) => {
+    const seq = Number(point.captureSeq)
+    return Number.isFinite(seq) ? Math.max(max, seq + 1) : max
+  }, 0)
 }
 
 export default function TrekClient({
@@ -339,17 +386,18 @@ export default function TrekClient({
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine))
   const [manualRefreshLoading, setManualRefreshLoading] = useState(false)
   const [finishTrekLoading, setFinishTrekLoading] = useState(false)
+  const [outboxDegraded, setOutboxDegraded] = useState(false)
   const photoInputRef = useRef<HTMLInputElement | null>(null)
 
   const watchIdRef = useRef<number | null>(null)
   const elapsedTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastSyncRef = useRef<number>(0)
-  const syncingPointRef = useRef(false)
   const startTimeRef = useRef<number>(0)
   const elapsedBeforePauseRef = useRef(0)
   const elapsedSecondsRef = useRef(0)
   const trackingTickStartedAtRef = useRef<number | null>(null)
-  const trackRef = useRef<{ lat: number; lng: number; ts: number; altitude?: number | null; accuracy: number }[]>([])
+  const trackRef = useRef<TrackPoint[]>([])
+  const captureSeqRef = useRef(0)
   const prepGpsRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prepGpsRetryCountRef = useRef(0)
   const runPrepGpsCheckRef = useRef<((options?: { manual?: boolean; retry?: boolean }) => void) | null>(null)
@@ -365,6 +413,8 @@ export default function TrekClient({
   const exitPauseInFlightRef = useRef(false)
   const popstatePauseGuardRef = useRef(false)
   const finishInFlightRef = useRef(false)
+  const drainInFlightRef = useRef<Promise<boolean> | null>(null)
+  const pendingFinishProcessingRef = useRef(false)
 
   const clearTrackingRuntime = useCallback(() => {
     activeSessionIdRef.current = null
@@ -398,11 +448,13 @@ export default function TrekClient({
     setLastValidAltitudeM(null)
     setSummitConfirmedAt(null)
     trackRef.current = []
+    captureSeqRef.current = 0
     elapsedBeforePauseRef.current = 0
     elapsedSecondsRef.current = 0
     trackingTickStartedAtRef.current = null
     startTimeRef.current = 0
     lastSyncRef.current = 0
+    setOutboxDegraded(false)
     clearTrekAnalyticsLocalSession()
   }, [])
 
@@ -905,44 +957,159 @@ export default function TrekClient({
     checkNearby(gps.lat, gps.lng)
   }, [checkNearby, gps, sessionId, status, targetMountain])
 
-  const appendPointToServer = useCallback(
-    async (
-      sid: string,
-      point: { lat: number; lng: number; ts: number; altitude?: number | null; accuracy: number },
-      accuracy: number
-    ) => {
-      if (syncingPointRef.current) return
-      syncingPointRef.current = true
+  const drainTrekOutbox = useCallback(
+    async (sid: string, options: { silent?: boolean } = {}) => {
+      if (!sid) return false
+      if (isClientLocalSessionId(sid)) return true
+      if (drainInFlightRef.current) return drainInFlightRef.current
+
+      const promise = (async () => {
+        const { points, degraded } = await listTrekOutboxPoints(sid)
+        if (degraded) {
+          setOutboxDegraded(true)
+          if (!options.silent) {
+            showToast({
+              tone: 'info',
+              message: '本机存储不可用，无法保证离线恢复。',
+              durationMs: 4200,
+            })
+          }
+          return typeof navigator === 'undefined' || navigator.onLine
+        }
+        if (!points.length) return true
+        if (typeof navigator !== 'undefined' && !navigator.onLine) return false
+
+        for (let index = 0; index < points.length; index += 500) {
+          const batch = points.slice(index, index + 500)
+          try {
+            const data = await callTrekAction({
+              action: 'append_trek_points',
+              sessionId: sid,
+              points: batch,
+            })
+            const acceptedIds = Array.isArray(data.acceptedIds) ? data.acceptedIds.map(String) : []
+            const rejectedIds = Array.isArray(data.rejectedIds) ? data.rejectedIds.map(String) : []
+            if (acceptedIds.length) await markTrekOutboxPointsSynced(sid, acceptedIds)
+            if (rejectedIds.length) await markTrekOutboxPointsRejected(sid, rejectedIds)
+            const terminalIds = new Set([...acceptedIds, ...rejectedIds])
+            if (batch.some((point) => point.id && !terminalIds.has(point.id))) return false
+          } catch {
+            return false
+          }
+        }
+        return true
+      })()
+
+      drainInFlightRef.current = promise
       try {
-        await callTrekAction({
-          action: 'append_trek_point',
-          sessionId: sid,
-          point: {
-            lat: point.lat,
-            lng: point.lng,
-            ts: point.ts,
-            altitude: point.altitude,
-            accuracy,
-          },
-        })
-      } catch {}
-      syncingPointRef.current = false
+        return await promise
+      } finally {
+        drainInFlightRef.current = null
+      }
     },
-    [callTrekAction]
+    [callTrekAction, showToast]
+  )
+
+  const persistCapturedPoint = useCallback(
+    async (sid: string, point: TrackPoint, options: { drainNow?: boolean } = {}) => {
+      const result = await putTrekOutboxPoint(sid, point)
+      if (result.degraded) {
+        setOutboxDegraded(true)
+        if (typeof navigator !== 'undefined' && navigator.onLine && !isClientLocalSessionId(sid)) {
+          try {
+            await callTrekAction({
+              action: 'append_trek_points',
+              sessionId: sid,
+              points: [point],
+            })
+          } catch {}
+        }
+      }
+
+      if (options.drainNow) {
+        void drainTrekOutbox(sid, { silent: true })
+      }
+    },
+    [callTrekAction, drainTrekOutbox]
   )
 
   const finishSession = useCallback(
     async (sid: string | null, finalStatus: 'finished' | 'aborted') => {
-      if (!sid) return
+      if (!sid) return false
       try {
         await callTrekAction({
           action: 'finish_trek_session',
           sessionId: sid,
           finalStatus,
         })
-      } catch {}
+        return true
+      } catch {
+        return false
+      }
     },
     [callTrekAction]
+  )
+
+  const processPendingFinishIntent = useCallback(
+    async (sid: string) => {
+      if (!sid || isClientLocalSessionId(sid)) return false
+      if (pendingFinishProcessingRef.current) return false
+
+      pendingFinishProcessingRef.current = true
+      try {
+        const { intent, degraded } = await readTrekFinishIntent(sid)
+        if (degraded || !intent) return false
+        const drained = await drainTrekOutbox(sid, { silent: true })
+        if (!drained) return false
+
+        if (intent.kind === 'finish_incomplete') {
+          const data = await callTrekAction({
+            action: 'finish_incomplete_trek',
+            sessionId: intent.sessionId,
+            mountainId: intent.mountainId,
+            note: intent.note,
+            elapsedSeconds: intent.elapsedSeconds,
+            distanceMeters: intent.distanceMeters,
+            ascentMeters: intent.ascentMeters,
+            testMode: intent.testMode,
+          })
+          const checkinId = typeof data.checkinId === 'string' ? data.checkinId : null
+          await clearTrekOutboxSession(intent.sessionId)
+          resetLiveTrekState()
+          showToast({ tone: 'success', message: '待同步轨迹已补传完成，活动已保存。', durationMs: 4200 })
+          if (checkinId) router.push(`/activity/${checkinId}`)
+          return true
+        }
+
+        const data = await callTrekAction({
+          action: 'verify_summit_checkin',
+          sessionId: intent.sessionId,
+          note: intent.note,
+          photoUrl: intent.photoUrl,
+          mountainId: intent.mountainId,
+          testMode: intent.testMode,
+        })
+        const checkinId = typeof data.checkinId === 'string' ? data.checkinId : null
+        if (!checkinId) throw new Error('确认登顶失败，请稍后重试。')
+        await clearTrekOutboxSession(intent.sessionId)
+        clearTrackingRuntime()
+        setCreatedCheckinId(checkinId)
+        setSessionId(null)
+        setStatus('summit_verified')
+        clearTrekAnalyticsLocalSession()
+        showToast({ key: 'summit_verify_success', durationMs: 5200 })
+        return true
+      } catch (error) {
+        showToast({
+          key: 'trek_record_save_failure',
+          message: error instanceof Error ? normalizeTrekActionError(error) : undefined,
+        })
+        return false
+      } finally {
+        pendingFinishProcessingRef.current = false
+      }
+    },
+    [callTrekAction, clearTrackingRuntime, drainTrekOutbox, resetLiveTrekState, router, showToast]
   )
 
   const persistPauseTrekSession = useCallback(
@@ -987,13 +1154,22 @@ export default function TrekClient({
       clearTrackingRuntime()
       activeSessionIdRef.current = runtimeSessionId
       watchIdRef.current = navigator.geolocation.watchPosition(
-        (position) => {
+        async (position) => {
           if (isPausedRef.current) return
           if (activeSessionIdRef.current !== runtimeSessionId || watchIdRef.current === null) return
 
           const { latitude, longitude, accuracy, altitude } = position.coords
           const now = Date.now()
-          const nextPoint = { lat: latitude, lng: longitude, ts: now, altitude, accuracy }
+          const nextPoint: TrackPoint = {
+            id: createTrackPointId(),
+            lat: latitude,
+            lng: longitude,
+            ts: now,
+            altitude: typeof altitude === 'number' && Number.isFinite(altitude) ? altitude : null,
+            accuracy,
+            captureSeq: captureSeqRef.current,
+          }
+          captureSeqRef.current += 1
           const previousPoint = trackRef.current.at(-1)
           if (typeof altitude === 'number' && Number.isFinite(altitude)) {
             setLastValidAltitudeM(Math.round(altitude))
@@ -1030,7 +1206,9 @@ export default function TrekClient({
 
           if (shouldFlushSummitPoint || lastSyncRef.current === 0 || now - lastSyncRef.current >= 4000) {
             lastSyncRef.current = now
-            void appendPointToServer(runtimeSessionId, nextPoint, accuracy)
+            void persistCapturedPoint(runtimeSessionId, nextPoint, { drainNow: true })
+          } else {
+            void persistCapturedPoint(runtimeSessionId, nextPoint)
           }
         },
         (error) => {
@@ -1055,7 +1233,7 @@ export default function TrekClient({
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
       )
     },
-    [appendPointToServer, checkNearby, clearToasts, clearTrackingRuntime, showToast, targetMountain]
+    [checkNearby, clearToasts, clearTrackingRuntime, persistCapturedPoint, showToast, targetMountain]
   )
 
   const restoreActiveTrekSession = useCallback(
@@ -1089,6 +1267,7 @@ export default function TrekClient({
       setGpsWeakStartedAt(null)
 
       trackRef.current = restoredTrack
+      captureSeqRef.current = nextCaptureSeq(restoredTrack)
       startTimeRef.current = Number.isFinite(startedAtMs) ? startedAtMs : Date.now() - restoredElapsedSeconds * 1000
       elapsedBeforePauseRef.current = restoredElapsedSeconds
       elapsedSecondsRef.current = restoredElapsedSeconds
@@ -1111,13 +1290,16 @@ export default function TrekClient({
       if (restoredSession.status === 'tracking') {
         startTrackingRuntime(restoredSession.sessionId)
       }
+      void drainTrekOutbox(restoredSession.sessionId, { silent: true }).then(() => {
+        void processPendingFinishIntent(restoredSession.sessionId)
+      })
       showToast({
         tone: 'info',
         message: restoredSession.status === 'paused' ? '已恢复暂停中的记录。' : '已恢复进行中的记录。',
         durationMs: 2400,
       })
     },
-    [applyGpsSnapshot, showToast, startTrackingRuntime]
+    [applyGpsSnapshot, drainTrekOutbox, processPendingFinishIntent, showToast, startTrackingRuntime]
   )
 
   useEffect(() => {
@@ -1152,6 +1334,21 @@ export default function TrekClient({
           return
         }
 
+        const serverTrack = safeTrackPoints(restoredSession.trackPoints)
+        const localTailResult = await listTrekOutboxPoints(restoredSession.sessionId)
+        if (localTailResult.degraded) setOutboxDegraded(true)
+        const restoredTrack = localTailResult.degraded
+          ? serverTrack
+          : mergeRestoredTrackPoints(serverTrack, localTailResult.points)
+        const restoredSummary =
+          restoredTrack.length !== serverTrack.length ? summarizeTrekTrackPoints(restoredTrack) : null
+        const restoredMaxAltitudeM =
+          restoredSummary
+            ? restoredSummary.maxAltitudeM
+            : typeof restoredSession.maxAltitudeM === 'number' && Number.isFinite(restoredSession.maxAltitudeM)
+              ? restoredSession.maxAltitudeM
+              : null
+
         restoreActiveTrekSession({
           sessionId: restoredSession.sessionId,
           mountainId: typeof restoredSession.mountainId === 'string' ? restoredSession.mountainId : null,
@@ -1162,13 +1359,10 @@ export default function TrekClient({
             typeof restoredSession.pausedElapsedSeconds === 'number' && Number.isFinite(restoredSession.pausedElapsedSeconds)
               ? restoredSession.pausedElapsedSeconds
               : null,
-          trackPoints: safeTrackPoints(restoredSession.trackPoints),
-          distanceM: Number(restoredSession.distanceM ?? 0),
-          ascentM: Number(restoredSession.ascentM ?? 0),
-          maxAltitudeM:
-            typeof restoredSession.maxAltitudeM === 'number' && Number.isFinite(restoredSession.maxAltitudeM)
-              ? restoredSession.maxAltitudeM
-              : null,
+          trackPoints: restoredTrack,
+          distanceM: restoredSummary?.distanceM ?? Number(restoredSession.distanceM ?? 0),
+          ascentM: restoredSummary?.ascentM ?? Number(restoredSession.ascentM ?? 0),
+          maxAltitudeM: restoredMaxAltitudeM,
         })
         setRestoreStatus('restored')
       } catch {
@@ -1186,6 +1380,13 @@ export default function TrekClient({
       controller.abort()
     }
   }, [callTrekAction, mountainsLoading, restoreActiveTrekSession, sessionId])
+
+  useEffect(() => {
+    if (!sessionId || !isOnline) return
+    void drainTrekOutbox(sessionId, { silent: true }).then(() => {
+      void processPendingFinishIntent(sessionId)
+    })
+  }, [drainTrekOutbox, isOnline, processPendingFinishIntent, sessionId])
 
   async function startTrek() {
     await emitStaleTrekTimeoutIfNeeded()
@@ -1248,10 +1449,11 @@ export default function TrekClient({
     proximityEnteredRef.current = false
     proximityEnterAtRef.current = null
     trackRef.current = []
-	    const startedAt = Date.now()
-	    startTimeRef.current = startedAt
-	    elapsedBeforePauseRef.current = 0
-	    elapsedSecondsRef.current = 0
+    captureSeqRef.current = 0
+    const startedAt = Date.now()
+    startTimeRef.current = startedAt
+    elapsedBeforePauseRef.current = 0
+    elapsedSecondsRef.current = 0
     trackingTickStartedAtRef.current = startedAt
     lastSyncRef.current = 0
     writeTrekAnalyticsLocalSession({
@@ -1291,12 +1493,15 @@ export default function TrekClient({
       const targetIdForRetry = targetMountain?.id ?? confirmedMountainId ?? targetMountainId ?? selectedMountainId
       clearTrackingRuntime()
       if (recordTooShort) {
+        const aborted = await finishSession(activeSessionId, 'aborted')
+        if (aborted && activeSessionId) {
+          await clearTrekOutboxSession(activeSessionId)
+        }
         resetLiveTrekState()
         if (targetIdForRetry) {
           setSelectedMountainId(targetIdForRetry)
           setConfirmedMountainId(targetIdForRetry)
         }
-        void finishSession(activeSessionId, 'aborted')
         trackEvent({
           event_type: 'business',
           event_name: 'business.trek_abort',
@@ -1320,6 +1525,20 @@ export default function TrekClient({
       }
 
       if (createdCheckinId) {
+        const drained = activeSessionId ? await drainTrekOutbox(activeSessionId) : true
+        if (!drained) {
+          setIsPaused(true)
+          isPausedRef.current = true
+          trackingTickStartedAtRef.current = null
+          elapsedBeforePauseRef.current = elapsedSecondsRef.current
+          showToast({
+            tone: 'info',
+            message: '还有轨迹点待补传，网络恢复后会继续完成保存。',
+            durationMs: 5200,
+          })
+          return
+        }
+        if (activeSessionId) await clearTrekOutboxSession(activeSessionId)
         resetLiveTrekState()
         void finishSession(activeSessionId, 'finished')
         router.push(`/activity/${createdCheckinId}`)
@@ -1329,6 +1548,34 @@ export default function TrekClient({
       if (!activeSessionId || !targetMountain) {
         resetLiveTrekState()
         showToast({ key: 'trek_record_save_failure', message: '缺少记录会话或目标山峰，请重新开始。' })
+        return
+      }
+
+      const drained = await drainTrekOutbox(activeSessionId)
+      if (!drained) {
+        const intentResult = await writeTrekFinishIntent({
+          kind: 'finish_incomplete',
+          sessionId: activeSessionId,
+          mountainId: targetMountain.id,
+          note: checkinNote,
+          elapsedSeconds,
+          distanceMeters: Math.round(distanceKm * 1000),
+          ascentMeters: ascentM,
+          startedAt: startTimeRef.current,
+          testMode: trekTestMode,
+          createdAt: Date.now(),
+        })
+        setIsPaused(true)
+        isPausedRef.current = true
+        trackingTickStartedAtRef.current = null
+        elapsedBeforePauseRef.current = elapsedSecondsRef.current
+        showToast({
+          tone: 'info',
+          message: intentResult.degraded || outboxDegraded
+            ? '本机存储不可用，无法保证离线恢复。请联网后再完成保存。'
+            : '已进入待同步状态，网络恢复后会先补传轨迹再保存活动。',
+          durationMs: 6200,
+        })
         return
       }
 
@@ -1350,6 +1597,7 @@ export default function TrekClient({
       })
       const checkinId = typeof data.checkinId === 'string' ? data.checkinId : null
       const autoVerified = data.autoVerified === true || data.completionStatus === 'complete'
+      await clearTrekOutboxSession(activeSessionId)
       resetLiveTrekState()
       showToast(
         autoVerified
@@ -1423,11 +1671,45 @@ export default function TrekClient({
     }
     setCheckinLoading(true)
     try {
-      await appendPointToServer(
-        sessionId,
-        { lat: gps.lat, lng: gps.lng, ts: Date.now(), altitude: gps.altitude, accuracy: gps.accuracy },
-        gps.accuracy
-      )
+      const summitPoint: TrackPoint = {
+        id: createTrackPointId(),
+        lat: gps.lat,
+        lng: gps.lng,
+        ts: Date.now(),
+        altitude: typeof gps.altitude === 'number' && Number.isFinite(gps.altitude) ? gps.altitude : null,
+        accuracy: gps.accuracy,
+        captureSeq: captureSeqRef.current,
+      }
+      captureSeqRef.current += 1
+      trackRef.current.push(summitPoint)
+      await persistCapturedPoint(sessionId, summitPoint)
+      const drained = await drainTrekOutbox(sessionId)
+      if (!drained) {
+        const intentResult = await writeTrekFinishIntent({
+          kind: 'verify_summit',
+          sessionId,
+          mountainId: nearbyMountain?.id ?? targetMountain?.id ?? null,
+          note: checkinNote,
+          photoUrl: photoUrl ?? null,
+          startedAt: startTimeRef.current,
+          testMode: trekTestMode,
+          createdAt: Date.now(),
+        })
+        clearTrackingRuntime()
+        setIsPaused(true)
+        isPausedRef.current = true
+        trackingTickStartedAtRef.current = null
+        elapsedBeforePauseRef.current = elapsedSecondsRef.current
+        showToast({
+          tone: 'info',
+          message: intentResult.degraded || outboxDegraded
+            ? '本机存储不可用，无法保证离线恢复。请联网后再确认登顶。'
+            : '已进入待同步状态，网络恢复后会先补传轨迹再确认登顶。',
+          durationMs: 6200,
+        })
+        setCheckinLoading(false)
+        return
+      }
       const data = await callTrekAction({
         action: 'verify_summit_checkin',
         sessionId,
@@ -1447,6 +1729,7 @@ export default function TrekClient({
         throw new Error('确认登顶失败，请稍后重试。')
       }
 
+      await clearTrekOutboxSession(sessionId)
       setCreatedCheckinId(checkinId)
       trackEvent({
         event_type: 'business',

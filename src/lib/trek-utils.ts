@@ -7,11 +7,13 @@ import type { CheckinSource, Mountain } from '@/types'
 export { TREK_RULES } from './trek-rules-client.ts'
 
 export type TrackPoint = {
+  id?: string
   lat: number
   lng: number
   accuracy: number
   altitude: number | null
   ts: number
+  captureSeq?: number
 }
 
 export type { CheckinSource } from '@/types'
@@ -66,8 +68,15 @@ export function safeTrackPoints(value: unknown): TrackPoint[] {
     const lng = Number(raw.lng)
     const accuracy = Number(raw.accuracy)
     const ts = Number(raw.ts)
+    const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : undefined
+    const captureSeq = Number(raw.captureSeq)
     const altitudeValue = raw.altitude
-    const altitude = Number.isFinite(Number(altitudeValue)) ? Number(altitudeValue) : null
+    const altitude =
+      altitudeValue === null || altitudeValue === undefined || altitudeValue === ''
+        ? null
+        : Number.isFinite(Number(altitudeValue))
+          ? Number(altitudeValue)
+          : null
 
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(accuracy) || !Number.isFinite(ts)) {
       return []
@@ -75,11 +84,13 @@ export function safeTrackPoints(value: unknown): TrackPoint[] {
 
     return [
       {
+        ...(id ? { id } : {}),
         lat,
         lng,
         accuracy,
         ts,
         altitude,
+        ...(Number.isFinite(captureSeq) ? { captureSeq } : {}),
       },
     ]
   })

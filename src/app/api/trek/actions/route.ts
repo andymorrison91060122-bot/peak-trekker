@@ -12,7 +12,8 @@ import {
   isLocalFallbackSessionId,
   isLocalTrekSessionId,
 } from '@/lib/trek-server-utils'
-import { haversineMeters, rankingWeightByDifficulty, resolveCheckinSource, safeTrackPoints } from '@/lib/trek-utils'
+import { rankingWeightByDifficulty, resolveCheckinSource, safeTrackPoints, type TrackPoint } from '@/lib/trek-utils'
+import { normalizeAppendTrackPoint, summarizeTrekTrackPoints, TREK_APPEND_BATCH_LIMIT } from '@/lib/trek-track-metrics'
 import {
   TREK_VERIFY_SESSION_SELECT,
   fetchMountainForVerification,
@@ -36,6 +37,7 @@ type ActionName =
   | 'finish_trek_session'
   | 'finish_incomplete_trek'
   | 'append_trek_point'
+  | 'append_trek_points'
   | 'verify_summit_checkin'
   | 'submit_historical_checkin'
   | 'generate_share_card'
@@ -138,6 +140,42 @@ function summarizeTrackPoints(points: Array<{ altitude: number | null; ts: numbe
     startTime: typeof firstTs === 'number' ? new Date(firstTs).toISOString() : null,
     endTime: typeof lastTs === 'number' ? new Date(lastTs).toISOString() : null,
   }
+}
+
+type AppendTrekPointsRpcRow = {
+  accepted_ids?: string[] | null
+  rejected_ids?: string[] | null
+  point_count?: number | null
+  distance_m?: number | null
+  ascent_m?: number | null
+  descent_m?: number | null
+  max_altitude_m?: number | null
+}
+
+function ensureAppendPointIdentity(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value
+  const raw = value as Record<string, unknown>
+  const ts = Number.isFinite(Number(raw.ts)) ? Number(raw.ts) : Date.now()
+  return {
+    ...raw,
+    id: typeof raw.id === 'string' && raw.id.trim() ? raw.id : crypto.randomUUID(),
+    ts,
+    captureSeq: Number.isFinite(Number(raw.captureSeq)) ? Number(raw.captureSeq) : ts,
+  }
+}
+
+function normalizeAppendPointsPayload(action: ActionName, body: Record<string, unknown>): TrackPoint[] | null {
+  const rawPoints =
+    action === 'append_trek_points'
+      ? Array.isArray(body?.points)
+        ? body.points
+        : null
+      : [ensureAppendPointIdentity(body?.point)]
+
+  if (!rawPoints || rawPoints.length > TREK_APPEND_BATCH_LIMIT) return null
+  const normalized = rawPoints.map((point) => normalizeAppendTrackPoint(point))
+  if (normalized.some((point) => point === null)) return null
+  return normalized as TrackPoint[]
 }
 
 export async function POST(request: NextRequest) {
@@ -315,17 +353,16 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  if (action === 'append_trek_point') {
+  if (action === 'append_trek_point' || action === 'append_trek_points') {
     const sessionId = typeof body?.sessionId === 'string' ? body.sessionId : ''
-    const point = body?.point ?? {}
-    const lat = Number(point.lat)
-    const lng = Number(point.lng)
-    const accuracy = Number(point.accuracy)
-    const altitude = Number.isFinite(Number(point.altitude)) ? Number(point.altitude) : null
-    const ts = Number.isFinite(Number(point.ts)) ? Number(point.ts) : Date.now()
+    const points = normalizeAppendPointsPayload(action, body as Record<string, unknown>)
 
-    if (!sessionId || !Number.isFinite(lat) || !Number.isFinite(lng) || !Number.isFinite(accuracy)) {
+    if (!sessionId || !points) {
       return NextResponse.json({ error: 'invalid point payload' }, { status: 400 })
+    }
+
+    if (points.length > TREK_APPEND_BATCH_LIMIT) {
+      return NextResponse.json({ error: 'point batch too large' }, { status: 413 })
     }
 
     const isFallbackSession = isLocalFallbackSessionId(sessionId)
@@ -335,95 +372,50 @@ export async function POST(request: NextRequest) {
       if (isTestLocalSession && !ALLOW_LOCAL_TREK_SESSION) {
         return NextResponse.json({ error: 'local_trek_session_disabled' }, { status: 403 })
       }
-      return NextResponse.json({ ok: true, fallback: 'client' })
+      const summary = summarizeTrekTrackPoints(points)
+      return NextResponse.json({
+        ok: true,
+        fallback: 'client',
+        acceptedIds: points.map((point) => point.id).filter(Boolean),
+        rejectedIds: [],
+        pointCount: summary.pointCount,
+        summary,
+      })
     }
 
-    const { data: session, error: sessionError } = await supabase
-      .from('trek_sessions')
-      .select('id, user_id, status, started_at, track_points, distance_m, ascent_m, descent_m, max_altitude_m')
-      .eq('id', sessionId)
+    const { data: appendResult, error: appendError } = await supabase
+      .rpc('append_trek_points', {
+        p_session_id: sessionId,
+        p_points: points,
+      })
       .single()
 
-    if (sessionError || !session) {
-      return NextResponse.json({ error: 'session not found' }, { status: 404 })
+    if (appendError || !appendResult) {
+      const message = appendError?.message ?? 'append trek points failed'
+      const status = message.includes('not found') || message.includes('forbidden')
+        ? 404
+        : message.includes('not tracking')
+          ? 409
+          : 500
+      return NextResponse.json({ error: message }, { status })
     }
 
-    if (session.user_id !== user.id) {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
-    }
-
-    if (session.status !== 'tracking') {
-      return NextResponse.json({ error: 'session is not tracking' }, { status: 409 })
-    }
-
-    const points = safeTrackPoints(session.track_points)
-    const prev = points.at(-1)
-
-    if (prev) {
-      const segmentMeters = haversineMeters(prev.lat, prev.lng, lat, lng)
-      const elapsed = Math.max(1, (ts - prev.ts) / 1000)
-      const speed = segmentMeters / elapsed
-      if (speed > TREK_RULES.maxDriftSpeedMps && accuracy > 25) {
-        return NextResponse.json({
-          ok: true,
-          accepted: false,
-          reason: 'drift_filtered',
-          pointCount: points.length,
-        })
-      }
-    }
-
-    const nextPoint = { lat, lng, accuracy, altitude, ts }
-    const nextPoints = [...points, nextPoint]
-
-    let distanceM = Number(session.distance_m ?? 0)
-    let ascentM = Number(session.ascent_m ?? 0)
-    let descentM = Number(session.descent_m ?? 0)
-    let maxAltitudeM = Number(session.max_altitude_m ?? 0)
-
-    if (prev) {
-      const segmentMeters = haversineMeters(prev.lat, prev.lng, lat, lng)
-      distanceM += segmentMeters
-      if (typeof prev.altitude === 'number' && typeof altitude === 'number') {
-        const delta = altitude - prev.altitude
-        if (delta > 0) ascentM += Math.round(delta)
-        if (delta < 0) descentM += Math.round(Math.abs(delta))
-      }
-    }
-
-    if (typeof altitude === 'number') {
-      maxAltitudeM = Math.max(maxAltitudeM, Math.round(altitude))
-    }
-
-    const { error: updateError } = await supabase
-      .from('trek_sessions')
-      .update({
-        track_points: nextPoints,
-        track_summary: {
-          distance_m: Math.round(distanceM),
-          ascent_m: ascentM,
-          descent_m: descentM,
-          max_altitude_m: maxAltitudeM,
-          point_count: nextPoints.length,
-        },
-        distance_m: Math.round(distanceM),
-        ascent_m: ascentM,
-        descent_m: descentM,
-        max_altitude_m: maxAltitudeM,
-      })
-      .eq('id', sessionId)
-      .eq('user_id', user.id)
-
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
-    }
+    const row = appendResult as AppendTrekPointsRpcRow
+    const acceptedIds = Array.isArray(row.accepted_ids) ? row.accepted_ids : []
+    const rejectedIds = Array.isArray(row.rejected_ids) ? row.rejected_ids : []
+    const distanceM = Math.round(Number(row.distance_m ?? 0))
+    const ascentM = Math.round(Number(row.ascent_m ?? 0))
+    const descentM = Math.round(Number(row.descent_m ?? 0))
+    const maxAltitudeM = Number.isFinite(Number(row.max_altitude_m)) ? Math.round(Number(row.max_altitude_m)) : null
 
     return NextResponse.json({
       ok: true,
-      accepted: true,
-      pointCount: nextPoints.length,
+      accepted: acceptedIds.length > 0,
+      acceptedIds,
+      rejectedIds,
+      pointCount: Number(row.point_count ?? 0),
       summary: {
-        distanceM: Math.round(distanceM),
+        distanceM,
         ascentM,
         descentM,
         maxAltitudeM,

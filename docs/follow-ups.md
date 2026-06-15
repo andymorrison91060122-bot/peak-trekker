@@ -441,6 +441,7 @@
 3. **GPS-weak 空按钮**: `<PrimaryButton onClick={()=>{}}>继续记录</PrimaryButton>`（`TrekClient.tsx:2644`）。底层行为本就对（信号回来自动续），删该假按钮或接成真动作。
 4. **Profile「设置」死 toast**: `src/components/profile/ProfileV2Client.tsx:501` `{label:'设置',toast:'设置功能即将上线'}`。撤掉该行或降级；问题反馈行归 FU-97。
 5. **historical_photo 误标 GPS（语义 bug 一并修）**: `src/lib/source-label-utils.ts:6-8` 把 `historical_photo` 映射成绿「GPS VERIFIED」。改成「UPLOADED / 用户自报」。当前因无产线无害，但属语义错，顺手修。
+6. **Share flow 死付费 alert**: `src/app/(flow)/share/ShareClient.tsx:2350` `window.alert('付费功能即将上线')` 是未上线付费功能死路 alert；与 FU-94 截图付费墙同类，但 FU-94 仅处理截图侧，本项去掉 / 降级。注：`src/app/admin/analytics/AdminAnalyticsClient.tsx:441`「付费功能 Ranking」是 FU-59 内部 admin 分析面板，非用户面死付费，保留不动。
 
 **边界**: 只删 / 隐藏 / 降级，不补任何完整功能。
 
@@ -601,7 +602,7 @@
   - FU-96 wakelock 记录可靠性增强（P2）。
   - FU-97 反馈通道（P2，先登记，不做完整系统）。
   - FU-98 省份编辑（P3，MVP 初期不做）。
-- **NEW-B 备注（不单独开 FU）**: 分享高级模板水印付费墙（`src/app/(main)/share/ShareClient.tsx:2348` `window.alert('付费功能即将上线')`）被 env `ENABLE_PREMIUM_TEMPLATE_PAYWALL`（关）挡住，生产不可达。保持 flag 关闭，不要打开，不做实现。
+- **NEW-B 备注（已并入 FU-95）**: 分享高级模板水印付费墙（`src/app/(flow)/share/ShareClient.tsx:2350` `window.alert('付费功能即将上线')`）被 env `ENABLE_PREMIUM_TEMPLATE_PAYWALL`（关）挡住，生产不可达。保持 flag 关闭；实际去掉 / 降级已登记到 FU-95，不在 FU-94 截图额度墙 sprint 中实现。
 - **关闭 commit**: 本次 docs 收尾 commit
 - **关闭时间**: 2026-06-14
 

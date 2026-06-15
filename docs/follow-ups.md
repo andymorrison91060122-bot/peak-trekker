@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（23 条）
+## Active Follow-ups（24 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -505,6 +505,34 @@
 3. 评估是否需要 backfill 既有 summit-verified GPS checkins（若涉及生产写入，单独数据操作审批 + exact-id / count 对账）。
 
 **边界**: 本次不实施；如改 DB function，走正常 migration + 发布审批。
+
+---
+
+### FU-100 · 截图路线展示标准化（route-only bbox fit · activity/archive/profile/share/poster）
+
+**优先级**: P2（调研先行，不直接开实现）
+**状态**: Active（仅登记 · 待 FU-94 收口后由 Claude 一手深查产出 V1）
+**背景**: 用户 2026-06-15 上传一张很长的两步路截图（zs_0472469，21.26km / 24h06m / 5077m）做截图识别+校准，暴露路线展示比例系统性问题，与 FU-94 额度墙无关。
+
+**核心规则（用户+顾问 2026-06-15 收敛）**: 截图里提取出来的路线一旦进入产品展示面，就应**脱离原截图尺寸和截图比例**，按**路线自身 bbox 标准化**铺满固定容器——像 logo / 路线符号一样 fit 进去。**不是地理比例尺，也不是按公里数换算视觉长度**；距离长短由文字字段表达，不靠轨迹视觉长度。即 shape-pipeline bbox-fit 课贯通到截图提取→展示链路（归一化坐标≠展示坐标，小占比路线缩成"一小坨"）。
+
+**标准化规则**: 以路线点/线段自身 bbox 为内容边界 → 等比缩放、完整显示 → 固定 padding → 尽量铺满容器 → 不受原截图 width/height、长截图比例、地图区域在截图中位置影响。
+
+**一句话边界**: 原图比例只属于"校准过程"（底图对齐需要），不应泄漏到"路线展示结果"；展示结果应是标准化路线符号，而非原截图缩略图。
+
+**调研需盘点的展示面（V1 先调研、不直接实现）**:
+- 截图校准编辑器：**仍保留原图比例**（底图对齐）——唯一例外，不改。
+- 确认页截图路线预览：核实是否需从原图比例切到 route-only preview。
+- Activity 路线卡片。
+- Archive / Profile 记录列表缩略图。
+- Share editor / poster / watermark。
+- /api/share/render、/api/poster（如仍消费截图路线，核实）。
+
+**Claude 独立补充（投研期核）**: ①先分清 GPS 实录轨迹 vs 截图提取路线（展示面多半共用渲染器，核 GPS 是否已正确 bbox-fit、只截图路线坏，还是共用整体坏）；②fit 后目标空间固定 stroke + degenerate guard（近直线/极小 extent 兜底，别放大成胖线）；③用户原始四点（校准反复放大、点小、吸附偏）判为同根连带（底图喂太大 + 没对焦地图 bbox）。
+
+**锚定源码（深查起点，尚未一手核）**: `src/lib/screenshot-route-shape.ts`、`src/lib/screenshot-track/{calibration,geometry}.ts`、`src/app/(flow)/screenshot/ScreenshotRouteCalibrationSection.tsx` + `track-calibration.worker.ts`、`src/lib/share-track-preview.ts`、`src/lib/share-templates/*`、`src/app/(flow)/archive/page.tsx` + `src/lib/profile-records-server.ts`。
+
+**边界**: 仅登记。V1 由 Claude 在 FU-94 merge 后一手深查产出；route-only 固定容器属新视觉规范走 Claude Design 五步；不在本次截图额度墙 sprint 内做。
 
 ---
 
@@ -1611,6 +1639,7 @@ FU-93 closeout · 离线轨迹 outbox + 原子 append RPC 上线并完成 real-d
 - FU-93 从 Active 移入 Closed：PR #13 / merge `ce02928` 完成 IndexedDB outbox、ack-based drain、pending finish intent、offline finalize leak 2 轮客户端修复；生产 migration `20260614120000_append_trek_points_rpc` 已 gated apply，RPC 使用 `auth.uid()` ownership + `FOR UPDATE` + per-point reject + 30k cap。
 - 验收证据：STOP#2 real-device acceptance PASS；生产 DB 只读核验 session `50401e67` exactly one summit checkin、session `fab1b069` exactly one incomplete checkin，近 3 小时华山测试集无 session 多 checkin；测试数据暂留待单独 exact-id cleanup。
 - 新增 Active FU-99：auto-summit `verify_and_record_checkin` measured-field gap。checkin `492617f7` measured columns NULL vs linked session `50401e67` distance_m=1488，判定为 pre-existing 非 FU-93 regression。
+- Docs-only register Active FU-100：截图路线展示标准化（route-only bbox fit）登记，V1 待 FU-94 收口后由 Claude 一手深查产出；不启动实现。
 - `docs/map-weather-brief.md` 只读 cross-check：FU-93 是 Trek recording reliability，不改变地图 / 天气边界，无需更新。
 - Active 23 → 23 · Closed 77 → 78 · Deferred 1 → 1
 

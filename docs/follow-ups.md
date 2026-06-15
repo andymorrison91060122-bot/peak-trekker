@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-15 · 最新版本记录: v0.72
+> Last Updated: 2026-06-15 · 最新版本记录: v0.73
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`ce02928`（Merge FU-93 offline track outbox + atomic append RPC · 2026-06-15）
+`be6db01`（Merge FU-94 screenshot quota honesty · 2026-06-15）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（24 条）
+## Active Follow-ups（23 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -410,24 +410,6 @@
 
 ---
 
-### FU-94 · 截图识别额度墙文案 + 需求埋点
-
-- **优先级**: P1
-- **归属阶段**: 产品策略 / 诚实文案 / 轻改
-- **状态**: 🟢 active
-
-**背景 / 证据**: 截图识别服务端真扣配额（免费首月 5、之后每月 2），用尽返回 402（`src/app/api/screenshot/recognize/route.ts:99-100`）；前端 UpgradeSheet「了解付费方案」→ `window.alert('付费方案即将上线。')`（`src/app/(flow)/screenshot/ScreenshotClient.tsx:2160`）是死路；**全仓无支付路由**。第一期免费上线（商业化 deferred FU-88），此墙与决策冲突。
-
-**Scope（明确不做支付 / 订阅 / 付费页）**:
-1. 去掉「了解付费方案」这类承诺付费的死 CTA。
-2. 文案改诚实，例如「本月识别次数已用完，后续我们会开放更多额度」。
-3. **保留**额度机制（可配置，MVP 期可按需调高）。
-4. 用现有 `trackEvent` 基建加埋点：触达额度墙、点击「想要更多额度」；用于后续付费意愿 / 需求判断（产品验证，非商业化实现）。
-
-**边界**: 不新增任何支付 / checkout / 订阅路由或页面。
-
----
-
 ### FU-95 · 上线前死入口 / 假成功清理
 
 - **优先级**: P2（before-launch）
@@ -608,7 +590,18 @@
 
 ---
 
-## Closed Follow-ups（78 条）
+## Closed Follow-ups（79 条）
+
+### FU-94 ✅ 截图识别额度墙诚实化 + de-dup
+
+- **关闭原因**: 截图识别额度墙诚实化已落地并由用户 2026-06-15 视觉验收。PR #14 / branch `codex/fu94-screenshot-quota-honesty` / merge `be6db01` 合入 2 个 FU-94 commits：`f12f0e6`（honest copy + de-dup）与 `00c56c9`（engage feedback auto-close `2.5s`）。改动文件限定为 `src/app/(flow)/screenshot/ScreenshotClient.tsx`、`src/app/api/screenshot/recognize/route.ts`、`tests/e2e/screenshot-quota-flow.spec.ts`、`tests/screenshot-confirm-static.test.ts`（stale migration filename test fix）。
+- **落地内容**: UpgradeSheet 删除未上线付费方案 / 每月 30 次 / 支付入口承诺，CTA 改为「我想要更多额度」；点击后保留 `gate_engaged` telemetry（语义为更多额度需求信号，不代表付费已上线），不再 `window.alert`，改为 sheet 内联反馈「已记录，我们会根据使用需求逐步开放更多额度。」并在 `2.5s` 后自动关闭。QuotaBar 仅在额度用完时显示 CTA；「本月识别次数已用完」去重为只由 sheet 标题承载；server `upgradeHint` 删除。quota 机制 / 扣减 / 既有 telemetry 事件名均不变。
+- **验收 / 证据**: PR #14 pre-merge branch head `00c56c9` Vercel check success；production deploy `dpl_2t2pLvVqD8i1nqFJTffpN4YdsYSx` READY for merge `be6db01`。部署后 read-only `/screenshot` sanity：mocked exhausted quota on production build showed new CTA visible, old「了解付费方案」count 0, feedback visible, old「付费方案」count 0, dialog count 0, console error count 0。
+- **map/weather brief**: 本 sprint 仅涉及截图识别额度墙文案 / de-dup / API 响应字段，不改变地图 / 天气策略；`docs/map-weather-brief.md` 只读确认无需更新。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-15
+
+---
 
 ### FU-93 ✅ 离线轨迹持久化与重传
 
@@ -1631,6 +1624,16 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.73（2026-06-15）
+
+FU-94 closeout · 截图识别额度墙诚实化 + de-dup 上线；FU-100 registration 已保留。
+
+- FU-94 从 Active 移入 Closed：PR #14 / merge `be6db01` 完成 honest quota copy、单一「已用完」sheet 承载、删除 `window.alert`、CTA「我想要更多额度」、inline feedback「已记录，我们会根据使用需求逐步开放更多额度。」2.5s auto-close、server `upgradeHint` 删除；quota 机制与 telemetry 事件名不变。
+- 生产部署：Vercel deployment `dpl_2t2pLvVqD8i1nqFJTffpN4YdsYSx` READY，built commit `be6db01fae07ca7e9e6630bb2fed215a2c770449`，production URL `https://peak-trekker.vercel.app`。
+- 部署后 read-only sanity：`/screenshot` production build 可渲染；mocked exhausted quota 下新 CTA 可见、旧「了解付费方案」为 0、inline feedback 可见、无 alert、console errors 0。
+- `docs/map-weather-brief.md` 只读 cross-check：FU-94 是 screenshot quota copy / de-dup，不改变地图 / 天气边界，无需更新。
+- Active 24 → 23 · Closed 78 → 79 · Deferred 1 → 1
 
 ### v0.72（2026-06-15）
 

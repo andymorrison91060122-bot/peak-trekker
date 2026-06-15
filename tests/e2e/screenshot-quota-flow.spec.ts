@@ -83,7 +83,8 @@ test('quota exhausted opens upgrade sheet before upload', async ({ page, baseURL
   })
 
   await expect(page.getByRole('dialog', { name: '本月识别次数已用完' })).toBeVisible({ timeout: 10_000 })
-  await expect(page.getByText('付费方案会提供每月 30 次截图识别额度')).toBeVisible()
+  await expect(page.getByText('免费识别额度有限，后续我们会逐步开放更多。')).toBeVisible()
+  await expect(page.getByRole('button', { name: '我想要更多额度' })).toBeVisible()
   await captureOptionalE2EScreenshot(page, 'screenshot-quota-exhausted.png')
 })
 

@@ -42,11 +42,6 @@ function quotaExhaustedResponse(quota: Awaited<ReturnType<typeof getScreenshotQu
       error: '本月截图识别次数已用完。',
       code: 'screenshot_quota_exhausted',
       quota,
-      upgradeHint: {
-        title: '升级后继续识别',
-        body: '免费识别次数用完后，可升级获得更多截图识别额度。',
-        cta: '了解付费方案',
-      },
     },
     { status: 402 }
   )

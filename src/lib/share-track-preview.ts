@@ -73,6 +73,7 @@ const COORDINATE_EPSILON = 0.0000001
 const DEFAULT_MIN_CONTENT_SPAN = 0.18
 const DEFAULT_MAX_CONTENT_SCALE = 4.5
 const DEFAULT_SIMPLIFY_EPSILON_PX = 1.75
+const SCREENSHOT_ROUTE_DEGENERATE_PIXEL_EPSILON = 1
 
 export const SHARE_TRACK_CONTENT_FIT = {
   fitToContent: true,
@@ -112,6 +113,14 @@ export const SHARE_TRACK_RENDER_PROFILES = {
     startRadius: 15,
     startStrokeWidth: 6,
     endRadius: 21,
+  },
+  activityScreenshotCard: {
+    lineWidth: 3.4,
+    glowWidth: 10,
+    glowOpacity: 0.13,
+    startRadius: 6,
+    startStrokeWidth: 2.4,
+    endRadius: 7.5,
   },
   verticalStory: {
     lineWidth: 12,
@@ -215,16 +224,34 @@ export function buildShareTrackPreview(rawTrackPoints: unknown, maxPoints = DEFA
   }
 }
 
-function projectScreenshotPoint(point: ShareTrackPreviewPoint, width: number, height: number): ShareTrackPreviewPoint {
+function pixelScreenshotPoint(point: ShareTrackPreviewPoint, width: number, height: number): ShareTrackPreviewPoint {
   const safeWidth = Math.max(1, width)
   const safeHeight = Math.max(1, height)
-  const maxDimension = Math.max(safeWidth, safeHeight)
-  const xOffset = (maxDimension - safeWidth) / 2
-  const yOffset = (maxDimension - safeHeight) / 2
 
   return {
-    x: (xOffset + clampUnit(point.x) * safeWidth) / maxDimension,
-    y: (yOffset + clampUnit(point.y) * safeHeight) / maxDimension,
+    x: clampUnit(point.x) * safeWidth,
+    y: clampUnit(point.y) * safeHeight,
+  }
+}
+
+function normalizeScreenshotPixelPoint(
+  point: ShareTrackPreviewPoint,
+  bounds: ShareTrackBounds,
+  degenerateScale: number | null,
+): ShareTrackPreviewPoint {
+  if (degenerateScale !== null) {
+    const centerX = (bounds.minX + bounds.maxX) / 2
+    const centerY = (bounds.minY + bounds.maxY) / 2
+    return {
+      x: 0.5 + (point.x - centerX) / degenerateScale,
+      y: 0.5 + (point.y - centerY) / degenerateScale,
+    }
+  }
+
+  const range = Math.max(bounds.width, bounds.height, COORDINATE_EPSILON)
+  return {
+    x: ((point.x - bounds.minX) + (range - bounds.width) / 2) / range,
+    y: ((point.y - bounds.minY) + (range - bounds.height) / 2) / range,
   }
 }
 
@@ -236,12 +263,24 @@ export function buildShareTrackPreviewFromScreenshotRouteShape(
   if (!validation.ok || !validation.shape) return null
 
   const safeMaxPoints = Math.max(2, Math.floor(maxPointsPerSegment))
-  const drawableSegments = validation.shape.segments.flatMap((segment) => {
+  const imageWidth = validation.shape.image.width
+  const imageHeight = validation.shape.image.height
+  const pixelSegments = validation.shape.segments.flatMap((segment) => {
     if (segment.resolution === 'accepted_gap' || segment.points.length < 2) return []
-    const projected = segment.points.map((point) =>
-      projectScreenshotPoint(point, validation.shape!.image.width, validation.shape!.image.height),
-    )
-    const sampled = samplePreviewPoints(projected, safeMaxPoints)
+    const pixels = segment.points.map((point) => pixelScreenshotPoint(point, imageWidth, imageHeight))
+    return pixels.length >= 2 ? [pixels] : []
+  })
+
+  if (pixelSegments.length < 1) return null
+
+  const routeBounds = getPointBounds(pixelSegments.flat())
+  const routeDiagonal = Math.hypot(routeBounds.width, routeBounds.height)
+  const degenerateScale = routeDiagonal <= SCREENSHOT_ROUTE_DEGENERATE_PIXEL_EPSILON
+    ? Math.max(1, imageWidth, imageHeight)
+    : null
+  const drawableSegments = pixelSegments.flatMap((segment) => {
+    const normalized = segment.map((point) => normalizeScreenshotPixelPoint(point, routeBounds, degenerateScale))
+    const sampled = samplePreviewPoints(normalized, safeMaxPoints)
     return sampled.length >= 2 ? [sampled] : []
   })
 

@@ -21,6 +21,35 @@ function assertPointClose(
   assert.ok(Math.abs(actual.y - expected.y) < 0.01, `${message}: y ${actual.y} should be close to ${expected.y}`)
 }
 
+function makeScreenshotShape({
+  image = { width: 1080, height: 1920 },
+  points,
+  resolution = 'snapped',
+}: {
+  image?: { width: number; height: number }
+  points: Array<{ x: number; y: number }>
+  resolution?: 'snapped' | 'user_confirmed_shape'
+}) {
+  return {
+    schemaVersion: 1,
+    kind: 'screenshot_route_shape',
+    coordinateSpace: 'normalized_screenshot',
+    source: 'user_seeded_livewire',
+    image,
+    controlPoints: points.map((point, index) => ({ id: `p-${index}`, ...point })),
+    segments: [
+      {
+        id: 'seg',
+        fromId: 'p-0',
+        toId: `p-${points.length - 1}`,
+        resolution,
+        points,
+      },
+    ],
+    createdAt: '2026-06-10T00:00:00.000Z',
+  }
+}
+
 describe('share track preview projection', () => {
   test('preserves line-mode degenerate epsilon while segment mode keeps exact-zero fallback only', async () => {
     const { simplifyPolyline } = await loadPolylineSimplifier()
@@ -94,6 +123,18 @@ describe('share track preview projection', () => {
       startStrokeWidth: 6,
       endRadius: 21,
     })
+    assert.deepEqual(SHARE_TRACK_RENDER_PROFILES.activityScreenshotCard, {
+      lineWidth: 3.4,
+      glowWidth: 10,
+      glowOpacity: 0.13,
+      startRadius: 6,
+      startStrokeWidth: 2.4,
+      endRadius: 7.5,
+    })
+    assert.ok(SHARE_TRACK_RENDER_PROFILES.activityScreenshotCard.lineWidth <= 4)
+    assert.ok(SHARE_TRACK_RENDER_PROFILES.activityScreenshotCard.startRadius <= 8)
+    assert.ok(SHARE_TRACK_RENDER_PROFILES.activityScreenshotCard.endRadius <= 8)
+    assert.ok(SHARE_TRACK_RENDER_PROFILES.activityScreenshotCard.glowWidth <= 14)
     assert.deepEqual(SHARE_TRACK_RENDER_PROFILES.verticalStory, {
       lineWidth: 12,
       glowWidth: 42,
@@ -306,9 +347,8 @@ describe('share track preview projection', () => {
     assert.equal(preview?.pointCount, 4)
     assert.ok(route?.d)
     assert.equal([...route.d.matchAll(/\bM\b/g)].length, 2)
-    assert.match(route.d, /^M 10 10 Q /)
-    assert.match(route.d, / M 80 80 Q /)
-    assert.doesNotMatch(route.d, /20 20 [LQC] /, 'no line or curve command may leave the first segment endpoint across the accepted gap')
+    assert.doesNotMatch(route.d, /0 0 [LQC] 87.5 87.5/, 'no command may bridge from the first subpath toward the second across the accepted gap')
+    assert.doesNotMatch(route.d, /12.5 12.5 [LQC] 87.5 87.5/, 'no command may bridge accepted-gap endpoints')
   })
 
   test('returns no screenshot share preview for null or accepted-gap-only shapes', async () => {
@@ -338,7 +378,7 @@ describe('share track preview projection', () => {
     )
   })
 
-  test('keeps route stroke and endpoint sizes stable while fitting small and large screenshot shapes', async () => {
+  test('fits a tiny-on-original long screenshot route by route bbox instead of original image ratio', async () => {
     const { buildShareTrackPreviewFromScreenshotRouteShape, buildShareTrackRender, SHARE_TRACK_CONTENT_FIT } = await loadTrackPreview()
     const frame = {
       width: 300,
@@ -353,37 +393,30 @@ describe('share track preview projection', () => {
       startStrokeWidth: 8,
       endRadius: 26,
     }
-    const makeShape = (points: Array<{ x: number; y: number }>) => ({
-      schemaVersion: 1,
-      kind: 'screenshot_route_shape',
-      coordinateSpace: 'normalized_screenshot',
-      source: 'user_seeded_livewire',
-      image: { width: 1080, height: 1920 },
-      controlPoints: points.map((point, index) => ({ id: `p-${index}`, ...point })),
-      segments: [
-        {
-          id: 'seg',
-          fromId: 'p-0',
-          toId: `p-${points.length - 1}`,
-          resolution: 'snapped',
-          points,
-        },
-      ],
-      createdAt: '2026-06-10T00:00:00.000Z',
-    })
 
-    const small = buildShareTrackRender(
-      buildShareTrackPreviewFromScreenshotRouteShape(makeShape([{ x: 0.49, y: 0.49 }, { x: 0.51, y: 0.51 }])),
+    const longScreenshotRoute = buildShareTrackRender(
+      buildShareTrackPreviewFromScreenshotRouteShape(makeScreenshotShape({
+        image: { width: 640, height: 4096 },
+        points: [
+          { x: 0.28, y: 0.045 },
+          { x: 0.34, y: 0.052 },
+          { x: 0.43, y: 0.064 },
+          { x: 0.55, y: 0.072 },
+          { x: 0.64, y: 0.085 },
+        ],
+      })),
       frame,
       style,
     )
-    const large = buildShareTrackRender(
-      buildShareTrackPreviewFromScreenshotRouteShape(makeShape([{ x: 0.1, y: 0.12 }, { x: 0.42, y: 0.36 }, { x: 0.9, y: 0.88 }])),
+    const regularRoute = buildShareTrackRender(
+      buildShareTrackPreviewFromScreenshotRouteShape(makeScreenshotShape({
+        points: [{ x: 0.1, y: 0.12 }, { x: 0.42, y: 0.36 }, { x: 0.9, y: 0.88 }],
+      })),
       frame,
       style,
     )
 
-    for (const route of [small, large]) {
+    for (const route of [longScreenshotRoute, regularRoute]) {
       assert.ok(route)
       assert.ok(route.lineWidth >= 7 && route.lineWidth <= 9, `line width ${route.lineWidth} should stay in target px range`)
       assert.equal(route.glowWidth, 32)
@@ -392,11 +425,55 @@ describe('share track preview projection', () => {
       assert.equal(route.endRadius, 26)
     }
 
-    assert.ok((small?.bounds.width ?? 0) >= 8, `short route should remain visible, got ${small?.bounds.width}`)
-    assert.ok((small?.bounds.width ?? 0) <= 90, `short route should not be over-magnified, got ${small?.bounds.width}`)
-    assert.ok((large?.bounds.minX ?? 0) >= 36, `long route should keep left padding, got ${large?.bounds.minX}`)
-    assert.ok((300 - (large?.bounds.maxX ?? 300)) >= 36, `long route should keep right padding, got ${large?.bounds.maxX}`)
-    assert.ok((large?.bounds.maxX ?? 0) <= 264, `long route should stay inside padded target frame, got ${large?.bounds.maxX}`)
+    assert.ok((longScreenshotRoute?.bounds.width ?? 0) >= 210, `long screenshot route should fill the fixed frame, got width ${longScreenshotRoute?.bounds.width}`)
+    assert.ok((longScreenshotRoute?.bounds.height ?? 0) >= 140, `long screenshot route should keep restored route aspect, got height ${longScreenshotRoute?.bounds.height}`)
+    assert.ok((longScreenshotRoute?.bounds.minX ?? 0) >= 36, `route should keep left padding, got ${longScreenshotRoute?.bounds.minX}`)
+    assert.ok((300 - (longScreenshotRoute?.bounds.maxX ?? 300)) >= 36, `route should keep right padding, got ${longScreenshotRoute?.bounds.maxX}`)
+    assert.ok((regularRoute?.bounds.maxX ?? 0) <= 264, `regular route should stay inside padded target frame, got ${regularRoute?.bounds.maxX}`)
+  })
+
+  test('restrains only truly near-degenerate screenshot route bboxes', async () => {
+    const { buildShareTrackPreviewFromScreenshotRouteShape, buildShareTrackRender, SHARE_TRACK_CONTENT_FIT } = await loadTrackPreview()
+    const route = buildShareTrackRender(
+      buildShareTrackPreviewFromScreenshotRouteShape(makeScreenshotShape({
+        image: { width: 640, height: 4096 },
+        points: [
+          { x: 0.5, y: 0.5 },
+          { x: 0.5000001, y: 0.50000008 },
+        ],
+      })),
+      { width: 300, height: 300, padding: 36, ...SHARE_TRACK_CONTENT_FIT },
+      {
+        lineWidth: 8,
+        glowWidth: 32,
+        startRadius: 19,
+        startStrokeWidth: 8,
+        endRadius: 26,
+      },
+    )
+
+    assert.ok(route)
+    assert.ok(route.bounds.width <= 4, `near-degenerate source-pixel route should not be magnified into a full trail, got width ${route.bounds.width}`)
+    assert.ok(route.bounds.height <= 4, `near-degenerate source-pixel route should not be magnified into a full trail, got height ${route.bounds.height}`)
+    assert.ok(route.start.x > 145 && route.start.x < 155, `near-degenerate start should stay near frame center, got ${route.start.x}`)
+  })
+
+  test('computes screenshot route bbox before per-segment sampling', async () => {
+    const { buildShareTrackPreviewFromScreenshotRouteShape } = await loadTrackPreview()
+    const points = Array.from({ length: 61 }, (_, index) => {
+      if (index === 30) return { x: 0.9, y: 0.05 }
+      const t = index / 60
+      return { x: 0.2 + t * 0.08, y: 0.1 + t * 0.18 }
+    })
+    const preview = buildShareTrackPreviewFromScreenshotRouteShape(makeScreenshotShape({
+      image: { width: 1000, height: 1000 },
+      points,
+    }), 10)
+
+    assert.equal(preview?.segments?.length, 1)
+    assert.equal(preview?.segments?.[0]?.length, 10)
+    const sampledMaxX = Math.max(...(preview?.points.map((point) => point.x) ?? []))
+    assert.ok(sampledMaxX < 0.25, `unsampled far boundary point should still define bbox scale; sampled max x ${sampledMaxX} would be much larger if bbox were sampled first`)
   })
 
   test('smooths noisy target-space polylines without moving endpoints or bridging gaps', async () => {

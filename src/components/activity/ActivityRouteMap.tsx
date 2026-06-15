@@ -386,17 +386,16 @@ function StatStrip({ activity }: { activity: ActivityDetailViewModel }) {
 
 function ScreenshotRouteShapeCard({ activity }: { activity: ActivityDetailViewModel }) {
   const shape = activity.screenshotRouteShape
-  const width = Math.max(1, shape?.image.width ?? 1)
-  const height = Math.max(1, shape?.image.height ?? 1)
+  const frameSize = 343
   const preview = useMemo(() => buildShareTrackPreviewFromScreenshotRouteShape(shape, 240), [shape])
   const route = useMemo(() => buildShareTrackRender(preview, {
     x: 0,
     y: 0,
-    width,
-    height,
-    padding: Math.max(42, Math.min(width, height) * 0.12),
+    width: frameSize,
+    height: frameSize,
+    padding: 42,
     ...SHARE_TRACK_CONTENT_FIT,
-  }, SHARE_TRACK_RENDER_PROFILES.activityCard), [height, preview, width])
+  }, SHARE_TRACK_RENDER_PROFILES.activityScreenshotCard), [preview])
 
   if (!shape) return null
 
@@ -408,21 +407,20 @@ function ScreenshotRouteShapeCard({ activity }: { activity: ActivityDetailViewMo
       style={{
         position: 'relative',
         width: '100%',
-        aspectRatio: `${width} / ${height}`,
+        aspectRatio: '1 / 1',
         minHeight: 260,
-        maxHeight: 680,
         overflow: 'hidden',
         background:
           'radial-gradient(circle at 34% 26%, color-mix(in srgb, var(--color-success) 12%, transparent), transparent 34%), var(--color-surface)',
       }}
     >
       <svg
-        viewBox={`0 0 ${width} ${height}`}
+        viewBox={`0 0 ${frameSize} ${frameSize}`}
         preserveAspectRatio="xMidYMid meet"
         aria-hidden="true"
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
       >
-        <rect width={width} height={height} fill="rgba(255,255,255,.018)" />
+        <rect width={frameSize} height={frameSize} fill="rgba(255,255,255,.018)" />
         {route?.d ? (
           <>
             <path
@@ -462,28 +460,6 @@ function ScreenshotRouteShapeCard({ activity }: { activity: ActivityDetailViewMo
         ) : null}
         {route?.d ? <circle cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={SCREENSHOT_ROUTE_COLOR} /> : null}
       </svg>
-      <div
-        style={{
-          position: 'absolute',
-          left: 12,
-          right: 12,
-          bottom: 12,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 'var(--space-2)',
-          padding: '8px 10px',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--color-outline)',
-          background: 'color-mix(in srgb, var(--color-surface) 76%, transparent)',
-          color: 'var(--color-on-surface-variant)',
-          backdropFilter: 'blur(12px)',
-          fontSize: 'var(--font-label-s-size)',
-          lineHeight: 'var(--font-label-s-line)',
-        }}
-      >
-        <span>截图校准路线</span>
-      </div>
     </div>
   )
 }

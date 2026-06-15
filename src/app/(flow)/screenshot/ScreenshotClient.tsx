@@ -2533,7 +2533,7 @@ export default function ScreenshotClient() {
       setUpgradeSheetOpen(false)
       setUpgradeFeedbackVisible(false)
       upgradeEngageCloseTimerRef.current = null
-    }, 1200)
+    }, 2500)
   }
 
   function canUseScreenshotQuota() {

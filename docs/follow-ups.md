@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-15 · 最新版本记录: v0.73
+> Last Updated: 2026-06-15 · 最新版本记录: v0.74
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`be6db01`（Merge FU-94 screenshot quota honesty · 2026-06-15）
+`ee092bb`（Merge FU-100 screenshot route display normalization · 2026-06-15）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -490,31 +490,16 @@
 
 ---
 
-### FU-100 · 截图路线展示标准化（route-only bbox fit · activity/archive/profile/share/poster）
+### FU-101 · 全屏校准编辑器长图初始对焦（routeCenter）
 
-**优先级**: P2（调研先行，不直接开实现）
-**状态**: Active（仅登记 · 待 FU-94 收口后由 Claude 一手深查产出 V1）
-**背景**: 用户 2026-06-15 上传一张很长的两步路截图（zs_0472469，21.26km / 24h06m / 5077m）做截图识别+校准，暴露路线展示比例系统性问题，与 FU-94 额度墙无关。
+- **优先级**: P2（校准体验 polish，非上线阻塞）
+- **状态**: 🟢 active（仅登记，未实施）
 
-**核心规则（用户+顾问 2026-06-15 收敛）**: 截图里提取出来的路线一旦进入产品展示面，就应**脱离原截图尺寸和截图比例**，按**路线自身 bbox 标准化**铺满固定容器——像 logo / 路线符号一样 fit 进去。**不是地理比例尺，也不是按公里数换算视觉长度**；距离长短由文字字段表达，不靠轨迹视觉长度。即 shape-pipeline bbox-fit 课贯通到截图提取→展示链路（归一化坐标≠展示坐标，小占比路线缩成"一小坨"）。
+**背景**: FU-100 实施期间发现全屏校准编辑器 open 时重置到整图中心 `zoom=1 / center=0.5,0.5`（`src/app/(flow)/screenshot/ScreenshotRouteCalibrationSection.tsx:~872`）；对"图高≫宽、地图在顶部"的长截图不友好（打开看到中间空白而非顶部路线区）。FU-100 只解决展示面 route-only 标准化、不含校准初始对焦，故单独登记。
 
-**标准化规则**: 以路线点/线段自身 bbox 为内容边界 → 等比缩放、完整显示 → 固定 padding → 尽量铺满容器 → 不受原截图 width/height、长截图比例、地图区域在截图中位置影响。
+**建议**: open 时对焦 `routeCenter()`（编辑器已有该函数，`src/app/(flow)/screenshot/ScreenshotRouteCalibrationSection.tsx:~221`）而非整图中心；保留原图比例 + 底图对齐不变。
 
-**一句话边界**: 原图比例只属于"校准过程"（底图对齐需要），不应泄漏到"路线展示结果"；展示结果应是标准化路线符号，而非原截图缩略图。
-
-**调研需盘点的展示面（V1 先调研、不直接实现）**:
-- 截图校准编辑器：**仍保留原图比例**（底图对齐）——唯一例外，不改。
-- 确认页截图路线预览：核实是否需从原图比例切到 route-only preview。
-- Activity 路线卡片。
-- Archive / Profile 记录列表缩略图。
-- Share editor / poster / watermark。
-- /api/share/render、/api/poster（如仍消费截图路线，核实）。
-
-**Claude 独立补充（投研期核）**: ①先分清 GPS 实录轨迹 vs 截图提取路线（展示面多半共用渲染器，核 GPS 是否已正确 bbox-fit、只截图路线坏，还是共用整体坏）；②fit 后目标空间固定 stroke + degenerate guard（近直线/极小 extent 兜底，别放大成胖线）；③用户原始四点（校准反复放大、点小、吸附偏）判为同根连带（底图喂太大 + 没对焦地图 bbox）。
-
-**锚定源码（深查起点，尚未一手核）**: `src/lib/screenshot-route-shape.ts`、`src/lib/screenshot-track/{calibration,geometry}.ts`、`src/app/(flow)/screenshot/ScreenshotRouteCalibrationSection.tsx` + `track-calibration.worker.ts`、`src/lib/share-track-preview.ts`、`src/lib/share-templates/*`、`src/app/(flow)/archive/page.tsx` + `src/lib/profile-records-server.ts`。
-
-**边界**: 仅登记。V1 由 Claude 在 FU-94 merge 后一手深查产出；route-only 固定容器属新视觉规范走 Claude Design 五步；不在本次截图额度墙 sprint 内做。
+**边界**: 仅校准编辑器初始视图，不动展示面 / 路线标准化。
 
 ---
 
@@ -590,7 +575,18 @@
 
 ---
 
-## Closed Follow-ups（79 条）
+## Closed Follow-ups（80 条）
+
+### FU-100 ✅ 截图路线展示标准化（route-only bbox fit）
+
+- **关闭原因**: 截图路线展示标准化已落地并由用户 2026-06-15 视觉验收。PR #15 / branch `codex/fu100-route-display-normalization` / merge `ee092bb` 合入 1 个 FU-100 commit `eca2334`，改动文件限定为 `src/lib/share-track-preview.ts`、`src/components/activity/ActivityRouteMap.tsx`、`tests/share-track-preview.test.ts`、`tests/screenshot-confirm-static.test.ts`、`tests/e2e/screenshot-route-display-fu100.spec.ts`。
+- **落地内容**: 截图路线展示从原图尺寸 / image-square 投影改为 route-only 自身 bbox 等比 fit 到固定容器：先恢复全部 drawable 点到原图像素坐标，先算全量路线 bbox，再 uniform scale / center，之后才 per-segment sampling，`accepted_gap` 不桥接。Activity 详情截图路线卡改固定 `343x343` / 1:1 frame，新增 `activityScreenshotCard` 轻量 profile（线宽 `3.4`、起点 `r=6`、终点 `r=7.5`，对齐普通 GPS 轨迹卡量级），并移除卡内重复「截图校准路线」角标，保留无障碍 `aria-label` 与区头「截图路线」标签。
+- **边界**: 不迁移持久化数据，不改 `normalized_screenshot` 语义；不动 GPS route builder、不动全屏校准编辑器、不动已正确的校准内联 preview；share editor / success medallion / share templates / `/api/share/render` 通过共用 builder 自然受益。Degenerate guard 仅在源像素 bbox 对角线 `<= 1px` 时 restrained fallback，避免近重合路线爆成胖线 / 巨点。
+- **验收 / 证据**: deterministic metrics 证明 640×4096 长图顶部路线 Activity projected bbox `widthFill 0.2531 → 1`，`heightFill 0.18 → 0.7111`；R1 视觉减重 metrics：oldActivity `lineWidth 8 / start 15 / end 21`，newActivity `lineWidth 3.4 / start 6 / end 7.5`，GPS control `lineWidth 3 / start 6 / end 6`。本地证据目录 `output/fu100-route-display-normalization/`（不入 git）。验证：`node --test --experimental-strip-types tests/share-track-preview.test.ts tests/screenshot-confirm-static.test.ts` 31 pass / 0 fail；`npx playwright test tests/e2e/screenshot-route-display-fu100.spec.ts --reporter=line` 1 pass；`npm run build` passed；`git diff --check` clean。
+- **map/weather brief**: 本 sprint 仅涉及截图路线 SVG 卡 / 分享素材 route rendering 标准化，不改变 MapLibre / PMTiles / weather policy；`docs/map-weather-brief.md` 只读确认无需更新。
+- **后续**: 全屏校准编辑器长图初始对焦未解决，已登记为 FU-101；不得把 FU-100 表述为校准体验已全部解决。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-15
 
 ### FU-94 ✅ 截图识别额度墙诚实化 + de-dup
 
@@ -1624,6 +1620,16 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.74（2026-06-15）
+
+FU-100 closeout · 截图路线展示标准化（route-only bbox fit）上线；登记 FU-101 校准初始对焦留项。
+
+- FU-100 从 Active 移入 Closed：PR #15 / merge `ee092bb` 完成截图路线 route-only bbox fit，Activity 卡固定 `343x343` / 1:1 frame，新增 `activityScreenshotCard` 轻量 profile（线 `3.4` / 起点 `r=6` / 终点 `r=7.5`），移除卡内重复「截图校准路线」角标；不迁移持久化数据，不动 GPS / 全屏校准编辑器 / 校准内联 preview。
+- 新增 Active FU-101：全屏校准编辑器长图初始对焦（`routeCenter`），明确 FU-100 只解决展示面 route-only 标准化，不宣称校准体验已解决。
+- 生产部署：Vercel deployment `dpl_FYsaiAvH6GDTBeY1TTtPrxUeVL8i` READY，built commit `ee092bb4a42275bff591fd1ef0873312bc357648`，deployment URL `https://peak-trekker-5katejten-andymorrison91060122-8673s-projects.vercel.app`。
+- `docs/map-weather-brief.md` 只读 cross-check：FU-100 是 screenshot-route SVG card / share route rendering 标准化，不改变地图 / 天气边界，无需更新。
+- Active 23 → 23 · Closed 79 → 80 · Deferred 1 → 1
 
 ### v0.73（2026-06-15）
 

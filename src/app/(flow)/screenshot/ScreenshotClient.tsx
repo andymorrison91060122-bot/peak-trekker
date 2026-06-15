@@ -411,7 +411,8 @@ function QuotaBar({
   const remaining = quota?.remaining ?? 0
   const progress = quota ? Math.min(100, Math.max(0, (used / Math.max(1, total)) * 100)) : 12
   const label = loading ? '正在读取本月识别额度' : `剩余 ${remaining} / ${total} 次`
-  const sub = loading ? '读取中' : quota?.subscriptionTier === 'free' ? '免费额度' : '会员额度'
+  const sub = loading ? '读取中' : quota?.subscriptionTier === 'free' ? '免费额度' : '本月额度'
+  const showQuotaCta = Boolean(!loading && quota && remaining <= 0)
 
   return (
     <section
@@ -424,7 +425,7 @@ function QuotaBar({
         border: '1px solid var(--color-outline)',
         background: 'var(--color-surface-variant)',
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1fr) auto',
+        gridTemplateColumns: showQuotaCta ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)',
         gap: 'var(--space-3)',
         alignItems: 'center',
       }}
@@ -490,25 +491,27 @@ function QuotaBar({
           {label}
         </div>
       </div>
-      <button
-        type="button"
-        onClick={onUpgrade}
-        style={{
-          appearance: 'none',
-          border: '1px solid color-mix(in srgb, var(--color-success) 32%, transparent)',
-          background: 'transparent',
-          color: 'var(--color-success)',
-          borderRadius: 'var(--radius-pill)',
-          padding: '7px 12px',
-          fontSize: 'var(--font-label-m-size)',
-          lineHeight: 'var(--font-label-m-line)',
-          fontWeight: 700,
-          whiteSpace: 'nowrap',
-          cursor: 'pointer',
-        }}
-      >
-        升级
-      </button>
+      {showQuotaCta ? (
+        <button
+          type="button"
+          onClick={onUpgrade}
+          style={{
+            appearance: 'none',
+            border: '1px solid color-mix(in srgb, var(--color-success) 32%, transparent)',
+            background: 'transparent',
+            color: 'var(--color-success)',
+            borderRadius: 'var(--radius-pill)',
+            padding: '7px 12px',
+            fontSize: 'var(--font-label-m-size)',
+            lineHeight: 'var(--font-label-m-line)',
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+            cursor: 'pointer',
+          }}
+        >
+          想要更多额度
+        </button>
+      ) : null}
     </section>
   )
 }
@@ -2143,24 +2146,29 @@ function ArchiveMoment({
   )
 }
 
-function UpgradeSheet({ open, onClose, onEngage }: { open: boolean; onClose: () => void; onEngage: () => void }) {
+function UpgradeSheet({
+  open,
+  feedbackVisible,
+  onClose,
+  onEngage,
+}: {
+  open: boolean
+  feedbackVisible: boolean
+  onClose: () => void
+  onEngage: () => void
+}) {
   if (!open) return null
 
   return (
     <ModalShell
       title="本月识别次数已用完"
-      description="升级后可继续识别更多截图。"
+      description="免费识别额度有限，后续我们会逐步开放更多。"
       mode="sheet"
       closeControl="icon"
       onClose={onClose}
       footer={
-        <PrimaryButton
-          onClick={() => {
-            onEngage()
-            window.alert('付费方案即将上线。')
-          }}
-        >
-          了解付费方案
+        <PrimaryButton onClick={onEngage} disabled={feedbackVisible}>
+          我想要更多额度
         </PrimaryButton>
       }
     >
@@ -2175,7 +2183,19 @@ function UpgradeSheet({ open, onClose, onEngage }: { open: boolean; onClose: () 
         }}
       >
         <p style={{ margin: 0 }}>免费用户首月可识别 5 次，之后每月 2 次。</p>
-        <p style={{ margin: 0 }}>付费方案会提供每月 30 次截图识别额度，支付入口将在后续版本开放。</p>
+        {feedbackVisible ? (
+          <p
+            role="status"
+            data-screenshot-quota-feedback
+            style={{
+              margin: 0,
+              color: 'var(--color-success)',
+              fontWeight: 700,
+            }}
+          >
+            已记录，我们会根据使用需求逐步开放更多额度。
+          </p>
+        ) : null}
       </div>
     </ModalShell>
   )
@@ -2186,6 +2206,7 @@ export default function ScreenshotClient() {
   const albumInputRef = useRef<HTMLInputElement | null>(null)
   const cameraInputRef = useRef<HTMLInputElement | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const upgradeEngageCloseTimerRef = useRef<number | null>(null)
   const recognizeContentHashRef = useRef<string | null>(null)
   const recognizedFieldsRef = useRef<string[]>([])
   const editedFieldsRef = useRef<Set<string>>(new Set())
@@ -2209,10 +2230,14 @@ export default function ScreenshotClient() {
   const [quotaState, setQuotaState] = useState<ScreenshotQuotaState | null>(null)
   const [quotaLoading, setQuotaLoading] = useState(true)
   const [upgradeSheetOpen, setUpgradeSheetOpen] = useState(false)
+  const [upgradeFeedbackVisible, setUpgradeFeedbackVisible] = useState(false)
 
   useEffect(() => {
     return () => {
       abortRef.current?.abort()
+      if (upgradeEngageCloseTimerRef.current !== null) {
+        window.clearTimeout(upgradeEngageCloseTimerRef.current)
+      }
     }
   }, [])
 
@@ -2356,7 +2381,7 @@ export default function ScreenshotClient() {
           content_hash: contentHash,
         },
       })
-      setRecognizeError(readableError(message, kind))
+      setRecognizeError(kind === 'quota' ? null : readableError(message, kind))
       setAuthRequired(kind === 'auth')
       setStep('upload')
     } finally {
@@ -2468,6 +2493,11 @@ export default function ScreenshotClient() {
   }
 
   function openUpgradeSheet() {
+    if (upgradeEngageCloseTimerRef.current !== null) {
+      window.clearTimeout(upgradeEngageCloseTimerRef.current)
+      upgradeEngageCloseTimerRef.current = null
+    }
+    setUpgradeFeedbackVisible(false)
     setUpgradeSheetOpen(true)
   }
 
@@ -2483,18 +2513,32 @@ export default function ScreenshotClient() {
   }
 
   function closeUpgradeSheetAsDismissed() {
-    if (upgradeSheetOpen) trackScreenshotQuotaGate('gate_dismissed')
+    if (upgradeEngageCloseTimerRef.current !== null) {
+      window.clearTimeout(upgradeEngageCloseTimerRef.current)
+      upgradeEngageCloseTimerRef.current = null
+    }
+    if (upgradeSheetOpen && !upgradeFeedbackVisible) trackScreenshotQuotaGate('gate_dismissed')
+    setUpgradeFeedbackVisible(false)
     setUpgradeSheetOpen(false)
   }
 
   function engageUpgradeSheet() {
+    // This engagement event is a demand signal for more quota, not a launched paid plan.
     trackScreenshotQuotaGate('gate_engaged')
-    setUpgradeSheetOpen(false)
+    setUpgradeFeedbackVisible(true)
+    if (upgradeEngageCloseTimerRef.current !== null) {
+      window.clearTimeout(upgradeEngageCloseTimerRef.current)
+    }
+    upgradeEngageCloseTimerRef.current = window.setTimeout(() => {
+      setUpgradeSheetOpen(false)
+      setUpgradeFeedbackVisible(false)
+      upgradeEngageCloseTimerRef.current = null
+    }, 1200)
   }
 
   function canUseScreenshotQuota() {
     if (quotaState && quotaState.remaining <= 0) {
-      setRecognizeError('本月截图识别次数已用完。')
+      setRecognizeError(null)
       setAuthRequired(false)
       trackScreenshotQuotaGate('gate_shown')
       openUpgradeSheet()
@@ -2723,7 +2767,12 @@ export default function ScreenshotClient() {
         />
       ) : null}
 
-      <UpgradeSheet open={upgradeSheetOpen} onClose={closeUpgradeSheetAsDismissed} onEngage={engageUpgradeSheet} />
+      <UpgradeSheet
+        open={upgradeSheetOpen}
+        feedbackVisible={upgradeFeedbackVisible}
+        onClose={closeUpgradeSheetAsDismissed}
+        onEngage={engageUpgradeSheet}
+      />
 
       <span
         data-screenshot-file={imageFile?.name ?? ''}

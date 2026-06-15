@@ -5,6 +5,7 @@ import { test } from 'node:test'
 const screenshotClient = readFileSync('src/app/(flow)/screenshot/ScreenshotClient.tsx', 'utf8')
 const importConfirmRoute = readFileSync('src/app/api/import/confirm/route.ts', 'utf8')
 const activityPage = readFileSync('src/app/(flow)/activity/[id]/page.tsx', 'utf8')
+const activityRouteMap = readFileSync('src/components/activity/ActivityRouteMap.tsx', 'utf8')
 const screenshotRecognizeRoute = readFileSync('src/app/api/screenshot/recognize/route.ts', 'utf8')
 const screenshotQuotaHelper = readFileSync('src/lib/screenshot/quota.ts', 'utf8')
 const screenshotOcrAdapter = readFileSync('src/lib/screenshot/tencent-ocr-adapter.ts', 'utf8')
@@ -110,6 +111,22 @@ test('activity read fallback drops only screenshot route shape before legacy sta
 test('screenshot route shape is not optional-stripped on insert', () => {
   const optionalColumns = trekVerifyHelpers.match(/const OPTIONAL_CHECKIN_COLUMNS = \[([\s\S]*?)\]/)?.[1] ?? ''
   assert.doesNotMatch(optionalColumns, /screenshot_route_shape/)
+})
+
+test('activity screenshot route card uses fixed square display frame instead of original screenshot dimensions', () => {
+  const cardSource = activityRouteMap.match(/function ScreenshotRouteShapeCard[\s\S]*?function ScreenshotTextOnlyRouteCard/)?.[0] ?? ''
+  assert.match(cardSource, /const frameSize = 343/)
+  assert.match(cardSource, /aria-label="截图校准路线"/)
+  assert.match(cardSource, /aspectRatio:\s*'1 \/ 1'/)
+  assert.match(cardSource, /viewBox=\{`0 0 \$\{frameSize\} \$\{frameSize\}`\}/)
+  assert.match(cardSource, /width:\s*frameSize/)
+  assert.match(cardSource, /height:\s*frameSize/)
+  assert.match(cardSource, /SHARE_TRACK_RENDER_PROFILES\.activityScreenshotCard/)
+  assert.doesNotMatch(cardSource, /SHARE_TRACK_RENDER_PROFILES\.activityCard/)
+  assert.doesNotMatch(cardSource, /<span>截图校准路线<\/span>/)
+  assert.doesNotMatch(cardSource, /shape\?\.image\.width/)
+  assert.doesNotMatch(cardSource, /shape\?\.image\.height/)
+  assert.doesNotMatch(cardSource, /aspectRatio:\s*`\$\{width\} \/ \$\{height\}`/)
 })
 
 test('mountain search supports recognized mountain name candidates such as Taishan', () => {

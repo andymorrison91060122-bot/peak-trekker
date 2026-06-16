@@ -261,10 +261,11 @@ export async function openAuthenticatedTrek({
 }) {
   await page.context().grantPermissions(['geolocation'], { origin: root })
   await installMutableGeolocation(page, initialGps)
-  await registerFreshUser(page, root, {
+  const account = await registerFreshUser(page, root, {
     returnTo: `/trek?mountainId=${mountainId}&testMode=1`,
   })
   await dismissActivationChecklistIfPresent(page)
+  return account
 }
 
 export function tinySummitPhoto() {

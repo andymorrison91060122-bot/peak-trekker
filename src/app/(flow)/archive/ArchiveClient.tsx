@@ -887,11 +887,7 @@ export default function ArchiveClient({
   const hasTrips = trips.length > 0
 
   function handleBack() {
-    if (window.history.length > 1) {
-      router.back()
-      return
-    }
-    router.push('/profile')
+    router.replace('/explore')
   }
 
   return (

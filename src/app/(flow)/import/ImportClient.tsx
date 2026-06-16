@@ -3469,7 +3469,7 @@ export default function ImportClient() {
 
   function handleBack() {
     if (step === 'entry') {
-      router.back()
+      router.replace('/explore')
       return
     }
 
@@ -3643,9 +3643,11 @@ export default function ImportClient() {
 	              return
 	            }
 	            setStep('no_match')
-	          }}
+          }}
           onPickAnother={pickAnotherFile}
-          onViewDuplicate={(checkinId) => router.push(`/activity/${checkinId}`)}
+          onViewDuplicate={(checkinId) => {
+            router.replace(`/activity/${checkinId}`)
+          }}
           onApplyTime={(nextResult) => {
             setParseResult(nextResult)
             setTimeEditorSkipped(false)
@@ -3758,10 +3760,10 @@ export default function ImportClient() {
           }}
           onView={() => {
             if (confirmResult?.checkinId) {
-              router.push(`/activity/${confirmResult.checkinId}`)
+              router.replace(`/activity/${confirmResult.checkinId}`)
               return
             }
-            router.push('/profile')
+            router.replace('/profile')
           }}
           onAddPhoto={() => {
             console.log('Photo attachment will be connected in a later batch.')

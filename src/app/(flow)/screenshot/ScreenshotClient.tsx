@@ -2477,7 +2477,7 @@ export default function ScreenshotClient() {
 
   function handleBack() {
     if (step === 'upload') {
-      router.back()
+      router.replace('/explore')
       return
     }
 

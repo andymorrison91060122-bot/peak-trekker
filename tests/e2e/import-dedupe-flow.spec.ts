@@ -113,6 +113,10 @@ test('import blocks the same user from uploading identical track content twice',
   expect(checkinId).toMatch(/[0-9a-f-]{36}/i)
   SEEDED_CHECKIN_IDS.push(checkinId)
   await expect(page.getByText('已带回档案')).toBeVisible({ timeout: 20_000 })
+  await page.getByRole('button', { name: '查看活动' }).click()
+  await expect(page).toHaveURL(new RegExp(`/activity/${checkinId}`), { timeout: 20_000 })
+  await page.goBack()
+  await expect(page).not.toHaveURL(/\/import/, { timeout: 10_000 })
 
   await parseTrack(page, root, duplicateTrackPath)
   await expect(page.getByText('这份轨迹已经上传过')).toBeVisible({ timeout: 20_000 })

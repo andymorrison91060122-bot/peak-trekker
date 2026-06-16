@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-15 · 最新版本记录: v0.74
+> Last Updated: 2026-06-16 · 最新版本记录: v0.75
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`ee092bb`（Merge FU-100 screenshot route display normalization · 2026-06-15）
+`b7b7eeb`（Merge FU-95 death cleanup · 2026-06-16）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（24 条）
+## Active Follow-ups（23 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -410,25 +410,6 @@
 
 ---
 
-### FU-95 · 上线前死入口 / 假成功清理
-
-- **优先级**: P2（before-launch）
-- **归属阶段**: 上线前死面清理
-- **状态**: 🟢 active
-
-**定位**: 删除 / 隐藏 / 降级假入口，不补完整功能。打包处理以下「广告了不存在的能力」或语义 bug：
-
-1. **late-proof 假成功壳**: `buildLateProofHref` 死代码（`src/lib/trek-gps-preflight.ts:49`，仅 URL 可达）、`LateProofClient` `setTimeout` 假成功不落库（`src/app/(flow)/late-proof/LateProofClient.tsx:617-625`）。下线前端壳（页面 + 死 href + 死 `handlePhotoCheckin` + `void` 抑制）；后端 `submit_historical_checkin` 保持休眠不删。
-2. **无归属 / 事后认领死按钮**（DEBT-3≡4，同一条）: 「直接记为无归属·事后再认领」（`src/app/(flow)/trek/TrekClient.tsx:3729`）只 `showManualPlaceholder` toast（`:2036`）。删按钮 + 该 placeholder。
-3. **GPS-weak 空按钮**: `<PrimaryButton onClick={()=>{}}>继续记录</PrimaryButton>`（`TrekClient.tsx:2644`）。底层行为本就对（信号回来自动续），删该假按钮或接成真动作。
-4. **Profile「设置」死 toast**: `src/components/profile/ProfileV2Client.tsx:501` `{label:'设置',toast:'设置功能即将上线'}`。撤掉该行或降级；问题反馈行归 FU-97。
-5. **historical_photo 误标 GPS（语义 bug 一并修）**: `src/lib/source-label-utils.ts:6-8` 把 `historical_photo` 映射成绿「GPS VERIFIED」。改成「UPLOADED / 用户自报」。当前因无产线无害，但属语义错，顺手修。
-6. **Share flow 死付费 alert**: `src/app/(flow)/share/ShareClient.tsx:2350` `window.alert('付费功能即将上线')` 是未上线付费功能死路 alert；与 FU-94 截图付费墙同类，但 FU-94 仅处理截图侧，本项去掉 / 降级。注：`src/app/admin/analytics/AdminAnalyticsClient.tsx:441`「付费功能 Ranking」是 FU-59 内部 admin 分析面板，非用户面死付费，保留不动。
-
-**边界**: 只删 / 隐藏 / 降级，不补任何完整功能。
-
----
-
 ### FU-96 · wakelock 记录可靠性增强
 
 - **优先级**: P2
@@ -597,7 +578,18 @@
 
 ---
 
-## Closed Follow-ups（80 条）
+## Closed Follow-ups（81 条）
+
+### FU-95 ✅ 上线前死入口 / 假成功清理
+
+- **关闭原因**: 上线前死入口 / 假成功清理已落地并由用户 2026-06-16 视觉验收。PR #16 / branch `codex/fu95-death-cleanup` / merge `b7b7eeb` 合入 1 个 FU-95 commit `c08d44f`，无 migration / schema 改动。
+- **落地内容**: 下线 `late-proof` 假成功孤儿壳（`src/app/(flow)/late-proof/page.tsx` + `LateProofClient.tsx` + `late-proof.css`）、删除 `buildLateProofHref`、删除 `handlePhotoCheckin` 与确认死链的 plumbing；删除「无归属 · 事后认领」死按钮与 `showManualPlaceholder`；删除 gpsWeak 空「继续记录」按钮；删除 Profile「设置」死 toast 并同步 FAQ；`historical_photo` 来源标签改为 uploaded；删除 Share 死 `window.alert('付费功能即将上线')`，保留 `gate_engaged` telemetry。
+- **保留 / 未动**: `submit_historical_checkin` 后端 RPC + front-end action case 保持 dormant；`photoFile` / `photoInputRef` / `uploadTrekPhoto` live summit photo 路径保留；「问题反馈」行保留并继续归 FU-97；Share env-gated paywall 结构保留并归 FU-85。
+- **测试 / 重锚**: `tests/trek-gps-preflight.test.ts` 删除 late-proof href 用例；`tests/trek-append-rpc-static.test.ts` 重锚到 `handleApproachContinue`，继续校验 `handleGpsCheckin` 块；`tests/e2e/app.spec.ts` 断言无归属按钮已消失；新增 `tests/source-label-utils.test.ts` pin `historical_photo -> uploaded`。
+- **验收 / 证据**: scoped grep 目标 0 残留；`node --test --experimental-strip-types tests/trek-gps-preflight.test.ts tests/trek-append-rpc-static.test.ts tests/trek-summit-evidence.test.ts tests/source-label-utils.test.ts` 15 pass / 0 fail；`npm run lint` 0 errors / 10 existing warnings；`npm run build` passed（51/51 static pages）；focused summit-photo e2e passed；DB smoke exact-id cleanup clean。生产部署 `dpl_xqKikYxPMG4mFAAucLy3uk82dFWX` READY，built commit `b7b7eeb65f57aedfbb12889bf9e13535268b095d`。
+- **map/weather brief**: 本 sprint 仅清理 trek / profile / share / late-proof 死入口，不改变地图 / 天气策略；`docs/map-weather-brief.md` 只读确认无需更新。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-16
 
 ### FU-100 ✅ 截图路线展示标准化（route-only bbox fit）
 
@@ -1642,6 +1634,16 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.75（2026-06-16）
+
+FU-95 closeout · 上线前死入口 / 假成功清理上线。
+
+- FU-95 从 Active 移入 Closed：PR #16 / merge `b7b7eeb` 完成 late-proof 假成功壳下线、无归属 / 事后认领死按钮删除、gpsWeak 空按钮删除、Profile「设置」死 toast 删除 + FAQ 同步、`historical_photo` 来源标签改 uploaded、Share 死 `window.alert('付费功能即将上线')` 删除并保留 `gate_engaged`。
+- 保留项明确：`submit_historical_checkin` 后端 + action case、live summit photo 上传 plumbing、问题反馈行、Share env-gated paywall 结构均未动。
+- 生产部署：Vercel deployment `dpl_xqKikYxPMG4mFAAucLy3uk82dFWX` READY，built commit `b7b7eeb65f57aedfbb12889bf9e13535268b095d`，production URL `https://peak-trekker.vercel.app`。
+- `docs/map-weather-brief.md` 只读 cross-check：FU-95 是死入口清理，不改变地图 / 天气边界，无需更新。
+- Active 24 → 23 · Closed 80 → 81 · Deferred 1 → 1
 
 ### v0.74（2026-06-15）
 

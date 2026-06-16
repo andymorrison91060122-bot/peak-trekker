@@ -2347,7 +2347,6 @@ export default function ShareClient({
 
   function engagePremiumExportHint() {
     trackHighQualityShareGate('gate_engaged')
-    window.alert('付费功能即将上线')
   }
 
   function handleSelectTemplate(template: TemplateId) {

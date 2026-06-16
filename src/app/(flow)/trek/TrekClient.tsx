@@ -425,7 +425,6 @@ export default function TrekClient({
   const [nearbyMountain, setNearbyMountain] = useState<Mountain | null>(null)
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null)
   const [checkinNote, setCheckinNote] = useState('')
-  const [showPhotoPanel, setShowPhotoPanel] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoLoading, setPhotoLoading] = useState(false)
   const [checkinLoading, setCheckinLoading] = useState(false)
@@ -1951,38 +1950,6 @@ export default function TrekClient({
     setCheckinLoading(false)
   }
 
-  async function handlePhotoCheckin() {
-    if (!targetMountain) {
-      showToast({ key: 'action_blocked', message: '请先选择目标山峰' })
-      return
-    }
-    if (!userId || !photoFile) {
-      showToast({ key: 'action_blocked', message: '请先选择照片后再提交。' })
-      return
-    }
-    setPhotoLoading(true)
-    try {
-      const photoUrl = await uploadTrekPhoto(photoFile)
-
-      await callTrekAction({
-        action: 'submit_historical_checkin',
-        mountainId: targetMountain.id,
-        photoUrl,
-        note: checkinNote,
-      })
-      setPhotoFile(null)
-      setShowPhotoPanel(false)
-      if (photoInputRef.current) {
-        photoInputRef.current.value = ''
-      }
-      showToast({ key: 'photo_checkin_success' })
-    } catch (error) {
-      showToast({ key: 'image_upload_failure', message: error instanceof Error ? error.message : '照片打卡提交失败，请稍后重试。' })
-    } finally {
-      setPhotoLoading(false)
-    }
-  }
-
   function handleApproachContinue() {
     if (!canConfirmSummit) {
       const missing: string[] = []
@@ -2051,9 +2018,6 @@ export default function TrekClient({
     : '先选一座山，再开始今天的记录'
   const preflightActionLabel = hasIncomingTarget ? '确认这座山，开始记录准备' : '确认目标山峰'
   const photoTargetLocked = Boolean(targetMountain)
-  const selectedPhotoTargetLabel = targetMountain ? `${targetMountain.name} · ${targetMountain.province}` : ''
-  const photoButtonsAriaDisabled = !photoTargetLocked ? 'true' : undefined
-
   useEffect(() => {
     if (!isTrackingActive || isPaused || isSummitFlow) {
       if (elapsedTimerRef.current) {
@@ -2487,15 +2451,7 @@ export default function TrekClient({
     startTrackingRuntime(sessionId)
   }
 
-  function showManualPlaceholder() {
-    showToast({ key: 'action_blocked', message: '这个入口会在后续版本接入。' })
-  }
-
   void userProvince
-  void showPhotoPanel
-  void selectedPhotoTargetLabel
-  void photoButtonsAriaDisabled
-  void handlePhotoCheckin
 
   return (
     <TrekShell>
@@ -2519,7 +2475,7 @@ export default function TrekClient({
           onOpenSettings={handleManualGpsRetry}
         />
       ) : viewState === 'noMountain' ? (
-        <NoMountainView onPick={() => router.push('/explore')} onUnassigned={showManualPlaceholder} />
+        <NoMountainView onPick={() => router.push('/explore')} />
       ) : viewState === 'preStart' ? (
         <>
           {activeMountainForAdvisory ? (
@@ -3095,12 +3051,8 @@ function GpsWeakView({
       </section>
 
       <BottomActionBar columns="single">
-        <PrimaryButton style={{ width: '100%' }} onClick={() => {}}>
-          继续记录
-        </PrimaryButton>
         <div
           style={{
-            marginTop: 'var(--space-3)',
             textAlign: 'center',
             fontFamily: 'var(--font-mono)',
             fontSize: 'var(--font-label-s-size)',
@@ -4117,10 +4069,8 @@ function MountainContext({
 
 function NoMountainView({
   onPick,
-  onUnassigned,
 }: {
   onPick: () => void
-  onUnassigned: () => void
 }) {
   return (
     <div style={{ padding: '48px 28px 0', textAlign: 'center' }}>
@@ -4166,22 +4116,6 @@ function NoMountainView({
         <PrimaryButton onClick={onPick}>
           去 Explore 选山
         </PrimaryButton>
-        <button
-          type="button"
-          onClick={onUnassigned}
-          style={{
-            border: 'none',
-            background: 'transparent',
-            color: 'var(--color-on-surface-variant)',
-            font: 'inherit',
-            fontSize: 'var(--font-label-s-size)',
-            lineHeight: 'var(--font-label-s-line)',
-            padding: 0,
-            cursor: 'pointer',
-          }}
-        >
-          直接记为无归属 · 事后再认领
-        </button>
       </div>
     </div>
   )

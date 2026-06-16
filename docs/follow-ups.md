@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-16 · 最新版本记录: v0.75
+> Last Updated: 2026-06-16 · 最新版本记录: v0.76
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`b7b7eeb`（Merge FU-95 death cleanup · 2026-06-16）
+`caf6c9f`（Merge FU-102 navigation closure · 2026-06-16）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（23 条）
+## Active Follow-ups（22 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -518,28 +518,6 @@
 
 ---
 
-### FU-102 · 流程完成 / 退出 / 上一级导航规则（导航债）
-
-- **优先级**: P2（上线前体验项；不阻塞核心数据正确性，但明显影响完成一次记录后的顺畅感）
-- **状态**: 🟢 active（仅登记，待 FU-95 收口后处理）
-
-**背景**: 截图识别 / 轨迹导入 / GPS 记录等流程，进行中或完成后缺明确"回首页 / 回探索 / 退出流程"入口；多处依赖浏览器历史 `router.back()`，完成流程后返回会倒回过程页。GPS 记录尤其明显：登顶生成活动记录后返回若还看到记录过程页，会让用户误以为还能继续操作。
-
-**代码风险点（待 V1 一手核）**: `ActivityDetailClient` 顶部返回优先 `router.back()` 否则 `/archive`；`ArchiveClient` 类似历史返回；`ShareClient` 顶部返回 `router.back()`；`ImportClient` 成功后进 activity / profile，需确认导入流程历史是否残留；`TrekClient` 完成记录多处 `router.push('/activity/:id')` → 过程页留历史栈。
-
-**产品规则（三类导航，别都交给浏览器历史）**:
-1. 流程内返回：流程进行中可回上一步；有未保存数据要确认 / 进待同步。
-2. 上一级：活动详情上一级 = 稳定页（`/archive` 或来源页）；档案上一级 = 稳定页（`/profile` 或主入口）；不靠历史栈。
-3. 退出 / 回首页：流程页 / 完成态页要有明确"退出流程 / 回探索 / 回首页"能力。
-
-**实现原则**: 流程完成进结果页用 `router.replace()` 不留过程页历史；活动详情 / 档案 / 分享返回用白名单式 `from` / `returnTo` 或固定 parent route，不裸 `router.back()`；`returnTo` 必须白名单（防任意 URL 跳转）；GPS 记录中不能简单退出，但 finish / summit verify 成功后进结果页并清过程历史。
-
-**覆盖场景**: 截图识别 / 轨迹导入 / GPS 登顶完成 → 活动详情 → 返回不回过程页；分享从活动页进则返回活动页、从 Profile / Archive 进有确定路径；活动详情顶部返回默认 `/archive` 或明确来源。
-
-**边界 / 验收**: 不做全局大重构；只处理截图识别 / 轨迹导入 / GPS 记录 / 活动详情 / 档案 / 分享强相关路径；375px 真机录证据；验三种返回行为（浏览器返回 / 页面内返回 / 完成后返回）；不跑全量 e2e，只跑强相关 focused。
-
----
-
 ## Deferred Registration
 
 ### Deferred · FU-88 · 商业化专项
@@ -578,7 +556,20 @@
 
 ---
 
-## Closed Follow-ups（81 条）
+## Closed Follow-ups（82 条）
+
+### FU-102 ✅ 流程完成 / 退出 / 上一级导航规则（导航债）
+
+- **关闭原因**: 流程导航闭环已落地并由用户 2026-06-16 视觉验收。PR #17 / branch `codex/fu102-nav-closure` / merge `caf6c9f` 合入 1 个 FU-102 commit `b01c95f`，无 migration / schema / DB 写入。
+- **落地内容**: Trek completion navigation 从 push/历史残留改为 replace 退出，并用 loop-pop 中和滞留的 pause-guard 历史项；礼成屏新增「回到探索」forward replace exit，`handleBack` / fallback 使用 replace；Import 完成 / duplicate / entry-back 使用 replace；Screenshot upload-back 使用 replace；Archive top-back 明确改为 `/explore`；Community delete 使用 replace 回活动结果页。
+- **Trek 细节**: loop-pop neutralization 只在 completion / result 阶段清理 `{ peakTrekkerPauseGuard: true }` entries，active-recording browser Back → auto-pause 行为保持不变；`maxPops=8` 是安全阈值而非业务上限。新增 in-flight guard：`neutralizing` 可被 CTA 等待继续，`navigating` 忽略重复 CTA。
+- **礼成屏视觉 / 文案**: 「回到探索」改为居中低权重 full-width quiet text link；「生成分享」与「查看登山档案」标签等大；删除硬编码「8 分钟」假倒计时，仅保留「下山途中也可以补充照片与一段话。」。
+- **保留 / 未动**: active-recording browser-back → auto-pause；Mountain / Community detail top-back、FAQ、auth `returnTo`、avatar / nickname sheet history guard 均未改。未做 returnTo 白名单基建、全局 history 机制、route-group 重构、Share 新按钮。
+- **产品口径**: Summit result 的「生成分享 / 查看登山档案 / 回到探索」都是完成后的 forward replace exits（去 `/share`、`/activity`、`/explore`），不承诺 browser Back 回 in-component summit hub；Archive top-back → `/explore`、统一 `/explore` exit、Community delete → replace 是刻意 IA / 导航规则调整，不是 bug fix。
+- **验收 / 证据**: focused static suite `node --test --experimental-strip-types tests/trek-stability-static.test.ts tests/screenshot-confirm-static.test.ts tests/import-dedupe-static.test.ts tests/navigation-closure-static.test.ts` 62 pass / 0 fail；`npm run lint` 0 errors / 10 existing warnings；`npm run build` passed（51/51 static pages）；`git diff --check` clean。本轮按省额度约定未跑 Playwright e2e，`tests/e2e/navigation-closure-fu102.spec.ts` 等 specs 入库作常驻护栏。
+- **map/weather brief**: 本 sprint 仅涉及 Trek / Import / Screenshot / Archive / Community 导航闭环，不改变地图 / 天气策略；`docs/map-weather-brief.md` 只读确认无需更新。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-16
 
 ### FU-95 ✅ 上线前死入口 / 假成功清理
 
@@ -1634,6 +1625,17 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.76（2026-06-16）
+
+FU-102 closeout · 流程完成 / 退出 / 上一级导航规则上线。
+
+- FU-102 从 Active 移入 Closed：PR #17 / merge `caf6c9f` 完成 Trek completion replace + loop-pop 中和滞留 pause-guard 历史项、礼成屏「回到探索」forward replace exit、Import / Screenshot completion replace、Archive top-back → `/explore`、Community delete → replace。
+- 礼成屏视觉 / 文案收口：回到探索居中低权重，生成分享 / 查看登山档案标签等大，删除硬编码「8 分钟」假倒计时，保留「下山途中也可以补充照片与一段话。」。
+- 保留项明确：active-recording browser Back → auto-pause 未改；不做 returnTo 白名单基建、全局 history 机制、route-group 重构、Share 新按钮。Summit result exits 是 forward replace exits，不承诺 browser Back 回 in-component summit hub。
+- 生产部署：Vercel deployment `dpl_8ufWGHMmLGPY6xfsFp5CzLUaTU9L` READY，built commit `caf6c9fac35049257980eb55a6ec33bf2b3785e7`，production URL `https://peak-trekker.vercel.app`。
+- `docs/map-weather-brief.md` 只读 cross-check：FU-102 是导航闭环，不改变地图 / 天气边界，无需更新。
+- Active 23 → 22 · Closed 81 → 82 · Deferred 1 → 1
 
 ### v0.75（2026-06-16）
 

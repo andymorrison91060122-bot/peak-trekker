@@ -140,6 +140,10 @@ function createTrackPointId() {
   return `00000000-0000-4000-8000-${suffix}`
 }
 
+function isTrekPauseGuardHistoryState(state: unknown) {
+  return Boolean((state as { peakTrekkerPauseGuard?: unknown } | null)?.peakTrekkerPauseGuard)
+}
+
 function getSummitConfirmRadiusM(mountain: Pick<Mountain, 'summit_radius_m'> | null | undefined) {
   return Math.max(mountain?.summit_radius_m ?? TREK_RULES.defaultSummitRadiusM, MIN_SUMMIT_CONFIRM_RADIUS_M)
 }
@@ -468,6 +472,8 @@ export default function TrekClient({
   const manualGpsRefreshLastAtRef = useRef(0)
   const exitPauseInFlightRef = useRef(false)
   const popstatePauseGuardRef = useRef(false)
+  const pauseGuardDepthRef = useRef(0)
+  const trekCompletionTransitionRef = useRef<{ state: 'neutralizing' | 'navigating'; promise: Promise<unknown> } | null>(null)
   const finishInFlightRef = useRef(false)
   const drainQueueRef = useRef<Map<string, Promise<TrekOutboxDrainResult>>>(new Map())
   const pendingFinishProcessingRef = useRef(false)
@@ -1138,6 +1144,87 @@ export default function TrekClient({
     [callTrekAction]
   )
 
+  const popTrekHistoryEntry = useCallback(async () => {
+    if (typeof window === 'undefined') return 0
+    popstatePauseGuardRef.current = false
+    await new Promise<void>((resolve) => {
+      let settled = false
+      let timeoutId: number | null = null
+      const finish = () => {
+        if (settled) return
+        settled = true
+        if (timeoutId !== null) window.clearTimeout(timeoutId)
+        window.removeEventListener('popstate', handlePopState)
+        resolve()
+      }
+      const handlePopState = () => finish()
+      timeoutId = window.setTimeout(finish, 400)
+      window.addEventListener('popstate', handlePopState, { once: true })
+      window.history.back()
+    })
+    return 1
+  }, [])
+
+  const neutralizeTrekPauseGuardEntries = useCallback(async (options: { maxPops?: number } = {}) => {
+    if (typeof window === 'undefined') return 0
+    const maxPops = options.maxPops ?? 8
+    let popCount = 0
+
+    while (popCount < maxPops && (pauseGuardDepthRef.current > 0 || isTrekPauseGuardHistoryState(window.history.state))) {
+      await popTrekHistoryEntry()
+      pauseGuardDepthRef.current = Math.max(0, pauseGuardDepthRef.current - 1)
+      popCount += 1
+    }
+
+    return popCount
+  }, [popTrekHistoryEntry])
+
+  const runTrekCompletionNeutralize = useCallback(async () => {
+    const current = trekCompletionTransitionRef.current
+    if (current?.state === 'navigating') return
+    if (current?.state === 'neutralizing') {
+      await current.promise.catch(() => undefined)
+      return
+    }
+
+    const promise = neutralizeTrekPauseGuardEntries()
+    trekCompletionTransitionRef.current = { state: 'neutralizing', promise }
+    try {
+      await promise
+    } finally {
+      if (trekCompletionTransitionRef.current?.promise === promise) {
+        trekCompletionTransitionRef.current = null
+      }
+    }
+  }, [neutralizeTrekPauseGuardEntries])
+
+  const replaceAfterTrekCompletion = useCallback(
+    async (href: string) => {
+      const current = trekCompletionTransitionRef.current
+      if (current?.state === 'navigating') return
+      if (current?.state === 'neutralizing') {
+        await current.promise.catch(() => undefined)
+      }
+
+      const latest = trekCompletionTransitionRef.current
+      if (latest?.state === 'navigating') return
+
+      const promise = (async () => {
+        await neutralizeTrekPauseGuardEntries()
+        router.replace(href)
+      })()
+      trekCompletionTransitionRef.current = { state: 'navigating', promise }
+      try {
+        await promise
+      } finally {
+        if (trekCompletionTransitionRef.current?.promise === promise) {
+          trekCompletionTransitionRef.current = null
+        }
+      }
+    },
+    [neutralizeTrekPauseGuardEntries, router]
+  )
+
   const processPendingFinishIntent = useCallback(
     async (sid: string) => {
       if (!sid || isClientLocalSessionId(sid)) return false
@@ -1174,7 +1261,7 @@ export default function TrekClient({
           await clearTrekOutboxSession(intent.sessionId)
           resetLiveTrekState()
           showToast({ tone: 'success', message: '待同步轨迹已补传完成，活动已保存。', durationMs: 4200 })
-          if (checkinId) router.push(`/activity/${checkinId}`)
+          if (checkinId) void replaceAfterTrekCompletion(`/activity/${checkinId}`)
           return true
         }
 
@@ -1214,7 +1301,7 @@ export default function TrekClient({
         pendingFinishProcessingRef.current = false
       }
     },
-    [callTrekAction, clearTrackingRuntime, drainTrekOutbox, resetLiveTrekState, router, showToast]
+    [callTrekAction, clearTrackingRuntime, drainTrekOutbox, replaceAfterTrekCompletion, resetLiveTrekState, showToast]
   )
 
   const persistPauseTrekSession = useCallback(
@@ -1649,7 +1736,7 @@ export default function TrekClient({
         if (activeSessionId) await clearTrekOutboxSession(activeSessionId)
         resetLiveTrekState()
         void finishSession(activeSessionId, 'finished')
-        router.push(`/activity/${createdCheckinId}`)
+        void replaceAfterTrekCompletion(`/activity/${createdCheckinId}`)
         return
       }
 
@@ -1776,7 +1863,7 @@ export default function TrekClient({
           },
         })
         window.setTimeout(() => {
-          router.push(`/activity/${checkinId}`)
+          void replaceAfterTrekCompletion(`/activity/${checkinId}`)
         }, 650)
       }
     } catch (error) {
@@ -2208,13 +2295,14 @@ export default function TrekClient({
   useEffect(() => {
     if (viewState === 'summitConfirmed') {
       setSummitConfirmedAt((value) => value ?? new Date())
+      void runTrekCompletionNeutralize()
       return
     }
 
     if (!isSummitFlow) {
       setSummitConfirmedAt(null)
     }
-  }, [isSummitFlow, viewState])
+  }, [isSummitFlow, runTrekCompletionNeutralize, viewState])
 
   useEffect(() => {
     if (viewState !== 'gpsWeak') {
@@ -2241,7 +2329,7 @@ export default function TrekClient({
         router.back()
         return
       }
-      router.push('/explore')
+      router.replace('/explore')
     },
     [router]
   )
@@ -2281,10 +2369,12 @@ export default function TrekClient({
 
     popstatePauseGuardRef.current = true
     window.history.pushState({ peakTrekkerPauseGuard: true }, '', window.location.href)
+    pauseGuardDepthRef.current += 1
 
     const handlePopState = () => {
       if (!popstatePauseGuardRef.current) return
       popstatePauseGuardRef.current = false
+      pauseGuardDepthRef.current = Math.max(0, pauseGuardDepthRef.current - 1)
       void pauseAndNavigateAway(true)
     }
 
@@ -2296,6 +2386,10 @@ export default function TrekClient({
   }, [pauseAndNavigateAway, shouldPauseBeforeLeaving])
 
   function handleBack() {
+    if (viewState === 'summitConfirmed') {
+      void replaceAfterTrekCompletion('/explore')
+      return
+    }
     if (shouldPauseBeforeLeaving) {
       void pauseAndNavigateAway(false)
       return
@@ -2304,7 +2398,7 @@ export default function TrekClient({
       router.back()
       return
     }
-    router.push('/explore')
+    router.replace('/explore')
   }
 
   function handleManualGpsRetry() {
@@ -2548,18 +2642,19 @@ export default function TrekClient({
 	          ascentM={ascentM}
 	          onShare={() => {
 	            if (createdCheckinId) {
-	              router.push(`/share?checkinId=${encodeURIComponent(createdCheckinId)}`)
+	              void replaceAfterTrekCompletion(`/share?checkinId=${encodeURIComponent(createdCheckinId)}`)
 	              return
 	            }
 	            showToast({ key: 'action_blocked', message: '缺少活动记录，暂时无法生成分享。' })
 	          }}
 	          onViewActivity={() => {
 	            if (createdCheckinId) {
-	              router.push(`/activity/${createdCheckinId}`)
+	              void replaceAfterTrekCompletion(`/activity/${createdCheckinId}`)
 	              return
 	            }
 	            showToast({ key: 'action_blocked', message: '缺少活动记录，暂时无法打开档案。' })
 	          }}
+	          onExploreExit={() => void replaceAfterTrekCompletion('/explore')}
 	        />
       ) : viewState === 'nearSummit' ? (
 	        <NearSummitView
@@ -4807,6 +4902,7 @@ function SummitConfirmedView({
   ascentM,
   onShare,
   onViewActivity,
+  onExploreExit,
 }: {
   mountain: Mountain | null | undefined
   altitude: number
@@ -4816,6 +4912,7 @@ function SummitConfirmedView({
   ascentM: number
   onShare: () => void
   onViewActivity: () => void
+  onExploreExit: () => void
 }) {
   const altitudeLabel = formatGroupedMeters(altitude)
   const timeLabel = formatSummitTime(confirmedAt)
@@ -5007,7 +5104,14 @@ function SummitConfirmedView({
       <section style={{ position: 'relative', zIndex: 1, padding: 'var(--space-6) var(--space-4) 0' }}>
         <PrimaryButton
           data-testid="trek-summit-primary-cta"
-          style={{ width: '100%', height: 52, minHeight: 52, borderRadius: 16 }}
+          style={{
+            width: '100%',
+            height: 52,
+            minHeight: 52,
+            borderRadius: 16,
+            fontSize: 'var(--font-title-m-size)',
+            fontWeight: 'var(--font-title-m-weight)',
+          }}
           onClick={onShare}
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -5036,9 +5140,31 @@ function SummitConfirmedView({
           查看登山档案
         </SecondaryButton>
 
+        <button
+          type="button"
+          data-testid="trek-summit-explore-exit"
+          onClick={onExploreExit}
+          style={{
+            display: 'block',
+            width: '100%',
+            margin: 'var(--space-3) 0 0',
+            minHeight: 44,
+            border: 0,
+            background: 'transparent',
+            color: 'color-mix(in srgb, var(--color-on-surface) 62%, var(--color-on-surface-variant))',
+            fontSize: 14,
+            lineHeight: '20px',
+            fontWeight: 400,
+            textAlign: 'center',
+            padding: '0 var(--space-4)',
+          }}
+        >
+          回到探索
+        </button>
+
         <div
           style={{
-            marginTop: 'var(--space-5)',
+            marginTop: 'var(--space-4)',
             marginBottom: 'var(--space-6)',
             textAlign: 'center',
             color: 'var(--color-on-surface-variant)',
@@ -5047,8 +5173,6 @@ function SummitConfirmedView({
             fontWeight: 400,
           }}
         >
-          峰顶留证窗口仍有 8 分钟 · 不急。
-          <br />
           下山途中也可以补充照片与一段话。
         </div>
       </section>

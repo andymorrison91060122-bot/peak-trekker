@@ -57,6 +57,8 @@ test('testMode incomplete trek save persists a pending incomplete checkin after 
 
   await expect(page.locator('[role="alert"]').filter({ hasText: '记录已保存到我的山行档案' })).toBeVisible()
   await expect(page).toHaveURL(new RegExp(`/activity/${checkinId}`), { timeout: 20_000 })
+  await page.goBack()
+  await expect(page).not.toHaveURL(/\/trek/, { timeout: 10_000 })
 
   const checkin = await fetchCheckinForE2E(checkinId)
   expect(checkin.completion_status).toBe('incomplete')

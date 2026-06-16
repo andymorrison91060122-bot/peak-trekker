@@ -66,6 +66,19 @@ test('screenshot client uses real preview, editable fields, mountain search, and
   assert.doesNotMatch(screenshotClient, /router\.push\(`\/activity\/\$\{payload\.checkinId\}`\)/)
 })
 
+test('screenshot upload back exits to explore with replace and completed actions stay replace-based', () => {
+  assert.match(screenshotClient, /if \(step === 'upload'\) \{[\s\S]{0,80}router\.replace\('\/explore'\)/)
+  assert.doesNotMatch(screenshotClient, /if \(step === 'upload'\) \{[\s\S]{0,80}router\.back\(\)/)
+  assert.match(screenshotClient, /router\.replace\(`\/activity\/\$\{submitResult\.checkinId\}`\)/)
+  assert.match(screenshotClient, /router\.replace\(`\/share\?checkinId=\$\{submitResult\.checkinId\}`\)/)
+  assert.match(screenshotClient, /function handleArchiveBack\(\) \{[\s\S]{0,120}router\.replace\(`\/activity\/\$\{submitResult\.checkinId\}`\)/)
+  assert.match(screenshotClient, /function handleArchiveContinue\(\) \{[\s\S]{0,120}router\.replace\(`\/share\?checkinId=\$\{submitResult\.checkinId\}`\)/)
+  assert.doesNotMatch(screenshotClient, /SCREENSHOT_COMPLETION_EXIT_REDIRECT_KEY/)
+  assert.doesNotMatch(screenshotClient, /completion_exit_redirect_until/)
+  assert.doesNotMatch(screenshotClient, /consumeScreenshotCompletionExitRedirectFlag/)
+  assert.doesNotMatch(screenshotClient, /consumeScreenshotCompletionExitRedirectFlag\(\)[\s\S]{0,120}router\.replace\('\/explore'\)/)
+})
+
 test('screenshot confirm treats elevation and duration as optional sanitized fields', () => {
   assert.match(importConfirmRoute, /normalizeScreenshotData/)
   assert.doesNotMatch(importConfirmRoute, /typeof distanceMeters !== 'number' \|\| typeof maxElevation !== 'number'/)

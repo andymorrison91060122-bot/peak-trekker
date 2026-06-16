@@ -355,6 +355,8 @@ test('unmatched screenshot activity uses recognized location as title across act
   await expect(page.getByTestId('activity-detail-title')).toHaveText('阳江市')
   await expect(page.getByTestId('activity-detail-subline')).toContainText('未关联山峰')
   await captureOptionalE2EScreenshot(page, 'screenshot-recognition-unmatched-location-activity.png')
+  await page.goBack()
+  await expect(page).not.toHaveURL(/\/screenshot/, { timeout: 10_000 })
 
   const { data, error } = await getSupabaseAdminClient()
     .from('checkins')

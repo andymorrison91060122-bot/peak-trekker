@@ -8,7 +8,7 @@ import {
   openAuthenticatedTrek,
 } from './trek-regression.helpers'
 
-test('summit confirmed page is simplified and routes primary CTA to share editor', async ({
+test('summit confirmed page is simplified and replaces consumed trek history on share exit', async ({
   page,
   baseURL,
 }) => {
@@ -32,6 +32,7 @@ test('summit confirmed page is simplified and routes primary CTA to share editor
 
   await expect(page.getByTestId('trek-summit-primary-cta')).toHaveText(/生成分享/)
   await expect(page.getByTestId('trek-summit-activity-cta')).toHaveText(/查看登山档案/)
+  await expect(page.getByTestId('trek-summit-explore-exit')).toHaveText('回到探索')
   await expect(page.getByTestId('trek-summit-stat')).toHaveCount(3)
   await expect(page.getByText('留下峰顶记录')).toHaveCount(0)
   await expect(page.getByText('保存这次登顶')).toHaveCount(0)
@@ -41,5 +42,7 @@ test('summit confirmed page is simplified and routes primary CTA to share editor
   await page.getByTestId('trek-summit-primary-cta').click()
   await expect(page).toHaveURL(new RegExp(`/share\\?checkinId=${checkinId}`), { timeout: 20_000 })
   await expect(page.getByTestId('share-hero-preview')).toBeVisible({ timeout: 20_000 })
+  await page.goBack()
+  await expect(page).not.toHaveURL(/\/trek/)
   await expectNoRuntimeIssueBadge(page)
 })

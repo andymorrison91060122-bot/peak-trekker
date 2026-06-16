@@ -128,20 +128,71 @@ test('summit confirmation uses 300m range and summit photo is optional', () => {
   assert.match(trekClient, /GPS.*到达.*范围.*视为登顶/)
 })
 
-test('summit confirmed page uses share primary and activity secondary CTAs only', () => {
+test('summit confirmed page uses share primary, activity secondary, and quiet explore exit', () => {
   const summitConfirmedView = trekClient.match(/function SummitConfirmedView\([\s\S]*?function SummitRidgeDivider/)?.[0] ?? ''
-  assert.match(summitConfirmedView, /data-testid="trek-summit-primary-cta"[\s\S]{0,320}生成分享/)
+  assert.match(summitConfirmedView, /data-testid="trek-summit-primary-cta"[\s\S]{0,900}生成分享/)
   assert.match(summitConfirmedView, /data-testid="trek-summit-activity-cta"/)
   assert.match(summitConfirmedView, /查看登山档案/)
+  assert.match(summitConfirmedView, /data-testid="trek-summit-explore-exit"/)
+  assert.match(summitConfirmedView, />\s*回到探索\s*</)
+  assert.match(summitConfirmedView, /type="button"/)
+  assert.match(summitConfirmedView, /minHeight:\s*44/)
+  assert.match(summitConfirmedView, /display:\s*'block'/)
+  assert.match(summitConfirmedView, /width:\s*'100%'/)
+  assert.match(summitConfirmedView, /textAlign:\s*'center'/)
+  assert.match(summitConfirmedView, /margin:\s*'var\(--space-3\) 0 0'/)
+  assert.match(summitConfirmedView, /data-testid="trek-summit-primary-cta"[\s\S]{0,220}fontSize:\s*'var\(--font-title-m-size\)'/)
+  assert.match(summitConfirmedView, /data-testid="trek-summit-primary-cta"[\s\S]{0,260}fontWeight:\s*'var\(--font-title-m-weight\)'/)
+  assert.doesNotMatch(summitConfirmedView, /<PrimaryButton[\s\S]{0,120}data-testid="trek-summit-explore-exit"/)
+  assert.doesNotMatch(summitConfirmedView, /<SecondaryButton[\s\S]{0,120}data-testid="trek-summit-explore-exit"/)
   assert.match(summitConfirmedView, /gridTemplateColumns:\s*'repeat\(3, minmax\(0, 1fr\)\)'/)
+  assert.doesNotMatch(summitConfirmedView, /峰顶留证窗口仍有 8 分钟/)
   assert.doesNotMatch(summitConfirmedView, /留下峰顶记录/)
   assert.doesNotMatch(summitConfirmedView, /保存这次登顶/)
   assert.doesNotMatch(summitConfirmedView, /稍后整理/)
 })
 
-test('summit confirmed CTA routes to share by checkinId and activity detail', () => {
-  assert.match(trekClient, /router\.push\(`\/share\?checkinId=\$\{encodeURIComponent\(createdCheckinId\)\}`\)/)
-  assert.match(trekClient, /router\.push\(`\/activity\/\$\{createdCheckinId\}`\)/)
+test('summit confirmed exits neutralize trek guard history before replacing forward destinations', () => {
+  assert.match(trekClient, /void replaceAfterTrekCompletion\(`\/share\?checkinId=\$\{encodeURIComponent\(createdCheckinId\)\}`\)/)
+  assert.match(trekClient, /void replaceAfterTrekCompletion\(`\/activity\/\$\{createdCheckinId\}`\)/)
+  assert.match(trekClient, /onExploreExit=\{\(\) => void replaceAfterTrekCompletion\('\/explore'\)\}/)
+  assert.doesNotMatch(trekClient, /router\.push\(`\/share\?checkinId=/)
+  assert.doesNotMatch(trekClient, /router\.push\(`\/activity\//)
+  assert.doesNotMatch(trekClient, /onExploreExit=\{\(\) => router\.replace\('\/explore'\)\}/)
+  assert.doesNotMatch(trekClient, /summitCheckinId|TrekSummitHubSnapshot|writeTrekSummitHubSnapshot|readTrekSummitHubSnapshot|buildTrekSummitHubHref|prepareSummitHubNavigation/)
+})
+
+test('trek completion neutralizes accumulated pause guard entries without changing active back pause', () => {
+  const neutralizeBlock =
+    trekClient.match(/const neutralizeTrekPauseGuardEntries = useCallback\([\s\S]*?return popCount\n  \}, \[popTrekHistoryEntry\]\)/)?.[0] ?? ''
+  const popEntryBlock = trekClient.match(/const popTrekHistoryEntry = useCallback\([\s\S]*?return 1\n  \}, \[\]\)/)?.[0] ?? ''
+  const entryNeutralizeBlock =
+    trekClient.match(/const runTrekCompletionNeutralize = useCallback\([\s\S]*?\n  \}, \[neutralizeTrekPauseGuardEntries\]\)/)?.[0] ?? ''
+  const replaceBlock = trekClient.match(/const replaceAfterTrekCompletion = useCallback\([\s\S]*?\n  \)/)?.[0] ?? ''
+  const guardEffect =
+    trekClient.match(/useEffect\(\(\) => \{[\s\S]*?window\.history\.pushState\(\{ peakTrekkerPauseGuard: true \}[\s\S]*?\}, \[pauseAndNavigateAway, shouldPauseBeforeLeaving\]\)/)?.[0] ?? ''
+
+  assert.match(trekClient, /const trekCompletionTransitionRef = useRef<\{ state: 'neutralizing' \| 'navigating'; promise: Promise<unknown> \} \| null>\(null\)/)
+  assert.match(neutralizeBlock, /maxPops = options\.maxPops \?\? 8/)
+  assert.match(neutralizeBlock, /pauseGuardDepthRef\.current > 0 \|\| isTrekPauseGuardHistoryState\(window\.history\.state\)/)
+  assert.match(popEntryBlock, /popstatePauseGuardRef\.current = false[\s\S]*window\.history\.back\(\)/)
+  assert.match(neutralizeBlock, /pauseGuardDepthRef\.current = Math\.max\(0, pauseGuardDepthRef\.current - 1\)/)
+  assert.match(popEntryBlock, /window\.addEventListener\('popstate', handlePopState, \{ once: true \}\)/)
+  assert.match(entryNeutralizeBlock, /if \(current\?\.state === 'navigating'\) return/)
+  assert.match(entryNeutralizeBlock, /if \(current\?\.state === 'neutralizing'\)[\s\S]*await current\.promise\.catch\(\(\) => undefined\)/)
+  assert.match(entryNeutralizeBlock, /finally[\s\S]*trekCompletionTransitionRef\.current = null/)
+  assert.match(replaceBlock, /if \(current\?\.state === 'navigating'\) return/)
+  assert.match(replaceBlock, /if \(current\?\.state === 'neutralizing'\)[\s\S]*await current\.promise\.catch\(\(\) => undefined\)/)
+  assert.match(replaceBlock, /if \(latest\?\.state === 'navigating'\) return/)
+  assert.match(replaceBlock, /await neutralizeTrekPauseGuardEntries\(\)[\s\S]*router\.replace\(href\)/)
+  assert.match(replaceBlock, /finally[\s\S]*trekCompletionTransitionRef\.current = null/)
+  assert.doesNotMatch(trekClient, /TREK_COMPLETION_EXIT_REDIRECT_KEY/)
+  assert.doesNotMatch(trekClient, /completion_exit_redirect_until/)
+  assert.doesNotMatch(trekClient, /consumeTrekCompletionExitRedirectFlag/)
+  assert.match(guardEffect, /window\.history\.pushState\(\{ peakTrekkerPauseGuard: true \}, '', window\.location\.href\)/)
+  assert.match(guardEffect, /pauseGuardDepthRef\.current \+= 1/)
+  assert.match(guardEffect, /pauseGuardDepthRef\.current = Math\.max\(0, pauseGuardDepthRef\.current - 1\)/)
+  assert.match(guardEffect, /void pauseAndNavigateAway\(true\)/)
 })
 
 test('trek photo upload route and client normalize thrown fetch failures', () => {
@@ -297,7 +348,7 @@ test('trek exit path auto-pauses before navigation and browser back is intercept
   assert.match(trekClient, /window\.history\.pushState\(\{ peakTrekkerPauseGuard: true \}/)
   assert.match(trekClient, /window\.addEventListener\('popstate', handlePopState\)/)
   assert.match(trekClient, /popstatePauseGuardRef\.current = false/)
-  assert.match(trekClient, /function handleBack\(\)[\s\S]{0,120}pauseAndNavigateAway\(false\)/)
+  assert.match(trekClient, /function handleBack\(\)[\s\S]{0,260}pauseAndNavigateAway\(false\)/)
 })
 
 test('trek incomplete finish is idempotent across duplicate submits', () => {

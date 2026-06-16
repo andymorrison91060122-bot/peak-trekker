@@ -814,7 +814,7 @@ export default function CommunityDetailClient({ post }: { post: CommunityPostVie
       try {
         await runAction({ action: 'delete_post', postId: post.id })
         showToast({ key: 'delete_success' })
-        router.push(`/activity/${post.checkinId}?postDeleted=1`)
+        router.replace(`/activity/${post.checkinId}?postDeleted=1`)
       } catch (error) {
         showToast({
           key: 'delete_failure',

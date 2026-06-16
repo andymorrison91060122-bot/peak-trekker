@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（23 条）
+## Active Follow-ups（24 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -534,6 +534,28 @@
 - 明确新用户 / 旧用户 / 清缓存 / 换设备的预期行为。
 
 **约束**: 不夹带进 FU-90；如需 schema / RLS / API 变更，单独 plan + 发布审批。
+
+---
+
+### FU-102 · 流程完成 / 退出 / 上一级导航规则（导航债）
+
+- **优先级**: P2（上线前体验项；不阻塞核心数据正确性，但明显影响完成一次记录后的顺畅感）
+- **状态**: 🟢 active（仅登记，待 FU-95 收口后处理）
+
+**背景**: 截图识别 / 轨迹导入 / GPS 记录等流程，进行中或完成后缺明确"回首页 / 回探索 / 退出流程"入口；多处依赖浏览器历史 `router.back()`，完成流程后返回会倒回过程页。GPS 记录尤其明显：登顶生成活动记录后返回若还看到记录过程页，会让用户误以为还能继续操作。
+
+**代码风险点（待 V1 一手核）**: `ActivityDetailClient` 顶部返回优先 `router.back()` 否则 `/archive`；`ArchiveClient` 类似历史返回；`ShareClient` 顶部返回 `router.back()`；`ImportClient` 成功后进 activity / profile，需确认导入流程历史是否残留；`TrekClient` 完成记录多处 `router.push('/activity/:id')` → 过程页留历史栈。
+
+**产品规则（三类导航，别都交给浏览器历史）**:
+1. 流程内返回：流程进行中可回上一步；有未保存数据要确认 / 进待同步。
+2. 上一级：活动详情上一级 = 稳定页（`/archive` 或来源页）；档案上一级 = 稳定页（`/profile` 或主入口）；不靠历史栈。
+3. 退出 / 回首页：流程页 / 完成态页要有明确"退出流程 / 回探索 / 回首页"能力。
+
+**实现原则**: 流程完成进结果页用 `router.replace()` 不留过程页历史；活动详情 / 档案 / 分享返回用白名单式 `from` / `returnTo` 或固定 parent route，不裸 `router.back()`；`returnTo` 必须白名单（防任意 URL 跳转）；GPS 记录中不能简单退出，但 finish / summit verify 成功后进结果页并清过程历史。
+
+**覆盖场景**: 截图识别 / 轨迹导入 / GPS 登顶完成 → 活动详情 → 返回不回过程页；分享从活动页进则返回活动页、从 Profile / Archive 进有确定路径；活动详情顶部返回默认 `/archive` 或明确来源。
+
+**边界 / 验收**: 不做全局大重构；只处理截图识别 / 轨迹导入 / GPS 记录 / 活动详情 / 档案 / 分享强相关路径；375px 真机录证据；验三种返回行为（浏览器返回 / 页面内返回 / 完成后返回）；不跑全量 e2e，只跑强相关 focused。
 
 ---
 
@@ -1627,9 +1649,10 @@ FU-100 closeout · 截图路线展示标准化（route-only bbox fit）上线；
 
 - FU-100 从 Active 移入 Closed：PR #15 / merge `ee092bb` 完成截图路线 route-only bbox fit，Activity 卡固定 `343x343` / 1:1 frame，新增 `activityScreenshotCard` 轻量 profile（线 `3.4` / 起点 `r=6` / 终点 `r=7.5`），移除卡内重复「截图校准路线」角标；不迁移持久化数据，不动 GPS / 全屏校准编辑器 / 校准内联 preview。
 - 新增 Active FU-101：全屏校准编辑器长图初始对焦（`routeCenter`），明确 FU-100 只解决展示面 route-only 标准化，不宣称校准体验已解决。
+- Docs-only register Active FU-102：流程完成 / 退出 / 上一级导航规则（导航债）登记，覆盖截图识别 / 轨迹导入 / GPS 记录 / 活动详情 / 档案 / 分享强相关路径；registration-only，不启动实现。
 - 生产部署：Vercel deployment `dpl_FYsaiAvH6GDTBeY1TTtPrxUeVL8i` READY，built commit `ee092bb4a42275bff591fd1ef0873312bc357648`，deployment URL `https://peak-trekker-5katejten-andymorrison91060122-8673s-projects.vercel.app`。
 - `docs/map-weather-brief.md` 只读 cross-check：FU-100 是 screenshot-route SVG card / share route rendering 标准化，不改变地图 / 天气边界，无需更新。
-- Active 23 → 23 · Closed 79 → 80 · Deferred 1 → 1
+- Active 23 → 24 · Closed 79 → 80 · Deferred 1 → 1
 
 ### v0.73（2026-06-15）
 

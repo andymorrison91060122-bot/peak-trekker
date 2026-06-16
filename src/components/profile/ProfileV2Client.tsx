@@ -498,7 +498,6 @@ function SupportSection() {
   const rows = [
     { label: '帮助 · FAQ', href: '/faq', ring: true },
     { label: '问题反馈', toast: '反馈功能即将上线' },
-    { label: '设置', toast: '设置功能即将上线' },
   ] as const
 
   return (

@@ -1,5 +1,3 @@
-import type { Mountain } from '@/types'
-
 export const TREK_PREP_GPS_READY_ACCURACY_M = 50
 export const TREK_PREP_GPS_RETRY_MS = 10_000
 export const TREK_PREP_GPS_MAX_RETRIES = 3
@@ -44,20 +42,4 @@ export function requestCurrentGpsPosition(
       { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 }
     )
   })
-}
-
-export function buildLateProofHref(
-  mountain: Pick<Mountain, 'id' | 'name' | 'altitude'> | null | undefined
-) {
-  if (!mountain) return '/explore'
-
-  const params = new URLSearchParams({
-    mountainId: mountain.id,
-    mountainName: mountain.name,
-  })
-  if (Number.isFinite(mountain.altitude)) {
-    params.set('altitude', String(Math.round(mountain.altitude)))
-  }
-
-  return `/late-proof?${params.toString()}`
 }

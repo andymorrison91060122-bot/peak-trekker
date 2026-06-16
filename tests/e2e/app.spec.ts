@@ -408,7 +408,7 @@ test('direct trek access requires choosing a mountain before recording can begin
   await expect(page.getByText('还没有选择这次要去的山')).toBeVisible()
   await expect(page.getByRole('button', { name: '从这里开始' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '去 Explore 选山' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '直接记为无归属 · 事后再认领' })).toBeVisible()
+  await expect(page.locator('button').filter({ hasText: /无归属|认领/ })).toHaveCount(0)
 })
 
 test('profile page focuses on identity records and shares instead of achievements and province ranking boards', async ({ page }) => {

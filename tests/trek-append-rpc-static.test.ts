@@ -91,7 +91,7 @@ test('offline finalize fallbacks preserve finish intent and do not bounce or cle
   assert.doesNotMatch(finishFallback, /resetLiveTrekState\(/)
   assert.doesNotMatch(finishFallback, /clearTrekOutboxSession\(/)
 
-  const gpsBlock = trekClient.match(/async function handleGpsCheckin\(photoUrl\?: string \| null\) \{[\s\S]*?\n  async function handlePhotoCheckin/)?.[0] ?? ''
+  const gpsBlock = trekClient.match(/async function handleGpsCheckin\(photoUrl\?: string \| null\) \{[\s\S]*?\n  function handleApproachContinue/)?.[0] ?? ''
   const verifyFallback = gpsBlock.match(/action:\s*'verify_summit_checkin'[\s\S]*?catch \(error\) \{([\s\S]*?)\n\s*\}\n\s*const checkinId/)?.[1] ?? ''
   assert.match(verifyFallback, /if \(!isNetworkTrekActionError\(error\)\) throw error/)
   assert.match(verifyFallback, /writeTrekFinishIntent\({[\s\S]*kind:\s*'verify_summit'/)

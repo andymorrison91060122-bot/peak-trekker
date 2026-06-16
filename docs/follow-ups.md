@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-16 · 最新版本记录: v0.76
+> Last Updated: 2026-06-16 · 最新版本记录: v0.77
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`caf6c9f`（Merge FU-102 navigation closure · 2026-06-16）
+`fae7239f5f1ea427872bbacb7c7d12947befce84`（Merge FU-97 honest feedback FAQ contact · 2026-06-16）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（22 条）
+## Active Follow-ups（21 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -424,20 +424,6 @@
 
 ---
 
-### FU-97 · 反馈通道
-
-- **优先级**: P2
-- **归属阶段**: 反馈入口 / 用户支持
-- **状态**: 🟢 active（先登记，不做完整系统）
-
-**背景 / 证据**: 问题反馈无路由 / API / 落库，`src/components/profile/ProfileV2Client.tsx:500` 是死 toast；FAQ `account.feedback` 已诚实标「准备中」。
-
-**Scope（后续如需）**: 极简真实渠道（站内 sheet + `/api/feedback` + 表，或外链小程序 / 微信 / 邮箱）。
-
-**边界**: 本轮**只登记不实施**。
-
----
-
 ### FU-98 · 省份编辑
 
 - **优先级**: P3
@@ -556,7 +542,19 @@
 
 ---
 
-## Closed Follow-ups（82 条）
+## Closed Follow-ups（83 条）
+
+### FU-97 ✅ 反馈入口诚实化 + FAQ 联系邮箱
+
+- **关闭原因**: 反馈入口诚实化已落地并由用户 2026-06-16 视觉验收。PR #18 / branch `codex/fu97-feedback-faq` / merge `fae7239f5f1ea427872bbacb7c7d12947befce84` 合入 1 个 FU-97 commit `e29be8d`，无 migration / schema / DB 写入 / backend。
+- **落地内容**: FAQ `account.feedback` 重写为朋友式两段文案并新增 `contactEmail` 字段；`AnswerCard` 渲染独立可复制邮箱元素：可选中一行邮箱 + 满宽「复制」按钮 + inline copy 图标，clipboard 成功 toast「邮箱已复制」、失败或 API 不可用 toast「复制失败，请手动复制邮箱」，邮箱文本保留可选中手动兜底；Profile「问题反馈」改为 href `/faq?anchor=account.feedback`；FAQ 空搜索与页脚两个「提交反馈」复用 `handleOpenFromSearch('account.feedback')` 打开 / 滚动 / 高亮该 FAQ 条目；删除 `handlePlaceholder` 与「反馈功能即将上线」假占位。
+- **收窄记录**: 本轮明确不做正式反馈通道 / 站内表单 / API / DB table / backend / mailto / 系统邮箱拉起；formal 反馈通道暂缓，当前只提供诚实 FAQ 说明 + 可复制联系邮箱。
+- **已知 pre-existing 例外**: `tests/faq-content.test.ts` 对 `review.what-is-review` 的断言在 `origin/main` 上即红，与 FU-97 无关；本轮未改该 FAQ 条目或测试，已登记独立 follow-up 处理。
+- **验收 / 证据**: grep 假占位 0（「反馈功能即将上线」/「入口还在准备中」）、`mailto:` 0、`/api/feedback` 0、邮箱 `isabella6bnb61lltavee5n@gmail.com` 仅在 `src/lib/faq-content.ts` 的 `contactEmail` 出现 1 处；focused static 覆盖 `faq-content` + `profile-nickname`，其中 `review.what-is-review` 1 项为 pre-existing 红；`npm run lint` 0 errors / 10 existing warnings；`npm run build` passed（51/51 static pages）；real 375px 交互自测覆盖 Profile「问题反馈」→ FAQ expanded、FAQ 两个「提交反馈」→ clear-search / expand / scroll / highlight、邮箱复制成功 / 失败两态 toast、邮箱一行不溢出；用户 2026-06-16 视觉验收 PASS。
+- **生产部署**: Vercel deployment `dpl_AqZobiJ6nJdwWspd7QLjyHmESjmd` READY，built commit `fae7239f5f1ea427872bbacb7c7d12947befce84`，production URL `https://peak-trekker.vercel.app`。部署后只读 FAQ sanity：`/faq?anchor=account.feedback` status 200，console errors `[]`，anchor / email / copy button visible。
+- **map/weather brief**: 本 sprint 仅涉及 FAQ / Profile 反馈入口和联系邮箱内容，不改变地图 / 天气策略；`docs/map-weather-brief.md` 只读确认无需更新。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-16
 
 ### FU-102 ✅ 流程完成 / 退出 / 上一级导航规则（导航债）
 
@@ -1625,6 +1623,18 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.77（2026-06-16）
+
+FU-97 closeout · 反馈入口诚实化 + FAQ 联系邮箱上线。
+
+- FU-97 从 Active 移入 Closed：PR #18 / merge `fae7239f5f1ea427872bbacb7c7d12947befce84` 完成 FAQ `account.feedback` 朋友式两段文案 + `contactEmail` 字段，`AnswerCard` 渲染可选中一行邮箱 + 满宽「复制」inline copy 图标按钮，clipboard 成功 / 失败两态 toast + 手动复制兜底。
+- Profile「问题反馈」改 href `/faq?anchor=account.feedback`；FAQ 空搜索与页脚两个「提交反馈」复用 `handleOpenFromSearch('account.feedback')` 打开 / 滚动 / 高亮该 FAQ 条目；删除 `handlePlaceholder` 与「反馈功能即将上线」假占位。
+- 收窄项明确：未做反馈表单 / API / DB table / backend / mailto / 系统邮箱拉起；formal 反馈通道暂缓。
+- 已知 pre-existing 例外：`tests/faq-content.test.ts` 的 `review.what-is-review` 断言在 `origin/main` 上即红，与 FU-97 无关，本轮未改该条目或测试。
+- 生产部署：Vercel deployment `dpl_AqZobiJ6nJdwWspd7QLjyHmESjmd` READY，built commit `fae7239f5f1ea427872bbacb7c7d12947befce84`，production URL `https://peak-trekker.vercel.app`。
+- `docs/map-weather-brief.md` 只读 cross-check：FU-97 是 FAQ / 反馈内容收口，不改变地图 / 天气边界，无需更新。
+- Active 22 → 21 · Closed 82 → 83 · Deferred 1 → 1
 
 ### v0.76（2026-06-16）
 

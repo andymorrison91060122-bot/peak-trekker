@@ -495,10 +495,13 @@ function SharePreviewSection({
 
 function SupportSection() {
   const { showToast } = useAppToast()
-  const rows = [
+  const rows: ReadonlyArray<
+    | { label: string; href: string; ring?: boolean }
+    | { label: string; toast: string; ring?: boolean }
+  > = [
     { label: '帮助 · FAQ', href: '/faq', ring: true },
-    { label: '问题反馈', toast: '反馈功能即将上线' },
-  ] as const
+    { label: '问题反馈', href: '/faq?anchor=account.feedback', ring: true },
+  ]
 
   return (
     <section style={{ marginBottom: 'var(--space-6)' }} data-testid="profile-support-section">

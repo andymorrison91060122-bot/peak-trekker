@@ -3,6 +3,7 @@ export type FaqQuestion = {
   anchor: string
   q: string
   a: string
+  contactEmail?: string
   long?: boolean
 }
 
@@ -213,7 +214,9 @@ export const FAQ_GROUPS: FaqGroup[] = [
         id: 'feedback',
         anchor: 'account.feedback',
         q: '问题反馈和联系我们',
-        a: '问题反馈入口还在准备中。现在「我的」里的「问题反馈」会提示即将上线。\n\n入口接通后，你可以直接在 App 里把问题发给我们。',
+        a: 'Peak Trekker 想做的事很简单：帮喜欢登山的人记录自己的山行经历，也帮你把这些经历更好地分享出去。\n\n我们也希望和热爱登山的人像朋友一样交流，一起把这个产品慢慢做好。如果你有任何想法、建议、使用中的问题，或者只是想聊聊哪里还能更好，都可以发邮件给我们。',
+        contactEmail: 'isabella6bnb61lltavee5n@gmail.com',
+        long: true,
       },
     ],
   },

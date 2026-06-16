@@ -261,6 +261,25 @@ function FAQSearchField({
 }
 
 function AnswerCard({ question }: { question: FaqQuestion }) {
+  const { showToast } = useAppToast()
+
+  async function handleCopyEmail() {
+    if (!question.contactEmail) return
+
+    const writeText = navigator.clipboard?.writeText
+    if (!writeText) {
+      showToast({ appearance: 'surface', message: '复制失败，请手动复制邮箱' })
+      return
+    }
+
+    try {
+      await writeText.call(navigator.clipboard, question.contactEmail)
+      showToast({ appearance: 'surface', message: '邮箱已复制' })
+    } catch {
+      showToast({ appearance: 'surface', message: '复制失败，请手动复制邮箱' })
+    }
+  }
+
   return (
     <div style={{ padding: '0 var(--space-4) var(--space-4)' }}>
       <div
@@ -277,6 +296,75 @@ function AnswerCard({ question }: { question: FaqQuestion }) {
       >
         {question.a}
       </div>
+      {question.contactEmail ? (
+        <div
+          style={{
+            minWidth: 0,
+            marginTop: 'var(--space-3)',
+            padding: 14,
+            borderRadius: 10,
+            border: '1px solid color-mix(in srgb, var(--color-success) 36%, var(--color-outline))',
+            background: 'color-mix(in srgb, var(--color-success) 8%, transparent)',
+            color: 'var(--color-on-surface)',
+          }}
+        >
+          <span
+            style={{
+              display: 'block',
+              minWidth: 0,
+              color: 'var(--color-success)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--font-label-m-size)',
+              lineHeight: 'var(--font-label-m-line)',
+              textAlign: 'center',
+              overflowWrap: 'anywhere',
+              wordBreak: 'break-all',
+              userSelect: 'text',
+              WebkitUserSelect: 'text',
+            }}
+          >
+            {question.contactEmail}
+          </span>
+          <button
+            type="button"
+            onClick={handleCopyEmail}
+            aria-label={`复制邮箱 ${question.contactEmail}`}
+            style={{
+              width: '100%',
+              minHeight: 44,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 7,
+              margin: 'var(--space-3) 0 0',
+              padding: '0 18px',
+              borderRadius: 9,
+              border: '1px solid color-mix(in srgb, var(--color-success) 42%, var(--color-outline))',
+              background: 'color-mix(in srgb, var(--color-success) 14%, transparent)',
+              color: 'var(--color-success)',
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'copy',
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="9" y="9" width="11" height="11" rx="2" />
+              <path d="M5 15a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2" />
+            </svg>
+            复制
+          </button>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -648,7 +736,6 @@ function FAQFooter({ onFeedback }: { onFeedback: () => void }) {
 
 export default function FAQClient({ initialAnchor }: FAQClientProps) {
   const router = useRouter()
-  const { showToast } = useAppToast()
   const targetRef = useRef<HTMLDivElement | null>(null)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
@@ -719,10 +806,6 @@ export default function FAQClient({ initialAnchor }: FAQClientProps) {
     }, 700)
   }
 
-  function handlePlaceholder(message: string) {
-    showToast({ appearance: 'surface', message })
-  }
-
   const hasSearch = Boolean(debouncedQuery.trim())
 
   return (
@@ -743,7 +826,7 @@ export default function FAQClient({ initialAnchor }: FAQClientProps) {
         results.length ? (
           <FAQSearchResults query={debouncedQuery} results={results} onOpen={handleOpenFromSearch} />
         ) : (
-          <FAQEmptySearch onFeedback={() => handlePlaceholder('反馈功能即将上线')} />
+          <FAQEmptySearch onFeedback={() => handleOpenFromSearch('account.feedback')} />
         )
       ) : (
         <div style={{ marginTop: 'var(--space-2)' }}>
@@ -760,7 +843,7 @@ export default function FAQClient({ initialAnchor }: FAQClientProps) {
               onToggleQuestion={handleToggleQuestion}
             />
           ))}
-          <FAQFooter onFeedback={() => handlePlaceholder('反馈功能即将上线')} />
+          <FAQFooter onFeedback={() => handleOpenFromSearch('account.feedback')} />
         </div>
       )}
     </main>

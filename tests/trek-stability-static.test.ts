@@ -129,7 +129,7 @@ test('summit confirmation uses 300m range and summit photo is optional', () => {
 })
 
 test('summit confirmed page uses share primary, activity secondary, and quiet explore exit', () => {
-  const summitConfirmedView = trekClient.match(/function SummitConfirmedView\([\s\S]*?function SummitRidgeDivider/)?.[0] ?? ''
+  const summitConfirmedView = trekClient.match(/function SummitConfirmedView\([\s\S]*?function SummitHonorMedallion/)?.[0] ?? ''
   assert.match(summitConfirmedView, /data-testid="trek-summit-primary-cta"[\s\S]{0,900}生成分享/)
   assert.match(summitConfirmedView, /data-testid="trek-summit-activity-cta"/)
   assert.match(summitConfirmedView, /查看登山档案/)

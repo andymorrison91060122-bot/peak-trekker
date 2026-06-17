@@ -2635,7 +2635,7 @@ export default function TrekClient({
       ) : viewState === 'summitConfirmed' ? (
 	        <SummitConfirmedView
 	          mountain={summitMountain}
-	          altitude={displayAltitude}
+	          measuredAltitude={displayAltitude}
 	          confirmedAt={summitConfirmedAt}
 	          elapsedSeconds={elapsedSeconds}
 	          distanceKm={distanceKm}
@@ -2786,6 +2786,48 @@ function TrekShell({ children }: { children: ReactNode }) {
           0% { background-position: 0% 0%; }
           100% { background-position: -200% 0%; }
         }
+        @keyframes pt-summit-honor-seal-draw {
+          from { stroke-dashoffset: 402; }
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes pt-summit-honor-medal-in {
+          0% { opacity: 0; transform: scale(.74); }
+          66% { opacity: 1; transform: scale(1.05); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes pt-summit-honor-crest-in {
+          0% { opacity: 0; transform: scale(.55); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes pt-summit-honor-stamp-pulse {
+          0% { opacity: .55; transform: scale(.7); }
+          100% { opacity: 0; transform: scale(1.92); }
+        }
+        @keyframes pt-summit-honor-rise-in {
+          from { opacity: 0; transform: translateY(14px); }
+          to { opacity: 1; transform: none; }
+        }
+        @keyframes pt-summit-honor-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes pt-summit-honor-pop-in {
+          0% { opacity: 0; transform: scale(.8); }
+          70% { opacity: 1; transform: scale(1.05); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes pt-summit-honor-spin-slow {
+          from { transform: rotate(0); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes pt-summit-honor-spin-slow-rev {
+          from { transform: rotate(360deg); }
+          to { transform: rotate(0); }
+        }
+        @keyframes pt-summit-honor-glow-breath {
+          0%, 100% { opacity: .45; }
+          50% { opacity: .82; }
+        }
         @media (prefers-reduced-motion: reduce) {
           .pt-rec-dot { animation: none !important; }
           .pt-start-dot { animation: none !important; }
@@ -2793,6 +2835,8 @@ function TrekShell({ children }: { children: ReactNode }) {
           .pt-near-summit-dot { animation: none !important; }
           .pt-summit-check-enter { animation: none !important; opacity: 1 !important; transform: scale(1) !important; }
           .pt-shimmer { animation: none !important; }
+          .pt-summit-honor-reveal { animation: none !important; opacity: 1 !important; transform: none !important; }
+          .pt-summit-honor-ambient { animation: none !important; }
         }
       `}</style>
     </div>
@@ -4895,7 +4939,7 @@ function BottomActionBar({
 
 function SummitConfirmedView({
   mountain,
-  altitude,
+  measuredAltitude,
   confirmedAt,
   elapsedSeconds,
   distanceKm,
@@ -4905,7 +4949,7 @@ function SummitConfirmedView({
   onExploreExit,
 }: {
   mountain: Mountain | null | undefined
-  altitude: number
+  measuredAltitude: number
   confirmedAt: Date | null
   elapsedSeconds: number
   distanceKm: number
@@ -4914,226 +4958,413 @@ function SummitConfirmedView({
   onViewActivity: () => void
   onExploreExit: () => void
 }) {
-  const altitudeLabel = formatGroupedMeters(altitude)
-  const timeLabel = formatSummitTime(confirmedAt)
+  const officialAltitude = getPositiveRoundedMeters(mountain?.altitude)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+  const [animatedOfficialAltitude, setAnimatedOfficialAltitude] = useState<number | null>(() => officialAltitude)
+  const officialAltitudeLabel = animatedOfficialAltitude === null ? '--' : formatGroupedMeters(animatedOfficialAltitude)
+  const measuredAltitudeLabel = formatSummitMeasuredAltitude(measuredAltitude)
+  const timeLabel = formatSummitDateTime(confirmedAt)
   const locationLabel = formatSummitLocation(mountain)
+  const officialAltitudeCaption = officialAltitude === null ? '峰顶海拔 · 暂无官方数据' : '峰顶海拔 · 官方认证'
   const stats = [
     { label: '总用时', value: formatSummitElapsed(elapsedSeconds) },
     { label: '距离', value: formatSummitDistance(distanceKm) },
     { label: '爬升', value: formatSummitAscent(ascentM) },
   ]
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const syncMotionPreference = () => setPrefersReducedMotion(mediaQuery.matches)
+    syncMotionPreference()
+    mediaQuery.addEventListener('change', syncMotionPreference)
+    return () => mediaQuery.removeEventListener('change', syncMotionPreference)
+  }, [])
+
+  useEffect(() => {
+    let frameId = 0
+
+    if (officialAltitude === null) {
+      frameId = window.requestAnimationFrame(() => setAnimatedOfficialAltitude(null))
+      return () => window.cancelAnimationFrame(frameId)
+    }
+
+    if (prefersReducedMotion) {
+      frameId = window.requestAnimationFrame(() => setAnimatedOfficialAltitude(officialAltitude))
+      return () => window.cancelAnimationFrame(frameId)
+    }
+
+    const durationMs = 1050
+    const startedAt = performance.now()
+
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / durationMs)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setAnimatedOfficialAltitude(Math.round(eased * officialAltitude))
+      if (progress < 1) {
+        frameId = window.requestAnimationFrame(tick)
+      }
+    }
+
+    frameId = window.requestAnimationFrame((now) => {
+      setAnimatedOfficialAltitude(0)
+      tick(now)
+    })
+    return () => window.cancelAnimationFrame(frameId)
+  }, [officialAltitude, prefersReducedMotion])
+
   return (
     <div
       data-testid="trek-summit-confirmed-view"
       style={{
+        '--accent': 'var(--color-success)',
         position: 'relative',
         overflow: 'hidden',
         isolation: 'isolate',
+        display: 'flex',
+        flexDirection: 'column',
         minHeight: 'calc(100dvh - 56px)',
-        paddingBottom: 'calc(var(--space-6) + env(safe-area-inset-bottom))',
-      }}
+        background: 'var(--color-surface)',
+        color: 'var(--color-on-surface)',
+        paddingBottom: 'calc(18px + env(safe-area-inset-bottom))',
+      } as CSSProperties}
     >
       <div
         data-testid="trek-summit-ambient"
+        aria-hidden="true"
+        className="pt-summit-honor-ambient"
+        style={{
+          position: 'absolute',
+          top: -150,
+          left: '-30%',
+          right: '-30%',
+          height: 420,
+          pointerEvents: 'none',
+          zIndex: 0,
+          opacity: 0.6,
+          background: 'radial-gradient(ellipse at center top, color-mix(in srgb, var(--accent) 20%, transparent), transparent 64%)',
+          animation: 'pt-summit-honor-glow-breath 7s ease-in-out infinite',
+        }}
+      />
+      <div
         aria-hidden="true"
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          height: 320,
-          pointerEvents: 'none',
-          zIndex: 0,
-          background: 'radial-gradient(ellipse at top, color-mix(in oklch, var(--color-success) 14%, transparent) 0%, transparent 68%)',
+          height: 1,
+          zIndex: 1,
+          background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 55%, transparent), transparent)',
         }}
       />
+      <svg
+        viewBox="0 0 375 812"
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+        focusable="false"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+      >
+        <g fill="none" stroke="var(--accent)" strokeOpacity="0.06" strokeWidth="1">
+          <ellipse cx="188" cy="252" rx="58" ry="42" />
+          <ellipse cx="188" cy="252" rx="94" ry="68" />
+          <ellipse cx="188" cy="252" rx="132" ry="96" />
+          <ellipse cx="188" cy="252" rx="174" ry="126" />
+          <ellipse cx="188" cy="252" rx="220" ry="160" />
+        </g>
+        <path d="M0 604 L54 562 L98 590 L152 548 L198 582 L252 542 L302 578 L356 550 L375 564 L375 812 L0 812 Z" fill="var(--color-on-surface)" opacity="0.015" />
+        <path d="M0 658 L72 616 L132 646 L198 602 L252 638 L322 606 L375 634 L375 812 L0 812 Z" fill="var(--accent)" opacity="0.014" />
+      </svg>
 
       <section
         style={{
           position: 'relative',
-          zIndex: 1,
-          padding: 'var(--space-12) var(--space-5) 0',
+          zIndex: 2,
+          flex: '1 1 auto',
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '0 var(--space-6)',
           textAlign: 'center',
         }}
       >
         <div
+          className="pt-summit-honor-reveal"
+          data-testid="trek-summit-medallion"
           style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 'var(--font-label-s-size)',
-            lineHeight: 'var(--font-label-s-line)',
-            fontWeight: 500,
-            letterSpacing: '0.16em',
-            color: 'var(--color-on-surface-variant)',
-            textTransform: 'uppercase',
+            position: 'relative',
+            width: 172,
+            height: 172,
+            opacity: 1,
+            animation: 'pt-summit-honor-medal-in .72s cubic-bezier(.2,.8,.25,1) .12s both',
           }}
         >
-          ALT · SUMMIT
-        </div>
-
-        <h1
-          style={{
-            margin: 'var(--space-3) 0 0',
-            color: 'var(--color-on-surface)',
-            fontSize: 'var(--font-headline-m-size)',
-            lineHeight: 'var(--font-headline-m-line)',
-            fontWeight: 600,
-          }}
-        >
-          {mountain?.name ?? '本次山行'}
-        </h1>
-
-        <div
-          style={{
-            marginTop: 6,
-            color: 'var(--color-on-surface-variant)',
-            fontSize: 'var(--font-label-m-size)',
-            lineHeight: 'var(--font-label-m-line)',
-            fontWeight: 400,
-          }}
-        >
-          {locationLabel}
+          <SummitHonorMedallion />
         </div>
 
         <div
+          className="pt-summit-honor-reveal"
           style={{
-            marginTop: 'var(--space-8)',
+            marginTop: 18,
+            textAlign: 'center',
+            opacity: 1,
+            animation: 'pt-summit-honor-rise-in .55s cubic-bezier(.2,.7,.2,1) .46s both',
+          }}
+        >
+          <h1
+            style={{
+              margin: 0,
+              color: 'var(--color-on-surface)',
+              fontSize: 27,
+              lineHeight: '32px',
+              fontWeight: 800,
+              letterSpacing: '0.04em',
+            }}
+          >
+            {mountain?.name ?? '本次山行'}
+          </h1>
+
+          <div
+            className="pt-summit-honor-reveal"
+            style={{
+              marginTop: 5,
+              color: 'var(--color-on-surface-variant)',
+              fontSize: 12,
+              lineHeight: '16px',
+              fontWeight: 400,
+              letterSpacing: '0.04em',
+              whiteSpace: 'nowrap',
+              opacity: 1,
+              animation: 'pt-summit-honor-rise-in .55s cubic-bezier(.2,.7,.2,1) .54s both',
+            }}
+          >
+            {locationLabel}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 15, textAlign: 'center' }}>
+          <div
+            className="pt-summit-honor-reveal"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              opacity: 1,
+              animation: 'pt-summit-honor-fade-in .5s ease .56s both',
+            }}
+          >
+            <span aria-hidden="true" style={{ width: 22, height: 1, background: 'linear-gradient(90deg, transparent, var(--accent))', opacity: 0.55 }} />
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                lineHeight: '14px',
+                letterSpacing: '0.26em',
+                color: 'var(--accent)',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {officialAltitudeCaption}
+            </span>
+            <span aria-hidden="true" style={{ width: 22, height: 1, background: 'linear-gradient(270deg, transparent, var(--accent))', opacity: 0.55 }} />
+          </div>
+
+          <div
+            className="pt-summit-honor-reveal"
+            style={{
+              marginTop: 9,
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'center',
+              gap: 7,
+              opacity: 1,
+              animation: 'pt-summit-honor-rise-in .6s cubic-bezier(.2,.7,.2,1) .58s both',
+            }}
+          >
+            <span
+              data-testid="trek-summit-altitude"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 70,
+                lineHeight: 0.92,
+                fontWeight: 800,
+                letterSpacing: '-0.03em',
+                color: 'var(--accent)',
+                fontVariantNumeric: 'tabular-nums',
+                textShadow: '0 0 46px color-mix(in srgb, var(--accent) 24%, transparent)',
+              }}
+            >
+              {officialAltitudeLabel}
+            </span>
+            <span style={{ paddingBottom: 8, fontFamily: 'var(--font-mono)', fontSize: 19, lineHeight: 1, fontWeight: 600, color: 'var(--color-on-surface-variant)' }}>
+              m
+            </span>
+          </div>
+
+          <div
+            className="pt-summit-honor-reveal"
+            aria-hidden="true"
+            style={{
+              margin: '8px auto 0',
+              width: 98,
+              height: 1,
+              background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 50%, transparent), transparent)',
+              opacity: 1,
+              animation: 'pt-summit-honor-fade-in .5s ease .72s both',
+            }}
+          />
+        </div>
+
+        <div
+          className="pt-summit-honor-reveal"
+          style={{
+            marginTop: 14,
             display: 'flex',
             justifyContent: 'center',
-            alignItems: 'baseline',
+            opacity: 1,
+            animation: 'pt-summit-honor-pop-in .5s cubic-bezier(.2,.8,.25,1) .98s both',
           }}
         >
           <span
-            data-testid="trek-summit-altitude"
             style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 88,
-              lineHeight: 1,
-              fontWeight: 700,
-              color: 'var(--color-success)',
-              fontVariantNumeric: 'tabular-nums',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 14px',
+              borderRadius: 'var(--radius-pill)',
+              background: 'color-mix(in srgb, var(--color-primary) 13%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-primary) 34%, transparent)',
             }}
           >
-            {altitudeLabel}
+            <CheckIcon size={12} />
+            <span style={{ fontSize: 11, lineHeight: '14px', fontWeight: 700, color: 'var(--accent)', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
+              已核验登顶 · 实时 GPS
+            </span>
           </span>
-          <span
-            style={{
-              marginLeft: 6,
-              paddingBottom: 10,
-              fontFamily: 'var(--font-mono)',
-              fontSize: 22,
-              lineHeight: 1,
-              fontWeight: 600,
-              color: 'var(--color-success)',
-            }}
-          >
-            m
-          </span>
-        </div>
-
-        <div
-          style={{
-            marginTop: 'var(--space-3)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 'var(--font-label-m-size)',
-            lineHeight: 'var(--font-label-m-line)',
-            fontWeight: 500,
-            color: 'var(--color-success)',
-          }}
-        >
-          {timeLabel} · 留证已确认
         </div>
       </section>
 
-      <section style={{ position: 'relative', zIndex: 1, marginTop: 'var(--space-8)' }}>
-        <SummitRidgeDivider />
-      </section>
-
-      <section
+      <div
+        className="pt-summit-honor-reveal"
         style={{
           position: 'relative',
-          zIndex: 1,
-          padding: 'var(--space-8) var(--space-5) 0',
+          zIndex: 2,
+          flex: '0 0 auto',
           textAlign: 'center',
+          margin: '0 0 18px',
+          opacity: 1,
+          animation: 'pt-summit-honor-fade-in .5s ease 1.06s both',
         }}
       >
-        <h2
-          style={{
-            margin: 0,
-            color: 'var(--color-on-surface)',
-            fontSize: 26,
-            lineHeight: '32px',
-            fontWeight: 700,
-          }}
-        >
-          到了。
-        </h2>
-        <div
-          style={{
-            marginTop: 'var(--space-4)',
-            display: 'grid',
-            gap: 'var(--space-2)',
-            color: 'var(--color-on-surface-variant)',
-            fontSize: 'var(--font-body-m-size)',
-            lineHeight: 1.6,
-            fontWeight: 'var(--font-body-m-weight)',
-          }}
-        >
-          <p style={{ margin: 0 }}>留 10 分钟给这里 ·</p>
-          <p style={{ margin: 0 }}>下山的路慢慢走。</p>
-        </div>
-      </section>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, lineHeight: '14px', color: 'var(--color-on-surface-variant)', letterSpacing: '0.2em', whiteSpace: 'nowrap' }}>
+          {timeLabel}
+        </span>
+      </div>
 
-      <section style={{ position: 'relative', zIndex: 1, padding: 'var(--space-8) var(--space-4) 0' }}>
+      <section style={{ position: 'relative', zIndex: 2, flex: '0 0 auto', padding: '0 var(--space-4)' }}>
         <div
           data-testid="trek-summit-stats"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
             background: 'var(--color-surface-variant)',
+            border: '1px solid var(--color-outline)',
             borderRadius: 16,
-            padding: '16px 8px',
+            overflow: 'hidden',
           }}
         >
-          {stats.map((stat, index) => (
-            <SummitStat key={stat.label} label={stat.label} value={stat.value} withDivider={index < stats.length - 1} />
-          ))}
+          <div
+            className="pt-summit-honor-reveal"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 'var(--space-3)',
+              padding: '12px 16px',
+              borderBottom: '1px solid var(--color-outline)',
+              opacity: 1,
+              animation: 'pt-summit-honor-rise-in .5s cubic-bezier(.2,.7,.2,1) 1.2s both',
+            }}
+          >
+            <span style={{ fontSize: 12, lineHeight: '16px', color: 'var(--color-on-surface-variant)', letterSpacing: '0.01em' }}>
+              你的实测海拔
+            </span>
+            <span
+              data-testid="trek-summit-measured-altitude"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 17,
+                lineHeight: '20px',
+                fontWeight: 700,
+                color: 'var(--color-on-surface)',
+                fontVariantNumeric: 'tabular-nums',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {measuredAltitudeLabel}
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+            {stats.map((stat, index) => (
+              <SummitStat
+                key={stat.label}
+                label={stat.label}
+                value={stat.value}
+                withDivider={index < stats.length - 1}
+                animationDelayMs={1320 + index * 100}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
-      <section style={{ position: 'relative', zIndex: 1, padding: 'var(--space-6) var(--space-4) 0' }}>
+      <section style={{ position: 'relative', zIndex: 2, flex: '0 0 auto', padding: '14px var(--space-4) 0' }}>
         <PrimaryButton
           data-testid="trek-summit-primary-cta"
+          className="pt-summit-honor-reveal"
           style={{
             width: '100%',
-            height: 52,
-            minHeight: 52,
-            borderRadius: 16,
+            height: 46,
+            minHeight: 46,
+            borderRadius: 12,
             fontSize: 'var(--font-title-m-size)',
             fontWeight: 'var(--font-title-m-weight)',
+            opacity: 1,
+            animation: 'pt-summit-honor-rise-in .5s cubic-bezier(.2,.7,.2,1) 1.62s both',
           }}
           onClick={onShare}
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <ShareIcon size={18} />
+            <ShareIcon size={15} />
             <span>生成分享</span>
           </span>
         </PrimaryButton>
 
         <SecondaryButton
           data-testid="trek-summit-activity-cta"
+          className="pt-summit-honor-reveal"
           style={{
-            marginTop: 'var(--space-3)',
+            marginTop: 10,
             width: '100%',
-            height: 52,
-            minHeight: 52,
-            borderRadius: 16,
-            background: 'var(--color-surface-variant)',
-            border: '1px solid color-mix(in oklch, var(--color-outline) 60%, transparent)',
+            height: 46,
+            minHeight: 46,
+            borderRadius: 12,
+            background: 'var(--color-surface-elevated)',
+            border: '1px solid var(--color-outline)',
             color: 'var(--color-on-surface)',
-            fontSize: 'var(--font-title-m-size)',
-            fontWeight: 'var(--font-title-m-weight)',
-            paddingInline: 'var(--space-3)',
+            fontSize: 14,
+            fontWeight: 500,
+            opacity: 1,
+            animation: 'pt-summit-honor-rise-in .5s cubic-bezier(.2,.7,.2,1) 1.72s both',
           }}
           onClick={onViewActivity}
         >
@@ -5143,117 +5374,181 @@ function SummitConfirmedView({
         <button
           type="button"
           data-testid="trek-summit-explore-exit"
+          className="pt-summit-honor-reveal"
           onClick={onExploreExit}
           style={{
             display: 'block',
             width: '100%',
-            margin: 'var(--space-3) 0 0',
             minHeight: 44,
+            margin: 'var(--space-3) 0 0',
             border: 0,
             background: 'transparent',
-            color: 'color-mix(in srgb, var(--color-on-surface) 62%, var(--color-on-surface-variant))',
-            fontSize: 14,
+            color: 'var(--color-on-surface-variant)',
+            fontSize: 13,
             lineHeight: '20px',
-            fontWeight: 400,
+            fontWeight: 500,
             textAlign: 'center',
-            padding: '0 var(--space-4)',
+            padding: '0 18px',
+            opacity: 1,
+            animation: 'pt-summit-honor-fade-in .5s ease 1.82s both',
           }}
         >
           回到探索
         </button>
-
-        <div
-          style={{
-            marginTop: 'var(--space-4)',
-            marginBottom: 'var(--space-6)',
-            textAlign: 'center',
-            color: 'var(--color-on-surface-variant)',
-            fontSize: 12,
-            lineHeight: 1.5,
-            fontWeight: 400,
-          }}
-        >
-          下山途中也可以补充照片与一段话。
-        </div>
       </section>
     </div>
   )
 }
 
-function SummitRidgeDivider() {
-  return (
-    <div
-      data-testid="trek-summit-divider"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '0 var(--space-5)',
-      }}
-    >
-      <span
-        data-testid="trek-summit-divider-line"
-        aria-hidden="true"
-        style={{
-          flex: 1,
-          height: 1,
-          background: 'color-mix(in oklch, var(--color-outline) 50%, transparent)',
-        }}
-      />
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          fontFamily: 'var(--font-mono)',
-          fontSize: 'var(--font-label-s-size)',
-          lineHeight: 1,
-          color: 'var(--color-on-surface-variant)',
-          letterSpacing: '0.08em',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        <ArrowUpRightMini />
-        <span>此刻 · 山顶</span>
-      </span>
-      <span
-        data-testid="trek-summit-divider-line"
-        aria-hidden="true"
-        style={{
-          flex: 1,
-          height: 1,
-          background: 'color-mix(in oklch, var(--color-outline) 50%, transparent)',
-        }}
-      />
-    </div>
-  )
-}
-
-function ArrowUpRightMini() {
+function SummitHonorMedallion() {
   return (
     <svg
-      width={12}
-      height={12}
-      viewBox="0 0 12 12"
-      fill="none"
+      width={172}
+      height={172}
+      viewBox="0 0 172 172"
       aria-hidden="true"
       focusable="false"
       style={{
-        width: 12,
-        height: 12,
-        display: 'block',
-        flex: '0 0 auto',
-        color: 'var(--color-on-surface-variant)',
+        position: 'absolute',
+        inset: 0,
+        width: 172,
+        height: 172,
+        overflow: 'visible',
       }}
     >
+      <defs>
+        <radialGradient id="pt-summit-honor-medal-disc" cx="50%" cy="36%" r="66%">
+          <stop offset="0%" stopColor="#33443a" />
+          <stop offset="52%" stopColor="#1d2621" />
+          <stop offset="100%" stopColor="#121815" />
+        </radialGradient>
+        <radialGradient id="pt-summit-honor-medal-sheen" cx="40%" cy="26%" r="54%">
+          <stop offset="0%" stopColor="rgba(255,255,255,0.17)" />
+          <stop offset="62%" stopColor="rgba(255,255,255,0)" />
+        </radialGradient>
+        <linearGradient id="pt-summit-honor-medal-rim" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#3c473f" />
+          <stop offset="50%" stopColor="#222a25" />
+          <stop offset="100%" stopColor="#0f1410" />
+        </linearGradient>
+        <clipPath id="pt-summit-honor-medal-clip">
+          <circle cx="86" cy="86" r="55" />
+        </clipPath>
+      </defs>
+
+      <circle cx="86" cy="86" r="83" fill="none" stroke="var(--color-outline)" strokeWidth="1" />
+      <circle
+        className="pt-summit-honor-ambient"
+        cx="86"
+        cy="86"
+        r="76"
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth="1.5"
+        strokeDasharray="1.5 11"
+        strokeLinecap="round"
+        opacity="0.4"
+        style={{
+          transformBox: 'fill-box',
+          transformOrigin: 'center',
+          animation: 'pt-summit-honor-spin-slow 30s linear infinite',
+        }}
+      />
+      <circle
+        className="pt-summit-honor-ambient"
+        cx="86"
+        cy="86"
+        r="90"
+        fill="none"
+        stroke="var(--color-outline)"
+        strokeWidth="1"
+        strokeDasharray="2 16"
+        style={{
+          transformBox: 'fill-box',
+          transformOrigin: 'center',
+          animation: 'pt-summit-honor-spin-slow-rev 52s linear infinite',
+        }}
+      />
+      <circle cx="86" cy="86" r="62" fill="none" stroke="url(#pt-summit-honor-medal-rim)" strokeWidth="11" />
+      <circle cx="86" cy="86" r="62" fill="none" stroke="rgba(0,0,0,.32)" strokeWidth="11" strokeDasharray="1 5" />
+      <circle cx="86" cy="86" r="67.5" fill="none" stroke="rgba(0,0,0,.5)" strokeWidth="1" />
+      <circle cx="86" cy="86" r="56.6" fill="none" stroke="rgba(0,0,0,.42)" strokeWidth="1" />
+      <circle cx="86" cy="86" r="57.4" fill="none" stroke="color-mix(in srgb, var(--accent) 13%, transparent)" strokeWidth="1" />
+      <circle cx="86" cy="86" r="56" fill="url(#pt-summit-honor-medal-disc)" />
+      <g clipPath="url(#pt-summit-honor-medal-clip)" fill="none" stroke="var(--accent)">
+        <ellipse cx="86" cy="98" rx="13" ry="9" strokeOpacity="0.12" strokeWidth="1" />
+        <ellipse cx="86" cy="100" rx="25" ry="17" strokeOpacity="0.09" strokeWidth="1" />
+        <ellipse cx="86" cy="103" rx="37" ry="25" strokeOpacity="0.07" strokeWidth="1" />
+        <ellipse cx="86" cy="106" rx="49" ry="33" strokeOpacity="0.05" strokeWidth="1" />
+      </g>
+      <circle cx="86" cy="86" r="56" fill="url(#pt-summit-honor-medal-sheen)" />
+      <circle cx="86" cy="86" r="49" fill="none" stroke="color-mix(in srgb, var(--accent) 20%, transparent)" strokeWidth="1" />
+      <circle
+        className="pt-summit-honor-reveal"
+        cx="86"
+        cy="86"
+        r="64"
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeDasharray="402"
+        strokeDashoffset="0"
+        style={{
+          transformBox: 'fill-box',
+          transformOrigin: 'center',
+          transform: 'rotate(-90deg)',
+          animation: 'pt-summit-honor-seal-draw .82s cubic-bezier(.4,0,.1,1) .16s both',
+        }}
+      />
+      <circle
+        className="pt-summit-honor-ambient"
+        cx="86"
+        cy="86"
+        r="64"
+        fill="none"
+        stroke="var(--accent)"
+        strokeWidth="2"
+        opacity="0"
+        style={{
+          transformBox: 'fill-box',
+          transformOrigin: 'center',
+          animation: 'pt-summit-honor-stamp-pulse .9s ease-out .82s 1 forwards',
+        }}
+      />
+      <g
+        className="pt-summit-honor-reveal"
+        style={{
+          transformBox: 'fill-box',
+          transformOrigin: 'center',
+          color: 'var(--accent)',
+          opacity: 1,
+          animation: 'pt-summit-honor-crest-in .5s cubic-bezier(.2,.8,.25,1) .5s both',
+        }}
+      >
+        {/* Brand icon swap seam: keep future icons centered at (86,86) inside the 172 viewBox, within the inner frame safe area (approx r=49; box x=37 y=37 w=98 h=98). Replace SummitMedalCrest here with an inline <g> or <image>, and adjust only this wrapper transform for a different icon coordinate space. */}
+        <g transform="translate(0 0) scale(1)">
+          <SummitMedalCrest />
+        </g>
+      </g>
+    </svg>
+  )
+}
+
+function SummitMedalCrest() {
+  return (
+    <>
       <path
-        d="M3.25 8.75L8.75 3.25M4.25 3.25h4.5v4.5"
+        d="M58 103 L80 64 a6.5 6.5 0 0 1 11 0 L113 103"
+        fill="none"
         stroke="currentColor"
-        strokeWidth={2}
+        strokeWidth="3.1"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
+      <path d="M67 103 h38" stroke="currentColor" strokeWidth="3.1" strokeLinecap="round" />
+      <circle cx="85.5" cy="68" r="2.5" fill="currentColor" />
+    </>
   )
 }
 
@@ -5261,29 +5556,36 @@ function SummitStat({
   label,
   value,
   withDivider = false,
+  animationDelayMs,
 }: {
   label: string
   value: string
   withDivider?: boolean
+  animationDelayMs?: number
 }) {
   return (
     <div
       data-testid="trek-summit-stat"
+      className="pt-summit-honor-reveal"
       style={{
         minWidth: 0,
         position: 'relative',
         boxSizing: 'border-box',
-        padding: '0 4px',
+        padding: '12px 8px',
         textAlign: 'center',
-        borderRight: withDivider ? '1px solid color-mix(in oklch, var(--color-outline) 50%, transparent)' : undefined,
+        borderRight: withDivider ? '1px solid var(--color-outline)' : undefined,
+        opacity: 1,
+        animation: animationDelayMs
+          ? `pt-summit-honor-rise-in .5s cubic-bezier(.2,.7,.2,1) ${animationDelayMs}ms both`
+          : undefined,
       }}
     >
       <div
         style={{
           fontFamily: 'var(--font-mono)',
-          fontSize: 14,
+          fontSize: 15,
           lineHeight: '18px',
-          fontWeight: 600,
+          fontWeight: 700,
           color: 'var(--color-on-surface)',
           fontVariantNumeric: 'tabular-nums',
           whiteSpace: 'nowrap',
@@ -5295,11 +5597,11 @@ function SummitStat({
       <div
         style={{
           marginTop: 'var(--space-1)',
-          fontFamily: 'var(--font-mono)',
-          fontSize: 'var(--font-label-s-size)',
-          lineHeight: 'var(--font-label-s-line)',
-          fontWeight: 500,
+          fontSize: 10,
+          lineHeight: '14px',
+          fontWeight: 400,
           color: 'var(--color-on-surface-variant)',
+          letterSpacing: '0.04em',
           whiteSpace: 'nowrap',
         }}
       >
@@ -5330,11 +5632,24 @@ function formatGroupedMeters(value: number | null | undefined) {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Math.max(0, Math.round(Number(value))))
 }
 
-function formatSummitTime(date: Date | null) {
-  if (!date) return '--'
+function getPositiveRoundedMeters(value: number | null | undefined) {
+  if (!Number.isFinite(Number(value)) || Number(value) <= 0) return null
+  return Math.round(Number(value))
+}
+
+function formatSummitMeasuredAltitude(value: number | null | undefined) {
+  if (!Number.isFinite(Number(value))) return '--'
+  return `${formatGroupedMeters(value)} m`
+}
+
+function formatSummitDateTime(date: Date | null) {
+  if (!date || Number.isNaN(date.getTime())) return '--'
+  const year = String(date.getFullYear())
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
   const hours = String(date.getHours()).padStart(2, '0')
   const minutes = String(date.getMinutes()).padStart(2, '0')
-  return `${hours}:${minutes}`
+  return `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
 function formatSummitLocation(mountain: Mountain | null | undefined) {

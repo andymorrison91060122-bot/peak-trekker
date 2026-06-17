@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-17 · 最新版本记录: v0.78
+> Last Updated: 2026-06-17 · 最新版本记录: v0.79
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`f59faa1f2d232e3a44510422c32a57e7367bec0c`（Merge FU-101 calibration editor initial focus · 2026-06-17）
+`0f927eff2c75db973af70418dc79fdf0dc60d31c`（Merge FU-68 ceremonial Summit Honor screen · 2026-06-17）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（20 条）
+## Active Follow-ups（19 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -182,31 +182,6 @@
 - 不重写 QWeather adapter
 
 **实施时机**: 不立即启动，作为上线门禁项跟踪。所有功能性 sprint 完成 / 接近上线时启动。
-
----
-
-### FU-68 · Verified-summit ceremonial altitude slot
-
-- **优先级**: P2
-- **归属阶段**: Share / Poster product refinement
-- **状态**: 🟢 active
-
-**背景**: FU-66 / A2 将分享海报 hero altitude 改为 measured-only，并统一从「峰顶海拔」改为「最高海拔」。catalog summit altitude 不再作为普通 poster hero fallback。2026-06-12 用户拍板：仪式感槽位要做，但必须按状态守门。
-
-**实施建议**:
-- 半边 A（必做对齐）: ✅ 已完成（PR #8 merge `8d7a798`）。`/api/poster` 对齐 A2 measured-only altitude：实测 `最高海拔`、真实 metrics、source semantics、移除 raw coordinates；R6 同步把 Profile archive「分享素材」入口改到 `/share` editor，并统一 share source mapping，修正 pre-existing `historical_photo` 被误标 GPS 的问题。
-- 半边 B（设计先行）: summit-verified 专属 ceremonial slot 仍 Active。Claude Design 先挖坑位 / 标签形态 → 用户 review → 匹配样式实施。
-- 仅 summit-verified checkins 可考虑展示 catalog `峰顶海拔`。
-- Exposure audit（current-main 口径）: owner-or-public-post 404 gate 与 admin client 为 pre-existing；本 sprint 已移除 raw coordinates；剩余 exposure = public-post rows 可被持 id 访问者渲染 username / mountain / province / note，public cache 86400s；是否继续收紧属独立产品 / 安全决策。
-- `/share` 对 `historical_photo` 暂用 neutral `UPLOADED` 是 anti-mislabel interim semantic，非最终产品文案；最终 PHOTO RECORD-style share treatment 归 Half-B 设计工作。
-- `/api/poster` 本轮刻意保留 `historical_photo` 的 PHOTO RECORD 语义，因此与 `/share` surface 在此处阶段性不同。
-- `/api/poster` deprecation follow-up: R6 后 `/api/poster` 的唯一生产消费面是 community cover fallback。新增 pre-existing production bug: Vercel PNG rasterization 缺 CJK font fallback，community fallback covers 生产环境中文会变 tofu（SVG 正确；`/api/share/render` 已通过 `loadShareFonts` 避免）。修复方向 = sharp 前嵌 font，或在 FU-85-era work 中整体替换 cover pipeline / 并入新 share pipeline。
-- 未 verified / uploaded / screenshot_recognition 不得展示 catalog summit altitude 作为 hero
-
-**验收**:
-- 非 verified 活动不会展示 catalog summit altitude
-- summit-verified 场景如启用，文案与数据来源明确
-- `/share` 与 `/api/poster` 口径一致
 
 ---
 
@@ -529,7 +504,20 @@
 
 ---
 
-## Closed Follow-ups（84 条）
+## Closed Follow-ups（85 条）
+
+### FU-68 ✅ Verified-summit ceremonial altitude slot
+
+- **关闭原因**: summit-verified 礼成屏已重做为隆重授勋时刻，并由用户 2026-06-17 真机华山流程验收 PASS。PR #20 / branch `codex/fu68-summit-honor` / merge `0f927eff2c75db973af70418dc79fdf0dc60d31c` 合入 1 个 FU-68 commit `7122e97847fa778092457d2155e16ef86a35d4b3`，无 migration / schema / DB 写入 / backend / form 改动。
+- **落地内容**: 官方峰顶海拔 `mountain.altitude` 作为 count-up 荣誉 hero，文案为「峰顶海拔 · 官方认证」；用户实测海拔作为独立诚实数据行「你的实测海拔」，刻意区分，不冒充「最高」。新增金属勋章、seal 描边、轨道环、级联入场动效（约 1.8s）、reduced-motion 静态降级与可替换 crest seam；无官方海拔时诚实显示「暂无官方数据」和 `--`。
+- **清理内容**: 删除旧「到了。」/「此刻 · 山顶」ridge /「留证已确认」/ `ALT · SUMMIT` footer，以及死代码 `SummitRidgeDivider` / `ArrowUpRightMini`。`SummitConfirmedView` 仍为 private，不导出；未留下 `fu68-harness`。
+- **交互 / 导航边界**: 三动作继续沿用 `onShare` / `onViewActivity` / `onExploreExit`，按钮 conform 回 app token 与 FU-102 导航闭环；FU-102 的 replace / loop-pop 导航闭环零改动。
+- **设计 / 验收**: 设计源为 Claude Design「Summit Honor」iteration 2，归档于 `output/fu68-acceptance/design-source/`（gitignored）。用户 2026-06-17 真机华山流程 PASS；Claude 一手核通过。已知偏差：按钮 font 用 `title-m` token 而非设计 `14/700`；总用时显示为 `HH:MM:SS`；catalog-gap 时诚实兜底。
+- **测试 / 修复**: in-sprint 同步静态测试锚点 `SummitRidgeDivider` → `SummitHonorMedallion`，清理 harness / export；`npm run test:trek-offline` 56 pass / 0 fail；`git diff --check` clean。
+- **生产部署**: Vercel deployment `dpl_8ADtmTSpwcEWqFEjvTyXYjoL5Wno` READY，built commit `0f927eff2c75db973af70418dc79fdf0dc60d31c`，production URL `https://peak-trekker.vercel.app`。
+- **map/weather brief**: 本 sprint 仅涉及 summit-verified Trek 礼成屏视觉与数据呈现，不改变地图 / 天气产品边界或 MapLibre / PMTiles / weather policy；`docs/map-weather-brief.md` 只读确认无需更新。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-17
 
 ### FU-101 ✅ 全屏校准编辑器路线初始对焦
 
@@ -1622,6 +1610,17 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.79（2026-06-17）
+
+FU-68 closeout · Verified-summit ceremonial Summit Honor screen 上线。
+
+- FU-68 从 Active 移入 Closed：PR #20 / merge `0f927eff2c75db973af70418dc79fdf0dc60d31c` 完成 summit-verified 礼成屏重做为隆重授勋时刻，官方峰顶海拔作为 count-up 荣誉 hero（「峰顶海拔 · 官方认证」），用户实测海拔作为独立诚实数据行「你的实测海拔」。
+- 视觉与交互收口：金属勋章、seal 描边、轨道环、级联入场动效、reduced-motion 静态降级、可替换 crest seam；无官方海拔时显示「暂无官方数据 + --」；删除旧 ridge / `ALT · SUMMIT` footer / `SummitRidgeDivider` / `ArrowUpRightMini`。
+- 边界明确：三动作继续沿用 `onShare` / `onViewActivity` / `onExploreExit`，FU-102 导航闭环零改动；无 backend / DB / migration / form 改动。
+- 生产部署：Vercel deployment `dpl_8ADtmTSpwcEWqFEjvTyXYjoL5Wno` READY，built commit `0f927eff2c75db973af70418dc79fdf0dc60d31c`，production URL `https://peak-trekker.vercel.app`。
+- `docs/map-weather-brief.md` 只读 cross-check：FU-68 是 summit-verified 礼成屏视觉与数据呈现，不改变地图 / 天气边界，无需更新。
+- Active 20 → 19 · Closed 84 → 85 · Deferred 1 → 1
 
 ### v0.78（2026-06-17）
 

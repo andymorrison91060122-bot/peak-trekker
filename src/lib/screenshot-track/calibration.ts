@@ -100,6 +100,35 @@ export type PosterPreviewSegment = {
   preview: ShareTrackPreview
 }
 
+// Route bounds normalized to [0,1] image space from routeBounds(), not pixels.
+export type NormalizedRouteBounds = { minX: number; minY: number; maxX: number; maxY: number }
+export type RouteFocusViewport = { zoom: number; centerX: number; centerY: number }
+
+// Initial-focus viewport for the calibration editor (FU-101).
+// Pure + DOM-free so it is unit-testable. Caps initial zoom at 2 to preserve
+// editing context (manual zoom button still reaches 3). Returns whole-image
+// for no-route / degenerate / large routes; the caller passes the result
+// through normalizeViewport for the final center clamp.
+const FOCUS_ZOOM_LEVELS = [1, 1.5, 2] as const // initial focus stays <= 2; 2.5/3 reserved for manual zoom
+const FOCUS_DEGENERATE_EXTENT = 0.04           // raw extent below this on BOTH axes => treat as a point => whole image
+const FOCUS_MIN_FRACTION = 0.12                // floor so a thin route does not over-zoom on its thin axis
+const FOCUS_PADDING = 1.6                      // route fills ~1/1.6 of the focused viewBox (breathing room)
+const FOCUS_MIN_ZOOM_IN = 2                    // only zoom in when the fit yields >= 2x; otherwise keep whole image
+
+export function focusViewportFromBounds(bounds: NormalizedRouteBounds | null): RouteFocusViewport {
+  const wholeImage: RouteFocusViewport = { zoom: 1, centerX: 0.5, centerY: 0.5 }
+  if (!bounds) return wholeImage
+  const rawWidth = bounds.maxX - bounds.minX
+  const rawHeight = bounds.maxY - bounds.minY
+  if (rawWidth < FOCUS_DEGENERATE_EXTENT && rawHeight < FOCUS_DEGENERATE_EXTENT) return wholeImage
+  const fracX = Math.max(FOCUS_MIN_FRACTION, rawWidth)
+  const fracY = Math.max(FOCUS_MIN_FRACTION, rawHeight)
+  const fitZoom = 1 / (Math.max(fracX, fracY) * FOCUS_PADDING)
+  if (fitZoom < FOCUS_MIN_ZOOM_IN) return wholeImage
+  const zoom = FOCUS_ZOOM_LEVELS.filter((level) => level <= fitZoom).at(-1) ?? 1
+  return { zoom, centerX: (bounds.minX + bounds.maxX) / 2, centerY: (bounds.minY + bounds.maxY) / 2 }
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
 }

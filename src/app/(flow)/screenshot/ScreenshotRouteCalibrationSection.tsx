@@ -8,6 +8,7 @@ import SecondaryButton from '@/components/ui/SecondaryButton'
 import { BackIcon, CheckIcon } from '@/components/ui/Icons'
 import {
   createEmptyScreenshotRouteCalibration,
+  focusViewportFromBounds,
   mergeSolvedSegments,
   resolveSegment,
   solveLivewireCalibration,
@@ -870,7 +871,8 @@ export default function ScreenshotRouteCalibrationSection({
   }
 
   function openEditor() {
-    setViewport({ zoom: 1, centerX: 0.5, centerY: 0.5 })
+    const bounds = routeBounds(calibrationRef.current.segments)
+    setViewport(normalizeViewport(focusViewportFromBounds(bounds)))
     setEditorOpen(true)
   }
 

@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-16 · 最新版本记录: v0.77
+> Last Updated: 2026-06-17 · 最新版本记录: v0.78
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`fae7239f5f1ea427872bbacb7c7d12947befce84`（Merge FU-97 honest feedback FAQ contact · 2026-06-16）
+`f59faa1f2d232e3a44510422c32a57e7367bec0c`（Merge FU-101 calibration editor initial focus · 2026-06-17）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（21 条）
+## Active Follow-ups（20 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -457,19 +457,6 @@
 
 ---
 
-### FU-101 · 全屏校准编辑器长图初始对焦（routeCenter）
-
-- **优先级**: P2（校准体验 polish，非上线阻塞）
-- **状态**: 🟢 active（仅登记，未实施）
-
-**背景**: FU-100 实施期间发现全屏校准编辑器 open 时重置到整图中心 `zoom=1 / center=0.5,0.5`（`src/app/(flow)/screenshot/ScreenshotRouteCalibrationSection.tsx:~872`）；对"图高≫宽、地图在顶部"的长截图不友好（打开看到中间空白而非顶部路线区）。FU-100 只解决展示面 route-only 标准化、不含校准初始对焦，故单独登记。
-
-**建议**: open 时对焦 `routeCenter()`（编辑器已有该函数，`src/app/(flow)/screenshot/ScreenshotRouteCalibrationSection.tsx:~221`）而非整图中心；保留原图比例 + 底图对齐不变。
-
-**边界**: 仅校准编辑器初始视图，不动展示面 / 路线标准化。
-
----
-
 ### FU-91 · Supabase schema baseline / fresh-apply 能力恢复
 
 - **优先级**: P3（非上线阻塞）
@@ -542,7 +529,19 @@
 
 ---
 
-## Closed Follow-ups（83 条）
+## Closed Follow-ups（84 条）
+
+### FU-101 ✅ 全屏校准编辑器路线初始对焦
+
+- **关闭原因**: 全屏校准编辑器路线初始对焦已落地并由用户 2026-06-17 视觉验收。PR #19 / branch `codex/fu101-route-focus` / merge `f59faa1f2d232e3a44510422c32a57e7367bec0c` 合入 1 个 FU-101 commit `9fdf552`，无 migration / schema / DB 写入 / backend。
+- **落地内容**: 新增 `focusViewportFromBounds` 纯函数、`NormalizedRouteBounds` 类型与 `RouteFocusViewport`，明确 bbox 坐标是 `routeBounds()` 输出的归一 `[0,1]` 图像空间而非像素；初始 open 时对可绘制路线 bbox 用 degenerate floor + PAD + skip-if-fit<2 + 初始 zoom cap 2 计算 viewport，中点对齐 bbox 中点，再经现有 `normalizeViewport` clamp。`openEditor` 仅三行改动，复用现有 `routeBounds` / `normalizeViewport`。
+- **设计决策 / 取舍**: 初始 zoom 封顶 2，保留编辑上下文；初始对焦不测屏幕宽高比，极端图 / 屏比不匹配时路线可能轻微欠放大，但不裁切、不劣于现状；manual zoom 按钮仍可达 3。
+- **边界**: 仅初始视图，不动 display preview / 海报 / 活动卡 / route-only bbox-fit（FU-100 展示面已处理）/ 锁定 / pinch / pan / zoom 按钮 / close。
+- **验收 / 证据**: `npm run test:screenshot-route-focus` 8/8 精确值单测通过；`npm run lint` 0 errors / 10 existing warnings；`npm run build` passed（51/51 static pages）；`git diff --check` clean；real 375px 自测覆盖 BEFORE current-main compact tall screenshot open whole-image、AFTER compact route reopen focused and centered、no-route / large-route 回整图、zoom / pan / pinch 不回归、底图对齐、无水平溢出；`import POST=0` 零写库。
+- **生产部署**: Vercel deployment `dpl_FZjhfZiRhVQsC5gwUZCu87NCpsWu` READY，built commit `f59faa1f2d232e3a44510422c32a57e7367bec0c`，production URL `https://peak-trekker.vercel.app`。
+- **map/weather brief**: FU-101 仅涉及截图识别全屏校准编辑器初始视图，不改变地图 / 天气产品边界或 MapLibre / PMTiles / weather policy；`docs/map-weather-brief.md` 只读确认无需更新。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-17
 
 ### FU-97 ✅ 反馈入口诚实化 + FAQ 联系邮箱
 
@@ -1623,6 +1622,19 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.78（2026-06-17）
+
+FU-101 closeout · 全屏校准编辑器路线初始对焦上线。
+
+- FU-101 从 Active 移入 Closed：PR #19 / merge `f59faa1f2d232e3a44510422c32a57e7367bec0c` 完成 `focusViewportFromBounds` 纯函数 + `NormalizedRouteBounds` 类型 + `RouteFocusViewport`，并新增 8 例 focused 精确值单测与 `npm run test:screenshot-route-focus`。
+- `openEditor` 仅三行改动，复用现有 `routeBounds` / `normalizeViewport`：有可绘制路线时按归一 `[0,1]` route bbox 中点和初始 zoom 对焦；无路线 / 退化路线 / 大路线回整图 `zoom=1`。
+- 设计决策：初始 zoom 封顶 2 保留编辑上下文；已知取舍是不测屏幕宽高比，极端图 / 屏比不匹配时路线可能轻微欠放大，但不裁切、不劣于现状。
+- 边界明确：仅初始视图，未动 display preview / 海报 / 活动卡 / route-only bbox-fit / 锁定 / pinch / pan / zoom / close。
+- 验收 / 证据：`npm run test:screenshot-route-focus` 8/8；`npm run lint` 0 errors / 10 existing warnings；`npm run build` passed（51/51 static pages）；`git diff --check` clean；real 375px 自测覆盖 BEFORE/AFTER 前后对照、no-route / large 回全图、zoom / pan / pinch 不回归、底图对齐；`import POST=0` 零写库；用户 2026-06-17 视觉验收 PASS。
+- 生产部署：Vercel deployment `dpl_FZjhfZiRhVQsC5gwUZCu87NCpsWu` READY，built commit `f59faa1f2d232e3a44510422c32a57e7367bec0c`，production URL `https://peak-trekker.vercel.app`。
+- `docs/map-weather-brief.md` 只读 cross-check：FU-101 是截图识别全屏校准编辑器初始视图收口，不改变地图 / 天气边界，无需更新。
+- Active 21 → 20 · Closed 83 → 84 · Deferred 1 → 1
 
 ### v0.77（2026-06-16）
 

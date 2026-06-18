@@ -72,6 +72,10 @@ test('paused watchPosition callback does not mutate active tracking data', () =>
   assert.match(trekClient, /if \(isPausedRef\.current\) return/)
 })
 
+test('trek wake lock wiring uses the tested paused-aware predicate', () => {
+  assert.match(trekClient, /useWakeLock\(shouldHoldScreenWakeLock\(status,\s*isPaused\)\)/)
+})
+
 test('stale watchPosition callback cannot re-enter tracking after runtime cleanup', () => {
   assert.match(trekClient, /const activeSessionIdRef = useRef<string \| null>\(null\)/)
   assert.match(trekClient, /const clearTrackingRuntime = useCallback\(\(\) => \{[\s\S]{0,80}activeSessionIdRef\.current = null/)

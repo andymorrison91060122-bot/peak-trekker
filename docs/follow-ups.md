@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-18 · 最新版本记录: v0.81
+> Last Updated: 2026-06-19 · 最新版本记录: v0.82
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`dd714123b79603d3859c6e0d12f55a59e98a3299`（Merge FU-96 wake lock keeps screen awake during active trek recording · 2026-06-18）
+`0fc750c851e2680fe69a707d24927f63c1ef521b`（Merge FU-83(b) waypoint coordinates unlock Mountain Detail route rendering · 2026-06-19）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -304,13 +304,12 @@
 
 **范围**:
 - ✅ (a) Activity `trackPoint` 超 mountain-bbox envelope 检测 + auto-fallback trace-only：PR #9 / merge `d20a5df` 已落地。策略 = mountain bbox 每轴扩 8%，raw valid points 中 >1% 超出扩展 bbox 才降级；`data-map-mode` 记录 `mountain-pmtiles` / `trace-only-no-asset` / `trace-only-map-error` / `trace-only-out-of-envelope` / `screenshot-shape`。
-- `waypoints` 表加 `lat` / `lng`，解锁 Mountain Detail 状态(a)真实数据触发。
-- MapLibre 24-layer allowlist 扩等高线等地形细节（独立 visual review）。
+- ✅ (b) `mountain_waypoints` 坐标数据化 + Mountain Detail 路线渲染解锁：PR #23 / branch `codex/fu83b-waypoint-coordinates` / merge `0fc750c851e2680fe69a707d24927f63c1ef521b` 合入 commits `251cd3e01d3a60050081aedf9d48902227981db2` + R1/R2 `954e03f4b8763d14e711bceeea11ad74461d3dc8`。新增 nullable `latitude` / `longitude` + range CHECK（生产 migration `20260619090000_add_waypoint_coordinates` 已 apply；columns 与两条 constraint 已 SQL 确认），admin waypoint 编辑接入坐标字段，Mountain Detail 在 `coordinateWaypoints.length >= 2` 时生成 GeoJSON route overlay。R1/R2 同步清理 route-card 信息层级：删除 no-waypoint 空态误导文案与 has-waypoint false-affordance chips，route card 收敛为 map + safety note；删除 dead `RouteSummitOnlyStrip` / `RouteWaypointStrip` / `getRouteOverlayPoints`。用户 2026-06-19 real-device / visual acceptance PASS。
+- (c) MapLibre 24-layer allowlist 扩等高线 / 地形细节：保持 Deferred。阻塞项仍是无 DEM source、FU-69 已关闭不做、FU-77 PMTiles pipeline 未完成；需按 `docs/map-weather-brief.md` §15.5.5 单独 visual-review sprint。
 - ✅ (d) GPS trace fallback aspect-ratio distortion：PR #9 / merge `d20a5df` 已落地。新增 shared WGS-84 aspect-correct projector（`src/lib/geo-trace-projector.ts`），以 `cos(midLat)` + single range + centered letterbox 统一投影，服务 Activity trace-only / Trek reference fallback / Community detail preview；删除 dead `CommunityRouteVisualization.tsx`；`tests/fixtures/gpx/fu83-portrait-49609d3c.gpx` 固定 portrait ratio。before-state renders 可从 pre-merge main git history 复现。
 
 **剩余 Active**:
-- (b) `waypoints` lat/lng 数据化。
-- (c) contour / terrain layer allowlist 扩展。
+- (c) contour / terrain layer allowlist 扩展（Deferred，等待 DEM / PMTiles pipeline 与独立 visual-review sprint）。
 
 **DATA RESIDUE 记录**:
 - FU-83 evidence run leftover `bf333b44-9931-4971-97e8-ada79af158a5` 已按用户授权删除。删除前五项验证通过：`source='screenshot_recognition'` / `verified_at=null` / `ranking_weight=0` / `track_points=[]` / posts refs `0`；计数对账 total `966 → 965`，`screenshot_recognition 1 → 0`，other-source `965 → 965`。
@@ -1600,6 +1599,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.82 — 2026-06-19**: FU-83(b) waypoint coordinates closeout · `mountain_waypoints` 坐标数据化 + Mountain Detail 路线渲染解锁。PR #23 / merge `0fc750c851e2680fe69a707d24927f63c1ef521b` 合入 commits `251cd3e01d3a60050081aedf9d48902227981db2` + `954e03f4b8763d14e711bceeea11ad74461d3dc8`；生产 migration `20260619090000_add_waypoint_coordinates` 已 apply，`latitude` / `longitude` columns 与 `mountain_waypoints_latitude_range` / `mountain_waypoints_longitude_range` constraints 已 SQL 确认。R1/R2 同步清理 Mountain Detail route-card 信息层级；FU-83 保持 Active，仅剩 (c) contour / terrain layer allowlist deferred。Active 17 → 17 · Closed 87 → 87 · Deferred 1 → 1。
 
 **v0.81 — 2026-06-18**: FU-96 closeout · 记录态屏幕保持唤醒(wake lock)上线。新增 `useWakeLock` + `shouldHoldScreenWakeLock` 谓词，活跃记录（`locating` / `tracking` / `approach_alert` 未暂停 + `summit_photo`）保持屏幕唤醒，暂停 / 结束 / 离开释放，`visibilitychange` 重取，不支持环境 no-op 降级；纯加性接入 TrekClient，不改 GPS / session / nav / pause。PR #22 / merge `dd714123b79603d3859c6e0d12f55a59e98a3299`。
 

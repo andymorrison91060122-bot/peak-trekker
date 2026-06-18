@@ -8,7 +8,9 @@ import {
   MAX_WAYPOINTS_PER_TYPE,
   WAYPOINT_TYPE_KEYS,
   WAYPOINT_TYPES,
+  parseWaypointCoordinateInput,
   type Waypoint,
+  type WaypointCoordinateField,
   type WaypointInput,
   type WaypointType,
 } from '@/lib/waypoints'
@@ -18,6 +20,8 @@ type WaypointDraft = {
   name: string
   description: string
   elevation: string
+  latitude: string
+  longitude: string
 }
 
 function createWaypointDraft(value?: Partial<Waypoint>): WaypointDraft {
@@ -25,6 +29,8 @@ function createWaypointDraft(value?: Partial<Waypoint>): WaypointDraft {
     name: value?.name ?? '',
     description: value?.description ?? '',
     elevation: value?.elevation == null ? '' : String(value.elevation),
+    latitude: value?.latitude == null ? '' : String(value.latitude),
+    longitude: value?.longitude == null ? '' : String(value.longitude),
   }
 }
 
@@ -55,11 +61,26 @@ function parseElevation(value: string): number | null {
   return Number.isFinite(next) ? next : null
 }
 
+function parseDraftCoordinate(field: WaypointCoordinateField, value: string) {
+  const normalized = value.trim()
+  const coordinate = parseWaypointCoordinateInput(field, normalized === '' ? null : normalized)
+  return coordinate === undefined
+    ? { ok: false as const, value: null }
+    : { ok: true as const, value: coordinate }
+}
+
 function isDraftEqualToWaypoint(draft: WaypointDraft, waypoint: Waypoint) {
+  const latitude = parseDraftCoordinate('latitude', draft.latitude)
+  const longitude = parseDraftCoordinate('longitude', draft.longitude)
+
   return (
     draft.name === waypoint.name
     && draft.description === waypoint.description
     && parseElevation(draft.elevation) === waypoint.elevation
+    && latitude.ok
+    && latitude.value === waypoint.latitude
+    && longitude.ok
+    && longitude.value === waypoint.longitude
   )
 }
 
@@ -202,6 +223,12 @@ export default function WaypointEditor({
       setErrorById((current) => ({ ...current, [waypoint.id]: '名称不能为空' }))
       return
     }
+    const latitude = parseDraftCoordinate('latitude', draft.latitude)
+    const longitude = parseDraftCoordinate('longitude', draft.longitude)
+    if (!latitude.ok || !longitude.ok) {
+      setErrorById((current) => ({ ...current, [waypoint.id]: '坐标范围不正确' }))
+      return
+    }
 
     setPendingById((current) => ({ ...current, [waypoint.id]: 'save' }))
     setErrorById((current) => ({ ...current, [waypoint.id]: '' }))
@@ -214,6 +241,8 @@ export default function WaypointEditor({
           name: draft.name.trim(),
           description: draft.description,
           elevation: parseElevation(draft.elevation),
+          latitude: latitude.value,
+          longitude: longitude.value,
         },
       })
 
@@ -291,6 +320,12 @@ export default function WaypointEditor({
       setNewErrorByType((current) => ({ ...current, [type]: '名称不能为空' }))
       return
     }
+    const latitude = parseDraftCoordinate('latitude', draft.latitude)
+    const longitude = parseDraftCoordinate('longitude', draft.longitude)
+    if (!latitude.ok || !longitude.ok) {
+      setNewErrorByType((current) => ({ ...current, [type]: '坐标范围不正确' }))
+      return
+    }
 
     setPendingNewByType((current) => ({ ...current, [type]: true }))
     setNewErrorByType((current) => ({ ...current, [type]: '' }))
@@ -304,6 +339,8 @@ export default function WaypointEditor({
           name: draft.name.trim(),
           description: draft.description,
           elevation: parseElevation(draft.elevation),
+          latitude: latitude.value,
+          longitude: longitude.value,
         } satisfies WaypointInput,
       })
 
@@ -422,7 +459,7 @@ export default function WaypointEditor({
                         gap: 10,
                       }}
                     >
-                      <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr) 120px' }}>
+                      <div style={waypointFieldGridStyle}>
                         <input
                           value={draft.name}
                           onChange={(event) => updateDraft(waypoint.id, { name: event.target.value })}
@@ -443,6 +480,22 @@ export default function WaypointEditor({
                           onChange={(event) => updateDraft(waypoint.id, { elevation: event.target.value })}
                           placeholder="海拔(m)"
                           inputMode="numeric"
+                          disabled={isSaving || isDeleting}
+                          style={fieldStyle}
+                        />
+                        <input
+                          value={draft.latitude}
+                          onChange={(event) => updateDraft(waypoint.id, { latitude: event.target.value })}
+                          placeholder="纬度"
+                          inputMode="decimal"
+                          disabled={isSaving || isDeleting}
+                          style={fieldStyle}
+                        />
+                        <input
+                          value={draft.longitude}
+                          onChange={(event) => updateDraft(waypoint.id, { longitude: event.target.value })}
+                          placeholder="经度"
+                          inputMode="decimal"
                           disabled={isSaving || isDeleting}
                           style={fieldStyle}
                         />
@@ -487,7 +540,7 @@ export default function WaypointEditor({
                       gap: 10,
                     }}
                   >
-                    <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr) 120px' }}>
+                    <div style={waypointFieldGridStyle}>
                       <input
                         value={newDraft.name}
                         onChange={(event) => updateNewDraft(type, { name: event.target.value })}
@@ -508,6 +561,22 @@ export default function WaypointEditor({
                         onChange={(event) => updateNewDraft(type, { elevation: event.target.value })}
                         placeholder="海拔(m)"
                         inputMode="numeric"
+                        disabled={Boolean(pendingNewByType[type])}
+                        style={fieldStyle}
+                      />
+                      <input
+                        value={newDraft.latitude}
+                        onChange={(event) => updateNewDraft(type, { latitude: event.target.value })}
+                        placeholder="纬度"
+                        inputMode="decimal"
+                        disabled={Boolean(pendingNewByType[type])}
+                        style={fieldStyle}
+                      />
+                      <input
+                        value={newDraft.longitude}
+                        onChange={(event) => updateNewDraft(type, { longitude: event.target.value })}
+                        placeholder="经度"
+                        inputMode="decimal"
                         disabled={Boolean(pendingNewByType[type])}
                         style={fieldStyle}
                       />
@@ -582,4 +651,10 @@ const fieldStyle: CSSProperties = {
   fontFamily: 'Share Tech Mono',
   fontSize: 12,
   outline: 'none',
+}
+
+const waypointFieldGridStyle: CSSProperties = {
+  display: 'grid',
+  gap: 10,
+  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
 }

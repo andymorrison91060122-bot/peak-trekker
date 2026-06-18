@@ -1,4 +1,4 @@
-# Peak Trekker 地图与天气方案简报 v0.3
+# Peak Trekker 地图与天气方案简报 v0.3.8
 
 ## 1. 文档目标
 
@@ -509,6 +509,8 @@ P0 前端只显示这些字段即可：
 
 这样地图只是渲染器，不是业务逻辑源头。
 
+FU-83(b) 起 `mountain_waypoints` 可携带 nullable `latitude / longitude`。当一座山至少有 2 个点位具备有效经纬度时，Mountain Detail 可用这些点位生成 MapLibre GeoJSON LineString 与 waypoint marker；没有坐标或坐标不足 2 个时继续使用既有山顶 / 文字路线降级，不把点位列表误当导航数据。
+
 ---
 
 ## 13. 失败与降级策略
@@ -772,6 +774,8 @@ background, earth, landcover, landuse_park, landuse_urban_green, landuse_beach, 
 
 其余 layer 必须过滤。补充新 layer（例如未来加 contour 等高线）必须新开 sprint 走视觉验收，不允许 silently 扩 allowlist。
 
+FU-83(b) 仅补齐 waypoint 经纬度数据链路，不引入 contour / terrain layer。等高线与地形表达继续延期：当前 Protomaps PMTiles 是 OSM 衍生底图，没有 DEM / contour source；FU-69 已关闭外部 DEM 在中国可达性方向的尝试，PMTiles 再生成归属 FU-77 pipeline；任何 layer allowlist 扩展仍需单独视觉评审 sprint。
+
 ### 15.5.6 Flavor
 
 - Default：dark（production 锁定）
@@ -858,6 +862,11 @@ product surface 需要外部按钮触发 zoomIn / zoomOut / fitBounds 时，通�
 > **地图可控、天气分层、热门优先、长尾可降级、边界清楚。**
 
 Peak Trekker 当前阶段不应该为了“所有山都实时天气”而牺牲主线的稳定性、可控性和上线速度。
+
+### v0.3.8 — 2026-06-19
+
+- FU-83(b): `mountain_waypoints` 增补 nullable `latitude / longitude`，管理后台可维护点位经纬度；Mountain Detail 通过既有 MapLibre GeoJSON overlay 在 ≥2 个有效坐标点位时渲染真实路线线段与 waypoint marker。
+- 明确本轮不扩 Protomaps layer allowlist，不引入 contour / terrain；等高线 / 地形能力继续受 DEM source、FU-77 PMTiles pipeline 与视觉评审 sprint 阻塞。
 
 ### v0.3.7 — 2026-06-13
 

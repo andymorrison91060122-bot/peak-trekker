@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from './supabase-server'
 import {
   MAX_WAYPOINTS_PER_TYPE,
   WAYPOINT_TYPE_KEYS,
+  normalizeWaypointCoordinate,
   type Waypoint,
   type WaypointInput,
   type WaypointType,
@@ -43,6 +44,8 @@ function normalizeWaypointRecord(record: Partial<Waypoint> | null | undefined): 
     name: record.name,
     description: record.description ?? '',
     elevation: record.elevation ?? null,
+    latitude: normalizeWaypointCoordinate(record.latitude),
+    longitude: normalizeWaypointCoordinate(record.longitude),
     sort_order: record.sort_order,
     created_at: record.created_at,
   }
@@ -55,6 +58,12 @@ function buildWaypointPatch(updates: Partial<WaypointInput>) {
   if (typeof updates.description === 'string') patch.description = updates.description
   if (updates.elevation === null || typeof updates.elevation === 'number') {
     patch.elevation = updates.elevation
+  }
+  if (updates.latitude === null || typeof updates.latitude === 'number') {
+    patch.latitude = updates.latitude
+  }
+  if (updates.longitude === null || typeof updates.longitude === 'number') {
+    patch.longitude = updates.longitude
   }
   if (typeof updates.type === 'string' && isWaypointType(updates.type)) {
     patch.type = updates.type
@@ -115,6 +124,8 @@ export async function addWaypoint(mountainId: string, input: WaypointInput): Pro
       name: input.name,
       description: input.description ?? '',
       elevation: input.elevation ?? null,
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
       sort_order: maxSortOrder + 1,
     })
     .select('*')

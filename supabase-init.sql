@@ -369,9 +369,25 @@ CREATE TABLE IF NOT EXISTS public.mountain_waypoints (
   name TEXT NOT NULL,
   description TEXT DEFAULT '',
   elevation INTEGER DEFAULT NULL,
+  latitude DECIMAL(10,7),
+  longitude DECIMAL(10,7),
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+ALTER TABLE public.mountain_waypoints
+  DROP CONSTRAINT IF EXISTS mountain_waypoints_latitude_range;
+
+ALTER TABLE public.mountain_waypoints
+  ADD CONSTRAINT mountain_waypoints_latitude_range
+  CHECK (latitude IS NULL OR (latitude BETWEEN -90 AND 90));
+
+ALTER TABLE public.mountain_waypoints
+  DROP CONSTRAINT IF EXISTS mountain_waypoints_longitude_range;
+
+ALTER TABLE public.mountain_waypoints
+  ADD CONSTRAINT mountain_waypoints_longitude_range
+  CHECK (longitude IS NULL OR (longitude BETWEEN -180 AND 180));
 
 CREATE INDEX IF NOT EXISTS idx_waypoints_mountain
   ON public.mountain_waypoints(mountain_id, type, sort_order);

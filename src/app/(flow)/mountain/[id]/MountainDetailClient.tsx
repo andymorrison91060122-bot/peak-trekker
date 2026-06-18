@@ -957,28 +957,6 @@ function getFallbackSegments(mountain: Mountain, waypoints: Waypoint[]) {
   return getRouteSegments(mountain.name)
 }
 
-function getRouteOverlayPoints(waypoints: Waypoint[]) {
-  const elevations = waypoints
-    .map((waypoint) => waypoint.elevation)
-    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
-  const minElevation = elevations.length ? Math.min(...elevations) : 0
-  const maxElevation = elevations.length ? Math.max(...elevations) : 1
-  const range = Math.max(1, maxElevation - minElevation)
-  const points = waypoints.map((waypoint, index) => {
-    const x = 28 + (index / Math.max(1, waypoints.length - 1)) * 264
-    const rawElevation = typeof waypoint.elevation === 'number' ? waypoint.elevation : minElevation
-    const y = 156 - ((rawElevation - minElevation) / range) * 112
-    const tone = getWaypointTone({ waypoint, highestElevation: maxElevation })
-    return { waypoint, x, y, tone }
-  })
-
-  return {
-    points,
-    path: points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' '),
-    summit: points.find((point) => point.tone === 'success') ?? points[points.length - 1] ?? null,
-  }
-}
-
 function RouteMapTopControls() {
   return (
     <div style={{ position: 'absolute', left: 10, top: 10, zIndex: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1001,80 +979,6 @@ function RouteMapTopControls() {
         仅参考路线
       </span>
       <HelpTrigger anchor="map.map-no-nav" size={14} style={{ width: 26, height: 26 }} />
-    </div>
-  )
-}
-
-function RouteWaypointStrip({ waypoints }: { waypoints: Waypoint[] }) {
-  const { points } = getRouteOverlayPoints(waypoints)
-
-  return (
-    <div style={{ display: 'flex', gap: 6, padding: '12px 14px 8px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-      {points.map((point) => (
-        <div
-          key={`strip-${point.waypoint.id}`}
-          style={{
-            flex: '0 0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '6px 10px',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--color-outline)',
-            background: 'color-mix(in srgb, var(--color-on-surface) 3%, transparent)',
-            maxWidth: 180,
-          }}
-        >
-          <span
-            aria-hidden
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: 'var(--radius-pill)',
-              flexShrink: 0,
-              background:
-                point.tone === 'success'
-                  ? 'var(--color-success)'
-                  : point.tone === 'warn'
-                    ? 'var(--color-warning)'
-                    : 'var(--color-on-surface-variant)',
-            }}
-          />
-          <span style={{ color: 'var(--color-on-surface)', fontSize: 'var(--font-label-s-size)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {point.waypoint.name}
-          </span>
-          <span style={{ color: 'var(--color-on-surface-variant)', fontFamily: 'var(--font-mono)', fontSize: 10, whiteSpace: 'nowrap' }}>
-            {point.waypoint.elevation === null ? '--' : `${formatInteger(point.waypoint.elevation)}m`}
-          </span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function RouteSummitOnlyStrip({ mountain }: { mountain: Mountain }) {
-  return (
-    <div style={{ display: 'flex', gap: 6, padding: '12px 14px 8px', overflowX: 'auto', scrollbarWidth: 'none' }}>
-      <div
-        style={{
-          flex: '0 0 auto',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '6px 10px',
-          borderRadius: 'var(--radius-sm)',
-          border: '1px solid var(--color-outline)',
-          background: 'color-mix(in srgb, var(--color-on-surface) 3%, transparent)',
-        }}
-      >
-        <span aria-hidden style={{ width: 6, height: 6, borderRadius: 'var(--radius-pill)', background: 'var(--color-success)' }} />
-        <span style={{ color: 'var(--color-on-surface)', fontSize: 'var(--font-label-s-size)', fontWeight: 700 }}>
-          山峰位置
-        </span>
-        <span style={{ color: 'var(--color-on-surface-variant)', fontFamily: 'var(--font-mono)', fontSize: 10 }}>
-          {formatInteger(mountain.altitude)}m
-        </span>
-      </div>
     </div>
   )
 }
@@ -1276,7 +1180,7 @@ function RoutePmtilesCard({
             overflow: 'hidden',
           }}
         >
-          <div style={{ position: 'relative', padding: '14px 14px 0' }}>
+          <div style={{ position: 'relative', padding: '14px' }}>
             <PmtilesSnapshotMap
               asset={asset}
               ariaLabel={hasWaypointRoute ? '真实离线底图上的路线参考图' : '真实离线底图上的山峰位置参考图'}
@@ -1291,12 +1195,11 @@ function RoutePmtilesCard({
               <RouteMapTopControls />
             </PmtilesSnapshotMap>
           </div>
-          {hasWaypointRoute ? <RouteWaypointStrip waypoints={waypoints} /> : <RouteSummitOnlyStrip mountain={mountain} />}
-          <div style={{ padding: '0 14px 12px', color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>
-            {hasWaypointRoute
-              ? '仅作路线示意 · 不是导航地图，山区请以现场判断为准'
-              : '暂无关键点位 · 仅展示山峰位置与离线底图，不是导航地图'}
-          </div>
+          {hasWaypointRoute ? (
+            <div style={{ padding: '0 14px 12px', color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>
+              仅作路线示意 · 不是导航地图，山区请以现场判断为准
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

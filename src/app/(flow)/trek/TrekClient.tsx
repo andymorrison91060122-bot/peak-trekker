@@ -25,6 +25,7 @@ import {
 import { formatElapsedHMS } from '@/lib/trek-time'
 import { haversineMeters, safeTrackPoints, type TrackPoint } from '@/lib/trek-utils'
 import { summarizeTrekTrackPoints } from '@/lib/trek-track-metrics'
+import { shouldHoldScreenWakeLock, useWakeLock } from '@/lib/use-wake-lock'
 import {
   classifyDrainState,
   clearTrekOutboxSession,
@@ -2095,6 +2096,7 @@ export default function TrekClient({
   const isTrackingActive = status === 'locating' || status === 'tracking' || status === 'approach_alert'
   const isSummitPhotoFlow = status === 'summit_photo'
   const isSummitFlow = isSummitPhotoFlow || status === 'summit_verified' || status === 'card_preview' || status === 'shared'
+  useWakeLock(shouldHoldScreenWakeLock(status, isPaused))
   const activeMountainForAdvisory = targetMountain ?? selectedMountain ?? suggestedMountain
   const hasNoMountainTarget =
     !mountainsLoading && !targetMountainId && !selectedMountainId && !confirmedMountainId && !activeMountainForAdvisory

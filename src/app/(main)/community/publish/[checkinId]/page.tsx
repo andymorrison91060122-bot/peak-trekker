@@ -1,4 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
+import PrimaryButton from '@/components/ui/PrimaryButton'
+import { WarnIcon } from '@/components/ui/Icons'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import {
   buildDefaultCommunityPosterUrl,
@@ -145,7 +147,77 @@ export default async function CommunityPublishPage({
 
   if (!typedCheckin) notFound()
   const mountain = firstRelation(typedCheckin.mountains)
-  if (!mountain) notFound()
+  if (!mountain) {
+    return (
+      <section
+        aria-labelledby="publish-data-issue-title"
+        style={{
+          minHeight: 'calc(100dvh - 180px)',
+          display: 'grid',
+          placeItems: 'center',
+          padding: 'var(--space-8) var(--space-4)',
+          color: 'var(--color-on-surface)',
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: 420,
+            minWidth: 0,
+            padding: 'var(--space-6) var(--space-5)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--color-outline)',
+            background: 'var(--color-surface-variant)',
+            boxShadow: 'var(--shadow-soft)',
+            textAlign: 'center',
+          }}
+        >
+          <div
+            aria-hidden="true"
+            style={{
+              width: 56,
+              height: 56,
+              display: 'grid',
+              placeItems: 'center',
+              margin: '0 auto',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid color-mix(in srgb, var(--color-warning) 42%, var(--color-outline))',
+              background: 'color-mix(in srgb, var(--color-warning) 10%, var(--color-surface-elevated))',
+              color: 'var(--color-warning)',
+            }}
+          >
+            <WarnIcon size={28} />
+          </div>
+          <h1
+            id="publish-data-issue-title"
+            style={{
+              margin: 'var(--space-5) 0 0',
+              color: 'var(--color-on-surface)',
+              fontSize: 'var(--font-headline-m-size)',
+              lineHeight: 'var(--font-headline-m-line)',
+              fontWeight: 'var(--font-headline-m-weight)',
+            }}
+          >
+            记录数据异常，暂时无法发布
+          </h1>
+          <p
+            style={{
+              margin: 'var(--space-3) 0 0',
+              color: 'var(--color-on-surface-variant)',
+              fontSize: 'var(--font-body-m-size)',
+              lineHeight: 1.7,
+              fontWeight: 'var(--font-body-m-weight)',
+            }}
+          >
+            这次记录还在，但关联山峰数据暂时缺失。请先回到我的页面，稍后再试。
+          </p>
+          <PrimaryButton as="a" href="/profile" style={{ width: '100%', marginTop: 'var(--space-5)' }}>
+            回到「我的」
+          </PrimaryButton>
+        </div>
+      </section>
+    )
+  }
 
   const sourceType = resolveCheckinSource({ source: typedCheckin.source, type: typedCheckin.type })
   const fallbackPosterUrl =

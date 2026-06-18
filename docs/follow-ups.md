@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-17 · 最新版本记录: v0.79
+> Last Updated: 2026-06-18 · 最新版本记录: v0.80
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`0f927eff2c75db973af70418dc79fdf0dc60d31c`（Merge FU-68 ceremonial Summit Honor screen · 2026-06-17）
+`1643cd7211d123b8207f7923b16df8b42135a68f`（Merge FU-80 friendly Chinese 404 and error boundaries · 2026-06-18）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（19 条）
+## Active Follow-ups（18 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -275,21 +275,6 @@
 - 渲染阻塞审计
 
 **原则**: 先测量后改。
-
----
-
-### FU-80 · 线上稳定性与错误边界
-
-- **优先级**: P2
-- **归属阶段**: 稳定性 / 体验兜底
-- **状态**: 🟢 active
-
-**背景**: 2026-05-30 用户报 `/profile` 与山友圈 404（原 T3，编号复用失踪；可能已自愈，需复查确认并记录结论）。
-
-**实施建议**:
-- 全站 `error.tsx` / `not-found.tsx` 边界补齐。
-- 中文友好文案，不裸露工程错误。
-- dev console 6 条资源 403 验证一次；若为环境噪音，直接记录销项。
 
 ---
 
@@ -504,7 +489,18 @@
 
 ---
 
-## Closed Follow-ups（85 条）
+## Closed Follow-ups（86 条）
+
+### FU-80 ✅ 线上稳定性与错误边界
+
+- **关闭原因**: 全站友好中文兜底页已落地并由用户 2026-06-18 视觉验收 PASS。PR #21 / branch `codex/fu80-friendly-boundaries` / merge `1643cd7211d123b8207f7923b16df8b42135a68f` 合入 1 个 FU-80 commit `35c208275d1812a464a47c8bbcbb325a475401a0`，无 migration / DB / backend 改动。
+- **落地内容**: 新增 root `not-found.tsx`（友好 404 + 回到探索）；新增 root / `(main)` / admin `error.tsx`（client component、`reset` 重试、chrome 匹配：`(main)` 保留 TabBar、admin 保持深色语境）；修正 publish 数据异常路径：本人 checkin 存在但关联 mountain 缺失时内联展示「记录数据异常」，不再误报 404。
+- **边界口径**: auth / role / feature 仍走 redirect，不做 403；empty state 仍内联；loading 不做；privacy 404（看别人资源）继续友好 404 防枚举，故意不改 403；`error.tsx` 是 backstop，不重写 fetch；`app/error.tsx` 不是 `global-error.tsx`，不兜 root layout 自身。
+- **验收 / 证据**: 用户 2026-06-18 视觉验收 PASS；Claude 一手核代码与 4 页 375px 视觉 + 行为日志全 PASS。已知证据缺口：publish 数据异常卡为 code-verified，视觉未截（孤儿数据不可在不写共享库前提下复现）。
+- **生产部署**: Vercel deployment for merge `1643cd7211d123b8207f7923b16df8b42135a68f` READY，production URL `https://peak-trekker.vercel.app`。
+- **map/weather brief**: FU-80 仅涉及错误 / 404 边界与 publish 数据异常兜底，不改变地图 / 天气策略；`docs/map-weather-brief.md` 只读确认无需更新。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-18
 
 ### FU-68 ✅ Verified-summit ceremonial altitude slot
 
@@ -1610,6 +1606,17 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+### v0.80（2026-06-18）
+
+FU-80 closeout · 全站友好中文 404 / error boundary 上线。
+
+- FU-80 从 Active 移入 Closed：PR #21 / merge `1643cd7211d123b8207f7923b16df8b42135a68f` 完成 root `not-found.tsx` 友好 404 + root / `(main)` / admin `error.tsx`，并修正 publish 数据异常路径为内联「记录数据异常」而非误报 404。
+- 边界明确：auth / role / feature 仍 redirect，不做 403；empty 仍内联；loading 不做；privacy 404 继续防枚举；`error.tsx` 是 backstop，不重写 fetch；`app/error.tsx` 不是 `global-error.tsx`，不兜 root layout 自身。
+- 验收记录：用户 2026-06-18 视觉验收 PASS；Claude 一手核代码与 4 页 375px 视觉 + 行为日志全 PASS；publish 数据异常卡为 code-verified，视觉未截（孤儿数据不可在不写共享库前提下复现）。
+- 生产部署：Vercel deployment for merge `1643cd7211d123b8207f7923b16df8b42135a68f` READY，production URL `https://peak-trekker.vercel.app`。
+- `docs/map-weather-brief.md` 只读 cross-check：FU-80 是错误 / 404 边界，不改变地图 / 天气边界，无需更新。
+- Active 19 → 18 · Closed 85 → 86 · Deferred 1 → 1
 
 ### v0.79（2026-06-17）
 

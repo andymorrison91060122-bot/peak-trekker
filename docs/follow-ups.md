@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-18 · 最新版本记录: v0.80
+> Last Updated: 2026-06-18 · 最新版本记录: v0.81
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`1643cd7211d123b8207f7923b16df8b42135a68f`（Merge FU-80 friendly Chinese 404 and error boundaries · 2026-06-18）
+`dd714123b79603d3859c6e0d12f55a59e98a3299`（Merge FU-96 wake lock keeps screen awake during active trek recording · 2026-06-18）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（18 条）
+## Active Follow-ups（17 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -370,20 +370,6 @@
 
 ---
 
-### FU-96 · wakelock 记录可靠性增强
-
-- **优先级**: P2
-- **归属阶段**: 记录可靠性增强
-- **状态**: 🟢 active
-
-**背景 / 证据**: 长记录无 `navigator.wakeLock`（全仓 0 hits），息屏会增加掉点 / 停表风险。
-
-**Scope**: 加 `useWakeLock`：locating / tracking 请求，finish / pause / abort 释放，`visibilitychange` 重取；guard 不支持环境。
-
-**注**: WeChat webview / 老 iOS 不支持，只能缓解。**是否进上线窗口看 FU-93 修复后剩余风险**。
-
----
-
 ### FU-98 · 省份编辑
 
 - **优先级**: P3
@@ -489,7 +475,15 @@
 
 ---
 
-## Closed Follow-ups（86 条）
+## Closed Follow-ups（87 条）
+
+### FU-96 ✅ wakelock 记录可靠性增强
+
+- **关闭原因**: FU-96 ✅ wakelock 记录可靠性增强 —— 新增 `src/lib/use-wake-lock.ts`（`useWakeLock` hook + 纯谓词 `shouldHoldScreenWakeLock(status, isPaused)`），活跃记录态保持屏幕唤醒：`locating` / `tracking` / `approach_alert`（受 `!isPaused` 控制）+ `summit_photo`，暂停 / 结束 / 离开及其余态释放；`visibilitychange` 回前台重申领，不支持环境（微信 webview / 老 iOS）no-op 降级，async race cancellation 防残留 sentinel。接入 `TrekClient.tsx` 仅 import + 一行 wiring，纯加性不碰 GPS / session / nav / pause。测试：`tests/use-wake-lock.test.ts`（行为 + pause 真值表 7/7）+ `tests/trek-stability-static.test.ts` 接线守卫断言；`npm run test:trek-offline` 57/57、`npm run lint` 0 errors / 10 warnings、`npm run build` 通过。用户 2026-06-18 按代码 + 测试 + 策略表验收 PASS（真机物理确认用户拍板免做，上线后随手复验）。PR #22 / branch `codex/fu96-wake-lock` / merge `dd714123b79603d3859c6e0d12f55a59e98a3299` 合入 commit `0021bf7753bb89f03cf909aed8289af38438e397`，无 migration / DB / backend 改动。
+- **生产部署**: Vercel deployment for merge `dd714123b79603d3859c6e0d12f55a59e98a3299` READY，production URL `https://peak-trekker.vercel.app`。
+- **map/weather brief**: FU-96 是记录态屏幕唤醒，不涉及地图 / 天气策略；`docs/map-weather-brief.md` 只读确认无需更新。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-18
 
 ### FU-80 ✅ 线上稳定性与错误边界
 
@@ -1606,6 +1600,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.81 — 2026-06-18**: FU-96 closeout · 记录态屏幕保持唤醒(wake lock)上线。新增 `useWakeLock` + `shouldHoldScreenWakeLock` 谓词，活跃记录（`locating` / `tracking` / `approach_alert` 未暂停 + `summit_photo`）保持屏幕唤醒，暂停 / 结束 / 离开释放，`visibilitychange` 重取，不支持环境 no-op 降级；纯加性接入 TrekClient，不改 GPS / session / nav / pause。PR #22 / merge `dd714123b79603d3859c6e0d12f55a59e98a3299`。
 
 ### v0.80（2026-06-18）
 

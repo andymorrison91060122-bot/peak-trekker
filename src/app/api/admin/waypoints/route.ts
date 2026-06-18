@@ -8,7 +8,11 @@ import {
   listWaypointsByMountain,
   updateWaypoint,
 } from '../../../../lib/waypoints-queries'
-import { WAYPOINT_TYPE_KEYS, type WaypointInput } from '../../../../lib/waypoints'
+import {
+  WAYPOINT_TYPE_KEYS,
+  parseWaypointCoordinatePatch,
+  type WaypointInput,
+} from '../../../../lib/waypoints'
 
 type WaypointAction = 'list' | 'add' | 'update' | 'delete'
 
@@ -30,6 +34,11 @@ function parseWaypointInput(input: Partial<WaypointInput> | null | undefined): W
   if (!input || typeof input.type !== 'string' || typeof input.name !== 'string') return null
   if (!isWaypointType(input.type)) return null
 
+  const latitude = parseWaypointCoordinatePatch(input, 'latitude')
+  if (!latitude.ok) return null
+  const longitude = parseWaypointCoordinatePatch(input, 'longitude')
+  if (!longitude.ok) return null
+
   return {
     type: input.type,
     name: input.name,
@@ -37,6 +46,8 @@ function parseWaypointInput(input: Partial<WaypointInput> | null | undefined): W
     ...(input.elevation === null || typeof input.elevation === 'number'
       ? { elevation: input.elevation }
       : {}),
+    ...latitude.patch,
+    ...longitude.patch,
   }
 }
 
@@ -51,6 +62,12 @@ function parseWaypointUpdates(
   if (updates.elevation === null || typeof updates.elevation === 'number') {
     patch.elevation = updates.elevation
   }
+  const latitude = parseWaypointCoordinatePatch(updates, 'latitude')
+  if (!latitude.ok) return null
+  Object.assign(patch, latitude.patch)
+  const longitude = parseWaypointCoordinatePatch(updates, 'longitude')
+  if (!longitude.ok) return null
+  Object.assign(patch, longitude.patch)
   if (typeof updates.type === 'string' && isWaypointType(updates.type)) {
     patch.type = updates.type
   }

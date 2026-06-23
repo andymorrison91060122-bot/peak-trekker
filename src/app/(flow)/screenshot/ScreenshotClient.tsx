@@ -12,6 +12,11 @@ import { trackEvent } from '@/lib/analytics/client'
 import ScreenshotRouteCalibrationSection from './ScreenshotRouteCalibrationSection'
 import { createEmptyScreenshotRouteCalibration, type ScreenshotRouteCalibration } from '@/lib/screenshot-track/calibration'
 import {
+  readableError,
+  responseKind,
+  type RecognizeErrorKind,
+} from '@/lib/screenshot/recognize-client-errors'
+import {
   formatScreenshotPace,
   validateScreenshotEditableFields,
   type ScreenshotEditableFields,
@@ -37,7 +42,6 @@ const PROCESSING_MIN_DURATION_MS = 2000
 const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 type ScreenshotStep = 'upload' | 'processing' | 'confirm' | 'submitting' | 'success'
-type RecognizeErrorKind = 'auth' | 'too_large' | 'unsupported' | 'network' | 'file' | 'quota'
 type FieldKey = ScreenshotFieldKey
 
 type RecognizeResult = {
@@ -166,22 +170,6 @@ function validateImageFile(file: File): { message: string; kind: RecognizeErrorK
   }
 
   return null
-}
-
-function responseKind(status: number): RecognizeErrorKind {
-  if (status === 401) return 'auth'
-  if (status === 402) return 'quota'
-  if (status === 413) return 'too_large'
-  if (status === 415) return 'unsupported'
-  if (status >= 500) return 'network'
-  return 'file'
-}
-
-function readableError(message: string, kind: RecognizeErrorKind) {
-  if (kind === 'auth') return '登录后才能识别截图。'
-  if (kind === 'quota') return '本月截图识别次数已用完。'
-  if (/unauthorized/i.test(message)) return '登录后才能识别截图。'
-  return message || '这张截图暂时无法识别，请换一张再试。'
 }
 
 function providerFromSource(source?: ScreenshotOcrSource) {

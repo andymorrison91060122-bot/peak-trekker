@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-23 · 最新版本记录: v0.86
+> Last Updated: 2026-06-23 · 最新版本记录: v0.87
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（16 条）
+## Active Follow-ups（15 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -406,23 +406,6 @@
 
 ---
 
-### FU-92 · onboarding_version 跨设备重复展示修复
-
-- **优先级**: P3（非上线阻塞）
-- **归属阶段**: onboarding / profile metadata hygiene
-- **状态**: 🟢 active
-
-**背景**: FU-90 Phase 2A 注册链路改为 `options.data` → `handle_new_user` trigger 持久化昵称 / 省份。实施中澄清：register 端原本的 `setIntroSeen` 只是本机 localStorage 抑制，未写 `profiles.onboarding_version`；新用户跨设备 / 清缓存后可能重复看到 onboarding。这不是 FU-90 2A/2B 回归，而是既有 onboarding 持久化缺口被昵称链路复核暴露。
-
-**范围**:
-- 复核 onboarding display gate：`onboarding_version`、localStorage、profile fetch / update 路径。
-- 设计跨设备一致的完成态写入：用户完成 onboarding 后持久化到 `profiles.onboarding_version` 或等效 server-owned 字段。
-- 明确新用户 / 旧用户 / 清缓存 / 换设备的预期行为。
-
-**约束**: 不夹带进 FU-90；如需 schema / RLS / API 变更，单独 plan + 发布审批。
-
----
-
 ## Deferred Registration
 
 ### Deferred · FU-88 · 商业化专项
@@ -476,7 +459,15 @@
 
 ---
 
-## Closed Follow-ups（88 条）
+## Closed Follow-ups（89 条）
+
+### FU-92 ✅ onboarding_version 跨设备重复展示修复
+
+- **关闭原因**: FU-92 已完成 client-side cross-device onboarding persistence。注册后 active session 会把 onboarding 完成态写回 `profiles`；`(main)` gate 增加自愈写入，按 `userId:ONBOARDING_VERSION` 去重，且与 gate read 解耦，避免跨设备 / 清缓存后重复看到 onboarding。register / version-sync / province-sync / self-heal 四条路径统一写入 `onboarding_version` 与 `onboarding_completed_at`。
+- **边界 / schema**: 无 migration；`profiles.onboarding_version` 与 `profiles.onboarding_completed_at` 已存在，RLS 与 column GRANT 已允许 authenticated client UPDATE。本轮不做批量 backfill；legacy users 由 self-heal 覆盖。
+- **验收 / 证据**: 用户行为验收 PASS：register → 跨设备不再重复 onboarding。只读 DB evidence：测试账号 `onboarding_version='2026-v2'`，`onboarding_completed_at` 已 stamped。测试覆盖 `tests/onboarding-persistence.test.ts`、`tests/onboarding-modal-static.test.ts` 与 `tests/register-static.test.ts`。
+- **关闭 commit**: 本次 PR commit
+- **关闭时间**: 2026-06-23
 
 ### FU-84 ✅ 校准编辑器工程债（safe-subset）
 
@@ -1620,6 +1611,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.87 — 2026-06-23**: FU-92 closeout · onboarding 跨设备完成态持久化完成。注册 active session profile write、`(main)` gate self-heal、version-sync / province-sync 统一写入 `onboarding_version='2026-v2'` 与 `onboarding_completed_at`；self-heal 以 `userId:ONBOARDING_VERSION` 去重并与 gate read 解耦，legacy users 无需 bulk backfill。无 migration（columns / RLS / GRANT 既有可用）。用户行为验收：register 后跨设备不再重复 onboarding；只读 DB evidence 确认测试账号版本与完成时间已写入。Active 16 → 15 · Closed 88 → 89 · Deferred 2 → 2。
 
 **v0.86 — 2026-06-23**: FU-84 closeout · 校准编辑器工程债 safe-subset 完成。新增共享 `src/lib/screenshot-track/math.ts`（`clamp` + `normalizeBboxPoints`），`calibration.ts` / `geometry.ts` 去重 clamp / bbox normalize 并清理 dead exports；校准编辑器拖拽改为 rAF throttle + release/clear/close/unmount cancel-first，拖拽中 inactive markers 压暗且 hit area 保持可交互。测试覆盖 WYSIWYG / segment-quality live path、clamp NaN、bbox minExtent、rAF cancel-first 与 drag visual static guards。用户 2026-06-23 real-device 验收 PASS（tap-to-add main `/screenshot` flow + drag smooth + inactive-marker dim）。未纳入本 safe-subset 的 path-builder 合一 / worker evidence reuse / hide-others-while-dragging 明确保留为 future cleanup，不新增 FU。Active 17 → 16 · Closed 87 → 88 · Deferred 2 → 2。
 

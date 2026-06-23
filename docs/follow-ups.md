@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-19 · 最新版本记录: v0.82
+> Last Updated: 2026-06-23 · 最新版本记录: v0.84
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（17 条）
+## Active Follow-ups（18 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -402,6 +402,22 @@
 
 ---
 
+### FU-104 · 截图识别 auth/network 错误误判与 raw error 泄露
+
+- **优先级**: P1（launch-blocker）
+- **归属阶段**: 截图识别 / 线上稳定性
+- **状态**: 🟡 fixed locally · WS1 PR pending
+
+**现象**: 中国本地 dev 环境 Supabase/OCR 网络不稳定时，`/screenshot` 直载会把 Supabase auth transport/TLS 失败误判为未登录，展示“登录后才能识别截图 / 去登录”；上传路径还可能把 `TypeError: fetch failed` 原样暴露给用户。
+
+**根因**: `/api/screenshot/recognize` 的 GET / POST 对 `supabase.auth.getUser()` 使用 `authError || !user → 401`，未区分 `AuthSessionMissingError` 与 `AuthRetryableFetchError` / transport failure；POST 的 `getUser()` 还在业务 try/catch 外。另有 quota consumption failure surface 会把 `quotaResult.error` 直接返回给 client。
+
+**修复方向**: 真实无 session / 401 / 403 继续 401；Supabase auth transport / missing status / 5xx / fetch failed / ECONNRESET / timeout 返回 503 + 用户安全重试文案；quota 扣减失败不透传 raw error；客户端 `network` 分支作为第二层兜底，永不显示 raw infra 字符串。
+
+**修复状态（2026-06-23）**: WS1 本地 diff 已完成：服务端统一 sanitize auth / quota / recognition error surface，客户端 `readableError(..., 'network')` 作为二层兜底；focused regression test 覆盖 no-session 401、auth dependency 503、quota raw-detail 不透传、recognition failure 不泄露 raw infra string。因 auth path 敏感，等待 Ready PR 审核与用户显式 GO 后再 merge。
+
+---
+
 ### FU-91 · Supabase schema baseline / fresh-apply 能力恢复
 
 - **优先级**: P3（非上线阻塞）
@@ -450,6 +466,21 @@
 
 ---
 
+### Deferred · FU-103 · 截图校准 lostpointercapture 指针清理低优先级加固
+
+- **状态**: ⏸ deferred（低优先级 hardening，非 launch-blocker）
+- **归属阶段**: 截图识别 / 校准编辑器可靠性
+
+**收口判断（2026-06-23）**: main `/screenshot` 真实流程已由用户验收：上传 → 校准 → 轻点加点 → 轨迹成形；不再复现 launch-blocker。`calibDebug=1` 失效判定为调试脚手架 observer-effect false positive，不是主流程产品 bug，不阻塞 FU-84。
+
+**debug false positive 机制**: 临时 debug scaffold 每个 pointer event 都 `emitDebugLog → setDebugLogs`，导致手势中途重渲染，进而破坏 pointer 状态；日志表现为 `pointersSize >= 2`，误进入 pinch 分支并清掉 `pendingTapRef`，最终 tap-to-add 不触发。
+
+**根代码笔记**: 当前主流程 `pointersRef` 只在 `pointerup` / `pointercancel` 清理。可选 hardening 是在 `lostpointercapture` 时清理对应 pointer，但本轮明确不做，避免在已验收主流程上引入额外 pointer 行为变更。
+
+**边界**: 不修改 main-page pointer / add-point / `pointersRef` 逻辑；不做 optional lostpointercapture hardening；如未来真实用户再次复现，再单独开轻量可靠性 sprint。
+
+---
+
 ## Known Issues
 
 ### Known Issue · checkin 数据字段写入路径异常 — 根因已查明 (2026-06-13)，修复待排期
@@ -474,7 +505,7 @@
 
 ---
 
-## Closed Follow-ups（87 条）
+## Closed Follow-ups（86 条）
 
 ### FU-96 ✅ wakelock 记录可靠性增强
 
@@ -1600,6 +1631,10 @@ Codex 在视觉验证通过、merge 前必须执行：
 
 ## 版本记录
 
+**v0.84 — 2026-06-23**: screenshot launch-blocker investigation closeout · FU-103 从 P1 launch-blocker 降级为 Deferred 低优先级 hardening：main `/screenshot` 流程已被用户验收且不复现，`calibDebug=1` 失效确认为 debug scaffold observer-effect false positive（per-event `emitDebugLog → setDebugLogs` 手势中重渲染，误入 pinch 并清 `pendingTapRef`），本轮不改 main pointer / add-point / `pointersRef`；FU-104 保留 Active，WS1 本地修复已完成，待 Ready PR 审核与用户显式 GO；按 live awk 自检同步修正 Closed header 计数。Active 19 → 18 · Closed 86 → 86 · Deferred 1 → 2。
+
+**v0.83 — 2026-06-19**: launch-blocker registration · 新增 FU-103（截图校准编辑器真实 pointer tap-to-add 失效调查，root cause 未确认，临时 offline debug entry + pointer instrumentation 取证）与 FU-104（截图识别 Supabase auth/network 失败误判为未登录 + raw `fetch failed` 泄露，root cause 已确认，修复中）。仅登记 Active，不做 closeout。Active 17 → 19 · Closed 87 → 87 · Deferred 1 → 1。
+
 **v0.82 — 2026-06-19**: FU-83(b) waypoint coordinates closeout · `mountain_waypoints` 坐标数据化 + Mountain Detail 路线渲染解锁。PR #23 / merge `0fc750c851e2680fe69a707d24927f63c1ef521b` 合入 commits `251cd3e01d3a60050081aedf9d48902227981db2` + `954e03f4b8763d14e711bceeea11ad74461d3dc8`；生产 migration `20260619090000_add_waypoint_coordinates` 已 apply，`latitude` / `longitude` columns 与 `mountain_waypoints_latitude_range` / `mountain_waypoints_longitude_range` constraints 已 SQL 确认。R1/R2 同步清理 Mountain Detail route-card 信息层级；FU-83 保持 Active，仅剩 (c) contour / terrain layer allowlist deferred。Active 17 → 17 · Closed 87 → 87 · Deferred 1 → 1。
 
 **v0.81 — 2026-06-18**: FU-96 closeout · 记录态屏幕保持唤醒(wake lock)上线。新增 `useWakeLock` + `shouldHoldScreenWakeLock` 谓词，活跃记录（`locating` / `tracking` / `approach_alert` 未暂停 + `summit_photo`）保持屏幕唤醒，暂停 / 结束 / 离开释放，`visibilitychange` 重取，不支持环境 no-op 降级；纯加性接入 TrekClient，不改 GPS / session / nav / pause。PR #22 / merge `dd714123b79603d3859c6e0d12f55a59e98a3299`。
@@ -2438,5 +2473,5 @@ v0.8 机械化清单第九次实战。Active / Closed 数字均不变（FU-46 um
 每次 V3 收尾必须运行下面命令，并与 Active / Closed 标题数字对比：
 
 ```bash
-awk '/^## Active Follow-ups/{a=1;b=0;d=0;ac=0;next} /^## Deferred Registration/{a=0;b=0;d=1;dc=0;next} /^## Known Issues/{d=0;next} /^## Closed Follow-ups/{a=0;b=1;d=0;cc=0;next} /^## /{a=0;b=0;d=0;next} a==1 && /^### (FU-|Issue-)/{ac++} d==1 && /^### Deferred · FU-/{dc++} b==1 && /^### (FU-|Issue-)/{cc++} END{print "Active actual:", ac; print "Closed actual:", cc; print "Deferred actual:", dc}' docs/follow-ups.md
+awk '/^## Active Follow-ups/{a=1;b=0;d=0;ac=0;next} /^## Deferred Registration/{a=0;b=0;d=1;dc=0;next} /^## Known Issues/{d=0;next} /^## Closed Follow-ups/{a=0;b=1;d=0;cc=0;next} /^## /{a=0;b=0;d=0;next} a==1 && /^### FU-/{ac++} d==1 && /^### Deferred · FU-/{dc++} b==1 && /^### FU-/{cc++} END{print "Active actual:", ac; print "Closed actual:", cc; print "Deferred actual:", dc}' docs/follow-ups.md
 ```

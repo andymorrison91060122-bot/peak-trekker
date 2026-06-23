@@ -11,6 +11,9 @@ const screenshotQuotaHelper = readFileSync('src/lib/screenshot/quota.ts', 'utf8'
 const screenshotOcrAdapter = readFileSync('src/lib/screenshot/tencent-ocr-adapter.ts', 'utf8')
 const screenshotRecognitionStatus = readFileSync('src/lib/screenshot/recognition-status.ts', 'utf8')
 const screenshotRecognitionService = readFileSync('src/lib/screenshot/recognition-service.ts', 'utf8')
+const screenshotRecognizeErrorCopy = readFileSync('src/lib/screenshot/recognize-error-copy.ts', 'utf8')
+const screenshotRecognizeAuthErrors = readFileSync('src/lib/screenshot/recognize-auth-errors.ts', 'utf8')
+const screenshotRecognizeClientErrors = readFileSync('src/lib/screenshot/recognize-client-errors.ts', 'utf8')
 const screenshotMimoAdapter = readFileSync('src/lib/screenshot/mimo-v25-adapter.ts', 'utf8')
 const screenshotMimoAdjudicator = readFileSync('src/lib/screenshot/mimo-v25-text-adjudicator.ts', 'utf8')
 const screenshotFieldValidation = readFileSync('src/lib/screenshot-field-validation.ts', 'utf8')
@@ -207,9 +210,24 @@ test('screenshot recognition transient errors use friendly copy and do not consu
   )
   assert.equal(consumed, false)
 
-  assert.match(screenshotRecognizeRoute, /识别服务暂时不可用，请稍后重试。本次未消耗识别次数。/)
+  assert.match(screenshotRecognizeErrorCopy, /识别服务暂时不可用，请稍后重试。本次未消耗识别次数。/)
   assert.match(screenshotRecognizeRoute, /return recognitionFailureResponse\(error\)/)
   assert.doesNotMatch(screenshotRecognizeRoute, /\{ error: error instanceof Error \? error\.message/)
+})
+
+test('screenshot recognize route sanitizes auth, quota, and client network error surfaces', () => {
+  assert.match(screenshotRecognizeRoute, /resolveScreenshotAuthState/)
+  assert.match(screenshotRecognizeAuthErrors, /isAuthRetryableFetchError/)
+  assert.match(screenshotRecognizeAuthErrors, /isAuthSessionMissingError/)
+  assert.match(screenshotRecognizeRoute, /authUnavailableResponse\(auth\.error\)/)
+  assert.match(screenshotRecognizeRoute, /SCREENSHOT_RECOGNITION_RETRY_MESSAGE/)
+  assert.match(screenshotRecognizeRoute, /console\.error\('screenshot quota consumption failed'/)
+  assert.match(screenshotRecognizeRoute, /\{ error: TEMPORARY_QUOTA_ERROR_MESSAGE \}/)
+  assert.doesNotMatch(screenshotRecognizeRoute, /\{ error: quotaResult\.error/)
+  assert.doesNotMatch(screenshotRecognizeRoute, /quotaResult\.error \?\?/)
+  assert.match(screenshotRecognizeClientErrors, /kind === 'network'/)
+  assert.match(screenshotRecognizeClientErrors, /SCREENSHOT_RECOGNITION_RETRY_MESSAGE/)
+  assert.match(screenshotRecognizeClientErrors, /if \(kind === 'network'\) \{[\s\S]*SCREENSHOT_RECOGNITION_RETRY_MESSAGE[\s\S]*\}/)
 })
 
 test('screenshot client surfaces quota state and upgrade placeholder', () => {

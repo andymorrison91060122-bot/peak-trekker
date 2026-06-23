@@ -3,6 +3,12 @@ import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { getScreenshotQuotaState } from '@/lib/screenshot/quota'
 import { recognizeThenConsumeScreenshotQuota } from '@/lib/screenshot/recognition-quota'
 import { screenshotRecognitionErrorStatus } from '@/lib/screenshot/recognition-status'
+import {
+  SCREENSHOT_QUOTA_RETRY_MESSAGE,
+  SCREENSHOT_RECOGNITION_TEMPORARY_MESSAGE,
+  SCREENSHOT_RECOGNITION_RETRY_MESSAGE,
+} from '@/lib/screenshot/recognize-error-copy'
+import { resolveScreenshotAuthState } from '@/lib/screenshot/recognize-auth-errors'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
@@ -10,8 +16,27 @@ export const maxDuration = 60
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
 const SUPPORTED_SCREENSHOT_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
-const TEMPORARY_RECOGNITION_ERROR_MESSAGE = '识别服务暂时不可用，请稍后重试。本次未消耗识别次数。'
-const TEMPORARY_QUOTA_ERROR_MESSAGE = '识别额度暂时不可用，请稍后重试。'
+const TEMPORARY_RECOGNITION_ERROR_MESSAGE = SCREENSHOT_RECOGNITION_TEMPORARY_MESSAGE
+const TEMPORARY_QUOTA_ERROR_MESSAGE = SCREENSHOT_QUOTA_RETRY_MESSAGE
+
+function unauthorizedResponse() {
+  return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+}
+
+function authUnavailableResponse(error: unknown) {
+  console.error('screenshot recognition auth unavailable', { error })
+  return NextResponse.json({ error: SCREENSHOT_RECOGNITION_RETRY_MESSAGE }, { status: 503 })
+}
+
+async function getScreenshotUser(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
+  const auth = await resolveScreenshotAuthState(() => supabase.auth.getUser())
+  if (auth.status === 'authenticated') return { user: auth.user }
+  return {
+    response: auth.status === 'unavailable'
+      ? authUnavailableResponse(auth.error)
+      : unauthorizedResponse(),
+  }
+}
 
 export function recognitionFailureResponse(error: unknown) {
   console.error('screenshot recognition failed', {
@@ -49,14 +74,9 @@ function quotaExhaustedResponse(quota: Awaited<ReturnType<typeof getScreenshotQu
 
 export async function GET() {
   const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  }
+  const auth = await getScreenshotUser(supabase)
+  if ('response' in auth) return auth.response
+  const { user } = auth
 
   try {
     const quota = await getScreenshotQuotaState(supabase, user.id)
@@ -69,14 +89,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  }
+  const auth = await getScreenshotUser(supabase)
+  if ('response' in auth) return auth.response
+  const { user } = auth
 
   const formData = await request.formData().catch(() => null)
   const file = formData?.get('image')
@@ -109,10 +124,11 @@ export async function POST(request: Request) {
         return quotaExhaustedResponse(quotaResult.quota)
       }
 
-      return NextResponse.json(
-        { error: quotaResult.error ?? '识别额度扣减失败，请稍后重试。' },
-        { status: 500 }
-      )
+      console.error('screenshot quota consumption failed', {
+        reason: quotaResult.reason,
+        error: quotaResult.error,
+      })
+      return NextResponse.json({ error: TEMPORARY_QUOTA_ERROR_MESSAGE }, { status: 500 })
     }
 
     return NextResponse.json({

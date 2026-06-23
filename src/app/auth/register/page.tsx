@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import {
+  buildOnboardingCompletionPayload,
   getProvinceDraft,
   setIntroSeen,
   setProvinceDraft,
@@ -26,6 +27,15 @@ function RegisterPageContent() {
   const searchParams = useSearchParams()
   const supabase = createSupabaseBrowserClient()
   const returnTo = resolveClientAuthReturnPath(searchParams.get('from'), '/explore')
+
+  async function persistOnboardingCompletionToProfile(activeUserId: string) {
+    try {
+      const { error } = await supabase.from('profiles').update(buildOnboardingCompletionPayload()).eq('id', activeUserId)
+      if (error) console.warn('Onboarding completion persistence failed during register')
+    } catch {
+      console.warn('Onboarding completion persistence failed during register')
+    }
+  }
 
   useEffect(() => {
     const draftProvince = getProvinceDraft()
@@ -101,6 +111,7 @@ function RegisterPageContent() {
           })
           clearShareAttribution()
         }
+        await persistOnboardingCompletionToProfile(activeUserId)
       }
       clearClientAuthReturnPath()
       window.location.assign(returnTo)

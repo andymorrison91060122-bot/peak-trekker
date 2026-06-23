@@ -7,11 +7,15 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import {
   ONBOARDING_EVENT,
   ONBOARDING_VERSION,
+  buildOnboardingCompletionPayload,
+  getOnboardingSelfHealKey,
   getOnboardingProgress,
   getProvinceDraft,
+  isLocalIntroCurrent,
   migrateLegacyOnboarding,
   setIntroSeen,
   setProvinceDraft as persistProvinceDraft,
+  shouldPersistOnboardingSelfHeal,
 } from '@/lib/onboarding'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { PROVINCES, getProvinceCode } from '@/lib/provinces'
@@ -42,6 +46,7 @@ export default function OnboardingModal({
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
   const interactedRef = useRef(false)
   const provinceSyncRef = useRef<string | null>(null)
+  const selfHealSyncRef = useRef<Set<string>>(new Set())
   const supportsEntryFlow = pathname === '/explore'
   const suppressOnboardingUI = pathname === '/onboarding-qa'
 
@@ -96,9 +101,9 @@ export default function OnboardingModal({
     async (province: string) => {
       if (!currentUserId) return
       const payload = {
+        ...buildOnboardingCompletionPayload(),
         province,
         province_code: getProvinceCode(province),
-        onboarding_version: ONBOARDING_VERSION,
       }
 
       const { error } = await supabase.from('profiles').update(payload).eq('id', currentUserId)
@@ -117,12 +122,22 @@ export default function OnboardingModal({
 
   const syncOnboardingVersionToProfile = useCallback(async () => {
     if (!currentUserId) return
-    await supabase
-      .from('profiles')
-      .update({
-        onboarding_version: ONBOARDING_VERSION,
-      })
-      .eq('id', currentUserId)
+    try {
+      const { error } = await supabase.from('profiles').update(buildOnboardingCompletionPayload()).eq('id', currentUserId)
+      if (error) console.warn('Onboarding completion persistence failed')
+    } catch {
+      console.warn('Onboarding completion persistence failed')
+    }
+  }, [currentUserId, supabase])
+
+  const persistOnboardingSelfHeal = useCallback(async () => {
+    if (!currentUserId) return
+    try {
+      const { error } = await supabase.from('profiles').update(buildOnboardingCompletionPayload()).eq('id', currentUserId)
+      if (error) console.warn('Onboarding self-heal persistence failed')
+    } catch {
+      console.warn('Onboarding self-heal persistence failed')
+    }
   }, [currentUserId, supabase])
 
   const completeIntro = useCallback(() => {
@@ -136,6 +151,24 @@ export default function OnboardingModal({
     const frame = window.requestAnimationFrame(() => refreshProgress())
     return () => window.cancelAnimationFrame(frame)
   }, [refreshProgress])
+
+  useEffect(() => {
+    if (!currentUserId) return
+    if (
+      !shouldPersistOnboardingSelfHeal(
+        currentUserId,
+        initialOnboardingVersion,
+        isLocalIntroCurrent()
+      )
+    ) {
+      return
+    }
+
+    const selfHealKey = getOnboardingSelfHealKey(currentUserId)
+    if (selfHealSyncRef.current.has(selfHealKey)) return
+    selfHealSyncRef.current.add(selfHealKey)
+    void persistOnboardingSelfHeal()
+  }, [currentUserId, initialOnboardingVersion, persistOnboardingSelfHeal])
 
   useEffect(() => {
     if (!initialProvince) return

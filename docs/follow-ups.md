@@ -9,7 +9,7 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`176ad0cda660ff1dfd1936b4fe01da517e28ab8a`（Merge FU-92 onboarding cross-device completion persistence · 2026-06-23）
+`47a35a4fe50a71bd4e8213e92aafa059a9dfe925`（Merge FU-99 auto-summit measured-field persistence · 2026-06-23）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint

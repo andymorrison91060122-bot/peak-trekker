@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-23 · 最新版本记录: v0.84
+> Last Updated: 2026-06-23 · 最新版本记录: v0.85
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`0fc750c851e2680fe69a707d24927f63c1ef521b`（Merge FU-83(b) waypoint coordinates unlock Mountain Detail route rendering · 2026-06-19）
+`cd9ae20e1696c5350c953bcdd90fb619374a1ba2`（Merge FU-104 screenshot recognize auth/network error classification · 2026-06-23）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（18 条）
+## Active Follow-ups（17 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -402,22 +402,6 @@
 
 ---
 
-### FU-104 · 截图识别 auth/network 错误误判与 raw error 泄露
-
-- **优先级**: P1（launch-blocker）
-- **归属阶段**: 截图识别 / 线上稳定性
-- **状态**: 🟡 fixed locally · WS1 PR pending
-
-**现象**: 中国本地 dev 环境 Supabase/OCR 网络不稳定时，`/screenshot` 直载会把 Supabase auth transport/TLS 失败误判为未登录，展示“登录后才能识别截图 / 去登录”；上传路径还可能把 `TypeError: fetch failed` 原样暴露给用户。
-
-**根因**: `/api/screenshot/recognize` 的 GET / POST 对 `supabase.auth.getUser()` 使用 `authError || !user → 401`，未区分 `AuthSessionMissingError` 与 `AuthRetryableFetchError` / transport failure；POST 的 `getUser()` 还在业务 try/catch 外。另有 quota consumption failure surface 会把 `quotaResult.error` 直接返回给 client。
-
-**修复方向**: 真实无 session / 401 / 403 继续 401；Supabase auth transport / missing status / 5xx / fetch failed / ECONNRESET / timeout 返回 503 + 用户安全重试文案；quota 扣减失败不透传 raw error；客户端 `network` 分支作为第二层兜底，永不显示 raw infra 字符串。
-
-**修复状态（2026-06-23）**: WS1 本地 diff 已完成：服务端统一 sanitize auth / quota / recognition error surface，客户端 `readableError(..., 'network')` 作为二层兜底；focused regression test 覆盖 no-session 401、auth dependency 503、quota raw-detail 不透传、recognition failure 不泄露 raw infra string。因 auth path 敏感，等待 Ready PR 审核与用户显式 GO 后再 merge。
-
----
-
 ### FU-91 · Supabase schema baseline / fresh-apply 能力恢复
 
 - **优先级**: P3（非上线阻塞）
@@ -505,7 +489,17 @@
 
 ---
 
-## Closed Follow-ups（86 条）
+## Closed Follow-ups（87 条）
+
+### FU-104 ✅ 截图识别 auth/network 错误误判与 raw error 泄露
+
+- **关闭原因**: FU-104 WS1 已合入并部署，修复 `/api/screenshot/recognize` 对 Supabase auth / network / raw infra error 的错误分类与泄露问题。PR #24 / branch `codex/fu104-screenshot-recognize-errors` / merge `cd9ae20e1696c5350c953bcdd90fb619374a1ba2` 合入 commit `1e402c1796e251094fe8d68c7733792b3d0d6fb7`，无 migration / DB 写入 / backend schema 改动。
+- **落地内容**: 新增 `resolveScreenshotAuthState()` 分类层，真实 no-session / 401 / 403 仍返回 401；`AuthRetryableFetchError`、thrown `fetch failed`、5xx、missing status、transport / TLS / timeout / ECONNRESET 等 auth dependency failure 返回 503 + 用户安全重试文案。POST auth check 移入统一路径；quota consumption failure 不再把 raw `quotaResult.error` 传给 client，而是返回 `TEMPORARY_QUOTA_ERROR_MESSAGE`；client `readableError(..., 'network')` 作为二层兜底，不展示 raw infra string。
+- **验收 / 证据**: PR diff 经人工审核后用户 GO。合并后 main 一手核验只包含 8 个 WS1 文件，未带入 FU-84 / WS2 / `scripts/fu36-*`；`route.ts` 确认包含 `resolveScreenshotAuthState`、`authUnavailableResponse(503)`，且 quota 失败响应返回 `TEMPORARY_QUOTA_ERROR_MESSAGE`。Focused tests `tests/screenshot-recognize-error-handling.test.ts` + `tests/screenshot-confirm-static.test.ts` 20/20 pass；`npm run lint` 0 errors / 6 warnings；`npm run build` pass，51/51 static pages generated；`git diff --check` clean。
+- **生产部署**: Vercel deployment `dpl_BfwMB7s7pgUmyXEf7EEjng76Zwk1` READY，built commit `cd9ae20e1696c5350c953bcdd90fb619374a1ba2`，production URL `https://peak-trekker.vercel.app`。Read-only prod sanity: `GET /screenshot` 返回 200 且 HTML 未命中 `calibDebug` / debug scaffold；unauthenticated `GET /api/screenshot/recognize` 返回 401 `{"error":"unauthorized"}`，确认 genuine no-session 未被误归类为 503。
+- **计数口径**: 本次 closeout 沿用 FU-only 计数约定：Active / Closed header 只统计 `### FU-` entries；legacy `### Issue-3` 仍保留在 Closed section 作为历史问题记录，但不计入 Closed header。`Closed 86 → 87` 是 FU-104 关闭后的 FU-only live count，不代表删除或隐藏任何 Closed entry。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-06-23
 
 ### FU-96 ✅ wakelock 记录可靠性增强
 
@@ -1630,6 +1624,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.85 — 2026-06-23**: FU-104 closeout · 截图识别 auth/network/raw-error 分类修复上线。PR #24 / merge `cd9ae20e1696c5350c953bcdd90fb619374a1ba2` 合入 WS1 fix：真实 no-session 仍 401；Supabase auth dependency / transport failure 返回 503 + 友好重试文案；quota consumption failure 不再透传 raw `quotaResult.error`；client network fallback 不泄露 infra string。生产部署 `dpl_BfwMB7s7pgUmyXEf7EEjng76Zwk1` READY；`/screenshot` 200 且 HTML 无 `calibDebug` / debug scaffold；unauthenticated `GET /api/screenshot/recognize` 返回 401。计数口径重申：Active / Closed header 采用 FU-only 统计（`### FU-`）；legacy `### Issue-3` 仍留在 Closed section 但不计入 header。Active 18 → 17 · Closed 86 → 87 · Deferred 2 → 2。
 
 **v0.84 — 2026-06-23**: screenshot launch-blocker investigation closeout · FU-103 从 P1 launch-blocker 降级为 Deferred 低优先级 hardening：main `/screenshot` 流程已被用户验收且不复现，`calibDebug=1` 失效确认为 debug scaffold observer-effect false positive（per-event `emitDebugLog → setDebugLogs` 手势中重渲染，误入 pinch 并清 `pendingTapRef`），本轮不改 main pointer / add-point / `pointersRef`；FU-104 保留 Active，WS1 本地修复已完成，待 Ready PR 审核与用户显式 GO；按 live awk 自检同步修正 Closed header 计数。Active 19 → 18 · Closed 86 → 86 · Deferred 1 → 2。
 

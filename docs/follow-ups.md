@@ -9,7 +9,7 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`5a19fd486c5495d0926eb38f11f3a3ce2ff51af5`（Merge FU-84 calibration editor math cleanup and drag smoothness safe-subset · 2026-06-23）
+`176ad0cda660ff1dfd1936b4fe01da517e28ab8a`（Merge FU-92 onboarding cross-device completion persistence · 2026-06-23）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint

@@ -1,4 +1,4 @@
-import { buildShareTrackPreview, type ShareTrackPreviewPoint } from '../share-track-preview.ts'
+import { clamp } from './math.ts'
 
 export type UnitPoint = {
   x: number
@@ -21,15 +21,7 @@ export type ScoreField = {
   evidence: Float32Array
 }
 
-export type SegmentGateResult = {
-  posterEligible: boolean
-  meanEvidence: number
-  lowEvidenceRatio: number
-  longestLowRunPx: number
-  rejectionReasons: string[]
-}
-
-export type AstarResult = {
+type AstarResult = {
   points: PixelPoint[]
   cost: number
   expanded: number
@@ -72,10 +64,6 @@ export type LivewireSegmentResult = {
 }
 
 const DEFAULT_PSEUDO_COORDINATE_EPSILON = 0.0001
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value))
-}
 
 function distancePointToSegment(point: PixelPoint, a: PixelPoint, b: PixelPoint) {
   const dx = b.x - a.x
@@ -145,111 +133,6 @@ export function encodeUnitPointsToPseudoTrackPoints(
     longitude: safeEpsilon + clamp(point.x, 0, 1) * scale,
     latitude: safeEpsilon + (1 - clamp(point.y, 0, 1)) * scale,
   }))
-}
-
-function bboxNormalize(points: UnitPoint[]) {
-  if (points.length === 0) return []
-  const minX = Math.min(...points.map((point) => point.x))
-  const maxX = Math.max(...points.map((point) => point.x))
-  const minY = Math.min(...points.map((point) => point.y))
-  const maxY = Math.max(...points.map((point) => point.y))
-  const width = Math.max(maxX - minX, 0.0000001)
-  const height = Math.max(maxY - minY, 0.0000001)
-  const range = Math.max(width, height)
-  const offsetX = (range - width) / 2
-  const offsetY = (range - height) / 2
-
-  return points.map((point) => ({
-    x: (point.x - minX + offsetX) / range,
-    y: (point.y - minY + offsetY) / range,
-  }))
-}
-
-export function compareEditorToSharePreviewShape(points: UnitPoint[]) {
-  const preview = buildShareTrackPreview(encodeUnitPointsToPseudoTrackPoints(points), Math.max(1, points.length))
-  if (!preview) {
-    return {
-      preview: null,
-      maxDelta: Infinity,
-      meanDelta: Infinity,
-    }
-  }
-
-  const normalizedEditor = bboxNormalize(points)
-  const count = Math.min(normalizedEditor.length, preview.points.length)
-  if (count === 0) {
-    return {
-      preview,
-      maxDelta: Infinity,
-      meanDelta: Infinity,
-    }
-  }
-
-  const deltas = normalizedEditor.slice(0, count).map((point, index) => {
-    const rendered = preview.points[index]!
-    return Math.hypot(point.x - rendered.x, point.y - rendered.y)
-  })
-
-  return {
-    preview,
-    maxDelta: Math.max(...deltas),
-    meanDelta: deltas.reduce((sum, value) => sum + value, 0) / deltas.length,
-  }
-}
-
-export function buildSeededEvidenceField({
-  rgba,
-  width,
-  height,
-  seed,
-  seedRadius = 5,
-}: {
-  rgba: Uint8ClampedArray | Buffer
-  width: number
-  height: number
-  seed: PixelPoint
-  seedRadius?: number
-}): ScoreField {
-  const seedPixels: Array<{ h: number; s: number; v: number }> = []
-  const cx = Math.round(seed.x)
-  const cy = Math.round(seed.y)
-
-  for (let y = Math.max(0, cy - seedRadius); y <= Math.min(height - 1, cy + seedRadius); y += 1) {
-    for (let x = Math.max(0, cx - seedRadius); x <= Math.min(width - 1, cx + seedRadius); x += 1) {
-      if (Math.hypot(x - cx, y - cy) > seedRadius) continue
-      const offset = pixelIndex(width, x, y) * 4
-      const hsv = rgbToHsv(Number(rgba[offset]), Number(rgba[offset + 1]), Number(rgba[offset + 2]))
-      if (hsv.s < 0.16 || hsv.v < 0.16) continue
-      seedPixels.push(hsv)
-    }
-  }
-
-  const fallbackOffset = pixelIndex(width, clamp(cx, 0, width - 1), clamp(cy, 0, height - 1)) * 4
-  const fallback = rgbToHsv(Number(rgba[fallbackOffset]), Number(rgba[fallbackOffset + 1]), Number(rgba[fallbackOffset + 2]))
-  const center =
-    seedPixels.length > 0
-      ? {
-          h: seedPixels.reduce((sum, item) => sum + item.h, 0) / seedPixels.length,
-          s: seedPixels.reduce((sum, item) => sum + item.s, 0) / seedPixels.length,
-          v: seedPixels.reduce((sum, item) => sum + item.v, 0) / seedPixels.length,
-        }
-      : fallback
-
-  const evidence = new Float32Array(width * height)
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const offset = pixelIndex(width, x, y) * 4
-      const hsv = rgbToHsv(Number(rgba[offset]), Number(rgba[offset + 1]), Number(rgba[offset + 2]))
-      const hue = normalizeHueDelta(hsv.h, center.h)
-      const sat = Math.abs(hsv.s - center.s)
-      const val = Math.abs(hsv.v - center.v)
-      const colorScore = Math.exp(-(hue * hue * 18 + sat * sat * 3.2 + val * val * 2.2))
-      const saturationBoost = clamp((hsv.s - 0.08) / 0.4, 0, 1)
-      evidence[pixelIndex(width, x, y)] = clamp(colorScore * (0.45 + saturationBoost * 0.55), 0, 1)
-    }
-  }
-
-  return { width, height, evidence }
 }
 
 function pathLength(points: PixelPoint[]) {
@@ -385,7 +268,7 @@ export function buildAnchorEvidenceField({
   return { width, height, evidence }
 }
 
-export function buildCorridorMask({
+function buildCorridorMask({
   width,
   height,
   start,
@@ -615,7 +498,7 @@ function snapToEvidence(field: ScoreField, point: PixelPoint, radius: number) {
   return best.point
 }
 
-export function findAstarPath({
+function findAstarPath({
   field,
   start,
   end,
@@ -694,74 +577,4 @@ export function findAstarPath({
   }
 
   return null
-}
-
-export function gateSegment({
-  field,
-  points,
-  lowThreshold = 0.32,
-  maxLowRatio = 0.32,
-  maxLowRunPx = 56,
-}: {
-  field: ScoreField
-  points: PixelPoint[]
-  lowThreshold?: number
-  maxLowRatio?: number
-  maxLowRunPx?: number
-}): SegmentGateResult {
-  if (points.length === 0) {
-    return {
-      posterEligible: false,
-      meanEvidence: 0,
-      lowEvidenceRatio: 1,
-      longestLowRunPx: 0,
-      rejectionReasons: ['empty_path'],
-    }
-  }
-
-  let sum = 0
-  let low = 0
-  let currentRun = 0
-  let longestLowRunPx = 0
-  for (const point of points) {
-    const x = Math.round(clamp(point.x, 0, field.width - 1))
-    const y = Math.round(clamp(point.y, 0, field.height - 1))
-    const evidence = field.evidence[pixelIndex(field.width, x, y)]!
-    sum += evidence
-    if (evidence < lowThreshold) {
-      low += 1
-      currentRun += 1
-      longestLowRunPx = Math.max(longestLowRunPx, currentRun)
-    } else {
-      currentRun = 0
-    }
-  }
-
-  const meanEvidence = sum / points.length
-  const lowEvidenceRatio = low / points.length
-  const rejectionReasons = [
-    ...(meanEvidence < 0.42 ? ['mean_evidence_low'] : []),
-    ...(lowEvidenceRatio > maxLowRatio ? ['low_evidence_ratio'] : []),
-    ...(longestLowRunPx > maxLowRunPx ? ['long_low_evidence_run'] : []),
-  ]
-
-  return {
-    posterEligible: rejectionReasons.length === 0,
-    meanEvidence,
-    lowEvidenceRatio,
-    longestLowRunPx,
-    rejectionReasons,
-  }
-}
-
-export function buildPreviewFromUnitPoints(points: UnitPoint[]) {
-  return buildShareTrackPreview(encodeUnitPointsToPseudoTrackPoints(points), Math.max(1, points.length))
-}
-
-export function previewPointToSvg(point: ShareTrackPreviewPoint, size: number, padding: number) {
-  const inner = size - padding * 2
-  return {
-    x: padding + point.x * inner,
-    y: padding + point.y * inner,
-  }
 }

@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-23 · 最新版本记录: v0.85
+> Last Updated: 2026-06-23 · 最新版本记录: v0.86
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（17 条）
+## Active Follow-ups（16 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -316,19 +316,6 @@
 
 ---
 
-### FU-84 · 校准编辑器工程债
-
-- **优先级**: P3
-- **归属阶段**: 工程债
-- **状态**: 🟢 active
-
-**范围**:
-- livewire 性能（FIX#6 #8）：拖动 throttle、worker evidence field 720² 重建复用。
-- FIX#6 #10 剩余：`clamp` ×3 / `bbox-normalize` ×3 去重、`geometry.ts` 死导出清理、编辑器 `pathFromUnitPoints` 与 ActivityRouteMap `screenshotSegmentPath` 双份 SVG path builder 合一（lockstep 发散风险）。
-- 拖拽态二级打磨残留：非活动点压暗 ~60%、hide-others-while-dragging（FU-74 未覆盖）。
-
----
-
 ### FU-85 · 分享/模板门面改造
 
 - **优先级**: P1
@@ -489,7 +476,16 @@
 
 ---
 
-## Closed Follow-ups（87 条）
+## Closed Follow-ups（88 条）
+
+### FU-84 ✅ 校准编辑器工程债（safe-subset）
+
+- **关闭原因**: FU-84 safe-subset 已完成并由用户 2026-06-23 真机验收 PASS：main `/screenshot` 流程 tap-to-add 可用，拖拽顺滑，拖拽时 inactive markers 变暗且不影响命中区。PR 待本分支审核合入；无 DB / migration / backend 改动。
+- **落地范围**: 新增 `src/lib/screenshot-track/math.ts`，集中 `clamp()` 与 `normalizeBboxPoints()`；`calibration.ts` / `geometry.ts` 复用共享 clamp / bbox normalize，移除重复实现。清理 `geometry.ts` / `calibration.ts` 中未使用或 dead exports（含 `fieldFromEvidence`、`buildSeededEvidenceField`、`gateSegment`、preview helper 等），并把 `buildCorridorMask` / `findAstarPath` 收回 module-private。校准编辑器拖拽更新改为 `requestAnimationFrame` throttle，pointerup / clear / close / unmount cancel pending frame 后做最终同步落点；拖拽中非活动 marker 视觉压暗到 `0.4`，hit circle 保持透明但可交互。
+- **测试 / 验收**: `tests/screenshot-track-geometry.test.ts` 重新走 live path 校验 WYSIWYG / segment-quality，并新增 clamp NaN 与 bbox minExtent pins；`tests/screenshot-route-calibration-static.test.ts` 固定 rAF cancel-first ordering、清理路径与 inactive-marker dim 断言。用户 real-device 验收：tap-to-add via main `/screenshot` flow + drag smooth + inactive-marker dim。
+- **未纳入本 safe-subset 的 remainder**: `pathFromUnitPoints` 与 ActivityRouteMap `screenshotSegmentPath` 双份 SVG path builder 合一仍保留为未来低风险 cleanup；worker evidence field 720² 重建复用 / hide-others-while-dragging 未在本 PR 中扩大处理。此次 closeout 不宣称这些 deferred remainder 已解决，也不新增 FU。
+- **关闭 commit**: 本次 PR commit
+- **关闭时间**: 2026-06-23
 
 ### FU-104 ✅ 截图识别 auth/network 错误误判与 raw error 泄露
 
@@ -1624,6 +1620,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.86 — 2026-06-23**: FU-84 closeout · 校准编辑器工程债 safe-subset 完成。新增共享 `src/lib/screenshot-track/math.ts`（`clamp` + `normalizeBboxPoints`），`calibration.ts` / `geometry.ts` 去重 clamp / bbox normalize 并清理 dead exports；校准编辑器拖拽改为 rAF throttle + release/clear/close/unmount cancel-first，拖拽中 inactive markers 压暗且 hit area 保持可交互。测试覆盖 WYSIWYG / segment-quality live path、clamp NaN、bbox minExtent、rAF cancel-first 与 drag visual static guards。用户 2026-06-23 real-device 验收 PASS（tap-to-add main `/screenshot` flow + drag smooth + inactive-marker dim）。未纳入本 safe-subset 的 path-builder 合一 / worker evidence reuse / hide-others-while-dragging 明确保留为 future cleanup，不新增 FU。Active 17 → 16 · Closed 87 → 88 · Deferred 2 → 2。
 
 **v0.85 — 2026-06-23**: FU-104 closeout · 截图识别 auth/network/raw-error 分类修复上线。PR #24 / merge `cd9ae20e1696c5350c953bcdd90fb619374a1ba2` 合入 WS1 fix：真实 no-session 仍 401；Supabase auth dependency / transport failure 返回 503 + 友好重试文案；quota consumption failure 不再透传 raw `quotaResult.error`；client network fallback 不泄露 infra string。生产部署 `dpl_BfwMB7s7pgUmyXEf7EEjng76Zwk1` READY；`/screenshot` 200 且 HTML 无 `calibDebug` / debug scaffold；unauthenticated `GET /api/screenshot/recognize` 返回 401。计数口径重申：Active / Closed header 采用 FU-only 统计（`### FU-`）；legacy `### Issue-3` 仍留在 Closed section 但不计入 header。Active 18 → 17 · Closed 86 → 87 · Deferred 2 → 2。
 

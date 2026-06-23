@@ -17,6 +17,7 @@ import {
   type ScreenshotRouteSegment,
   type UnitPoint,
 } from '@/lib/screenshot-track/calibration'
+import { clamp } from '@/lib/screenshot-track/math'
 import { SCREENSHOT_ROUTE_SHAPE_LIMITS } from '@/lib/screenshot-route-shape'
 
 const SAMPLE_MAX_SIDE = 720
@@ -84,10 +85,6 @@ type ScreenshotRouteCalibrationSectionProps = {
   imagePreview: string | null
   calibration: ScreenshotRouteCalibration
   onCalibrationChange: (calibration: ScreenshotRouteCalibration) => void
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value))
 }
 
 function createControlPoint(x: number, y: number): CalibrationControlPoint {
@@ -561,6 +558,8 @@ function ControlPointsLayer({
       {points.map((point, index) => {
         const isEnd = index === points.length - 1 && points.length > 1
         const isActive = activeId === point.id
+        const isDraggingAnotherPoint = activeId !== null && !isActive
+        const inactiveDragOpacity = isDraggingAnotherPoint ? 0.4 : 1
         return (
           <g key={point.id}>
             <circle
@@ -573,8 +572,9 @@ function ControlPointsLayer({
               stroke={ROUTE_COLOR}
               strokeWidth={isActive ? activeStrokeWidth : strokeWidth}
               pointerEvents="none"
+              opacity={inactiveDragOpacity}
               style={{
-                transition: 'r 140ms ease, filter 180ms ease',
+                transition: 'r 140ms ease, opacity 140ms ease, filter 180ms ease',
               }}
             />
             {!isEnd ? (
@@ -584,6 +584,8 @@ function ControlPointsLayer({
                 r={Math.max(4 / Math.max(1, zoom), pointRadius * 0.32)}
                 fill={ROUTE_COLOR}
                 pointerEvents="none"
+                opacity={inactiveDragOpacity}
+                style={{ transition: 'opacity 140ms ease' }}
               />
             ) : null}
             <circle
@@ -825,6 +827,8 @@ export default function ScreenshotRouteCalibrationSection({
   const pinchRef = useRef<PinchState | null>(null)
   const panRef = useRef<PanState | null>(null)
   const pendingTapRef = useRef<{ pointerId: number; x: number; y: number; unit: UnitPoint } | null>(null)
+  const pendingDragUpdateRef = useRef<{ pointId: string; unit: UnitPoint } | null>(null)
+  const dragFrameRef = useRef<number | null>(null)
   const fallbackImageDataRef = useRef<ImageData | null>(null)
   const calibrationRef = useRef(calibration)
   const lockTimerRef = useRef<number | null>(null)
@@ -924,6 +928,7 @@ export default function ScreenshotRouteCalibrationSection({
 
   useEffect(() => {
     return () => {
+      cancelPendingDragUpdate()
       workerRef.current?.terminate()
       workerRef.current = null
       if (lockTimerRef.current !== null) window.clearTimeout(lockTimerRef.current)
@@ -1115,6 +1120,26 @@ export default function ScreenshotRouteCalibrationSection({
     solveSegments(nextPoints)
   }
 
+  function cancelPendingDragUpdate() {
+    if (dragFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragFrameRef.current)
+      dragFrameRef.current = null
+    }
+    pendingDragUpdateRef.current = null
+  }
+
+  function scheduleDragPointUpdate(pointId: string, unit: UnitPoint) {
+    pendingDragUpdateRef.current = { pointId, unit }
+    if (dragFrameRef.current !== null) return
+    dragFrameRef.current = window.requestAnimationFrame(() => {
+      dragFrameRef.current = null
+      const pending = pendingDragUpdateRef.current
+      pendingDragUpdateRef.current = null
+      if (!pending) return
+      updatePoint(pending.pointId, pending.unit)
+    })
+  }
+
   function addPoint(unit: UnitPoint) {
     if (locked) return
     const currentCount = calibrationRef.current.controlPoints.length
@@ -1134,6 +1159,7 @@ export default function ScreenshotRouteCalibrationSection({
   }
 
   function clearCalibration() {
+    cancelPendingDragUpdate()
     setLocked(false)
     setBreakSegmentId(null)
     const next = {
@@ -1215,7 +1241,7 @@ export default function ScreenshotRouteCalibrationSection({
     }
     const activeId = draggingPointRef.current
     if (activeId) {
-      updatePoint(activeId, getPointerUnit(event, contentWidth, contentHeight))
+      scheduleDragPointUpdate(activeId, getPointerUnit(event, contentWidth, contentHeight))
       const rect = event.currentTarget.getBoundingClientRect()
       setDragClient({ x: event.clientX - rect.left, y: event.clientY - rect.top })
       pendingTapRef.current = null
@@ -1245,10 +1271,15 @@ export default function ScreenshotRouteCalibrationSection({
 
   function onSvgPointerUp(event: ReactPointerEvent<SVGSVGElement>) {
     const pendingTap = pendingTapRef.current
+    const activeDragId = draggingPointRef.current
+    if (activeDragId) {
+      cancelPendingDragUpdate()
+      updatePoint(activeDragId, getPointerUnit(event, contentWidth, contentHeight))
+    }
     if (
       pendingTap &&
       pendingTap.pointerId === event.pointerId &&
-      !draggingPointRef.current &&
+      !activeDragId &&
       !pinchRef.current &&
       Math.hypot(event.clientX - pendingTap.x, event.clientY - pendingTap.y) <= 10
     ) {
@@ -1276,6 +1307,7 @@ export default function ScreenshotRouteCalibrationSection({
     const rect = event.currentTarget.ownerSVGElement?.getBoundingClientRect()
     if (rect) setDragClient({ x: event.clientX - rect.left, y: event.clientY - rect.top })
     pendingTapRef.current = null
+    cancelPendingDragUpdate()
     panRef.current = null
     try {
       event.currentTarget.ownerSVGElement?.setPointerCapture(event.pointerId)
@@ -1285,6 +1317,7 @@ export default function ScreenshotRouteCalibrationSection({
   }
 
   function closeEditor() {
+    cancelPendingDragUpdate()
     setEditorOpen(false)
     setLocked(false)
     setBreakSegmentId(null)

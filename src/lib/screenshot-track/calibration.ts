@@ -6,9 +6,9 @@ import {
   unitToPixel,
   type AnchorColorModel,
   type LivewireSegmentStatus,
-  type ScoreField,
   type UnitPoint,
 } from './geometry.ts'
+import { clamp, normalizeBboxPoints } from './math.ts'
 import type { ShareTrackPreview } from '../share-track-preview.ts'
 
 export type { UnitPoint } from './geometry.ts'
@@ -127,10 +127,6 @@ export function focusViewportFromBounds(bounds: NormalizedRouteBounds | null): R
   if (fitZoom < FOCUS_MIN_ZOOM_IN) return wholeImage
   const zoom = FOCUS_ZOOM_LEVELS.filter((level) => level <= fitZoom).at(-1) ?? 1
   return { zoom, centerX: (bounds.minX + bounds.maxX) / 2, centerY: (bounds.minY + bounds.maxY) / 2 }
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value))
 }
 
 function segmentResolutionForStatus(status: LivewireSegmentStatus): CalibrationSegmentResolution {
@@ -311,25 +307,14 @@ export function buildPosterPreviewSegments(segments: ScreenshotRouteSegment[]): 
 
   const allPoints = drawable.flatMap((segment) => segment.points)
   if (allPoints.length === 0) return []
-
-  const minX = Math.min(...allPoints.map((point) => point.x))
-  const maxX = Math.max(...allPoints.map((point) => point.x))
-  const minY = Math.min(...allPoints.map((point) => point.y))
-  const maxY = Math.max(...allPoints.map((point) => point.y))
-  const width = Math.max(maxX - minX, 0.000001)
-  const height = Math.max(maxY - minY, 0.000001)
-  const range = Math.max(width, height)
-  const offsetX = (range - width) / 2
-  const offsetY = (range - height) / 2
+  const normalizedPoints = normalizeBboxPoints(allPoints, 0.000001)
+  let pointOffset = 0
 
   return drawable.map((segment) => ({
     segmentId: segment.id,
     resolution: segment.resolution,
     preview: {
-      points: segment.points.map((point) => ({
-        x: (point.x - minX + offsetX) / range,
-        y: (point.y - minY + offsetY) / range,
-      })),
+      points: segment.points.map(() => normalizedPoints[pointOffset++]!),
       pointCount: segment.points.length,
       hasAltitude: false,
     },
@@ -345,25 +330,14 @@ export function calculatePosterPreviewDelta(segments: ScreenshotRouteSegment[]) 
   const previewBySegmentId = new Map(previews.map((preview) => [preview.segmentId, preview.preview.points]))
   const allPoints = drawable.flatMap((segment) => segment.points)
   if (allPoints.length === 0) return { maxDelta: 0, meanDelta: 0 }
-
-  const minX = Math.min(...allPoints.map((point) => point.x))
-  const maxX = Math.max(...allPoints.map((point) => point.x))
-  const minY = Math.min(...allPoints.map((point) => point.y))
-  const maxY = Math.max(...allPoints.map((point) => point.y))
-  const width = Math.max(maxX - minX, 0.000001)
-  const height = Math.max(maxY - minY, 0.000001)
-  const range = Math.max(width, height)
-  const offsetX = (range - width) / 2
-  const offsetY = (range - height) / 2
+  const normalizedPoints = normalizeBboxPoints(allPoints, 0.000001)
+  let pointOffset = 0
   const deltas: number[] = []
 
   for (const segment of drawable) {
     const previewPoints = previewBySegmentId.get(segment.id) ?? []
-    segment.points.forEach((point, index) => {
-      const normalized = {
-        x: (point.x - minX + offsetX) / range,
-        y: (point.y - minY + offsetY) / range,
-      }
+    segment.points.forEach((_point, index) => {
+      const normalized = normalizedPoints[pointOffset++]!
       const previewPoint = previewPoints[index]
       if (!previewPoint) return
       deltas.push(Math.hypot(previewPoint.x - normalized.x, previewPoint.y - normalized.y))
@@ -375,8 +349,4 @@ export function calculatePosterPreviewDelta(segments: ScreenshotRouteSegment[]) 
     maxDelta: Math.max(...deltas),
     meanDelta: deltas.reduce((sum, value) => sum + value, 0) / deltas.length,
   }
-}
-
-export function fieldFromEvidence(field: ScoreField) {
-  return field
 }

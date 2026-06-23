@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-23 · 最新版本记录: v0.87
+> Last Updated: 2026-06-23 · 最新版本记录: v0.88
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（15 条）
+## Active Follow-ups（14 条）
 
 ### FU-36 · 轨迹自动初稿接入校准编辑器
 
@@ -368,27 +368,6 @@
 
 **边界**: **MVP 初期不做**。
 
----
-
-### FU-99 · auto-summit verify_and_record_checkin measured-field gap
-
-- **优先级**: P3（数据一致性 / 非本轮上线阻塞）
-- **归属阶段**: GPS summit verification / measured metrics persistence
-- **状态**: 🟢 active
-
-**背景 / 证据（FU-93 closeout 一手核 2026-06-15）**: `verify_and_record_checkin` 自动登顶验证路径不会把 linked `trek_sessions` 的 measured metrics 写入 `checkins.distance_meters` / `duration_seconds` / `elevation_gain_meters` / `max_elevation_meters` 等 measured columns。FU-93 修复后，server session metrics 已通过 `append_trek_points` 重算并持久化，但 summit-verified GPS checkin 仍保留 NULL measured columns。生产核验样本：checkin `492617f7-4a1b-42c6-bf9f-bf66541d038f` measured fields 为 NULL，而 linked session `50401e67-d9d6-44e3-9d86-f2ec90622537` 有 `distance_m=1488`、`track_points` 16。
-
-**判断**: 这是 pre-existing RPC gap，不是 FU-93 regression。FU-93 的责任边界是让 `trek_sessions` track / metrics 正确、离线补传不丢点、finalize 不重复；checkin measured-field 写入缺口需单独处理。
-
-**Scope（后续）**:
-1. 修改 `verify_and_record_checkin` / 相关 RPC，使 auto-summit verified GPS checkin 创建时复制 recomputed session metrics 到 checkin measured columns。
-2. 增加回归测试：summit-verified checkin 的 measured columns 与 linked session metrics 一致。
-3. 评估是否需要 backfill 既有 summit-verified GPS checkins（若涉及生产写入，单独数据操作审批 + exact-id / count 对账）。
-
-**边界**: 本次不实施；如改 DB function，走正常 migration + 发布审批。
-
----
-
 ### FU-91 · Supabase schema baseline / fresh-apply 能力恢复
 
 - **优先级**: P3（非上线阻塞）
@@ -459,7 +438,16 @@
 
 ---
 
-## Closed Follow-ups（89 条）
+## Closed Follow-ups（90 条）
+
+### FU-99 ✅ auto-summit verify_and_record_checkin measured-field gap
+
+- **关闭原因**: FU-99 已完成 auto-summit checkin measured 前向补全与 `verify_and_record_checkin` 安全加固。生产函数已直接 `CREATE OR REPLACE` 应用并完成三 case authenticated smoke；本 PR 中的 migration 文件是 source-of-truth reconciliation，后续无需再对生产 push 同一迁移。
+- **问题根因**: 原函数自动登顶验证路径不会把 linked `trek_sessions` measured metrics 写入 `checkins.distance_meters` / `duration_seconds` / `elevation_gain_meters` / `elevation_loss_meters` / `max_elevation_meters` / `start_time` / `end_time` / `track_points`，导致 GPS auto-summit 活动统计因 measured NULL + `toNumber(null)=0` 显示全 0。v1 prod smoke 还暴露 `SECURITY INVOKER` + `checkins_update` admin-only RLS blocker：existing-unverified UPDATE 静默 0 行，incomplete 后再登顶无法升级。
+- **落地内容**: 一条 deploy-gated 函数迁移 `20260623090000_verify_checkin_measured_fields_fu99.sql`：INSERT 从 locked session 写 8 列 measured（RAW，NULL 保 NULL）；函数 `SECURITY INVOKER` → `SECURITY DEFINER`，`SET search_path = ''`，严守 `auth.uid() = p_user_id` ownership guard + session `id + user_id FOR UPDATE` 锁 + 所有写 `WHERE user_id = p_user_id`；existing checkin UPDATE 与两处 `trek_sessions` UPDATE 均加 `ROW_COUNT = 1` 守卫；UPDATE 用 `COALESCE(existing, session)` 只补 NULL、不覆盖已有 measured；`min_elevation_meters` / `track_name` 不捏造，`track_points` 不 default `[]`。未新增列 / 未改 RLS 策略 / GRANT 收紧移除 `service_role` execute，仅保留 `authenticated`。
+- **验收 / 证据**: prod 已 direct `CREATE OR REPLACE` 后 introspection 确认 `prosecdef=true`、`search_path=''`、函数体包含 measured fields 与 `ROW_COUNT` guard；authenticated smoke 三 case 全通过：新 INSERT 写入 8 measured + session `summit_verified`；existing-unverified measured NULL 被补齐并写 `completion_status=complete` / `verified_at`；existing measured 非 NULL 保持旧值不被覆盖但 completion / verified_at 更新。测试账号 / profile / session / checkin 按 exact-id 清理，checkins count 回到 baseline。
+- **关闭 commit**: 本次 PR commit
+- **关闭时间**: 2026-06-23
 
 ### FU-92 ✅ onboarding_version 跨设备重复展示修复
 
@@ -1611,6 +1599,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.88 — 2026-06-23**: FU-99 closeout · auto-summit checkin measured 前向补全 + `verify_and_record_checkin` 安全加固。一条 deploy-gated 函数迁移：(1) INSERT 从 locked_session 写 8 列 measured（RAW，NULL 保 NULL）；(2) `SECURITY INVOKER` → `SECURITY DEFINER` + `search_path=''`，严守 `auth.uid()=p_user_id` + session `id+user_id FOR UPDATE` 锁 + 所有写 `WHERE user_id=p_user_id`，修复 `checkins_update` admin-only RLS 致 existing-unverified UPDATE 静默失败（incomplete 后再登顶无法升级）；(3) checkin UPDATE + 两处 `trek_sessions` UPDATE 加 `ROW_COUNT=1` 守卫；(4) UPDATE 用 `COALESCE` 不覆盖已有 measured，`min_elevation_meters` / `track_name` 不捏造。未新增列 / 未改 RLS 策略 / GRANT 收紧移除 `service_role`。prod 已 `CREATE OR REPLACE` 应用 + 三 case smoke 通过。修复 GPS auto-summit 活动统计因 measured NULL + `toNumber(null)=0` 显示全 0 的既有问题。Active 15 → 14 · Closed 89 → 90 · Deferred 2 → 2。
 
 **v0.87 — 2026-06-23**: FU-92 closeout · onboarding 跨设备完成态持久化完成。注册 active session profile write、`(main)` gate self-heal、version-sync / province-sync 统一写入 `onboarding_version='2026-v2'` 与 `onboarding_completed_at`；self-heal 以 `userId:ONBOARDING_VERSION` 去重并与 gate read 解耦，legacy users 无需 bulk backfill。无 migration（columns / RLS / GRANT 既有可用）。用户行为验收：register 后跨设备不再重复 onboarding；只读 DB evidence 确认测试账号版本与完成时间已写入。Active 16 → 15 · Closed 88 → 89 · Deferred 2 → 2。
 

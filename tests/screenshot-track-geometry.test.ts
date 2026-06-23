@@ -11,21 +11,40 @@ import {
 import {
   buildAnchorColorModel,
   buildAnchorEvidenceField,
-  buildPreviewFromUnitPoints,
-  compareEditorToSharePreviewShape,
   encodeUnitPointsToPseudoTrackPoints,
-  findAstarPath,
   findLocalLivewireSegment,
-  gateSegment,
   type ScoreField,
   type UnitPoint,
 } from '../src/lib/screenshot-track/geometry.ts'
+import { clamp, normalizeBboxPoints } from '../src/lib/screenshot-track/math.ts'
 import {
   buildPersistableScreenshotRouteShape,
   measureScreenshotRouteShape,
   SCREENSHOT_ROUTE_SHAPE_LIMITS,
   validateScreenshotRouteShape,
 } from '../src/lib/screenshot-route-shape.ts'
+import { buildShareTrackPreview } from '../src/lib/share-track-preview.ts'
+
+test('screenshot-track math clamp preserves existing NaN propagation semantics', () => {
+  assert.equal(clamp(-0.4, 0, 1), 0)
+  assert.equal(clamp(1.4, 0, 1), 1)
+  assert.equal(clamp(0.42, 0, 1), 0.42)
+  assert.equal(Number.isNaN(clamp(Number.NaN, 0, 1)), true)
+})
+
+test('bbox normalizer preserves caller-specific minimum extent', () => {
+  const tiny = [
+    { x: 0.2, y: 0.2 },
+    { x: 0.2000002, y: 0.2000002 },
+  ]
+  const geometryScale = normalizeBboxPoints(tiny, 0.0000001)
+  const posterScale = normalizeBboxPoints(tiny, 0.000001)
+
+  assert.ok(Math.abs(geometryScale[1]!.x - 1) < 0.000001)
+  assert.ok(Math.abs(geometryScale[1]!.y - 1) < 0.000001)
+  assert.ok(Math.abs(posterScale[1]!.x - 0.2) < 0.000001)
+  assert.ok(Math.abs(posterScale[1]!.y - 0.2) < 0.000001)
+})
 
 test('pseudo track encoding avoids the 0,0 filter and preserves visible shape', () => {
   const points = [
@@ -38,37 +57,41 @@ test('pseudo track encoding avoids the 0,0 filter and preserves visible shape', 
   const encoded = encodeUnitPointsToPseudoTrackPoints(points)
   assert.equal(encoded.some((point) => point.latitude === 0 && point.longitude === 0), false)
 
-  const preview = buildPreviewFromUnitPoints(points)
+  const preview = buildShareTrackPreview(encoded, Math.max(1, points.length))
   assert.equal(preview?.pointCount, points.length)
+  assert.ok(preview, 'expected pseudo track points to render a preview')
 
-  const comparison = compareEditorToSharePreviewShape(points)
-  assert.ok(comparison.maxDelta < 0.001, `expected WYSIWYG max delta < 0.001, got ${comparison.maxDelta}`)
+  const normalizedEditor = normalizeBboxPoints(points, 0.0000001)
+  const deltas = normalizedEditor.map((point, index) => {
+    const rendered = preview.points[index]!
+    return Math.hypot(point.x - rendered.x, point.y - rendered.y)
+  })
+  const maxDelta = Math.max(...deltas)
+  assert.ok(maxDelta < 0.001, `expected WYSIWYG max delta < 0.001, got ${maxDelta}`)
 })
 
-test('A* can find a continuous substrate path but gate rejects unsupported long gaps', () => {
-  const width = 80
+test('local livewire reports unsupported long low-evidence gaps through the public segment result', () => {
+  const width = 100
   const height = 30
   const evidence = new Float32Array(width * height)
   const index = (x: number, y: number) => y * width + x
 
-  for (let x = 4; x < 76; x += 1) {
-    if (x >= 33 && x <= 49) continue
+  for (let x = 4; x < 96; x += 1) {
+    if (x >= 35 && x <= 65) continue
     for (let y = 13; y <= 16; y += 1) evidence[index(x, y)] = 0.9
   }
 
   const field: ScoreField = { width, height, evidence }
-  const result = findAstarPath({
+  const result = findLocalLivewireSegment({
     field,
     start: { x: 5, y: 14 },
-    end: { x: 74, y: 14 },
+    end: { x: 94, y: 14 },
     snapRadius: 4,
-    corridorWidth: 8,
+    corridorWidth: 12,
   })
 
-  assert.ok(result, 'A* should find a continuous path through the pixel field')
-  const gate = gateSegment({ field, points: result.points, maxLowRunPx: 8 })
-  assert.equal(gate.posterEligible, false)
-  assert.ok(gate.rejectionReasons.includes('long_low_evidence_run'))
+  assert.notEqual(result.status, 'snapped')
+  assert.ok(result.rejectionReasons.includes('long_low_evidence_run'))
 })
 
 test('multi-anchor color model covers a gradient route better than one seed', () => {

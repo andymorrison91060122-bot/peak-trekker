@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-27 · 最新版本记录: v0.89
+> Last Updated: 2026-06-28 · 最新版本记录: v0.90
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（14 条）
+## Active Follow-ups（13 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -356,27 +356,6 @@
 
 ---
 
-### FU-105 · 端上 OCR（PaddleOCR）降低 MIMO 文字识别付费调用可行性
-
-- **优先级**: P2
-- **归属阶段**: 截图识别成本 / 端侧化调研
-- **状态**: 🟢 active（调研先行）
-
-**目标**: 现网截图识别走付费 MIMO 视觉调用。调研端上 / 浏览器内 PaddleOCR 能否承接**文字字段 OCR** 这一层，从而降低（理想情况消除）付费 MIMO 调用，并天然过大陆可达关。
-
-**关键边界（防误读）**: PaddleOCR 只可能替换**纯文字 OCR**。它**不替代**：① 截图语义字段映射（哪段文字是距离/时长/爬升/最高点/日期）；② 字段 adjudication；③ MIMO 的通用视觉推理。轨迹线几何识别**不在本 FU 范围**——生产 MIMO 本就是 text-only、不在生产跑轨迹几何，自动锚点已在 FU-36 单独收口。
-
-**Phase 1（只读 / 离线 + 端侧评测，不进产品）测**:
-- 文字字段准确率：距离 / 时长 / 爬升 / 最高点 / 日期（复用现有 `tests/fixtures/screenshots/raw-ocr/` 多机型样本）。
-- 端上总加载体积：首次加载的**全部资源**（中文 OCR 模型 + WASM runtime），不只 npm 包大小；若大，评 lazy-load 策略。
-- iOS / Android 端侧耗时。
-- **fallback MIMO 比例**：规则 + PaddleOCR 能 offload 多少、还剩多少必须回落 MIMO（决定是「降本」还是「去付费」）。
-- 隐私 / 兼容性 / 大陆可达的模型 CDN。
-
-**链接**: github.com/PaddlePaddle/PaddleOCR · aistudio.baidu.com/paddleocr
-
----
-
 ## Deferred Registration
 
 ### Deferred · FU-88 · 商业化专项
@@ -423,6 +402,23 @@
 - 历史：`output/track-recognition-research-brief.md`、`output/fu36-historical-best-draft-audit/CONCLUSION.md`、`output/fu36-track-v9-freeze-batch-acceptance/`。
 
 **保留承诺（如未来重启）**: 只能作为可开关、淡显的 reference-ghost 打底层，不进海报几何、不替用户确认；截图 speed 上限 `30` vs `50 km/h` 产品拍板仍未决。
+
+---
+
+### Deferred · FU-105 · 端上 OCR（PaddleOCR）降低 MIMO 文字识别付费调用可行性
+
+- **状态**: ⏸ deferred（调研后判定当前 ROI 不划算，暂不实施；非技术不可行）
+- **归属阶段**: 截图识别成本 / 端侧化；待识别量规模化或 MiMo 可达性/价格变化再启
+
+**收口判断（2026-06-28 调研 · Claude 一手代码侧 + 研究 fan-out + 一手 curl 复核）**: 技术可行但当前 ROI 不成立。
+- **成本（按当前调研口径，时间敏感）**: 按当前 MiMo 单价，一次识别约 0.0036 元；在 MVP 月千~万次量级下总花费仅数元~数十元，端上化省 65–85% 也只省二三十元/月，远低于工程 + per-app 规则维护 + 自托管 + 真机 QA 的投入。价格/量级变化后此判断需重估。
+- **识别率（硬伤）**: 端上 PaddleOCR 替不掉现有 MiMo 完整识别链 —— 它只替 OCR 层，不替 OCR+语义映射+裁决。手机 App 卡 ~88–96%/字段，但手表 7段/LCD 屏 40–70% 且会“高置信静默读错” → “降本 not 去付费”，fallback MiMo ≈ 15–35%。
+- **体验降级**: 微信/WebView 无 SharedArrayBuffer → 必须单线程，中端机每图数秒（现状秒出）；首用需下 ~18MB（一手 curl 实测 on-disk 26.8MB / over-wire 17–18MB，“~1.5MB” 假设被推翻）。
+- **可行性是成立的**: 接入点干净 —— 顶替现有腾讯 OCR 回落路、复用 `parseFieldsFromOcr` 规则层 + 现成 raw-ocr fixtures；自托管 Apache-2.0 模型 → 运行时零外部 CDN、过 T1 大陆关。
+
+**重启条件**: 识别量大到 MiMo 账单变明显（月几十万次级），或 MiMo 出可达性/涨价问题。
+
+**保留资产（重启不从零）**: 接入点 = `src/lib/screenshot/recognition-service.ts`（腾讯回落路）+ `src/lib/screenshot/field-parser.ts`（规则层）；评测口径已摸清 —— 如重启，先复用 `tests/fixtures/screenshots/raw-ocr/` 做离线字段准确率 + 端侧耗时复测，再决定是否进产品。
 
 ---
 
@@ -1611,6 +1607,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.90 — 2026-06-28**: FU-105 端上 PaddleOCR 调研收口 → deferred（非技术不可行，是当前 ROI 不划算）。Claude 一手调研（代码侧管线 + 研究 fan-out + 一手 curl 复核包体）：PaddleOCR 只替 OCR 层、替不掉现有 MiMo 完整识别链（OCR+语义映射+裁决）；按当前 MiMo 单价（≈0.0036 元/次）MVP 量级端上化只省数元~数十元/月，低于工程+维护投入；手表截图准确率 40–70% 且会高置信静默读错、降本 not 去付费（fallback 15–35%）、端上单线程每图数秒 + 首用下 ~18MB（“~1.5MB” 假设被一手实测推翻）。接入点干净（复用现有规则层 + Apache-2.0 自托管过大陆关），路径已摸清，待识别量规模化或 MiMo 可达性/价格变化再启。Active 14 → 13 · Closed 90 → 90 · Deferred 3 → 4。
 
 **v0.89 — 2026-06-27**: FU-36 自动锚点方向 defer + FU-105 端上 OCR 调研登记（docs-only tracker 更新，无产品代码 / DB / 脚本改动）。FU-36 Phase-1a spike（决策源于 2026-06-24 RUN B/RUN C 一手 metrics）定论：MIMO 直出锚点 direct start/end @16px = 0/11、有粗结构（orderRate ≈ 96.7%）但端点约 3% 偏落不进 snap 容差；宽半径 CV snap 救援 pure-color endpoint recovery 全搜索半径 16–80px 均 0%、mis-snap @24/48px 升至 57.1%/64.3%、late polyline 最高 32.9% → 自动锚点 / 自动初稿当前约束下不可行、不产品化，保留 user-seeded livewire 编辑器为唯一生产路径，未来重启只能作 reference-ghost。新增 FU-105 · 端上 PaddleOCR 降低 MIMO 文字识别付费调用可行性（P2 调研先行；明确只替文字 OCR 层、不替语义映射 / adjudication，轨迹几何不在范围）。Active 14 → 14（−FU-36 +FU-105）· Closed 90 → 90 · Deferred 2 → 3。
 

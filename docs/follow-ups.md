@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-23 · 最新版本记录: v0.88
+> Last Updated: 2026-06-27 · 最新版本记录: v0.89
 
 ---
 
@@ -94,35 +94,6 @@
 ---
 
 ## Active Follow-ups（14 条）
-
-### FU-36 · 轨迹自动初稿接入校准编辑器
-
-- **优先级**: P2
-- **归属阶段**: 校准编辑器增强 / V1.1+
-- **状态**: 🟢 active
-
-**背景**: 原 PRD §13.2「轨迹色彩重绘」的产品结果已达成：通过手动校准（livewire 吸附）+ `screenshot_route_shape` 持久化 + 品牌绿矢量重绘，四个消费面（分享编辑器 / 海报 / 档案勋章 / 活动卡）已上线（PR #1/#2/#4/#5/#6 链）。剩余唯一缺口是自动初稿：给校准编辑器喂一个可靠 draft 作为起点，降低用户手画成本。
-
-**产品定位**: 增强而非必须。现有「手画 + 吸附」已满足基本诉求；自动 draft 只有在足够忠实时才进入生产。
-
-**硬门槛**:
-- draft 不够忠实（coverage / 形态不达标）不得上生产。
-- 禁止把凭空捏造的线摆给用户确认。
-- 若只能作为参考，必须作为可开关、淡显的 reference ghost，不进入海报几何。
-
-**资产指针**:
-- `scripts/fu36-mimo-draft-quality-checkpoint.ts`（untracked spike）
-- `scripts/fu36-track-calib-checkpoint.ts`（untracked spike）
-- `output/fu36-track-v1..v9-*`
-- `output/fu36-mimo-draft-checkpoint-acceptance/`
-- `output/fu36-historical-best-draft-audit/`
-
-**保留承诺**:
-- reference ghost A1.1: 可开关淡显参考层，不进海报几何。
-- Sprint B confirm-first 确认页: 设计稿 `v3-confirm` 已存在，`draftRoute` seam 待建。
-- 截图 speed 上限 `30` vs `50 km/h` 产品拍板未决；期间超界 optional 值静默 drop。
-
----
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -385,6 +356,27 @@
 
 ---
 
+### FU-105 · 端上 OCR（PaddleOCR）降低 MIMO 文字识别付费调用可行性
+
+- **优先级**: P2
+- **归属阶段**: 截图识别成本 / 端侧化调研
+- **状态**: 🟢 active（调研先行）
+
+**目标**: 现网截图识别走付费 MIMO 视觉调用。调研端上 / 浏览器内 PaddleOCR 能否承接**文字字段 OCR** 这一层，从而降低（理想情况消除）付费 MIMO 调用，并天然过大陆可达关。
+
+**关键边界（防误读）**: PaddleOCR 只可能替换**纯文字 OCR**。它**不替代**：① 截图语义字段映射（哪段文字是距离/时长/爬升/最高点/日期）；② 字段 adjudication；③ MIMO 的通用视觉推理。轨迹线几何识别**不在本 FU 范围**——生产 MIMO 本就是 text-only、不在生产跑轨迹几何，自动锚点已在 FU-36 单独收口。
+
+**Phase 1（只读 / 离线 + 端侧评测，不进产品）测**:
+- 文字字段准确率：距离 / 时长 / 爬升 / 最高点 / 日期（复用现有 `tests/fixtures/screenshots/raw-ocr/` 多机型样本）。
+- 端上总加载体积：首次加载的**全部资源**（中文 OCR 模型 + WASM runtime），不只 npm 包大小；若大，评 lazy-load 策略。
+- iOS / Android 端侧耗时。
+- **fallback MIMO 比例**：规则 + PaddleOCR 能 offload 多少、还剩多少必须回落 MIMO（决定是「降本」还是「去付费」）。
+- 隐私 / 兼容性 / 大陆可达的模型 CDN。
+
+**链接**: github.com/PaddlePaddle/PaddleOCR · aistudio.baidu.com/paddleocr
+
+---
+
 ## Deferred Registration
 
 ### Deferred · FU-88 · 商业化专项
@@ -411,6 +403,26 @@
 **根代码笔记**: 当前主流程 `pointersRef` 只在 `pointerup` / `pointercancel` 清理。可选 hardening 是在 `lostpointercapture` 时清理对应 pointer，但本轮明确不做，避免在已验收主流程上引入额外 pointer 行为变更。
 
 **边界**: 不修改 main-page pointer / add-point / `pointersRef` 逻辑；不做 optional lostpointercapture hardening；如未来真实用户再次复现，再单独开轻量可靠性 sprint。
+
+---
+
+### Deferred · FU-36 · 轨迹自动初稿接入校准编辑器
+
+- **状态**: ⏸ deferred（自动锚点 / 自动初稿方向，当前约束下不产品化）
+- **归属阶段**: 校准编辑器增强 / V1.1+；如未来重启只能作为 reference-ghost 重新立项
+
+**收口判断（Phase-1a spike，决策源于 2026-06-24 RUN B/RUN C 一手 metrics）**: 验证「MIMO 能否给出可直接确认的自动锚点（起点/终点/途经点）」——结论不可行。
+- **RUN B（MIMO 直出锚点）**: direct start/end @16px = `0/11`；MIMO 有粗结构信号（waypoint orderRate ≈ `96.7%`），但端点系统性约 3% 偏，落不进 16px snap 容差，无法转成可确认锚点。
+- **RUN C（粗锚点 + 宽半径 CV snap 救援）**: pure-color 样本 endpoint recovery 在**全搜索半径 16/24/32/48/64/80px 均为 `0%`**；mis-snap @24/48px 升至 `57.1% / 64.3%`；late polyline recovery 最高仅 `32.9%`，不足以支撑自动锚点。放大搜索半径只会抬高 mis-snap，救不回端点。
+- **负样本**: `strava-huangshan-645` 为 invalid-map/miscrop safety fail；true-no-route 未测——但正样本端点全失败 + mis-snap 抬头已足以停掉自动部分，不依赖 negative-safety 补全。
+
+**结论**: 自动锚点 / 自动初稿当前约束下不进 A*、不做编辑器自动注入、不产品化。**保留现有 user-seeded livewire 校准编辑器作为唯一生产路径**（用户点锚点 + 系统吸线 + 弱证据处不替用户猜连线）。
+
+**资产指针**:
+- 离线 spike 脚本 / 产物：`scripts/fu36-autoanchor-phase1a.ts`（untracked）、`output/fu36-autoanchor-spike/`（preflight + RUN B raw/metrics + RUN C runc/report + risk-flags，gitignored 证据）。
+- 历史：`output/track-recognition-research-brief.md`、`output/fu36-historical-best-draft-audit/CONCLUSION.md`、`output/fu36-track-v9-freeze-batch-acceptance/`。
+
+**保留承诺（如未来重启）**: 只能作为可开关、淡显的 reference-ghost 打底层，不进海报几何、不替用户确认；截图 speed 上限 `30` vs `50 km/h` 产品拍板仍未决。
 
 ---
 
@@ -1599,6 +1611,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.89 — 2026-06-27**: FU-36 自动锚点方向 defer + FU-105 端上 OCR 调研登记（docs-only tracker 更新，无产品代码 / DB / 脚本改动）。FU-36 Phase-1a spike（决策源于 2026-06-24 RUN B/RUN C 一手 metrics）定论：MIMO 直出锚点 direct start/end @16px = 0/11、有粗结构（orderRate ≈ 96.7%）但端点约 3% 偏落不进 snap 容差；宽半径 CV snap 救援 pure-color endpoint recovery 全搜索半径 16–80px 均 0%、mis-snap @24/48px 升至 57.1%/64.3%、late polyline 最高 32.9% → 自动锚点 / 自动初稿当前约束下不可行、不产品化，保留 user-seeded livewire 编辑器为唯一生产路径，未来重启只能作 reference-ghost。新增 FU-105 · 端上 PaddleOCR 降低 MIMO 文字识别付费调用可行性（P2 调研先行；明确只替文字 OCR 层、不替语义映射 / adjudication，轨迹几何不在范围）。Active 14 → 14（−FU-36 +FU-105）· Closed 90 → 90 · Deferred 2 → 3。
 
 **v0.88 — 2026-06-23**: FU-99 closeout · auto-summit checkin measured 前向补全 + `verify_and_record_checkin` 安全加固。一条 deploy-gated 函数迁移：(1) INSERT 从 locked_session 写 8 列 measured（RAW，NULL 保 NULL）；(2) `SECURITY INVOKER` → `SECURITY DEFINER` + `search_path=''`，严守 `auth.uid()=p_user_id` + session `id+user_id FOR UPDATE` 锁 + 所有写 `WHERE user_id=p_user_id`，修复 `checkins_update` admin-only RLS 致 existing-unverified UPDATE 静默失败（incomplete 后再登顶无法升级）；(3) checkin UPDATE + 两处 `trek_sessions` UPDATE 加 `ROW_COUNT=1` 守卫；(4) UPDATE 用 `COALESCE` 不覆盖已有 measured，`min_elevation_meters` / `track_name` 不捏造。未新增列 / 未改 RLS 策略 / GRANT 收紧移除 `service_role`。prod 已 `CREATE OR REPLACE` 应用 + 三 case smoke 通过。修复 GPS auto-summit 活动统计因 measured NULL + `toNumber(null)=0` 显示全 0 的既有问题。Active 15 → 14 · Closed 89 → 90 · Deferred 2 → 2。
 

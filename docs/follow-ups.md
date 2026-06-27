@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-28 · 最新版本记录: v0.90
+> Last Updated: 2026-06-28 · 最新版本记录: v0.91
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（13 条）
+## Active Follow-ups（12 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -339,23 +339,6 @@
 
 **边界**: **MVP 初期不做**。
 
-### FU-91 · Supabase schema baseline / fresh-apply 能力恢复
-
-- **优先级**: P3（非上线阻塞）
-- **归属阶段**: 数据库运维卫生 / 灾备与环境初始化
-- **状态**: 🟢 active
-
-**背景**: FU-64 对账时发现——repo migration 假设了一个未入库的前置 baseline：核心表 `checkins` / `posts` / `profiles` / `checkin_assets` / `mountains` 由任何 repo migration 都未创建（首条 migration 即 `ALTER TABLE profiles` 假设其存在）。故当前 migration 集无法 fresh-apply-from-zero（新环境 / 灾备 / 本地全新 DB 会在第 1 条失败）。这是既有限制，FU-64 已对齐 drift 但未补 baseline。
-
-**范围（Phase 1 只读分析先行）**:
-1. 评估 `supabase db pull` 生成 baseline 的覆盖完整性：是否抓全 public 之外的对象——auth schema（尤其 auth.users 上的 handle_new_user trigger）、storage policy、RLS、function / trigger。
-2. 决定方案：db pull 生成前置 baseline migration vs 重组 migration 史 vs 其他。
-3. 恢复 fresh env / reset 能力的路径与验收标准。
-
-**约束**: 禁止直接 db reset / db push；Phase 1 只读覆盖分析，方案经用户审核后再执行。MVP 单库不 reset，本项非上线阻塞。来源 FU-64，单独立项。
-
----
-
 ## Deferred Registration
 
 ### Deferred · FU-88 · 商业化专项
@@ -446,7 +429,18 @@
 
 ---
 
-## Closed Follow-ups（90 条）
+## Closed Follow-ups（91 条）
+
+### FU-91 ✅ Supabase schema baseline / fresh-apply 能力恢复
+
+- **关闭原因**: 三闸门全过。append-only 前置 baseline 恢复 fresh-apply-from-zero，并顺带挖出并修了既有 migration 链的 source-check 回归。
+- **2A baseline + replay proof**: 新增 `20260430050000_initial_app_schema_baseline.sql`（pre-state：14 张 app-owned 表 + 基础约束/索引/RLS/grant + pgcrypto/uuid-ossp + SQL-managed storage 4 bucket+policy；幂等；不含 handle_new_user/trigger，由既有 migration 负责）。一次性本地 PG（最小 Supabase-managed shim，不含 app-owned）replay：shim → baseline → 既有 30 条，app-owned schema 与 live 精确一致（column/constraint/index/policy/storage/trigger 全 match；仅 3 个 stats RPC 因 pg_get_functiondef 格式差、语义等价、PG 版本产物）。
+- **surfaced + fixed drift**: replay 揭出既有链回归——`20260505225050` 重建 source-check 时丢了 `screenshot_recognition`（`20260505171842` 曾加入），而 app（CheckinSource 类型）+ live 需要它（生产曾被手工补、未入库）。新增 `20260628000000_restore_screenshot_source_constraints_fu91.sql` 恢复 4 个约束（checkins/posts + 两 archive）的 live 语义。
+- **2C 生产 ledger repair**: metadata-only `migration repair --status applied 20260430050000 20260628000000`（单条原子命令，无半修复）；先只读重核 live 仍匹配（4 source check + 14 表）才 repair；remote ledger 30 → 32；未跑任何 schema DDL、未 db push、生产 schema 未变（prod 已匹配）。
+- **诚实边界**: fresh-apply 经一次性本地 PG（shim）replay 验证、app-owned 精确 parity；真实 fresh Supabase 项目 apply 为可选最终信心步（非阻塞）。重组 migration 历史方案被否（保 append-only）。
+- **资产**: `output/fu91-schema-baseline-analysis/`（gitignored 证据）。
+- **关闭 commit**: PR #30 / merge `387306e`（2B 并入 baseline + reconciliation）；2C 生产 ledger metadata-only repair（元数据写，无 commit）。
+- **关闭时间**: 2026-06-28
 
 ### FU-99 ✅ auto-summit verify_and_record_checkin measured-field gap
 
@@ -1607,6 +1601,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.91 — 2026-06-28**: FU-91 closeout · Supabase schema baseline / fresh-apply 能力恢复（三闸门全过）。新增 append-only 前置 baseline `20260430050000`（pre-state 14 表 + 约束/索引/RLS/grant + 扩展 + SQL-managed storage，幂等，不含 migration 已管的 handle_new_user/trigger）恢复 fresh-apply-from-zero；replay proof（一次性本地 PG + 最小 managed-shim → baseline → 既有 30 条）达 app-owned 精确 parity（仅 3 stats RPC 格式差）。顺带挖出并修既有链回归：`20260505225050` 重建 source-check 丢了 `screenshot_recognition`、生产曾手工补未入库 → 新增 `20260628000000` 恢复 4 约束 live 语义。2B PR #30 merge `387306e`（纯新增 2 文件）。2C 生产 ledger metadata-only `migration repair --status applied`（原子、先只读重核、remote 30→32、未跑 DDL、生产 schema 未变）。fresh-apply 经 shim-PG 验证、真实 Supabase apply 为可选最终信心。Active 13 → 12 · Closed 90 → 91 · Deferred 4 → 4。
 
 **v0.90 — 2026-06-28**: FU-105 端上 PaddleOCR 调研收口 → deferred（非技术不可行，是当前 ROI 不划算）。Claude 一手调研（代码侧管线 + 研究 fan-out + 一手 curl 复核包体）：PaddleOCR 只替 OCR 层、替不掉现有 MiMo 完整识别链（OCR+语义映射+裁决）；按当前 MiMo 单价（≈0.0036 元/次）MVP 量级端上化只省数元~数十元/月，低于工程+维护投入；手表截图准确率 40–70% 且会高置信静默读错、降本 not 去付费（fallback 15–35%）、端上单线程每图数秒 + 首用下 ~18MB（“~1.5MB” 假设被一手实测推翻）。接入点干净（复用现有规则层 + Apache-2.0 自托管过大陆关），路径已摸清，待识别量规模化或 MiMo 可达性/价格变化再启。Active 14 → 13 · Closed 90 → 90 · Deferred 3 → 4。
 

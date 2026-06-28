@@ -1,4 +1,4 @@
-# Peak Trekker UI / 交互规范 v0.5
+# Peak Trekker UI / 交互规范 v0.6
 
 ## 1. 文档目标
 
@@ -1269,7 +1269,7 @@ Banner 用于：
 ## 12.4 CSS / GSAP 分工
 
 * **默认 CSS**：单步 transition / hover / press / fade / slide / 单 keyframe 状态脉冲（L0–L2，以及能用纯 CSS 序列表达的 L3）。
-* **GSAP 仅在**多步仪式**确需 timeline 编排**时引入（position/labels/嵌套、可跳过控制、统一 matchMedia）。引入时机已定：**推迟到 FU-87 第一个真需要 timeline 的新仪式作 pilot**；FU-76 全程 CSS（含登顶删装饰 loop 也用 CSS）。
+* **GSAP 仅在**多步仪式**确需 timeline 编排**时引入（position/labels/嵌套、可跳过控制、统一 matchMedia）。引入边界已收敛为：FU-76 先在 **Summit L3 礼成屏**做唯一 pilot；其它页面 / 工具面不跟进，后续扩散另走 FU-87+。
 * GSAP 缓动对应：`ease-standard→power2.inOut`、`ease-out→power3.out`、`ease-pulse→sine.inOut`；`ease-emphasis` 内置 ease 不足时才用 `CustomEase.create("pt-emphasis",".34,1.4,.5,1")`（依据 `gsap-plugins/SKILL.md:339`「built-in 不够才用」）。
 * React 集成（GSAP 引入后）：用 `useGSAP({scope})` 自动清理；可跳过仪式用 `contextSafe` 包 `tl.progress(1)`；不在 SSR 执行 GSAP。
 
@@ -1282,8 +1282,8 @@ Banner 用于：
 ## 12.6 无障碍（reduced-motion）
 
 * 必须尊重 `prefers-reduced-motion: reduce`。
-* **CSS 阶段（FU-76）**：全局 `@media (prefers-reduced-motion: reduce)` 统一降级（仪式→直接终态、loop→停、过渡→近 0ms）。
-* **GSAP 阶段（FU-87+）**：用 `gsap.matchMedia()` 的 `reduceMotion` 条件（`duration:0` / 跳过），随媒体查询自动 revert；CSS 全局兜底保留。架构在 Phase B0 即预留接缝，不返工。
+* **CSS token 层（FU-76 Phase B0）**：全局 motion token 在 `prefers-reduced-motion: reduce` 下 remap 为近 0ms，作为后续 CSS 动效的架构接缝。
+* **GSAP pilot（FU-76 Summit L3）**：用 `gsap.matchMedia()` 的 `reduceMotion` 条件直接设置终态（无位移 / 无漂移 / 数字直接最终值），随媒体查询自动 revert；CSS token 兜底保留。
 * reduced-motion 不是「关掉一切」，而是「去掉位移 / 缩放 / 闪烁，保留必要的状态可见性」。
 
 ## 12.7 每个动效点的方案格式（6 字段）
@@ -1323,7 +1323,7 @@ Banner 用于：
 
 | 面 | 工具性 | 现有层级 | 判定 |
 |---|---|---|---|
-| **Trek / 登顶**（TrekClient.tsx，16 个） | 中 | L2 状态脉冲 + L3 登顶仪式 | 仪式 craft 好（`pt-summit-honor-*` staged reveal）**留**；3 个常驻装饰层（双转环 + 辉光呼吸）**降** |
+| **Trek / 登顶**（TrekClient.tsx，16 个） | 中 | L2 状态脉冲 + L3 登顶仪式 | 登顶礼成已选定 **V2 GSAP pilot**：保留现有勋章视觉，接管 / 重编排已有 count-up，双环改 settle + 极慢漂移，reduced-motion 直达终态 |
 | **截图识别 / 归档**（ScreenshotClient.tsx，8 个） | 中 | L2 扫描 / 生成 + L3 归档礼成 | 归档仪式（badgeIn/seal/fadeUp）**留**；扫描光晕 + 归档转环**降**；扫描线动 `top`→`translateY` |
 | **Onboarding**（IntroCarousel.tsx，7 个） | 低 | L3 首屏揭示 | fade-up/描山/卡入场/bar-grow **留**；漂浮 bob + 记录脉冲环**降** |
 | **校准编辑器**（ScreenshotRouteCalibrationSection.tsx，3 个） | **高** | L1 微 + 1 个 L3 success | **范本**——工具面只 1 个成功仪式（`routeCapBloom`）；`routePulse` 死代码**删** |
@@ -1337,13 +1337,18 @@ Banner 用于：
 
 > 具体 symbol 在 Phase C 收编时按文件逐一复核（本表 symbol 已一手 grep 核实存在）。
 
-**🔴 A 降级——装饰性常驻 loop（删掉更高级）**
+**✅ 登顶 = V2 GSAP pilot（用户选定）**
 
-1. 登顶双反向转环 `pt-summit-honor-spin-slow`(30s) + `pt-summit-honor-spin-slow-rev`(52s) → 入场 settle 一次或静态。**#1 优先**。
-2. 登顶辉光呼吸 `pt-summit-honor-glow-breath`(7s) → 降为唯一 ambient 或定格。
-3. 截图扫描光晕 `sr-scan-glow` → 并进扫描线 boxShadow。
-4. 归档转环 `screenshotArchiveRot`(26s) → 静态 / 仅入场。
-5. onboarding 漂浮 `pt-share-stack-float` + 记录脉冲环 `pt-intro-record-pulse` → 一次性 / 砍。
+1. 登顶双反向转环由 30s / 52s CSS loop 改为 **入场 settle + 极慢漂移**（ringA 170s、ringB 240s 反向），不再做快速装饰性常驻 loop。
+2. 登顶辉光由 7s 无限呼吸改为 **一次 settle 到稳定辉光**，不再循环抢注意力。
+3. 已有官方海拔 count-up 由 rAF 改为 GSAP timeline 接管 / 重编排，与 medal、seal、文字、数据行统一时序；不是新增功能。
+4. `prefers-reduced-motion: reduce` 下直接终态：无位移 / 无漂移 / 数字直接最终值。
+
+**🔴 A 候选视觉复核项——装饰性 loop（demo 后定，非判定降级）**
+
+1. 截图扫描光晕 `sr-scan-glow` → 候选：并进扫描线 boxShadow。
+2. 归档转环 `screenshotArchiveRot`(26s) → 候选：静态 / 仅入场。
+3. onboarding 漂浮 `pt-share-stack-float` + 记录脉冲环 `pt-intro-record-pulse` → 候选：一次性 / 砍。
 
 **🟡 B 删——死代码**：`routePulse`、`pt-nickname-success-fade`、globals/components 里的 `.glow-pulse` / `.scanlines` stub。
 
@@ -1351,7 +1356,7 @@ Banner 用于：
 
 **🟠 D a11y——补 reduced-motion**：全局 CSS（最大缺口）、昵称 sheet、import 三处。
 
-**保留（勿动）**：`pt-summit-honor-{medal-in/seal-draw/stamp-pulse/crest-in/rise-in/fade-in/pop-in}` 登顶 staged reveal、`screenshotArchive{BadgeIn/Seal/FadeUp}` 归档礼成、onboarding 首屏揭示、校准 `routeCapBloom`，及全部 L2 状态脉冲（`pt-rec-pulse`/`pt-gps-weak-pulse`/`pt-near-summit-pulse`/`pt-shimmer`/`sr-spin`/`ui-btn-pulse`/`mountain-weather-pulse`）。
+**保留（勿动）**：SummitHonorMedallion 的勋章视觉与 crest swap seam、`screenshotArchive{BadgeIn/Seal/FadeUp}` 归档礼成、onboarding 首屏揭示、校准 `routeCapBloom`，及全部 L2 状态脉冲（`pt-rec-pulse`/`pt-gps-weak-pulse`/`pt-near-summit-pulse`/`pt-shimmer`/`sr-spin`/`ui-btn-pulse`/`mountain-weather-pulse`）。登顶 staged reveal 由 GSAP timeline 接管，不再保留旧 CSS keyframe。
 
 ---
 
@@ -1675,5 +1680,6 @@ Banner 用于：
 
 ### 版本记录
 
+* v0.6 — 2026-06-29：FU-76 Summit L3 GSAP pilot 落库。登顶礼成采用用户选定 V2：保留现有 SummitHonorMedallion 视觉，GSAP 接管 / 重编排已有官方海拔 count-up，双环由快速 CSS loop 改为入场 settle + 极慢漂移，辉光改为一次 settle，reduced-motion 直接终态。其它装饰 loop（截图 / 归档 / onboarding）改为候选视觉复核项，demo 后定，非本轮判定降级。
 * v0.5 — 2026-06-28：§12 微动效规范定稿（动效工作流 Phase A）。确立 **C+ 质感分层 L0–L3** + Motion Token（8 时长 / 4 缓动）+ CSS/GSAP 分工（GSAP 推迟到 FU-87 真需 timeline 时作 pilot，FU-76 全程 CSS）+ reduced-motion 架构（CSS 现行、`gsap.matchMedia()` 接缝）+ 每点 6 字段格式 + §12.11 逐面分级图 + §12.12 收编 backlog。**L3 仪式时长上限由旧版 360ms 上调到 1200ms（用户签字）**。
 * v0.4 — 2026-05-13：路径 B 决策回写，分享模板池收敛为基础 2 + 高级 8，共 10 个模板；MVP 分享编辑器取消 Tab、地图开关、顶部「预览」按钮和「更多 ...」按钮；透明水印跟随当前模板，Satori 重写顺延到 V1.1+。

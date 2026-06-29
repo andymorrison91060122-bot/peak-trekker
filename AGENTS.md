@@ -8,6 +8,15 @@
 - For non-trivial work, plan first before editing code.
 - Do not claim completion unless acceptance checklist items are satisfied.
 
+## Design task workflow discipline
+- Before starting, return to `docs/follow-ups.md` and confirm the FU owner, scope, established workflow, and whether the current work is the main body or a tail-end subtask. Register new topics in the same turn; do not start unanchored work.
+- Keep a persistent task anchor at the top of each long-flow phase: current FU, scope, phase, and this step's DoD.
+- For design-class FUs, do the whole-product design first: Claude Design overall proposal → user confirmation → implementation. Local demos before overall confirmation are research only, not implementation.
+- Externalize cross-phase handoff anchors in a tracker or dedicated anchor document; do not rely on chat context alone.
+- Before opening a new phase, confirm the previous phase DoD is satisfied.
+- Mark review statements by nature: fact, inference, research, or confirmed plan. Do not advance research as if it were confirmed.
+- Use this design-FU startup template: current FU / source document / main scope / non-goals / affected pages and flows / current phase / phase DoD / existing research / out of scope this turn / next deliverable.
+
 ## Product rules
 - Mobile-first. All key pages must work at 375px width.
 - No horizontal scroll, no broken modal layout, no action area wrapping.

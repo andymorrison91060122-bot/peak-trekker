@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-28 · 最新版本记录: v0.91
+> Last Updated: 2026-06-30 · 最新版本记录: v0.92
 
 ---
 
@@ -298,6 +298,8 @@
 **流程**: Claude Design 先出整体方案 → 用户 review → 实施 sprint。
 
 **守门约束**: community / share 路线预览接入 `screenshot_route_shape` 时，badge 必须按 source 守门，`screenshot_recognition` 来源禁显「GPS 真实轨迹」。
+
+**进展（2026-06-30）**: 主体 = 分享门面前置 + 三选一录入（非编辑器美化）；保存 / 分享动效 6 版 demo 属预研，不单独实施。下一步整体门面方案设计先行，详见 `docs/fu85-share-facade-anchor.md`。
 
 **互引**: 吸收 memory deferred task「导航分享门面」。
 
@@ -1601,6 +1603,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.92 — 2026-06-30**: docs-only workflow hardening。AGENTS.md 新增通用「设计类任务开发流程纪律」，要求设计类 FU 开工前回 tracker 归位、长流程常驻任务锚、整体设计先于局部 demo、跨阶段交接外部化、阶段 DoD 前置确认、评审分层标明事实 / 推论 / 预研 / 已定方案，并给出 10 字段启动模板。新增 `docs/fu85-share-facade-anchor.md` 作为 FU-85 独立 anchor：明确主体是分享门面前置 + 三选一录入，不是分享编辑器局部美化；保存 / 分享动效 demo 仅为 FU-76 分享生成节点预研素材，是否采用取决于 FU-85 整体门面方案。FU-85 Active 段仅补简洁进展 note 与 anchor 指针。Active 12 → 12 · Closed 91 → 91 · Deferred 4 → 4。
 
 **v0.91 — 2026-06-28**: FU-91 closeout · Supabase schema baseline / fresh-apply 能力恢复（三闸门全过）。新增 append-only 前置 baseline `20260430050000`（pre-state 14 表 + 约束/索引/RLS/grant + 扩展 + SQL-managed storage，幂等，不含 migration 已管的 handle_new_user/trigger）恢复 fresh-apply-from-zero；replay proof（一次性本地 PG + 最小 managed-shim → baseline → 既有 30 条）达 app-owned 精确 parity（仅 3 stats RPC 格式差）。顺带挖出并修既有链回归：`20260505225050` 重建 source-check 丢了 `screenshot_recognition`、生产曾手工补未入库 → 新增 `20260628000000` 恢复 4 约束 live 语义。2B PR #30 merge `387306e`（纯新增 2 文件）。2C 生产 ledger metadata-only `migration repair --status applied`（原子、先只读重核、remote 30→32、未跑 DDL、生产 schema 未变）。fresh-apply 经 shim-PG 验证、真实 Supabase apply 为可选最终信心。Active 13 → 12 · Closed 90 → 91 · Deferred 4 → 4。
 

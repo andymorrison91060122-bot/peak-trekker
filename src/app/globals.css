@@ -94,6 +94,36 @@
   --btn-height: 44px;
   --btn-padding-x: var(--space-5);
   --btn-radius: var(--radius-md);
+
+  --motion-press: 120ms;
+  --motion-fast: 180ms;
+  --motion-base: 240ms;
+  --motion-enter: 320ms;
+  --motion-status: 500ms;
+  --motion-ceremony: 720ms;
+  --motion-ceremony-max: 1200ms;
+  --motion-ambient: 1600ms;
+  --ease-standard: cubic-bezier(.4,0,.2,1);
+  --ease-out: cubic-bezier(.16,1,.3,1);
+  --ease-emphasis: cubic-bezier(.34,1.4,.5,1);
+  --ease-pulse: ease-in-out;
+}
+
+/* Reduced-motion token architecture layer.
+   Phase C1 will design per-animation / per-spinner reduced-motion fallbacks
+   under ui-interaction-spec §12.6 instead of globally freezing spinners.
+   The GSAP matchMedia seam will be connected in FU-87. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-press: 0.01ms;
+    --motion-fast: 0.01ms;
+    --motion-base: 0.01ms;
+    --motion-enter: 0.01ms;
+    --motion-status: 0.01ms;
+    --motion-ceremony: 0.01ms;
+    --motion-ceremony-max: 0.01ms;
+    --motion-ambient: 0.01ms;
+  }
 }
 
 /* Type class system - bridges design-system tokens to runtime DOM */

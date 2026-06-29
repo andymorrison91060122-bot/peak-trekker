@@ -1,4 +1,4 @@
-# Peak Trekker UI / 交互规范 v0.4
+# Peak Trekker UI / 交互规范 v0.6
 
 ## 1. 文档目标
 
@@ -1206,42 +1206,157 @@ Banner 用于：
 
 # 12. 微动效规范
 
+> 本章是 Peak Trekker 动效的**单一权威（canonical）**。任何动效新增 / 修改 / 收编都必须回写本章。
+> 动效定调：**C+ 质感分层（L0–L3）**——动效是「完成 / 确认 / 记忆」的表达；质感来自 craft（节奏 / 编排 / 留白 / 顺滑），不是 gimmick（撒花 / 装饰转环 / 铺光）。成功与鼓励场景可有仪式感；工具属性强的场景保持克制、快速、稳定。
+> 关联：[§4.9 情感化但不煽情] 的「轻量过渡动效 + 少而精记忆锚点」由本章落地；token 实现落 `design-system/colors_and_type.css` + `src/app/globals.css`（对齐 §5.1 / §5.6）。
+
+## 12.0 制定依据与 skill 溯源
+
+* 实际读取的 skill 文件：`gsap-core/SKILL.md`（easing L116–161、`gsap.matchMedia()` L206–238）、`gsap-performance/SKILL.md`（transform/opacity 全文）、`gsap-timeline/SKILL.md`（position/labels/defaults）、`gsap-react/SKILL.md`（useGSAP/scope/contextSafe/SSR）、`gsap-plugins/SKILL.md`（CustomEase L339）。
+* 从 skill 采纳的硬规则：只动 transform/opacity（§12.5）；多步用 timeline 不用手写 delay（§12.4）；reduced-motion 用 `gsap.matchMedia()`（§12.6）；CustomEase「built-in 不够才用」(`gsap-plugins/SKILL.md:339`)，故列为按需非默认（§12.3）。
+* Peak Trekker 产品判断（非 skill）：L0–L3 分层、各档时长、场景归级、收编取舍。
+* **已确认（用户签字）**：§12.2 把「成功态」L3 上限从旧版 360ms 上调到 1200ms（见该节注）。
+
 ## 12.1 原则
 
 动效用于：
 
 * 强化状态确认
 * 帮助空间切换
-* 提升关键节点的完成感
+* 提升关键节点的完成感 / 记忆感
 
 不用于：
+
 * 炫技
-* 装饰性循环
-* 强干扰注意力
+* 装饰性循环（无状态含义的常驻 float / spin / glow）
+* 强干扰注意力 / 阻塞操作
 
-## 12.2 推荐时长
+**该不该用、用多重，按 5 维判断**：① 是否标记一次阶段性成功？（是→可仪式）② 是否影响操作效率？（高→压缩或去除）③ 是否高频重复看到？（是→必须克制）④ 是否在解释状态？（否→纯装饰，砍或降级）⑤ 性能余量够不够？（不够→降级）
 
-* 点击反馈：`120–180ms`
-* 展开 / 收起：`180–240ms`
-* 面板进入 / 退出：`220–320ms`
-* 成功态轻庆祝：`240–360ms`
+## 12.2 质感分层 L0–L3
 
-## 12.3 建议使用场景
+| 级别 | 场景 | 时长 | 实现 | 约束 |
+|---|---|---|---|---|
+| **L3 仪式** | 登顶确认 / 上传成功 / 识别成功 / 归档 / 分享生成 / 记忆锚点 | 600–1200ms | 多步编排（CSS 序列或 GSAP timeline） | 可跳过、不阻塞、**一次性**（非常驻 loop） |
+| **L2 状态** | 识别中 / 保存中 / 生成中 / 卡片展开 / 面板进出 / 页面切换 | 200–500ms | CSS transition / 短 keyframe | 短、清楚、低干扰 |
+| **L1 工具** | 拖拽 / 编辑 / 选择 / 输入 / 地图控件 / 点击反馈 | 120–220ms | CSS transition，仅 transform/opacity | 不做仪式 |
+| **L0 后台/高频** | admin / 数据表 / 长列表高频项 | ≤120ms 或无 | 仅 hover/press/loading | 默认无动效 |
 
-* 首页意图卡点击
-* 开始记录成功
-* 接近峰顶提示
-* 登顶确认成功
-* 分享素材切换
-* 我的记录卡片进入详情
-* FAQ 分组展开
+> **对旧 §12.2 的修订（已确认）**：旧版把「成功态轻庆祝」封顶 240–360ms。C+ 拍板后，**真正的阶段性成功（L3 仪式）放宽到 600–1200ms**（如登顶仪式，audit 判定其编排是好 craft）；其余短档（点击/展开/面板）维持原值。这是一次有意的口径升级，不是放任所有动效变长。
 
-## 12.4 不建议使用场景
+## 12.3 Motion Token
 
-* 长时间循环发光
-* 大面积粒子特效
+**时长**（实现为 CSS 自定义属性，落 `design-system/colors_and_type.css`）：
+
+* `motion-press`: 120ms —— 点击 / 按压反馈（L1）
+* `motion-fast`: 180ms —— 微交互 / 选择（L1）
+* `motion-base`: 240ms —— 展开 / 收起 / 状态切换（L2）
+* `motion-enter`: 320ms —— 面板 / 卡片进出（L2，承接旧版 220–320ms 上限）
+* `motion-status`: 500ms —— 较重状态过渡上限（L2）
+* `motion-ceremony`: 720ms —— L3 仪式基准
+* `motion-ceremony-max`: 1200ms —— L3 仪式上限
+* `motion-ambient`: 1600ms —— 唯一允许的 ambient 呼吸节拍（克制，见 §12.5）
+
+**缓动**（CSS `cubic-bezier`；GSAP 引入后用对应内置 ease，见 §12.4）：
+
+* `ease-standard`: `cubic-bezier(.4,0,.2,1)` —— 通用进出
+* `ease-out`: `cubic-bezier(.16,1,.3,1)` —— 进入 / 展开（减速收尾）
+* `ease-emphasis`: `cubic-bezier(.34,1.4,.5,1)` —— L3 克制过冲（**不是** 1.7 的弹跳）
+* `ease-pulse`: `ease-in-out` —— ambient 呼吸
+
+规则：页面实现禁止用 token 外的时长 / 缓动数值绕过本规范（对齐 §5.1）；默认用 token，缺档才讨论扩展。
+
+## 12.4 CSS / GSAP 分工
+
+* **默认 CSS**：单步 transition / hover / press / fade / slide / 单 keyframe 状态脉冲（L0–L2，以及能用纯 CSS 序列表达的 L3）。
+* **GSAP 仅在**多步仪式**确需 timeline 编排**时引入（position/labels/嵌套、可跳过控制、统一 matchMedia）。引入边界已收敛为：FU-76 先在 **Summit L3 礼成屏**做唯一 pilot；其它页面 / 工具面不跟进，后续扩散另走 FU-87+。
+* GSAP 缓动对应：`ease-standard→power2.inOut`、`ease-out→power3.out`、`ease-pulse→sine.inOut`；`ease-emphasis` 内置 ease 不足时才用 `CustomEase.create("pt-emphasis",".34,1.4,.5,1")`（依据 `gsap-plugins/SKILL.md:339`「built-in 不够才用」）。
+* React 集成（GSAP 引入后）：用 `useGSAP({scope})` 自动清理；可跳过仪式用 `contextSafe` 包 `tl.progress(1)`；不在 SSR 执行 GSAP。
+
+## 12.5 性能红线
+
+* **只动 `transform`（x/y/scale/rotation）和 `opacity`**；禁止动画 `width/height/top/left/margin/padding`（触发 layout，掉帧）。现有违例（扫描线 `top`、进度条 `width`、slider `left`）在 §12.12 收编 retune。
+* `will-change: transform` 仅加在确实在动的元素上，动完移除。
+* **常驻 loop 默认禁止**；唯一例外是 `motion-ambient` 单点呼吸，且必须解释状态（如"识别进行中"），不得纯装饰。
+
+## 12.6 无障碍（reduced-motion）
+
+* 必须尊重 `prefers-reduced-motion: reduce`。
+* **CSS token 层（FU-76 Phase B0）**：全局 motion token 在 `prefers-reduced-motion: reduce` 下 remap 为近 0ms，作为后续 CSS 动效的架构接缝。
+* **GSAP pilot（FU-76 Summit L3）**：用 `gsap.matchMedia()` 的 `reduceMotion` 条件直接设置终态（无位移 / 无漂移 / 数字直接最终值），随媒体查询自动 revert；CSS token 兜底保留。
+* reduced-motion 不是「关掉一切」，而是「去掉位移 / 缩放 / 闪烁，保留必要的状态可见性」。
+
+## 12.7 每个动效点的方案格式（6 字段）
+
+任何动效点方案（V1）必须逐点写明：① **触发时机** ② **目的**（对应 §12.1 五维）③ **级别**（L0–L3）④ **实现**（CSS 还是 GSAP / 用哪个 token）⑤ **reduced-motion 降级**（明确行为）⑥ **移动端验收证据**（375px 真机或视频，截图不算）。
+
+> 每份动效方案文档顶部还须带「skill 使用头部」：实际读取的 skill 文件路径(+行号) / 采纳规则 / 产品判断 / 待用户拍板项（防「先出方案再补 skill 背书」）。
+
+## 12.8 建议使用场景
+
+* 首页意图卡点击（L1 / L2）
+* 开始记录成功（L2 / L3）
+* 接近峰顶提示（L2）
+* 登顶确认成功（**L3 仪式**）
+* 分享素材生成（L3）
+* 我的记录卡片进入详情（L2）
+* 归档 / 记忆锚点（L3，FU-87）
+* FAQ 分组展开（L1 / L2）
+
+## 12.9 禁止 / 慎用
+
+* 长时间装饰性循环发光 / 转环（无状态含义）
+* 大面积粒子特效 / 撒花 / festive
 * 多区块同时强动画
 * 每张卡片都做复杂入场
+* 动画 layout 属性（见 §12.5）
+* 阻塞 click / drag / scroll / submit 的动效
+
+## 12.10 验收门（改观感项）
+
+* 375px 正常 motion 视频 + 375px reduced-motion 证据；
+* 交互不被挡（点击 / 滚动 / 拖拽）；无横向溢出；
+* lint + build 通过；
+* **不自称视觉 PASS，停给用户验收**。
+
+## 12.11 逐面分级图（现状 audit，41 个 keyframe / 8 面）
+
+| 面 | 工具性 | 现有层级 | 判定 |
+|---|---|---|---|
+| **Trek / 登顶**（TrekClient.tsx，16 个） | 中 | L2 状态脉冲 + L3 登顶仪式 | 登顶礼成已选定 **V2 GSAP pilot**：保留现有勋章视觉，接管 / 重编排已有 count-up，双环改 settle + 极慢漂移，reduced-motion 直达终态 |
+| **截图识别 / 归档**（ScreenshotClient.tsx，8 个） | 中 | L2 扫描 / 生成 + L3 归档礼成 | 归档仪式（badgeIn/seal/fadeUp）**留**；扫描光晕 + 归档转环**降**；扫描线动 `top`→`translateY` |
+| **Onboarding**（IntroCarousel.tsx，7 个） | 低 | L3 首屏揭示 | fade-up/描山/卡入场/bar-grow **留**；漂浮 bob + 记录脉冲环**降** |
+| **校准编辑器**（ScreenshotRouteCalibrationSection.tsx，3 个） | **高** | L1 微 + 1 个 L3 success | **范本**——工具面只 1 个成功仪式（`routeCapBloom`）；`routePulse` 死代码**删** |
+| **昵称 sheet**（ProfileNicknameSheet.tsx，4 个） | 低 | L2 sheet/spinner + L1 表单微 | 干净无仪式（对）；`pt-nickname-success-fade` 死代码**删**；**缺 reduced-motion** |
+| **Import**（ImportClient.tsx，1 个） | 低 | L2 状态 only | 健康；`import-spin` 进度若动 `width`→`scaleX`；**缺 reduced-motion** |
+| **全局 CSS**（globals.css / components.css，2 个） | **高** | L1 按钮微 + L2 loader | 干净无仪式（对）；**缺全局 reduced-motion（最大 a11y 缺口）** |
+
+> 框架被验证：工具性越高的面（校准 / 全局）动效越克制、几乎无仪式；情感峰值（登顶 / 归档 / onboarding）才有 L3。约 85% 已对齐 C+。
+
+## 12.12 收编 backlog（FU-76，全 CSS）
+
+> 具体 symbol 在 Phase C 收编时按文件逐一复核（本表 symbol 已一手 grep 核实存在）。
+
+**✅ 登顶 = V2 GSAP pilot（用户选定）**
+
+1. 登顶双反向转环由 30s / 52s CSS loop 改为 **入场 settle + 极慢漂移**（ringA 170s、ringB 240s 反向），不再做快速装饰性常驻 loop。
+2. 登顶辉光由 7s 无限呼吸改为 **一次 settle 到稳定辉光**，不再循环抢注意力。
+3. 已有官方海拔 count-up 由 rAF 改为 GSAP timeline 接管 / 重编排，与 medal、seal、文字、数据行统一时序；不是新增功能。
+4. `prefers-reduced-motion: reduce` 下直接终态：无位移 / 无漂移 / 数字直接最终值。
+
+**🔴 A 候选视觉复核项——装饰性 loop（demo 后定，非判定降级）**
+
+1. 截图扫描光晕 `sr-scan-glow` → 候选：并进扫描线 boxShadow。
+2. 归档转环 `screenshotArchiveRot`(26s) → 候选：静态 / 仅入场。
+3. onboarding 漂浮 `pt-share-stack-float` + 记录脉冲环 `pt-intro-record-pulse` → 候选：一次性 / 砍。
+
+**🟡 B 删——死代码**：`routePulse`、`pt-nickname-success-fade`、globals/components 里的 `.glow-pulse` / `.scanlines` stub。
+
+**🟡 C 性能 retune（动 layout → 换 transform）**：扫描线 `top→translateY`、Toggle/进度点 `width`、import 进度条 `width→scaleX`、slider `left→x`。
+
+**🟠 D a11y——补 reduced-motion**：全局 CSS（最大缺口）、昵称 sheet、import 三处。
+
+**保留（勿动）**：SummitHonorMedallion 的勋章视觉与 crest swap seam、`screenshotArchive{BadgeIn/Seal/FadeUp}` 归档礼成、onboarding 首屏揭示、校准 `routeCapBloom`，及全部 L2 状态脉冲（`pt-rec-pulse`/`pt-gps-weak-pulse`/`pt-near-summit-pulse`/`pt-shimmer`/`sr-spin`/`ui-btn-pulse`/`mountain-weather-pulse`）。登顶 staged reveal 由 GSAP timeline 接管，不再保留旧 CSS keyframe。
 
 ---
 
@@ -1565,4 +1680,6 @@ Banner 用于：
 
 ### 版本记录
 
+* v0.6 — 2026-06-29：FU-76 Summit L3 GSAP pilot 落库。登顶礼成采用用户选定 V2：保留现有 SummitHonorMedallion 视觉，GSAP 接管 / 重编排已有官方海拔 count-up，双环由快速 CSS loop 改为入场 settle + 极慢漂移，辉光改为一次 settle，reduced-motion 直接终态。其它装饰 loop（截图 / 归档 / onboarding）改为候选视觉复核项，demo 后定，非本轮判定降级。
+* v0.5 — 2026-06-28：§12 微动效规范定稿（动效工作流 Phase A）。确立 **C+ 质感分层 L0–L3** + Motion Token（8 时长 / 4 缓动）+ CSS/GSAP 分工（GSAP 推迟到 FU-87 真需 timeline 时作 pilot，FU-76 全程 CSS）+ reduced-motion 架构（CSS 现行、`gsap.matchMedia()` 接缝）+ 每点 6 字段格式 + §12.11 逐面分级图 + §12.12 收编 backlog。**L3 仪式时长上限由旧版 360ms 上调到 1200ms（用户签字）**。
 * v0.4 — 2026-05-13：路径 B 决策回写，分享模板池收敛为基础 2 + 高级 8，共 10 个模板；MVP 分享编辑器取消 Tab、地图开关、顶部「预览」按钮和「更多 ...」按钮；透明水印跟随当前模板，Satori 重写顺延到 V1.1+。

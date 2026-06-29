@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import {
   fetchOpenMeteoElevation,
@@ -58,6 +60,8 @@ import {
   WarnIcon,
 } from '@/components/ui/Icons'
 import type { Mountain, User } from '@/types'
+
+gsap.registerPlugin(useGSAP)
 
 type TrekStatus =
   | 'idle'
@@ -2788,47 +2792,16 @@ function TrekShell({ children }: { children: ReactNode }) {
           0% { background-position: 0% 0%; }
           100% { background-position: -200% 0%; }
         }
-        @keyframes pt-summit-honor-seal-draw {
-          from { stroke-dashoffset: 402; }
-          to { stroke-dashoffset: 0; }
+        .pt-summit-honor-gsap .pt-summit-honor-reveal,
+        .pt-summit-honor-gsap .pt-summit-honor-ambient {
+          opacity: 0;
+          visibility: hidden;
         }
-        @keyframes pt-summit-honor-medal-in {
-          0% { opacity: 0; transform: scale(.74); }
-          66% { opacity: 1; transform: scale(1.05); }
-          100% { opacity: 1; transform: scale(1); }
+        .pt-summit-honor-gsap .pt-summit-honor-motion-target {
+          will-change: transform, opacity;
         }
-        @keyframes pt-summit-honor-crest-in {
-          0% { opacity: 0; transform: scale(.55); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-        @keyframes pt-summit-honor-stamp-pulse {
-          0% { opacity: .55; transform: scale(.7); }
-          100% { opacity: 0; transform: scale(1.92); }
-        }
-        @keyframes pt-summit-honor-rise-in {
-          from { opacity: 0; transform: translateY(14px); }
-          to { opacity: 1; transform: none; }
-        }
-        @keyframes pt-summit-honor-fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes pt-summit-honor-pop-in {
-          0% { opacity: 0; transform: scale(.8); }
-          70% { opacity: 1; transform: scale(1.05); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-        @keyframes pt-summit-honor-spin-slow {
-          from { transform: rotate(0); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes pt-summit-honor-spin-slow-rev {
-          from { transform: rotate(360deg); }
-          to { transform: rotate(0); }
-        }
-        @keyframes pt-summit-honor-glow-breath {
-          0%, 100% { opacity: .45; }
-          50% { opacity: .82; }
+        .pt-summit-honor-gsap .pt-summit-honor-seal {
+          will-change: stroke-dashoffset;
         }
         @media (prefers-reduced-motion: reduce) {
           .pt-rec-dot { animation: none !important; }
@@ -2837,8 +2810,6 @@ function TrekShell({ children }: { children: ReactNode }) {
           .pt-near-summit-dot { animation: none !important; }
           .pt-summit-check-enter { animation: none !important; opacity: 1 !important; transform: scale(1) !important; }
           .pt-shimmer { animation: none !important; }
-          .pt-summit-honor-reveal { animation: none !important; opacity: 1 !important; transform: none !important; }
-          .pt-summit-honor-ambient { animation: none !important; }
         }
       `}</style>
     </div>
@@ -4961,9 +4932,10 @@ function SummitConfirmedView({
   onExploreExit: () => void
 }) {
   const officialAltitude = getPositiveRoundedMeters(mountain?.altitude)
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
-  const [animatedOfficialAltitude, setAnimatedOfficialAltitude] = useState<number | null>(() => officialAltitude)
-  const officialAltitudeLabel = animatedOfficialAltitude === null ? '--' : formatGroupedMeters(animatedOfficialAltitude)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  const altitudeValueRef = useRef<HTMLSpanElement | null>(null)
+  const officialAltitudeLabel = officialAltitude === null ? '--' : formatGroupedMeters(officialAltitude)
+  const officialAltitudeSemanticLabel = officialAltitude === null ? '暂无官方数据' : `${officialAltitudeLabel} 米`
   const measuredAltitudeLabel = formatSummitMeasuredAltitude(measuredAltitude)
   const timeLabel = formatSummitDateTime(confirmedAt)
   const locationLabel = formatSummitLocation(mountain)
@@ -4974,49 +4946,136 @@ function SummitConfirmedView({
     { label: '爬升', value: formatSummitAscent(ascentM) },
   ]
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const syncMotionPreference = () => setPrefersReducedMotion(mediaQuery.matches)
-    syncMotionPreference()
-    mediaQuery.addEventListener('change', syncMotionPreference)
-    return () => mediaQuery.removeEventListener('change', syncMotionPreference)
-  }, [])
+  useGSAP(() => {
+    const root = rootRef.current
+    const altitudeNode = altitudeValueRef.current
+    if (!root || !altitudeNode) return
 
-  useEffect(() => {
-    let frameId = 0
-
-    if (officialAltitude === null) {
-      frameId = window.requestAnimationFrame(() => setAnimatedOfficialAltitude(null))
-      return () => window.cancelAnimationFrame(frameId)
+    const queryAll = <T extends Element>(selector: string) => Array.from(root.querySelectorAll<T>(selector))
+    const queryOne = <T extends Element>(selector: string) => root.querySelector<T>(selector)
+    const compact = <T extends Element>(items: Array<T | null>) => items.filter((item): item is T => Boolean(item))
+    const writeAltitude = (value: number | null) => {
+      altitudeNode.textContent = value === null ? '--' : formatGroupedMeters(value)
     }
 
-    if (prefersReducedMotion) {
-      frameId = window.requestAnimationFrame(() => setAnimatedOfficialAltitude(officialAltitude))
-      return () => window.cancelAnimationFrame(frameId)
-    }
+    const revealTargets = queryAll<HTMLElement | SVGElement>('.pt-summit-honor-reveal')
+    const ambientTargets = queryAll<HTMLElement | SVGElement>('.pt-summit-honor-ambient')
+    const motionTargets = queryAll<HTMLElement | SVGElement>('.pt-summit-honor-motion-target')
+    const halo = queryOne<HTMLElement>('[data-pt-summit-halo]')
+    const medal = queryOne<HTMLElement>('[data-pt-summit-medal]')
+    const ringA = queryOne<SVGCircleElement>('[data-pt-summit-ring-a]')
+    const ringB = queryOne<SVGCircleElement>('[data-pt-summit-ring-b]')
+    const seal = queryOne<SVGCircleElement>('[data-pt-summit-seal]')
+    const stamp = queryOne<SVGCircleElement>('[data-pt-summit-stamp]')
+    const crest = queryOne<SVGGElement>('[data-pt-summit-crest]')
+    const textSteps = compact([
+      queryOne<HTMLElement>('[data-pt-summit-title]'),
+      queryOne<HTMLElement>('[data-pt-summit-location]'),
+      queryOne<HTMLElement>('[data-pt-summit-caption]'),
+      queryOne<HTMLElement>('[data-pt-summit-altitude-row]'),
+      queryOne<HTMLElement>('[data-pt-summit-divider]'),
+      queryOne<HTMLElement>('[data-pt-summit-time]'),
+    ])
+    const pill = queryOne<HTMLElement>('[data-pt-summit-pill]')
+    const statsCard = queryOne<HTMLElement>('[data-pt-summit-stats-card]')
+    const measuredRow = queryOne<HTMLElement>('[data-pt-summit-measured-row]')
+    const statRows = queryAll<HTMLElement>('[data-pt-summit-stat]')
+    const primaryAction = queryOne<HTMLElement>('[data-pt-summit-action-primary]')
+    const secondaryAction = queryOne<HTMLElement>('[data-pt-summit-action-secondary]')
+    const exitAction = queryOne<HTMLElement>('[data-pt-summit-action-exit]')
 
-    const durationMs = 1050
-    const startedAt = performance.now()
+    const mm = gsap.matchMedia()
+    mm.add(
+      {
+        reduceMotion: '(prefers-reduced-motion: reduce)',
+        allowMotion: '(prefers-reduced-motion: no-preference)',
+      },
+      (context) => {
+        const reduceMotion = Boolean(context.conditions?.reduceMotion)
 
-    const tick = (now: number) => {
-      const progress = Math.min(1, (now - startedAt) / durationMs)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setAnimatedOfficialAltitude(Math.round(eased * officialAltitude))
-      if (progress < 1) {
-        frameId = window.requestAnimationFrame(tick)
-      }
-    }
+        writeAltitude(reduceMotion || officialAltitude === null ? officialAltitude : 0)
+        gsap.set(revealTargets, { autoAlpha: 0, y: 12, scale: 1, rotation: 0 })
+        gsap.set(ambientTargets, { autoAlpha: 0 })
+        gsap.set(motionTargets, { x: 0, y: 0, scale: 1, rotation: 0 })
+        gsap.set(medal, { autoAlpha: 0, scale: 0.72, y: 0, transformOrigin: '50% 50%' })
+        gsap.set(halo, { autoAlpha: 0 })
+        gsap.set(ringA, { autoAlpha: 0, rotation: -30, scale: 0.9, svgOrigin: '86 86' })
+        gsap.set(ringB, { autoAlpha: 0, rotation: 26, scale: 0.93, svgOrigin: '86 86' })
+        gsap.set(seal, { autoAlpha: 1, strokeDashoffset: 402 })
+        gsap.set(stamp, { autoAlpha: 0, scale: 0.7, svgOrigin: '86 86' })
+        gsap.set(crest, { autoAlpha: 0, scale: 0.55, svgOrigin: '86 86' })
+        gsap.set(pill, { autoAlpha: 0, scale: 0.8, y: 0, transformOrigin: '50% 50%' })
 
-    frameId = window.requestAnimationFrame((now) => {
-      setAnimatedOfficialAltitude(0)
-      tick(now)
-    })
-    return () => window.cancelAnimationFrame(frameId)
-  }, [officialAltitude, prefersReducedMotion])
+        if (reduceMotion) {
+          writeAltitude(officialAltitude)
+          gsap.set(revealTargets, { autoAlpha: 1, x: 0, y: 0, scale: 1, rotation: 0 })
+          gsap.set(halo, { autoAlpha: 0.5 })
+          gsap.set(ringA, { autoAlpha: 0.9, rotation: 0, scale: 1 })
+          gsap.set(ringB, { autoAlpha: 0.62, rotation: 0, scale: 1 })
+          gsap.set(seal, { autoAlpha: 1, strokeDashoffset: 0 })
+          gsap.set(stamp, { autoAlpha: 0, scale: 1 })
+          gsap.set(crest, { autoAlpha: 1, scale: 1 })
+          gsap.set(pill, { autoAlpha: 1, scale: 1 })
+          return
+        }
+
+        const altitudeCounter = { value: 0 }
+        const driftTimeline = gsap.timeline({ paused: true })
+        driftTimeline
+          .to(ringA, { rotation: '+=360', duration: 170, ease: 'none', repeat: -1, svgOrigin: '86 86' }, 0)
+          .to(ringB, { rotation: '-=360', duration: 240, ease: 'none', repeat: -1, svgOrigin: '86 86' }, 0)
+
+        const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+
+        tl.to(medal, { autoAlpha: 1, scale: 1.05, duration: 0.7, ease: 'back.out(1.1)' }, 0.06)
+          .to(medal, { scale: 1, duration: 0.18, ease: 'power2.out' }, 0.58)
+          .to(seal, { strokeDashoffset: 0, duration: 0.84, ease: 'power2.inOut' }, 0.18)
+          .to(halo, { autoAlpha: 0.62, duration: 0.62, ease: 'power2.out' }, 0.12)
+          .to(halo, { autoAlpha: 0.5, duration: 0.78, ease: 'sine.inOut' }, 0.74)
+          .to(ringA, { autoAlpha: 0.9, rotation: 0, scale: 1, duration: 0.92, ease: 'power3.out', svgOrigin: '86 86' }, 0.14)
+          .to(ringB, { autoAlpha: 0.62, rotation: 0, scale: 1, duration: 1.02, ease: 'power3.out', svgOrigin: '86 86' }, 0.21)
+          .to(crest, { autoAlpha: 1, scale: 1, duration: 0.5, ease: 'back.out(1.1)', svgOrigin: '86 86' }, 0.5)
+          .to(stamp, { autoAlpha: 0.55, scale: 1.08, duration: 0.18, ease: 'power2.out', svgOrigin: '86 86' }, 0.82)
+          .to(stamp, { autoAlpha: 0, scale: 1.92, duration: 0.72, ease: 'power2.out', svgOrigin: '86 86' }, 1.0)
+          .to(textSteps, { autoAlpha: 1, y: 0, duration: 0.52, stagger: 0.095, ease: 'power3.out' }, 0.44)
+          .to(pill, { autoAlpha: 1, scale: 1.05, duration: 0.32, ease: 'back.out(1.1)' }, 1.0)
+          .to(pill, { scale: 1, duration: 0.18, ease: 'power2.out' }, 1.32)
+          .to(statsCard, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power3.out' }, 1.15)
+          .to(measuredRow, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power3.out' }, 1.18)
+          .to(statRows, { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.1, ease: 'power3.out' }, 1.3)
+          .to(primaryAction, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power3.out' }, 1.62)
+          .to(secondaryAction, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power3.out' }, 1.72)
+          .to(exitAction, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 1.82)
+          .call(() => {
+            driftTimeline.play(0)
+          }, [], 1.35)
+
+        if (officialAltitude !== null) {
+          tl.to(
+            altitudeCounter,
+            {
+              value: officialAltitude,
+              duration: 1.15,
+              ease: 'power2.out',
+              onUpdate: () => writeAltitude(Math.round(altitudeCounter.value)),
+              onComplete: () => writeAltitude(officialAltitude),
+            },
+            0.59,
+          )
+        } else {
+          tl.call(() => writeAltitude(null), [], 0.59)
+        }
+      },
+    )
+
+    return () => mm.revert()
+  }, { scope: rootRef, dependencies: [officialAltitude], revertOnUpdate: true })
 
   return (
     <div
+      ref={rootRef}
       data-testid="trek-summit-confirmed-view"
+      className="pt-summit-honor-gsap"
       style={{
         '--accent': 'var(--color-success)',
         position: 'relative',
@@ -5033,7 +5092,8 @@ function SummitConfirmedView({
       <div
         data-testid="trek-summit-ambient"
         aria-hidden="true"
-        className="pt-summit-honor-ambient"
+        className="pt-summit-honor-ambient pt-summit-honor-halo"
+        data-pt-summit-halo=""
         style={{
           position: 'absolute',
           top: -150,
@@ -5044,7 +5104,6 @@ function SummitConfirmedView({
           zIndex: 0,
           opacity: 0.6,
           background: 'radial-gradient(ellipse at center top, color-mix(in srgb, var(--accent) 20%, transparent), transparent 64%)',
-          animation: 'pt-summit-honor-glow-breath 7s ease-in-out infinite',
         }}
       />
       <div
@@ -5099,14 +5158,13 @@ function SummitConfirmedView({
         }}
       >
         <div
-          className="pt-summit-honor-reveal"
+          className="pt-summit-honor-reveal pt-summit-honor-motion-target"
+          data-pt-summit-medal=""
           data-testid="trek-summit-medallion"
           style={{
             position: 'relative',
             width: 172,
             height: 172,
-            opacity: 1,
-            animation: 'pt-summit-honor-medal-in .72s cubic-bezier(.2,.8,.25,1) .12s both',
           }}
         >
           <SummitHonorMedallion />
@@ -5114,11 +5172,10 @@ function SummitConfirmedView({
 
         <div
           className="pt-summit-honor-reveal"
+          data-pt-summit-title=""
           style={{
             marginTop: 18,
             textAlign: 'center',
-            opacity: 1,
-            animation: 'pt-summit-honor-rise-in .55s cubic-bezier(.2,.7,.2,1) .46s both',
           }}
         >
           <h1
@@ -5136,6 +5193,7 @@ function SummitConfirmedView({
 
           <div
             className="pt-summit-honor-reveal"
+            data-pt-summit-location=""
             style={{
               marginTop: 5,
               color: 'var(--color-on-surface-variant)',
@@ -5144,8 +5202,6 @@ function SummitConfirmedView({
               fontWeight: 400,
               letterSpacing: '0.04em',
               whiteSpace: 'nowrap',
-              opacity: 1,
-              animation: 'pt-summit-honor-rise-in .55s cubic-bezier(.2,.7,.2,1) .54s both',
             }}
           >
             {locationLabel}
@@ -5155,13 +5211,12 @@ function SummitConfirmedView({
         <div style={{ marginTop: 15, textAlign: 'center' }}>
           <div
             className="pt-summit-honor-reveal"
+            data-pt-summit-caption=""
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 10,
-              opacity: 1,
-              animation: 'pt-summit-honor-fade-in .5s ease .56s both',
             }}
           >
             <span aria-hidden="true" style={{ width: 22, height: 1, background: 'linear-gradient(90deg, transparent, var(--accent))', opacity: 0.55 }} />
@@ -5184,18 +5239,20 @@ function SummitConfirmedView({
 
           <div
             className="pt-summit-honor-reveal"
+            data-pt-summit-altitude-row=""
+            aria-label={`${officialAltitudeCaption} ${officialAltitudeSemanticLabel}`}
             style={{
               marginTop: 9,
               display: 'flex',
               alignItems: 'baseline',
               justifyContent: 'center',
               gap: 7,
-              opacity: 1,
-              animation: 'pt-summit-honor-rise-in .6s cubic-bezier(.2,.7,.2,1) .58s both',
             }}
           >
             <span
+              ref={altitudeValueRef}
               data-testid="trek-summit-altitude"
+              aria-hidden="true"
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontSize: 70,
@@ -5209,33 +5266,32 @@ function SummitConfirmedView({
             >
               {officialAltitudeLabel}
             </span>
-            <span style={{ paddingBottom: 8, fontFamily: 'var(--font-mono)', fontSize: 19, lineHeight: 1, fontWeight: 600, color: 'var(--color-on-surface-variant)' }}>
+            <span aria-hidden="true" style={{ paddingBottom: 8, fontFamily: 'var(--font-mono)', fontSize: 19, lineHeight: 1, fontWeight: 600, color: 'var(--color-on-surface-variant)' }}>
               m
             </span>
+            <span className="sr-only">{officialAltitudeCaption} {officialAltitudeSemanticLabel}</span>
           </div>
 
           <div
             className="pt-summit-honor-reveal"
+            data-pt-summit-divider=""
             aria-hidden="true"
             style={{
               margin: '8px auto 0',
               width: 98,
               height: 1,
               background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 50%, transparent), transparent)',
-              opacity: 1,
-              animation: 'pt-summit-honor-fade-in .5s ease .72s both',
             }}
           />
         </div>
 
         <div
           className="pt-summit-honor-reveal"
+          data-pt-summit-pill=""
           style={{
             marginTop: 14,
             display: 'flex',
             justifyContent: 'center',
-            opacity: 1,
-            animation: 'pt-summit-honor-pop-in .5s cubic-bezier(.2,.8,.25,1) .98s both',
           }}
         >
           <span
@@ -5259,14 +5315,13 @@ function SummitConfirmedView({
 
       <div
         className="pt-summit-honor-reveal"
+        data-pt-summit-time=""
         style={{
           position: 'relative',
           zIndex: 2,
           flex: '0 0 auto',
           textAlign: 'center',
           margin: '0 0 18px',
-          opacity: 1,
-          animation: 'pt-summit-honor-fade-in .5s ease 1.06s both',
         }}
       >
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, lineHeight: '14px', color: 'var(--color-on-surface-variant)', letterSpacing: '0.2em', whiteSpace: 'nowrap' }}>
@@ -5276,6 +5331,8 @@ function SummitConfirmedView({
 
       <section style={{ position: 'relative', zIndex: 2, flex: '0 0 auto', padding: '0 var(--space-4)' }}>
         <div
+          className="pt-summit-honor-reveal"
+          data-pt-summit-stats-card=""
           data-testid="trek-summit-stats"
           style={{
             background: 'var(--color-surface-variant)',
@@ -5286,6 +5343,7 @@ function SummitConfirmedView({
         >
           <div
             className="pt-summit-honor-reveal"
+            data-pt-summit-measured-row=""
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -5293,8 +5351,6 @@ function SummitConfirmedView({
               gap: 'var(--space-3)',
               padding: '12px 16px',
               borderBottom: '1px solid var(--color-outline)',
-              opacity: 1,
-              animation: 'pt-summit-honor-rise-in .5s cubic-bezier(.2,.7,.2,1) 1.2s both',
             }}
           >
             <span style={{ fontSize: 12, lineHeight: '16px', color: 'var(--color-on-surface-variant)', letterSpacing: '0.01em' }}>
@@ -5322,7 +5378,6 @@ function SummitConfirmedView({
                 label={stat.label}
                 value={stat.value}
                 withDivider={index < stats.length - 1}
-                animationDelayMs={1320 + index * 100}
               />
             ))}
           </div>
@@ -5332,17 +5387,16 @@ function SummitConfirmedView({
       <section style={{ position: 'relative', zIndex: 2, flex: '0 0 auto', padding: '14px var(--space-4) 0' }}>
         <PrimaryButton
           data-testid="trek-summit-primary-cta"
-          className="pt-summit-honor-reveal"
           style={{
+            fontSize: 'var(--font-title-m-size)',
+            fontWeight: 'var(--font-title-m-weight)',
             width: '100%',
             height: 46,
             minHeight: 46,
             borderRadius: 12,
-            fontSize: 'var(--font-title-m-size)',
-            fontWeight: 'var(--font-title-m-weight)',
-            opacity: 1,
-            animation: 'pt-summit-honor-rise-in .5s cubic-bezier(.2,.7,.2,1) 1.62s both',
           }}
+          className="pt-summit-honor-reveal"
+          data-pt-summit-action-primary=""
           onClick={onShare}
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -5354,6 +5408,7 @@ function SummitConfirmedView({
         <SecondaryButton
           data-testid="trek-summit-activity-cta"
           className="pt-summit-honor-reveal"
+          data-pt-summit-action-secondary=""
           style={{
             marginTop: 10,
             width: '100%',
@@ -5365,8 +5420,6 @@ function SummitConfirmedView({
             color: 'var(--color-on-surface)',
             fontSize: 14,
             fontWeight: 500,
-            opacity: 1,
-            animation: 'pt-summit-honor-rise-in .5s cubic-bezier(.2,.7,.2,1) 1.72s both',
           }}
           onClick={onViewActivity}
         >
@@ -5377,6 +5430,7 @@ function SummitConfirmedView({
           type="button"
           data-testid="trek-summit-explore-exit"
           className="pt-summit-honor-reveal"
+          data-pt-summit-action-exit=""
           onClick={onExploreExit}
           style={{
             display: 'block',
@@ -5391,8 +5445,6 @@ function SummitConfirmedView({
             fontWeight: 500,
             textAlign: 'center',
             padding: '0 18px',
-            opacity: 1,
-            animation: 'pt-summit-honor-fade-in .5s ease 1.82s both',
           }}
         >
           回到探索
@@ -5440,7 +5492,8 @@ function SummitHonorMedallion() {
 
       <circle cx="86" cy="86" r="83" fill="none" stroke="var(--color-outline)" strokeWidth="1" />
       <circle
-        className="pt-summit-honor-ambient"
+        className="pt-summit-honor-ambient pt-summit-honor-motion-target"
+        data-pt-summit-ring-a=""
         cx="86"
         cy="86"
         r="76"
@@ -5450,14 +5503,10 @@ function SummitHonorMedallion() {
         strokeDasharray="1.5 11"
         strokeLinecap="round"
         opacity="0.4"
-        style={{
-          transformBox: 'fill-box',
-          transformOrigin: 'center',
-          animation: 'pt-summit-honor-spin-slow 30s linear infinite',
-        }}
       />
       <circle
-        className="pt-summit-honor-ambient"
+        className="pt-summit-honor-ambient pt-summit-honor-motion-target"
+        data-pt-summit-ring-b=""
         cx="86"
         cy="86"
         r="90"
@@ -5465,11 +5514,6 @@ function SummitHonorMedallion() {
         stroke="var(--color-outline)"
         strokeWidth="1"
         strokeDasharray="2 16"
-        style={{
-          transformBox: 'fill-box',
-          transformOrigin: 'center',
-          animation: 'pt-summit-honor-spin-slow-rev 52s linear infinite',
-        }}
       />
       <circle cx="86" cy="86" r="62" fill="none" stroke="url(#pt-summit-honor-medal-rim)" strokeWidth="11" />
       <circle cx="86" cy="86" r="62" fill="none" stroke="rgba(0,0,0,.32)" strokeWidth="11" strokeDasharray="1 5" />
@@ -5486,7 +5530,8 @@ function SummitHonorMedallion() {
       <circle cx="86" cy="86" r="56" fill="url(#pt-summit-honor-medal-sheen)" />
       <circle cx="86" cy="86" r="49" fill="none" stroke="color-mix(in srgb, var(--accent) 20%, transparent)" strokeWidth="1" />
       <circle
-        className="pt-summit-honor-reveal"
+        className="pt-summit-honor-seal"
+        data-pt-summit-seal=""
         cx="86"
         cy="86"
         r="64"
@@ -5495,16 +5540,14 @@ function SummitHonorMedallion() {
         strokeWidth="2.6"
         strokeLinecap="round"
         strokeDasharray="402"
-        strokeDashoffset="0"
+        strokeDashoffset="402"
         style={{
-          transformBox: 'fill-box',
-          transformOrigin: 'center',
           transform: 'rotate(-90deg)',
-          animation: 'pt-summit-honor-seal-draw .82s cubic-bezier(.4,0,.1,1) .16s both',
         }}
       />
       <circle
-        className="pt-summit-honor-ambient"
+        className="pt-summit-honor-ambient pt-summit-honor-motion-target"
+        data-pt-summit-stamp=""
         cx="86"
         cy="86"
         r="64"
@@ -5512,20 +5555,12 @@ function SummitHonorMedallion() {
         stroke="var(--accent)"
         strokeWidth="2"
         opacity="0"
-        style={{
-          transformBox: 'fill-box',
-          transformOrigin: 'center',
-          animation: 'pt-summit-honor-stamp-pulse .9s ease-out .82s 1 forwards',
-        }}
       />
       <g
-        className="pt-summit-honor-reveal"
+        className="pt-summit-honor-reveal pt-summit-honor-motion-target"
+        data-pt-summit-crest=""
         style={{
-          transformBox: 'fill-box',
-          transformOrigin: 'center',
           color: 'var(--accent)',
-          opacity: 1,
-          animation: 'pt-summit-honor-crest-in .5s cubic-bezier(.2,.8,.25,1) .5s both',
         }}
       >
         {/* Brand icon swap seam: keep future icons centered at (86,86) inside the 172 viewBox, within the inner frame safe area (approx r=49; box x=37 y=37 w=98 h=98). Replace SummitMedalCrest here with an inline <g> or <image>, and adjust only this wrapper transform for a different icon coordinate space. */}
@@ -5558,16 +5593,15 @@ function SummitStat({
   label,
   value,
   withDivider = false,
-  animationDelayMs,
 }: {
   label: string
   value: string
   withDivider?: boolean
-  animationDelayMs?: number
 }) {
   return (
     <div
       data-testid="trek-summit-stat"
+      data-pt-summit-stat=""
       className="pt-summit-honor-reveal"
       style={{
         minWidth: 0,
@@ -5576,10 +5610,6 @@ function SummitStat({
         padding: '12px 8px',
         textAlign: 'center',
         borderRight: withDivider ? '1px solid var(--color-outline)' : undefined,
-        opacity: 1,
-        animation: animationDelayMs
-          ? `pt-summit-honor-rise-in .5s cubic-bezier(.2,.7,.2,1) ${animationDelayMs}ms both`
-          : undefined,
       }}
     >
       <div

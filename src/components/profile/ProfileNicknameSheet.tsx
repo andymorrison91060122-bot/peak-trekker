@@ -42,6 +42,7 @@ function Spinner() {
   return (
     <span
       aria-hidden="true"
+      className="pt-nickname-spinner"
       style={{
         width: 16,
         height: 16,
@@ -212,6 +213,7 @@ export default function ProfileNicknameSheet({
     >
       <div
         data-testid="profile-nickname-sheet-scrim"
+        className="pt-nickname-scrim"
         onClick={onClose}
         style={{
           position: 'absolute',
@@ -223,6 +225,7 @@ export default function ProfileNicknameSheet({
         }}
       />
       <div
+        className="pt-nickname-sheet-panel"
         style={{
           position: 'absolute',
           left: 0,
@@ -489,14 +492,14 @@ export default function ProfileNicknameSheet({
             transform: translateY(0);
           }
         }
-        @keyframes pt-nickname-success-fade {
-          from {
-            opacity: 0;
-            transform: translateY(2px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
+        @media (prefers-reduced-motion: reduce) {
+          .pt-nickname-spinner,
+          .pt-nickname-scrim,
+          .pt-nickname-sheet-panel {
+            animation: none !important;
+            transition: none !important;
+            opacity: 1 !important;
+            transform: none !important;
           }
         }
       `}</style>

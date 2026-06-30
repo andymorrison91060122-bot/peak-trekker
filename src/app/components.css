@@ -52,10 +52,6 @@
   background: linear-gradient(90deg, rgba(141, 149, 155, 0.32), transparent);
 }
 
-.glow-pulse {
-  animation: none;
-}
-
 .altitude-tag {
   display: inline-flex;
   align-items: center;
@@ -1177,6 +1173,13 @@
 
   100% {
     background-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mountain-weather__skeleton {
+    animation: none !important;
+    background: color-mix(in srgb, var(--color-on-surface) 8%, transparent);
   }
 }
 

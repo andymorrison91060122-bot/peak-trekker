@@ -1,4 +1,4 @@
-# Peak Trekker UI / 交互规范 v0.6
+# Peak Trekker UI / 交互规范 v0.7
 
 ## 1. 文档目标
 
@@ -1275,7 +1275,7 @@ Banner 用于：
 
 ## 12.5 性能红线
 
-* **只动 `transform`（x/y/scale/rotation）和 `opacity`**；禁止动画 `width/height/top/left/margin/padding`（触发 layout，掉帧）。现有违例（扫描线 `top`、进度条 `width`、slider `left`）在 §12.12 收编 retune。
+* **只动 `transform`（x/y/scale/rotation）和 `opacity`**；禁止动画 `width/height/top/left/margin/padding`（触发 layout，掉帧）。FU-76 C1 已把扫描线 `top→translateY`、两个 toggle slider `left→translateX`；进度条 / 分页点 `width→scaleX` 经复核决定不做（见 §12.12）。
 * `will-change: transform` 仅加在确实在动的元素上，动完移除。
 * **常驻 loop 默认禁止**；唯一例外是 `motion-ambient` 单点呼吸，且必须解释状态（如"识别进行中"），不得纯装饰。
 
@@ -1324,10 +1324,10 @@ Banner 用于：
 | 面 | 工具性 | 现有层级 | 判定 |
 |---|---|---|---|
 | **Trek / 登顶**（TrekClient.tsx，16 个） | 中 | L2 状态脉冲 + L3 登顶仪式 | 登顶礼成已选定 **V2 GSAP pilot**：保留现有勋章视觉，接管 / 重编排已有 count-up，双环改 settle + 极慢漂移，reduced-motion 直达终态 |
-| **截图识别 / 归档**（ScreenshotClient.tsx，8 个） | 中 | L2 扫描 / 生成 + L3 归档礼成 | 归档仪式（badgeIn/seal/fadeUp）**留**；扫描光晕 + 归档转环**降**；扫描线动 `top`→`translateY` |
+| **截图识别 / 归档**（ScreenshotClient.tsx，8 个） | 中 | L2 扫描 / 生成 + L3 归档礼成 | 归档仪式（badgeIn/seal/fadeUp）**留**；扫描线已 `top→translateY`；扫描光晕 / 归档转环正常态保留，reduced-motion 已静态化 |
 | **Onboarding**（IntroCarousel.tsx，7 个） | 低 | L3 首屏揭示 | fade-up/描山/卡入场/bar-grow **留**；漂浮 bob + 记录脉冲环**降** |
 | **校准编辑器**（ScreenshotRouteCalibrationSection.tsx，3 个） | **高** | L1 微 + 1 个 L3 success | **范本**——工具面只 1 个成功仪式（`routeCapBloom`）；`routePulse` 死代码**删** |
-| **昵称 sheet**（ProfileNicknameSheet.tsx，4 个） | 低 | L2 sheet/spinner + L1 表单微 | 干净无仪式（对）；`pt-nickname-success-fade` 死代码**删**；**缺 reduced-motion** |
+| **昵称 sheet**（ProfileNicknameSheet.tsx，4 个） | 低 | L2 sheet/spinner + L1 表单微 | 干净无仪式（对）；`pt-nickname-success-fade` = reduced-motion 缺口，已补降级（ProfileAvatarUploader.tsx 有运行时引用，非死代码） |
 | **Import**（ImportClient.tsx，1 个） | 低 | L2 状态 only | 健康；`import-spin` 进度若动 `width`→`scaleX`；**缺 reduced-motion** |
 | **全局 CSS**（globals.css / components.css，2 个） | **高** | L1 按钮微 + L2 loader | 干净无仪式（对）；**缺全局 reduced-motion（最大 a11y 缺口）** |
 
@@ -1346,17 +1346,23 @@ Banner 用于：
 
 **🔴 A 候选视觉复核项——装饰性 loop（demo 后定，非判定降级）**
 
-1. 截图扫描光晕 `sr-scan-glow` → 候选：并进扫描线 boxShadow。
-2. 归档转环 `screenshotArchiveRot`(26s) → 候选：静态 / 仅入场。
-3. onboarding 漂浮 `pt-share-stack-float` + 记录脉冲环 `pt-intro-record-pulse` → 候选：一次性 / 砍。
+1. 截图扫描光晕 `sr-scan-glow` → 候选：并进扫描线 boxShadow；C1 仅补 reduced-motion 静态化，正常态保留。
+2. 归档转环 `screenshotArchiveRot`(26s) → 候选：静态 / 仅入场；C1 不改正常态，既有 reduced-motion 覆盖保留。
+3. onboarding 漂浮 `pt-share-stack-float` + 记录脉冲环 `pt-intro-record-pulse` → 候选：一次性 / 砍；C1 不改正常态，既有 reduced-motion 覆盖保留。
 
-**🟡 B 删——死代码**：`routePulse`、`pt-nickname-success-fade`、globals/components 里的 `.glow-pulse` / `.scanlines` stub。
+**✅ B 删——死代码（C1 完成）**：`routePulse`、globals/components 里的 `.glow-pulse` / `.scanlines` stub。`pt-nickname-success-fade` 经 C1 复核不是死代码，已移入 reduced-motion 补全项。
 
-**🟡 C 性能 retune（动 layout → 换 transform）**：扫描线 `top→translateY`、Toggle/进度点 `width`、import 进度条 `width→scaleX`、slider `left→x`。
+**✅ C 性能 retune（C1 完成 / 决策）**
 
-**🟠 D a11y——补 reduced-motion**：全局 CSS（最大缺口）、昵称 sheet、import 三处。
+1. 扫描线 `top→translateY`：已做，clean-base before / after 375px sampled equivalence 最大偏差约 1.24px，行程按 `220px * 16 / 9 * 0.6 ≈ 234.67px` 固定。
+2. Toggle slider `left→translateX`：已做（ScreenshotClient + ShareClient），`left: 2px` 固定、thumb 位移 `translateX(16px)`，像素等价。
+3. `width→scaleX`（进度条 + 分页点，含 CommunityMediaGallery 的 `transition: all 180ms`）：决定不做。理由：一次性 / 低频 reflow 可忽略；`scaleX` 会扭曲胶囊圆角并改变 flex 占位，收益低于风险。
 
-**保留（勿动）**：SummitHonorMedallion 的勋章视觉与 crest swap seam、`screenshotArchive{BadgeIn/Seal/FadeUp}` 归档礼成、onboarding 首屏揭示、校准 `routeCapBloom`，及全部 L2 状态脉冲（`pt-rec-pulse`/`pt-gps-weak-pulse`/`pt-near-summit-pulse`/`pt-shimmer`/`sr-spin`/`ui-btn-pulse`/`mountain-weather-pulse`）。登顶 staged reveal 由 GSAP timeline 接管，不再保留旧 CSS keyframe。
+**✅ D a11y——补 reduced-motion（C1 完成）**：全局按钮 loading dots、Mountain weather skeleton、截图 processing scan / dots、截图 submitting spinner、Import spinner、昵称 sheet spinner / scrim / sheet-up、昵称 success fade 均已补降级。infinite loop → `animation: none` + 静态可见态；一次性入场 → `animation: none` 落终态。
+
+**独立 cleanup 候选（C1 不做）**：`src/components/ui/MountainDetailHeroCarousel.tsx` 全仓零引用，留作非动效独立 cleanup。
+
+**保留（勿动）**：SummitHonorMedallion 的勋章视觉与 crest swap seam、`screenshotArchive{BadgeIn/Seal/FadeUp}` 归档礼成、onboarding 首屏揭示、校准 `routeCapBloom`，及全部 L2 状态脉冲（`pt-rec-pulse`/`pt-gps-weak-pulse`/`pt-near-summit-pulse`/`pt-shimmer`/`sr-spin`/`ui-btn-pulse`/`mountain-weather-pulse` 的正常态语义）。登顶 staged reveal 由 GSAP timeline 接管，不再保留旧 CSS keyframe。
 
 ---
 
@@ -1680,6 +1686,7 @@ Banner 用于：
 
 ### 版本记录
 
+* v0.7 — 2026-06-29：FU-76 Phase C1 动效收编。完成 CSS 死动画清理（`routePulse`、`.glow-pulse`、`.scanlines` stub）、reduced-motion 缺口补齐（全局 loading dots / weather skeleton / screenshot scan+dots+submit spinner / import spinner / nickname sheet+success fade）、两个 toggle `left→translateX`，以及截图扫描线 `top→translateY`（before/after 375px sampled equivalence 最大偏差约 1.24px）。纠正 `pt-nickname-success-fade` 归类：它在 ProfileAvatarUploader 有运行时引用，非死代码。`width→scaleX` 类进度条 / 分页点（含 CommunityMediaGallery）决策不做，MountainDetailHeroCarousel 零引用组件登记为独立 cleanup 候选。
 * v0.6 — 2026-06-29：FU-76 Summit L3 GSAP pilot 落库。登顶礼成采用用户选定 V2：保留现有 SummitHonorMedallion 视觉，GSAP 接管 / 重编排已有官方海拔 count-up，双环由快速 CSS loop 改为入场 settle + 极慢漂移，辉光改为一次 settle，reduced-motion 直接终态。其它装饰 loop（截图 / 归档 / onboarding）改为候选视觉复核项，demo 后定，非本轮判定降级。
 * v0.5 — 2026-06-28：§12 微动效规范定稿（动效工作流 Phase A）。确立 **C+ 质感分层 L0–L3** + Motion Token（8 时长 / 4 缓动）+ CSS/GSAP 分工（GSAP 推迟到 FU-87 真需 timeline 时作 pilot，FU-76 全程 CSS）+ reduced-motion 架构（CSS 现行、`gsap.matchMedia()` 接缝）+ 每点 6 字段格式 + §12.11 逐面分级图 + §12.12 收编 backlog。**L3 仪式时长上限由旧版 360ms 上调到 1200ms（用户签字）**。
 * v0.4 — 2026-05-13：路径 B 决策回写，分享模板池收敛为基础 2 + 高级 8，共 10 个模板；MVP 分享编辑器取消 Tab、地图开关、顶部「预览」按钮和「更多 ...」按钮；透明水印跟随当前模板，Satori 重写顺延到 V1.1+。

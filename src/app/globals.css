@@ -653,8 +653,13 @@ select {
   }
 }
 
-.scanlines::after {
-  display: none;
+@media (prefers-reduced-motion: reduce) {
+  .ui-btn-loading-indicator::before,
+  .ui-btn-loading-indicator::after {
+    animation: none !important;
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 ::-webkit-scrollbar {

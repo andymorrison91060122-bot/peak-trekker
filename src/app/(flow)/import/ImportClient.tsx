@@ -3797,6 +3797,11 @@ export default function ImportClient() {
               transform: rotate(360deg);
             }
           }
+          @media (prefers-reduced-motion: reduce) {
+            .import-spinner {
+              animation: none !important;
+            }
+          }
         `}
       </style>
       <input

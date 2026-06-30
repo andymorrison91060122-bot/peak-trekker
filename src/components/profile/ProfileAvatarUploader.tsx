@@ -209,6 +209,26 @@ export default function ProfileAvatarUploader({
 
   return (
     <>
+      <style jsx global>{`
+        @keyframes pt-nickname-success-fade {
+          from {
+            opacity: 0;
+            transform: translateY(2px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .pt-nickname-success-motion {
+            animation: none !important;
+            transition: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+          }
+        }
+      `}</style>
       <input
         ref={inputRef}
         type="file"
@@ -345,7 +365,7 @@ export default function ProfileAvatarUploader({
               {nicknameJustUpdated ? (
                 <span
                   data-testid="profile-nickname-updated-badge"
-                  className="pt-label-s"
+                  className="pt-label-s pt-nickname-success-motion"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -430,6 +450,7 @@ export default function ProfileAvatarUploader({
       {nicknameToastVisible ? (
         <div
           data-testid="profile-nickname-success-toast"
+          className="pt-nickname-success-motion"
           style={{
             position: 'fixed',
             left: 0,

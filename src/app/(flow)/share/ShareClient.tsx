@@ -1848,17 +1848,18 @@ function Toggle({
       >
         <span
           style={{
-            position: 'absolute',
-            top: 2,
-            left: on ? 18 : 2,
-            width: 18,
+          position: 'absolute',
+          top: 2,
+          left: 2,
+          width: 18,
             height: 18,
             borderRadius: 'var(--radius-pill)',
-            background: 'var(--color-on-surface)',
-            boxShadow: '0 1px 3px color-mix(in srgb, var(--color-surface) 64%, transparent)',
-            transition: 'left 160ms ease',
-          }}
-        />
+          background: 'var(--color-on-surface)',
+          boxShadow: '0 1px 3px color-mix(in srgb, var(--color-surface) 64%, transparent)',
+          transform: on ? 'translateX(16px)' : 'translateX(0)',
+          transition: 'transform 160ms ease',
+        }}
+      />
       </span>
     </button>
   )

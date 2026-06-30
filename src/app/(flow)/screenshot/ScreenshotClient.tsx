@@ -904,6 +904,7 @@ function ScreenshotProcessingPreview({ imagePreview }: { imagePreview: string | 
 
       <span
         aria-hidden="true"
+        data-sr-motion="scan-line"
         style={{
           position: 'absolute',
           left: 0,
@@ -912,11 +913,13 @@ function ScreenshotProcessingPreview({ imagePreview }: { imagePreview: string | 
           height: 2,
           background: 'var(--color-success)',
           boxShadow: '0 0 12px var(--color-success), 0 0 24px color-mix(in srgb, var(--color-success) 50%, transparent)',
+          willChange: 'transform',
           animation: 'sr-scan 2.4s ease-in-out infinite',
         }}
       />
       <span
         aria-hidden="true"
+        data-sr-motion="scan-glow"
         style={{
           position: 'absolute',
           left: 0,
@@ -925,6 +928,7 @@ function ScreenshotProcessingPreview({ imagePreview }: { imagePreview: string | 
           height: 32,
           pointerEvents: 'none',
           background: 'linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--color-success) 12%, transparent) 80%, transparent 100%)',
+          willChange: 'transform',
           animation: 'sr-scan-glow 2.4s ease-in-out infinite',
         }}
       />
@@ -949,16 +953,26 @@ function ProcessingScreen({
     <ScreenshotShell step="processing" onBack={onBack} quota={quota} quotaLoading={quotaLoading} onUpgrade={onUpgrade}>
       <style>{`
         @keyframes sr-scan {
-          0%, 100% { top: 18%; }
-          50% { top: 78%; }
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(calc(220px * 16 / 9 * 0.6)); }
         }
         @keyframes sr-scan-glow {
-          0%, 100% { top: calc(18% - 30px); }
-          50% { top: calc(78% - 30px); }
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(calc(220px * 16 / 9 * 0.6)); }
         }
         @keyframes sr-pulse {
           0%, 80%, 100% { opacity: .25; transform: scale(.85); }
           40% { opacity: 1; transform: scale(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [data-sr-motion],
+          [data-sr-processing-dot] {
+            animation: none !important;
+            transform: none !important;
+          }
+          [data-sr-processing-dot] {
+            opacity: 1 !important;
+          }
         }
       `}</style>
       <main
@@ -989,6 +1003,7 @@ function ProcessingScreen({
               <span
                 key={item}
                 aria-hidden="true"
+                data-sr-processing-dot
                 style={{
                   width: 6,
                   height: 6,
@@ -1071,13 +1086,14 @@ function Toggle({
         style={{
           position: 'absolute',
           top: 2,
-          left: on ? 18 : 2,
+          left: 2,
           width: 18,
           height: 18,
           borderRadius: '50%',
           background: 'var(--color-on-surface)',
           boxShadow: '0 1px 3px color-mix(in srgb, var(--color-surface) 45%, transparent)',
-          transition: 'left 160ms ease',
+          transform: on ? 'translateX(16px)' : 'translateX(0)',
+          transition: 'transform 160ms ease',
         }}
       />
     </button>
@@ -1746,6 +1762,7 @@ function Spinner() {
   return (
     <span
       aria-hidden="true"
+      data-sr-submit-spinner
       style={{
         width: 34,
         height: 34,
@@ -1777,6 +1794,11 @@ function SubmittingScreen() {
       <style>{`
         @keyframes sr-spin {
           to { transform: rotate(360deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [data-sr-submit-spinner] {
+            animation: none !important;
+          }
         }
       `}</style>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-4)' }}>

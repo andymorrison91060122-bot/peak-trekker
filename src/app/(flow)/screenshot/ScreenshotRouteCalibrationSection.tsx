@@ -1392,11 +1392,6 @@ export default function ScreenshotRouteCalibrationSection({
               from { transform: translateY(10px); opacity: 0; }
               to { transform: translateY(0); opacity: 1; }
             }
-            @keyframes routePulse {
-              0% { transform: scale(.7); opacity: .38; }
-              65% { transform: scale(1.7); opacity: 0; }
-              100% { transform: scale(1.7); opacity: 0; }
-            }
             @keyframes routeCapBloom {
               0% { transform: scale(.9); opacity: .18; }
               45% { transform: scale(2.4); opacity: .34; }

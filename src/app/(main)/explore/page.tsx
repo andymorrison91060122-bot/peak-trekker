@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from '@/lib/supabase-server'
 import type { ProvinceBannerData } from '@/components/explore/ProvinceBannerStrip'
 import { listProvinceMonthlyRankings } from '@/lib/province-ranking-queries'
 import { isFeatureEnabled } from '@/lib/feature-flags'
+import { resolveShareTemplateParam } from '@/lib/share-template-intent'
 import ExploreClient from './ExploreClient'
 
 function getShanghaiYearMonth(date = new Date()) {
@@ -37,7 +38,12 @@ function getPreviousShanghaiYearMonth({
   }
 }
 
-export default async function ExplorePage() {
+export default async function ExplorePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ shareTemplate?: string | string[] }>
+}) {
+  const resolvedSearchParams = await searchParams
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
   const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
@@ -86,6 +92,7 @@ export default async function ExplorePage() {
         list={mountains}
         hometownProvince={hometownProvince}
         provinceBanner={provinceBanner}
+        shareTemplateIntent={resolveShareTemplateParam(resolvedSearchParams.shareTemplate)}
       />
     </div>
   )

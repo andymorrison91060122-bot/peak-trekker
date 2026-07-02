@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-06-30 · 最新版本记录: v0.92
+> Last Updated: 2026-07-02 · 最新版本记录: v0.94
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（12 条）
+## Active Follow-ups（14 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -291,7 +291,7 @@
 
 - **优先级**: P1
 - **归属阶段**: 产品主线（设计先行）
-- **状态**: 🟢 active
+- **状态**: 🟢 active（实现完成，用户验收通过，待合并）
 
 **背景（2026-06-12 用户重述确认）**: 分享模板是核心卖点但藏得太深。把出发 tab 触发按钮改为分享模板门面：用户先浏览水印模板样例，再按手头素材三选一录入（截图上传 / 轨迹上传 / 真实记录）。无登山记录时，该界面引导先完成录入。
 
@@ -299,7 +299,7 @@
 
 **守门约束**: community / share 路线预览接入 `screenshot_route_shape` 时，badge 必须按 source 守门，`screenshot_recognition` 来源禁显「GPS 真实轨迹」。
 
-**进展（2026-06-30）**: 主体 = 分享门面前置 + 三选一录入（非编辑器美化）；保存 / 分享动效 6 版 demo 属预研，不单独实施。下一步整体门面方案设计先行，详见 `docs/fu85-share-facade-anchor.md`。
+**进展（2026-07-02）**: 分享模板门面实现完成并经用户验收通过，待合并。`/imprint` 已接入底栏「印迹」入口、两屏门面、真实分享模板组件预览、`/share?template=` 初始模板锚定；三条真实业务流 template 传播已接通（导入 / 截图 / 实时记录最终进入分享编辑器时预选门面模板），pending intent 使用 `source + TTL + 单次消费` 防残留污染。R3 系列完成门面真实模板预览的字体 subset、可感知动效、count-up 与 facade/export parity 收口；R4 完成门面来源下 `/import` / `/screenshot` 返回 Screen 2 的上下文恢复（无自由 `returnTo`）。证据目录：`output/fu85-acceptance/r3/`。
 
 **互引**: 吸收 memory deferred task「导航分享门面」。
 
@@ -340,6 +340,39 @@
 **Scope（后续迭代）**: 复用 FU-90 昵称 sheet 模式 + 省份 picker + 写 `profiles.province` + 同步改 FAQ。
 
 **边界**: **MVP 初期不做**。
+
+---
+
+### FU-106 · 照片模板 facade 预览与 Satori 出图亮度 / 裁切差异
+
+- **优先级**: P3
+- **归属阶段**: 分享模板视觉保真 / 后续评估
+- **状态**: 🟢 active（低优先级视觉 parity 评估）
+
+**背景**: FU-85 R3E 五模板 facade-vs-Satori 并排证据显示，照片类模板在浏览器 CSS preview 与 Satori PNG 出图之间仍有亮度 / 裁切 / 渲染引擎差异，`premium-photo-overlay` 最明显。该差异来自浏览器实时预览与 Satori 服务端渲染路径既有差异，不是 FU-85 新引入的模板结构回归；R3E 已完成 text-align、数字格式、bbox 与 anchor parity 收口。
+
+**待评估方向**:
+- 方案 A：照片类 facade 卡改用 Satori PNG 静态预览，提高所见即所得保真度，但会增加生成 / 缓存 / 加载复杂度。
+- 方案 B：接受浏览器 preview 与导出 PNG 的轻微亮度 / 裁切差异，在门面继续保留实时模板组件预览。
+
+**验收口径**: 若启动本 FU，需要以照片类模板为重点，做 375px facade preview ↔ Satori export side-by-side，并明确性能 / 保真 tradeoff。
+
+---
+
+### FU-107 · `/explore?shareTemplate` 未登录场景 template 保留边界
+
+- **优先级**: P3
+- **归属阶段**: 分享门面边缘链路 hardening
+- **状态**: 🟢 active（低频边缘场景）
+
+**背景**: FU-85 已通过 pending intent + 显式 `shareTemplate` URL 解决门面发起实时记录的常规模板传播与残留污染问题。但未登录场景仍有一个边缘风险：`CheckinButton` 登录分支会消费并清除 pending template，而 `MountainDetailClient` 登录分支不会；若登录 return 跳转丢失 query，门面所选模板可能无法继续带到后续 `/trek` / `/share`。
+
+**Scope**:
+- 复核 `/explore?shareTemplate=<id>` 未登录 → 登录 → 回到山峰 / trek 链路的实际 URL 与 pending 状态。
+- 统一 `CheckinButton` 与 `MountainDetailClient` 未登录分支的 template 保留策略。
+- 保持安全边界：不引入自由 `returnTo`，不破坏 FU-102 trek completion navigation closure。
+
+**验收口径**: 未登录从门面选择「选山实时记录」后，登录完成仍能保留已选模板；普通非门面记录不被旧 pending 污染。
 
 ## Deferred Registration
 
@@ -1603,6 +1636,10 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.94 — 2026-07-02**: FU-85 share-template facade implementation ready for merge。`/imprint` 门面实现完成并经用户验收通过，待合并：真实分享模板组件作为门面卡、`/share?template=` 初始模板锚定、三条真实业务流 template 传播、pending intent 防残留污染均已落地；R3A 字体 subset（约 26KB woff2 route-scoped，Satori 全量 OTF 不动）、R3B/R3C/R3D/R3E 动效与 parity 收口（opacity 分层点亮 + count-up + 手动 dashoffset 自绘 + 卡壳 rim/角标 focus；facade `text-align` 重置修 button 继承；数字格式与模板静态渲染逐字符一致）；R4 修门面来源返回上下文（`from=imprint` → `/imprint?template=<id>&step=source`，无自由 `returnTo`）。新增 FU-106（照片模板 facade 预览与 Satori 出图亮度 / 裁切差异，低优先级视觉 parity 评估）与 FU-107（`/explore?shareTemplate` 未登录场景 template 保留边界，低频 hardening）。Active 12 → 14 · Closed 91 → 91 · Deferred 4 → 4。
+
+**v0.93 — 2026-07-01**: FU-85 share-template facade implementation progress。`/imprint` 门面 Phase 1 已完成并经 R1/R1.2 视觉修正：底栏「出发」改「印迹」、真实分享模板组件作为门面卡、`/share?template=` 初始模板锚定、paywall 状态驱动「限免」角标。Phase 2 本分支接入三条真实业务流 template 传播：`/import?template=`、`/screenshot?template=`、`/explore?shareTemplate=` 入口与导入 / 截图 / Trek 礼成分享出口统一走 `share-template-intent` helper；pending intent 带 `source='imprint'` + TTL + 单次消费，Trek 通过显式 `shareTemplate` URL 防旧 pending 污染。FU-85 仍 Active，等待用户 / Claude 验收。Active 12 → 12 · Closed 91 → 91 · Deferred 4 → 4。
 
 **v0.92 — 2026-06-30**: docs-only workflow hardening。AGENTS.md 新增通用「设计类任务开发流程纪律」，要求设计类 FU 开工前回 tracker 归位、长流程常驻任务锚、整体设计先于局部 demo、跨阶段交接外部化、阶段 DoD 前置确认、评审分层标明事实 / 推论 / 预研 / 已定方案，并给出 10 字段启动模板。新增 `docs/fu85-share-facade-anchor.md` 作为 FU-85 独立 anchor：明确主体是分享门面前置 + 三选一录入，不是分享编辑器局部美化；保存 / 分享动效 demo 仅为 FU-76 分享生成节点预研素材，是否采用取决于 FU-85 整体门面方案。FU-85 Active 段仅补简洁进展 note 与 anchor 指针。Active 12 → 12 · Closed 91 → 91 · Deferred 4 → 4。
 

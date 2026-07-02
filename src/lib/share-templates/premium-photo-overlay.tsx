@@ -27,26 +27,32 @@ export function PremiumPhotoOverlayTemplate({ data, photoDataUrl }: ShareTemplat
 
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 70, top: 250, width: 435 }}>
         {mountainName ? (
-          <span style={{ color: C.fg, fontSize: 38, lineHeight: 1.2, fontWeight: 800 }}>
+          <span data-role="text" data-motion-kind="mountain" data-motion-order="18" style={{ color: C.fg, fontSize: 38, lineHeight: 1.2, fontWeight: 800 }}>
             {mountainName}
           </span>
         ) : null}
         {location ? (
-          <span style={{ color: C.fg2, fontSize: 28, lineHeight: 1.15, fontWeight: 800, marginTop: 30 }}>
+          <span data-role="text" data-motion-kind="location" data-motion-order="22" style={{ color: C.fg2, fontSize: 28, lineHeight: 1.15, fontWeight: 800, marginTop: 30 }}>
             {location}
           </span>
         ) : null}
         {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 44 }}>
-          <span style={{ color: C.success, fontSize: 138, lineHeight: 0.92, fontWeight: 800 }}>
+          <span
+            data-role="num"
+            data-motion-kind="altitude-value"
+            data-val={data.altitude}
+            data-fmt="comma"
+            style={{ color: C.success, fontSize: 138, lineHeight: 0.92, fontWeight: 800 }}
+          >
             {formatShareAltitude(data)}
           </span>
-          <span style={{ color: C.success, fontSize: 46, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
+          <span data-role="text" data-motion-kind="altitude-unit" data-motion-order="36" style={{ color: C.success, fontSize: 46, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
         </div> : null}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 42, marginTop: showAltitude ? 74 : 54 }}>
-          <OverlayMetric label="总距离" value={formatDistance(data.distance)} unit="km" />
+          <OverlayMetric label="总距离" value={formatDistance(data.distance)} unit="km" motionValue={data.distance} motionFormat="dec1" />
           {data.visibleFields.duration ? <OverlayMetric label="时长" value={data.duration || '--'} /> : null}
-          {data.visibleFields.elevationGain ? <OverlayMetric label="爬升" value={formatPlainNumber(data.elevationGain)} unit="m" /> : null}
+          {data.visibleFields.elevationGain ? <OverlayMetric label="爬升" value={formatPlainNumber(data.elevationGain)} unit="m" motionValue={data.elevationGain} motionFormat="comma" /> : null}
         </div>
       </div>
 
@@ -57,13 +63,34 @@ export function PremiumPhotoOverlayTemplate({ data, photoDataUrl }: ShareTemplat
   )
 }
 
-function OverlayMetric({ label, value, unit }: { label: string; value: string; unit?: string }) {
+function OverlayMetric({
+  label,
+  value,
+  unit,
+  motionValue,
+  motionFormat,
+}: {
+  label: string
+  value: string
+  unit?: string
+  motionValue?: number
+  motionFormat?: 'comma' | 'dec1'
+}) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <span style={{ color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800, letterSpacing: '0.1em' }}>{label}</span>
+      <span data-role="text" data-motion-kind="metric-label" data-motion-order="44" style={{ color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800, letterSpacing: '0.1em' }}>{label}</span>
       <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 12 }}>
-        <span style={{ color: C.fg, fontSize: 58, lineHeight: 1, fontWeight: 800 }}>{value}</span>
-        {unit ? <span style={{ color: C.fg2, fontSize: 26, lineHeight: 1, fontWeight: 800, marginLeft: 8 }}>{unit}</span> : null}
+        <span
+          data-role={typeof motionValue === 'number' ? 'num' : 'text'}
+          data-motion-kind="metric-value"
+          data-motion-order="52"
+          data-val={typeof motionValue === 'number' ? motionValue : undefined}
+          data-fmt={motionFormat}
+          style={{ color: C.fg, fontSize: 58, lineHeight: 1, fontWeight: 800 }}
+        >
+          {value}
+        </span>
+        {unit ? <span data-role="text" data-motion-kind="metric-unit" data-motion-order="58" style={{ color: C.fg2, fontSize: 26, lineHeight: 1, fontWeight: 800, marginLeft: 8 }}>{unit}</span> : null}
       </div>
     </div>
   )

@@ -185,7 +185,8 @@ test('summit confirmed GSAP pilot owns ceremony motion and accessible count-up',
 })
 
 test('summit confirmed exits neutralize trek guard history before replacing forward destinations', () => {
-  assert.match(trekClient, /void replaceAfterTrekCompletion\(`\/share\?checkinId=\$\{encodeURIComponent\(createdCheckinId\)\}`\)/)
+  assert.match(trekClient, /buildShareUrlForCheckin\(\{[\s\S]*checkinId: createdCheckinId,[\s\S]*template: incomingShareTemplate,[\s\S]*\}\)/)
+  assert.match(trekClient, /void replaceAfterTrekCompletion\(shareUrl\)/)
   assert.match(trekClient, /void replaceAfterTrekCompletion\(`\/activity\/\$\{createdCheckinId\}`\)/)
   assert.match(trekClient, /onExploreExit=\{\(\) => void replaceAfterTrekCompletion\('\/explore'\)\}/)
   assert.doesNotMatch(trekClient, /router\.push\(`\/share\?checkinId=/)

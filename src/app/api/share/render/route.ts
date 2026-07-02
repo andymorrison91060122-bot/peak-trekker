@@ -1,15 +1,6 @@
 import sharp from 'sharp'
-import { BaseClassicTemplate } from '@/lib/share-templates/base-classic'
-import { BaseDataTemplate } from '@/lib/share-templates/base-data'
-import { PremiumAltitudeProfileTemplate } from '@/lib/share-templates/premium-altitude-profile'
-import { PremiumBoldNumberTemplate } from '@/lib/share-templates/premium-bold-number'
-import { PremiumDataScatterTemplate } from '@/lib/share-templates/premium-data-scatter'
-import { PremiumMonoFilmTemplate } from '@/lib/share-templates/premium-mono-film'
-import { PremiumPhotoCompositeTemplate } from '@/lib/share-templates/premium-photo-composite'
-import { PremiumPhotoOverlayTemplate } from '@/lib/share-templates/premium-photo-overlay'
-import { PremiumSummitCertificateTemplate } from '@/lib/share-templates/premium-summit-certificate'
-import { PremiumVerticalStoryTemplate } from '@/lib/share-templates/premium-vertical-story'
 import { RenderRoot } from '@/lib/share-templates/shared'
+import { getShareTemplateComponent } from '@/lib/share-templates/registry'
 import { TransparentWatermarkTemplate } from '@/lib/share-templates/transparent-watermark'
 import {
   SHARE_RENDER_TEMPLATE_IDS,
@@ -347,16 +338,8 @@ async function photoDataUrlForTemplate(template: ShareRenderTemplate, photoBase6
 }
 
 function renderTemplate({ template, data }: ShareRenderRequest, photoDataUrl: string | null) {
-  if (template === 'base-data') return BaseDataTemplate({ data, photoDataUrl })
-  if (template === 'premium-photo-composite') return PremiumPhotoCompositeTemplate({ data, photoDataUrl })
-  if (template === 'premium-photo-overlay') return PremiumPhotoOverlayTemplate({ data, photoDataUrl })
-  if (template === 'premium-bold-number') return PremiumBoldNumberTemplate({ data, photoDataUrl })
-  if (template === 'premium-data-scatter') return PremiumDataScatterTemplate({ data, photoDataUrl })
-  if (template === 'premium-mono-film') return PremiumMonoFilmTemplate({ data, photoDataUrl })
-  if (template === 'premium-altitude-profile') return PremiumAltitudeProfileTemplate({ data, photoDataUrl })
-  if (template === 'premium-summit-certificate') return PremiumSummitCertificateTemplate({ data, photoDataUrl })
-  if (template === 'premium-vertical-story') return PremiumVerticalStoryTemplate({ data, photoDataUrl })
-  return BaseClassicTemplate({ data, photoDataUrl })
+  const Template = getShareTemplateComponent(template)
+  return Template({ data, photoDataUrl })
 }
 
 function renderPayload(payload: ShareRenderRequest, photoDataUrl: string | null) {

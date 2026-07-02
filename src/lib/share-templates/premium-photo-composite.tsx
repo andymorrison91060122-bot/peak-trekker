@@ -30,15 +30,21 @@ export function PremiumPhotoCompositeTemplate({ data, photoDataUrl }: ShareTempl
 
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 72, right: 72, bottom: 390 }}>
         {mountainLine ? (
-          <span style={{ color: C.fg, fontSize: 40, lineHeight: 1.2, fontWeight: 800 }}>
+          <span data-role="text" data-motion-kind="mountain" data-motion-order="18" style={{ color: C.fg, fontSize: 40, lineHeight: 1.2, fontWeight: 800 }}>
             {mountainLine}
           </span>
         ) : null}
         {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 32 }}>
-          <span style={{ color: C.success, fontSize: 160, lineHeight: 0.92, fontWeight: 800 }}>
+          <span
+            data-role="num"
+            data-motion-kind="altitude-value"
+            data-val={data.altitude}
+            data-fmt="comma"
+            style={{ color: C.success, fontSize: 160, lineHeight: 0.92, fontWeight: 800 }}
+          >
             {formatShareAltitude(data)}
           </span>
-          <span style={{ color: C.success, fontSize: 58, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
+          <span data-role="text" data-motion-kind="altitude-unit" data-motion-order="36" style={{ color: C.success, fontSize: 58, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
         </div> : null}
       </div>
 

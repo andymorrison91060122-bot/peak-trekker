@@ -1,11 +1,20 @@
 import type { Metadata } from 'next'
 import ScreenshotClient from './ScreenshotClient'
+import { resolveShareTemplateParam } from '@/lib/share-template-intent'
 
 export const metadata: Metadata = {
   title: '识别截图 | Peak Trekker',
 }
 
-export default function ScreenshotPage() {
+export default async function ScreenshotPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ template?: string | string[]; from?: string | string[] }>
+}) {
+  const resolvedSearchParams = await searchParams
+  const fromImprint = Array.isArray(resolvedSearchParams.from)
+    ? resolvedSearchParams.from[0] === 'imprint'
+    : resolvedSearchParams.from === 'imprint'
   return (
     <div
       style={{
@@ -14,7 +23,10 @@ export default function ScreenshotPage() {
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
-      <ScreenshotClient />
+      <ScreenshotClient
+        initialTemplate={resolveShareTemplateParam(resolvedSearchParams.template)}
+        returnToImprint={fromImprint}
+      />
     </div>
   )
 }

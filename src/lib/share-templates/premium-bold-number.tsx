@@ -21,22 +21,36 @@ export function PremiumBoldNumberTemplate({ data, photoDataUrl }: ShareTemplateP
       <PhotoShade direction="full" strength={0.78} />
 
       {showAltitude ? <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 64, right: 64, top: 180 }}>
-        <span style={{ color: 'rgba(255, 255, 255, 0.32)', fontSize: 30, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>
+        <span data-role="text" data-motion-kind="altitude-label" data-motion-order="26" style={{ color: 'rgba(255, 255, 255, 0.32)', fontSize: 30, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>
           最高海拔
         </span>
         <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 32 }}>
-          <span style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 265, lineHeight: 0.86, fontWeight: 800 }}>
+          <span
+            data-role="num"
+            data-motion-kind="altitude-value"
+            data-val={data.altitude}
+            data-fmt="comma"
+            style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 265, lineHeight: 0.86, fontWeight: 800 }}
+          >
             {formatShareAltitude(data)}
           </span>
-          <span style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 88, lineHeight: 1, fontWeight: 800, marginLeft: 12 }}>m</span>
+          <span data-role="text" data-motion-kind="altitude-unit" data-motion-order="36" style={{ color: 'rgba(255, 255, 255, 0.25)', fontSize: 88, lineHeight: 1, fontWeight: 800, marginLeft: 12 }}>m</span>
         </div>
       </div> : null}
 
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 72, right: 72, bottom: 315 }}>
-        {mountainLine ? <span style={{ color: C.fg, fontSize: 42, lineHeight: 1.18, fontWeight: 800 }}>{mountainLine}</span> : null}
+        {mountainLine ? <span data-role="text" data-motion-kind="mountain" data-motion-order="18" style={{ color: C.fg, fontSize: 42, lineHeight: 1.18, fontWeight: 800 }}>{mountainLine}</span> : null}
         {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 36 }}>
-          <span style={{ color: C.success, fontSize: 104, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
-          <span style={{ color: C.success, fontSize: 42, fontWeight: 800, marginLeft: 10 }}>m</span>
+          <span
+            data-role="num"
+            data-motion-kind="altitude-value"
+            data-val={data.altitude}
+            data-fmt="comma"
+            style={{ color: C.success, fontSize: 104, lineHeight: 0.92, fontWeight: 800 }}
+          >
+            {formatShareAltitude(data)}
+          </span>
+          <span data-role="text" data-motion-kind="altitude-unit" data-motion-order="36" style={{ color: C.success, fontSize: 42, fontWeight: 800, marginLeft: 10 }}>m</span>
         </div> : null}
       </div>
 
@@ -55,10 +69,10 @@ export function PremiumBoldNumberTemplate({ data, photoDataUrl }: ShareTemplateP
 function BoldMetric({ label, value, unit, align = 'left' }: { label: string; value: string; unit?: string; align?: 'left' | 'right' }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: align === 'right' ? 'flex-end' : 'flex-start', minWidth: 280 }}>
-      <span style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>{label}</span>
+      <span data-role="text" data-motion-kind="metric-label" data-motion-order="44" style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>{label}</span>
       <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 12 }}>
-        <span style={{ color: C.fg, fontSize: 48, lineHeight: 1, fontWeight: 800 }}>{value}</span>
-        {unit ? <span style={{ color: C.fg2, fontSize: 24, fontWeight: 800, marginLeft: 8 }}>{unit}</span> : null}
+        <span data-role="text" data-motion-kind="metric-value" data-motion-order="52" style={{ color: C.fg, fontSize: 48, lineHeight: 1, fontWeight: 800 }}>{value}</span>
+        {unit ? <span data-role="text" data-motion-kind="metric-unit" data-motion-order="58" style={{ color: C.fg2, fontSize: 24, fontWeight: 800, marginLeft: 8 }}>{unit}</span> : null}
       </div>
     </div>
   )

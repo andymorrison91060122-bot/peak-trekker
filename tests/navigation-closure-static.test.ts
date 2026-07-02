@@ -25,7 +25,8 @@ test('trek completion paths replace consumed recording history', () => {
 })
 
 test('trek summit result forward actions replace the consumed trek result entry', () => {
-  assert.match(trekClient, /void replaceAfterTrekCompletion\(`\/share\?checkinId=\$\{encodeURIComponent\(createdCheckinId\)\}`\)/)
+  assert.match(trekClient, /buildShareUrlForCheckin\(\{[\s\S]*checkinId: createdCheckinId,[\s\S]*template: incomingShareTemplate,[\s\S]*\}\)/)
+  assert.match(trekClient, /void replaceAfterTrekCompletion\(shareUrl\)/)
   assert.match(trekClient, /void replaceAfterTrekCompletion\(`\/activity\/\$\{createdCheckinId\}`\)/)
   assert.match(trekClient, /data-testid="trek-summit-explore-exit"/)
   assert.match(trekClient, /onExploreExit=\{\(\) => void replaceAfterTrekCompletion\('\/explore'\)\}/)

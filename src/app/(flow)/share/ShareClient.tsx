@@ -2287,19 +2287,21 @@ function NavBarTitle({ title, onBack }: { title: string; onBack: () => void }) {
 export default function ShareClient({
   initialData,
   checkinId,
+  initialTemplate = 'base-classic',
   paywallEnabled = false,
   premiumUnlocked = true,
   currentUserId = null,
 }: {
   initialData?: ShareActivityData | null
   checkinId?: string
+  initialTemplate?: TemplateId
   paywallEnabled?: boolean
   premiumUnlocked?: boolean
   currentUserId?: string | null
 }) {
   const router = useRouter()
   const photoInputRef = useRef<HTMLInputElement | null>(null)
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('base-classic')
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>(initialTemplate)
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ShareViewMode>('editor')
   const [transparentBlob, setTransparentBlob] = useState<Blob | null>(null)
@@ -2612,7 +2614,11 @@ export default function ShareClient({
           padding: 'var(--space-2) var(--space-5) 0',
         }}
       >
-        <div style={{ position: 'relative', display: 'flex' }}>
+        <div
+          data-testid="share-main-poster-preview"
+          data-current-template={selectedTemplate}
+          style={{ position: 'relative', display: 'flex' }}
+        >
           <HeroPreview
             data={activityData}
             toggles={fieldToggles}

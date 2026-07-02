@@ -14,6 +14,8 @@ import Card from '@/components/ui/Card'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import { useHelpSheet } from '@/components/help/useHelpSheet'
 import { useAppToast } from '@/components/ui/AppToastProvider'
+import { buildImprintSourceUrl, buildShareUrlForCheckin } from '@/lib/share-template-intent'
+import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 import {
   ArchiveIcon,
   BackIcon,
@@ -3245,7 +3247,13 @@ function ImportSuccess({
   )
 }
 
-export default function ImportClient() {
+export default function ImportClient({
+  initialTemplate = null,
+  returnToImprint = false,
+}: {
+  initialTemplate?: ShareRenderTemplate | null
+  returnToImprint?: boolean
+}) {
   const router = useRouter()
   const { open: openHelpSheet } = useHelpSheet()
   const { showToast, clearToasts } = useAppToast()
@@ -3469,6 +3477,10 @@ export default function ImportClient() {
 
   function handleBack() {
     if (step === 'entry') {
+      if (returnToImprint) {
+        router.replace(buildImprintSourceUrl(initialTemplate))
+        return
+      }
       router.replace('/explore')
       return
     }
@@ -3756,7 +3768,15 @@ export default function ImportClient() {
           confirmResult={confirmResult}
           mountainName={selectedMountainName}
           onShare={() => {
-            console.log('Share editor will be connected in a later batch.')
+            const shareUrl = buildShareUrlForCheckin({
+              checkinId: confirmResult?.checkinId,
+              template: initialTemplate,
+            })
+            if (!shareUrl) {
+              showToast({ key: 'action_blocked', message: '活动还没有生成，暂时无法进入分享。' })
+              return
+            }
+            router.replace(shareUrl)
           }}
           onView={() => {
             if (confirmResult?.checkinId) {

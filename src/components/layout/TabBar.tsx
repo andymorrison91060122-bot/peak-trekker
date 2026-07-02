@@ -45,13 +45,12 @@ const TabIcons = {
       </svg>
     </Icon>
   ),
-  trek: (active: boolean) => (
+  imprint: (active: boolean) => (
     <Icon active={active}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M11 5h2" stroke={active ? 'var(--color-success)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M12 5v11" stroke={active ? 'var(--color-success)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M8.5 20h7" stroke={active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M8 8.5c1.5.5 3 1.7 4 3.5 1.2-1.8 2.5-3 4-3.5" stroke={active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" strokeLinecap="round" />
+        <rect x="5" y="4" width="11" height="15" rx="2.2" stroke={active ? 'var(--color-success)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" />
+        <path d="M9 8h5M9 11h4" stroke={active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M14.5 15.5l4 2.3V8.2" stroke={active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </Icon>
   ),
@@ -78,7 +77,7 @@ const TabIcons = {
 const tabs = [
   { href: '/explore', label: '探索', icon: TabIcons.explore },
   { href: '/archive', label: '山行', icon: TabIcons.archive },
-  { href: '/trek', label: '出发', icon: TabIcons.trek },
+  { href: '/imprint', label: '印迹', icon: TabIcons.imprint },
   { href: '/community', label: '山友圈', icon: TabIcons.community },
   { href: '/profile', label: '我的', icon: TabIcons.profile },
 ]

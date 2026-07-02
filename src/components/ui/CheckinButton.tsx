@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { normalizeAuthReturnPath } from '@/lib/auth-redirect'
+import { consumePendingShareTemplateForTrekUrl } from '@/lib/share-template-intent'
 
 export default function CheckinButton({
   requiresLogin,
@@ -19,7 +20,6 @@ export default function CheckinButton({
   label?: string
 }) {
   const router = useRouter()
-  const returnTo = normalizeAuthReturnPath(mountainId ? `/trek?mountainId=${mountainId}` : '/trek', '/trek')
   void minLicense
   void mountainName
   void altitude
@@ -27,7 +27,10 @@ export default function CheckinButton({
   if (requiresLogin) {
     return (
       <button
-        onClick={() => router.push(`/auth/login?from=${encodeURIComponent(returnTo)}`)}
+        onClick={() => {
+          const returnTo = normalizeAuthReturnPath(consumePendingShareTemplateForTrekUrl({ mountainId }), '/trek')
+          router.push(`/auth/login?from=${encodeURIComponent(returnTo)}`)
+        }}
         className="primary-btn"
         style={{ width: '100%', justifyContent: 'center' }}
       >
@@ -38,7 +41,7 @@ export default function CheckinButton({
 
   return (
     <button
-      onClick={() => router.push(mountainId ? `/trek?mountainId=${mountainId}` : '/trek')}
+      onClick={() => router.push(consumePendingShareTemplateForTrekUrl({ mountainId }))}
       className="primary-btn"
       style={{
         width: '100%',

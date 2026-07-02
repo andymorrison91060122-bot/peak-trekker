@@ -29,6 +29,11 @@ import { haversineMeters, safeTrackPoints, type TrackPoint } from '@/lib/trek-ut
 import { summarizeTrekTrackPoints } from '@/lib/trek-track-metrics'
 import { shouldHoldScreenWakeLock, useWakeLock } from '@/lib/use-wake-lock'
 import {
+  buildShareUrlForCheckin,
+  clearPendingShareTemplate,
+  resolveShareTemplateParam,
+} from '@/lib/share-template-intent'
+import {
   classifyDrainState,
   clearTrekOutboxSession,
   listTrekOutboxPoints,
@@ -381,6 +386,7 @@ export default function TrekClient({
   const { showToast, clearToasts } = useAppToast()
   const searchParams = useSearchParams()
   const targetMountainId = searchParams.get('mountainId')
+  const incomingShareTemplate = resolveShareTemplateParam(searchParams.get('shareTemplate'))
   const queryTrekTestMode = useMemo(
     () => isTrekClientTestModeEnabled(searchParams, { nodeEnv: process.env.NODE_ENV }),
     [searchParams]
@@ -388,6 +394,11 @@ export default function TrekClient({
   const [storedTrekTestMode, setStoredTrekTestMode] = useState(false)
   const [licenseSheetOpen, setLicenseSheetOpen] = useState(false)
   const trekTestMode = queryTrekTestMode || storedTrekTestMode
+
+  useEffect(() => {
+    if (!incomingShareTemplate) return
+    clearPendingShareTemplate()
+  }, [incomingShareTemplate])
 
   useEffect(() => {
     if (process.env.NODE_ENV === 'production' || typeof window === 'undefined') {
@@ -2646,11 +2657,15 @@ export default function TrekClient({
 	          elapsedSeconds={elapsedSeconds}
 	          distanceKm={distanceKm}
 	          ascentM={ascentM}
-	          onShare={() => {
-	            if (createdCheckinId) {
-	              void replaceAfterTrekCompletion(`/share?checkinId=${encodeURIComponent(createdCheckinId)}`)
-	              return
-	            }
+		          onShare={() => {
+		            if (createdCheckinId) {
+		              const shareUrl = buildShareUrlForCheckin({
+		                checkinId: createdCheckinId,
+		                template: incomingShareTemplate,
+		              })
+		              if (shareUrl) void replaceAfterTrekCompletion(shareUrl)
+		              return
+		            }
 	            showToast({ key: 'action_blocked', message: '缺少活动记录，暂时无法生成分享。' })
 	          }}
 	          onViewActivity={() => {

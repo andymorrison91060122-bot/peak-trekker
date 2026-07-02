@@ -215,14 +215,10 @@ export function MiniTrailCircle({ size = 156, trackPreview }: { size?: number; t
     >
       {route ? (
         <svg width={size - 42} height={size - 42} viewBox="0 0 120 120">
-          {route.d ? (
-            <>
-              <path d={route.d} stroke={C.success} strokeWidth={route.glowWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={route.glowOpacity} vectorEffect="non-scaling-stroke" />
-              <path d={route.d} stroke={C.fg} strokeWidth={route.lineWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" vectorEffect="non-scaling-stroke" />
-            </>
-          ) : null}
-          <circle cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} />
-          {route.d ? <circle cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={C.success} /> : null}
+          {route.d ? <path data-role="draw" data-motion-kind="route" d={route.d} stroke={C.success} strokeWidth={route.glowWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={route.glowOpacity} vectorEffect="non-scaling-stroke" /> : null}
+          {route.d ? <path data-role="draw" data-motion-kind="route" d={route.d} stroke={C.fg} strokeWidth={route.lineWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" vectorEffect="non-scaling-stroke" /> : null}
+          <circle data-role="pop" data-motion-kind="route-endpoint" cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} />
+          {route.d ? <circle data-role="pop" data-motion-kind="route-endpoint" cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={C.success} /> : null}
         </svg>
       ) : null}
     </div>
@@ -239,19 +235,32 @@ export function SmallMetric({
   unit,
   align = 'left',
   accent = false,
+  motionValue,
+  motionFormat,
 }: {
   label: string
   value: string
   unit?: string
   align?: 'left' | 'right' | 'center'
   accent?: boolean
+  motionValue?: number
+  motionFormat?: 'comma' | 'dec1' | 'plus'
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start' }}>
-      <span style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.14em' }}>{label}</span>
+      <span data-role="text" data-motion-kind="metric-label" data-motion-order="44" style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.14em' }}>{label}</span>
       <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 14 }}>
-        <span style={{ color: accent ? C.success : C.fg, fontSize: 50, lineHeight: 1, fontWeight: 800 }}>{value}</span>
-        {unit ? <span style={{ color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800, marginLeft: 8 }}>{unit}</span> : null}
+        <span
+          data-role={typeof motionValue === 'number' ? 'num' : 'text'}
+          data-motion-kind="metric-value"
+          data-motion-order="52"
+          data-val={typeof motionValue === 'number' ? motionValue : undefined}
+          data-fmt={motionFormat}
+          style={{ color: accent ? C.success : C.fg, fontSize: 50, lineHeight: 1, fontWeight: 800 }}
+        >
+          {value}
+        </span>
+        {unit ? <span data-role="text" data-motion-kind="metric-unit" data-motion-order="58" style={{ color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800, marginLeft: 8 }}>{unit}</span> : null}
       </div>
     </div>
   )
@@ -259,9 +268,9 @@ export function SmallMetric({
 
 export function MountainGlyph({ size = 40, color = C.success }: { size?: number; color?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" style={{ display: 'block', flexShrink: 0 }}>
-      <path d="M3 19l5-9 4 6 3-4 6 7" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <path d="M8 10l2.8 4.2 1.2-1.9 2.8 4.2" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity=".82" />
+    <svg data-role="pop" data-motion-kind="icon" width={size} height={size} viewBox="0 0 24 24" style={{ display: 'block', flexShrink: 0 }}>
+      <path data-role="draw" data-motion-kind="icon" d="M3 19l5-9 4 6 3-4 6 7" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path data-role="draw" data-motion-kind="icon" d="M8 10l2.8 4.2 1.2-1.9 2.8 4.2" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity=".82" />
     </svg>
   )
 }
@@ -285,6 +294,8 @@ export function SourcePill({ source }: { source: ShareTemplateData['source'] }) 
         <>
           <MountainGlyph size={20} />
           <div
+            data-role="rule"
+            data-motion-kind="pill-rule"
             style={{
               width: 1,
               height: 18,
@@ -294,20 +305,20 @@ export function SourcePill({ source }: { source: ShareTemplateData['source'] }) 
               flexShrink: 0,
             }}
           />
-          <svg width="18" height="18" viewBox="0 0 24 24" style={{ display: 'block', flexShrink: 0 }}>
+          <svg data-role="pop" data-motion-kind="icon" width="18" height="18" viewBox="0 0 24 24" style={{ display: 'block', flexShrink: 0 }}>
             <path d="M5 12.5l4.2 4.2L19 7" stroke={C.success} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
           </svg>
-          <span style={{ fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.06em', marginLeft: 10 }}>
+          <span data-role="text" data-motion-kind="pill" data-motion-order="68" style={{ fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.06em', marginLeft: 10 }}>
             GPS VERIFIED
           </span>
         </>
       ) : (
         <>
-          <svg width="24" height="24" viewBox="0 0 24 24" style={{ display: 'block', flexShrink: 0, marginRight: 10 }}>
+          <svg data-role="pop" data-motion-kind="icon" width="24" height="24" viewBox="0 0 24 24" style={{ display: 'block', flexShrink: 0, marginRight: 10 }}>
             <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" stroke={C.fg2} strokeWidth="2" fill="none" />
             <path d="M14 3v5h5M8.5 14l2 2 4.5-5" stroke={C.fg2} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
           </svg>
-          <span style={{ fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.08em' }}>UPLOADED</span>
+          <span data-role="text" data-motion-kind="pill" data-motion-order="68" style={{ fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.08em' }}>UPLOADED</span>
         </>
       )}
     </div>
@@ -326,7 +337,7 @@ export function BrandFooter({ source }: { source: ShareTemplateData['source'] })
       }}
     >
       <MountainGlyph size={52} />
-      <span style={{ color: C.fg, fontSize: 34, lineHeight: 1, fontWeight: 800, letterSpacing: '0.01em' }}>
+      <span data-role="text" data-motion-kind="brand" data-motion-order="10" style={{ color: C.fg, fontSize: 34, lineHeight: 1, fontWeight: 800, letterSpacing: '0.01em' }}>
         Peak Trekker
       </span>
       <SourcePill source={source} />
@@ -418,6 +429,8 @@ export function TrailSvg({
     <svg width={POSTER_WIDTH} height={POSTER_HEIGHT} viewBox={`0 0 ${POSTER_WIDTH} ${POSTER_HEIGHT}`} style={{ position: 'absolute', inset: 0 }}>
       {route.d ? (
         <path
+          data-role="draw"
+          data-motion-kind="route"
           d={route.d}
           stroke={C.success}
           strokeWidth={route.glowWidth}
@@ -430,6 +443,8 @@ export function TrailSvg({
       ) : null}
       {route.d ? (
         <path
+          data-role="draw"
+          data-motion-kind="route"
           d={route.d}
           stroke={C.success}
           strokeWidth={route.lineWidth}
@@ -439,8 +454,8 @@ export function TrailSvg({
           vectorEffect="non-scaling-stroke"
         />
       ) : null}
-      {route ? <circle cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} /> : null}
-      {route?.d ? <circle cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={C.success} /> : null}
+      {route ? <circle data-role="pop" data-motion-kind="route-endpoint" cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} /> : null}
+      {route?.d ? <circle data-role="pop" data-motion-kind="route-endpoint" cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={C.success} /> : null}
     </svg>
   )
 }
@@ -495,15 +510,15 @@ export function DataRow({ data }: { data: ShareTemplateData }) {
             borderLeft: index === 0 ? '0px solid transparent' : '2px solid rgba(245, 247, 248, 0.28)',
           }}
         >
-          <span style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>
+          <span data-role="text" data-motion-kind="metric-label" data-motion-order="44" style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>
             {item.label}
           </span>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 18 }}>
-            <span style={{ color: C.fg, fontSize: 50, lineHeight: 1, fontWeight: 800, letterSpacing: '0' }}>
+            <span data-role="text" data-motion-kind="metric-value" data-motion-order="52" style={{ color: C.fg, fontSize: 50, lineHeight: 1, fontWeight: 800, letterSpacing: '0' }}>
               {item.value}
             </span>
             {item.unit ? (
-              <span style={{ color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 700, marginLeft: 8 }}>
+              <span data-role="text" data-motion-kind="metric-unit" data-motion-order="58" style={{ color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 700, marginLeft: 8 }}>
                 {item.unit}
               </span>
             ) : null}

@@ -7,6 +7,7 @@ import {
   buildShareTrackPreviewFromScreenshotRouteShape,
 } from '@/lib/share-track-preview'
 import { resolveMeasuredShareAltitude, resolveShareMountainName, resolveShareRenderSource } from '@/lib/share-data'
+import { resolveShareTemplateParam } from '@/lib/share-template-intent'
 import { isScreenshotRecognitionSource } from '@/lib/trek-utils'
 import ShareClient, { type ShareActivityData } from './ShareClient'
 
@@ -16,6 +17,7 @@ export const metadata: Metadata = {
 
 type SearchParams = {
   checkinId?: string | string[]
+  template?: string | string[]
 }
 
 type MountainRelation = {
@@ -235,6 +237,7 @@ export default async function SharePage({
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const checkinId = firstSearchValue(resolvedSearchParams.checkinId)
+  const initialTemplate = resolveShareTemplateParam(resolvedSearchParams.template) ?? undefined
   const initialData = checkinId ? await loadShareData(checkinId) : null
   const paywallEnabled = isPremiumPaywallEnabled()
   const userId = await getCurrentUserId()
@@ -256,6 +259,7 @@ export default async function SharePage({
         paywallEnabled={paywallEnabled}
         premiumUnlocked={premiumAccess.allowed}
         currentUserId={userId}
+        initialTemplate={initialTemplate}
       />
     </div>
   )

@@ -64,13 +64,14 @@ describe('share render API field policy regression', () => {
     assert.equal(registeredTemplates.includes(removedPremiumTemplate), false)
   })
 
-  test('server render passes uploaded photos into summit certificate template', () => {
+  test('server render delegates template selection to the shared pure registry', () => {
     const routeSource = readSource('../src/app/api/share/render/route.ts')
+    const registrySource = readSource('../src/lib/share-templates/registry.tsx')
 
-    assert.match(
-      routeSource,
-      /template === 'premium-summit-certificate'\) return PremiumSummitCertificateTemplate\(\{\s*data,\s*photoDataUrl\s*\}\)/,
-    )
+    assert.match(routeSource, /import \{ getShareTemplateComponent \} from '@\/lib\/share-templates\/registry'/)
+    assert.match(routeSource, /const Template = getShareTemplateComponent\(template\)/)
+    assert.match(routeSource, /return Template\(\{\s*data,\s*photoDataUrl\s*\}\)/)
+    assert.match(registrySource, /id: 'premium-summit-certificate'[\s\S]*Component: PremiumSummitCertificateTemplate/)
   })
 
   test('transparent watermark render follows selected template and ignores photo data', () => {
@@ -484,7 +485,7 @@ describe('share render API field policy regression', () => {
   test('uploaded screenshot share templates keep GPS verification copy out of the uploaded branch', () => {
     const sharedSource = readSource('../src/lib/share-templates/shared.tsx')
     const sourcePill = sharedSource.match(/export function SourcePill[\s\S]*?export function BrandFooter/)?.[0] ?? ''
-    const uploadedBranch = sourcePill.match(/:\s*\(\s*<>[\s\S]*?<span style=\{\{ fontSize: 22[\s\S]*?UPLOADED[\s\S]*?<\/>\s*\)/)?.[0] ?? ''
+    const uploadedBranch = sourcePill.match(/:\s*\(\s*<>[\s\S]*?<span[^>]*style=\{\{ fontSize: 22[\s\S]*?UPLOADED[\s\S]*?<\/>\s*\)/)?.[0] ?? ''
 
     assert.ok(sourcePill)
     assert.ok(uploadedBranch)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
@@ -22,6 +22,7 @@ import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
 import PmtilesSnapshotMap from '@/components/map/PmtilesSnapshotMap'
 import type { LicenseProgressSummary } from '@/lib/license-progress'
 import { trackEvent } from '@/lib/analytics/client'
+import { buildTrekUrl, consumePendingShareTemplateForTrekUrl } from '@/lib/share-template-intent'
 
 type RouteWaypoint = Waypoint & {
   latitude?: number
@@ -1332,7 +1333,14 @@ function BottomCTA({
   hasWaypoints: boolean
 }) {
   const loginHref = `/auth/login?from=${encodeURIComponent(`/mountain/${mountain.id}`)}`
-  const primaryHref = requiresLogin ? loginHref : `/trek?mountainId=${encodeURIComponent(mountain.id)}`
+  const primaryHref = requiresLogin
+    ? loginHref
+    : buildTrekUrl({ mountainId: mountain.id })
+  function handlePrimaryClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (requiresLogin) return
+    event.preventDefault()
+    window.location.href = consumePendingShareTemplateForTrekUrl({ mountainId: mountain.id })
+  }
 
   return (
     <div
@@ -1362,7 +1370,7 @@ function BottomCTA({
         >
           查看路线
         </SecondaryButton>
-        <PrimaryButton as="a" href={primaryHref}>
+        <PrimaryButton as="a" href={primaryHref} onClick={handlePrimaryClick}>
           {requiresLogin ? '登录后开始记录' : '开始记录'}
         </PrimaryButton>
       </div>

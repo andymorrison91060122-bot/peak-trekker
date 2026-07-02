@@ -64,6 +64,9 @@ export function BaseClassicTemplate({ data, photoDataUrl }: ShareTemplateProps) 
       >
         {mountainLine ? (
           <span
+            data-role="text"
+            data-motion-kind="mountain"
+            data-motion-order="18"
             style={{
               color: C.fg,
               display: 'block',
@@ -81,10 +84,16 @@ export function BaseClassicTemplate({ data, photoDataUrl }: ShareTemplateProps) 
           </span>
         ) : null}
         {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 34 }}>
-          <span style={{ color: C.success, fontSize: 164, lineHeight: 0.92, fontWeight: 800, letterSpacing: '0' }}>
+          <span
+            data-role="num"
+            data-motion-kind="altitude-value"
+            data-val={data.altitude}
+            data-fmt="comma"
+            style={{ color: C.success, fontSize: 164, lineHeight: 0.92, fontWeight: 800, letterSpacing: '0' }}
+          >
             {formatShareAltitude(data)}
           </span>
-          <span style={{ color: C.success, fontSize: 58, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
+          <span data-role="text" data-motion-kind="altitude-unit" data-motion-order="36" style={{ color: C.success, fontSize: 58, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
         </div> : null}
       </div>
 

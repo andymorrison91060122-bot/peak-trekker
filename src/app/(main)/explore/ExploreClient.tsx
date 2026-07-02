@@ -11,7 +11,9 @@ import Chip from '@/components/ui/Chip'
 import SectionHeader from '@/components/ui/SectionHeader'
 import { CameraIcon, FilterIcon, SearchIcon, ShareIcon } from '@/components/ui/Icons'
 import { getDifficultyLevelLabel } from '@/lib/license-ui'
+import { storePendingShareTemplate } from '@/lib/share-template-intent'
 import type { Mountain } from '@/types'
+import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 
 const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 const QUICK_TAGS = provinceRankingEnabled
@@ -36,10 +38,12 @@ export default function ExploreClient({
   list,
   hometownProvince,
   provinceBanner,
+  shareTemplateIntent,
 }: {
   list: Mountain[]
   hometownProvince: string | null
   provinceBanner?: ProvinceBannerData | null
+  shareTemplateIntent?: ShareRenderTemplate | null
 }) {
   const router = useRouter()
   const [search, setSearch] = useState('')
@@ -50,6 +54,12 @@ export default function ExploreClient({
   const [lengthBand, setLengthBand] = useState<'all' | 'short' | 'mid' | 'long'>('all')
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null)
   const [draftProvince, setDraftProvince] = useState<string | null>(hometownProvince)
+
+  useEffect(() => {
+    if (!shareTemplateIntent) return
+    storePendingShareTemplate(shareTemplateIntent)
+    router.replace('/explore')
+  }, [router, shareTemplateIntent])
 
   useEffect(() => {
     if (!navigator.geolocation) return

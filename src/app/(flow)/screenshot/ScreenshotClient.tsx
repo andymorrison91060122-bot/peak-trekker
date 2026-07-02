@@ -35,6 +35,8 @@ import {
   SHARE_TRACK_CONTENT_FIT,
   SHARE_TRACK_RENDER_PROFILES,
 } from '@/lib/share-track-preview'
+import { buildImprintSourceUrl, buildShareUrlForCheckin } from '@/lib/share-template-intent'
+import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 import { SCREENSHOT_RECOGNITION_SOURCE } from '@/lib/trek-utils'
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
@@ -2211,7 +2213,13 @@ function UpgradeSheet({
   )
 }
 
-export default function ScreenshotClient() {
+export default function ScreenshotClient({
+  initialTemplate = null,
+  returnToImprint = false,
+}: {
+  initialTemplate?: ShareRenderTemplate | null
+  returnToImprint?: boolean
+}) {
   const router = useRouter()
   const albumInputRef = useRef<HTMLInputElement | null>(null)
   const cameraInputRef = useRef<HTMLInputElement | null>(null)
@@ -2487,6 +2495,10 @@ export default function ScreenshotClient() {
 
   function handleBack() {
     if (step === 'upload') {
+      if (returnToImprint) {
+        router.replace(buildImprintSourceUrl(initialTemplate))
+        return
+      }
       router.replace('/explore')
       return
     }
@@ -2683,8 +2695,12 @@ export default function ScreenshotClient() {
   }
 
   function handleArchiveContinue() {
-    if (submitResult?.checkinId) {
-      router.replace(`/share?checkinId=${submitResult.checkinId}`)
+    const shareUrl = buildShareUrlForCheckin({
+      checkinId: submitResult?.checkinId,
+      template: initialTemplate,
+    })
+    if (shareUrl) {
+      router.replace(shareUrl)
     }
   }
 

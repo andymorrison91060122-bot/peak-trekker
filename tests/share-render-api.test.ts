@@ -220,11 +220,53 @@ describe('share render API field policy regression', () => {
     const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
     const sharedTemplateSource = readSource('../src/lib/share-templates/shared.tsx')
 
+    assert.match(clientSource, /trackPreview:\s*buildShareTrackPreview\(MOCK_TRACK_POINTS\)/)
     assert.match(clientSource, /buildShareTrackRender\(trackPreview/)
     assert.doesNotMatch(clientSource, /buildShareTrackPath/)
+    assert.match(clientSource, /data-role="draw" d="M26 222 C 58 190/)
     assert.match(sharedTemplateSource, /buildShareTrackRender\(trackPreview/)
     assert.doesNotMatch(sharedTemplateSource, /filter id="poster-trail-glow"|filter id="share-trail-glow"/)
     assert.match(sharedTemplateSource, /vectorEffect="non-scaling-stroke"/)
+  })
+
+  test('share editor entrance motion registers normal and reduced motion branches', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const entranceBlock = clientSource.match(/useGSAP\(\(\) => \{[\s\S]*?mm\.revert\(\)[\s\S]*?\}, \{ scope: rootRef \}\)/)?.[0]
+    const relightBlock = clientSource.match(/function buildPosterRelightTimeline\(root: HTMLElement\) \{[\s\S]*?function getExportMotionTargets/)?.[0]
+    const playPosterRelightBlock = clientSource.match(/function playPosterRelight\(animate: boolean\) \{[\s\S]*?function safeSetExportingAction/)?.[0]
+
+    assert.ok(entranceBlock)
+    assert.ok(relightBlock)
+    assert.ok(playPosterRelightBlock)
+    assert.match(clientSource, /data-motion-pending="true"/)
+    assert.match(clientSource, /\.share-editor-root\[data-motion-pending="true"\] \[data-stage\]/)
+    assert.match(clientSource, /@media \(prefers-reduced-motion: reduce\)/)
+    assert.match(clientSource, /<noscript>/)
+    assert.match(clientSource, /function clearShareMotionPending/)
+    assert.match(clientSource, /function preparePosterMotionInitialState/)
+    assert.match(entranceBlock, /allowMotion:\s*'\(prefers-reduced-motion: no-preference\)'/)
+    assert.match(entranceBlock, /reduceMotion:\s*'\(prefers-reduced-motion: reduce\)'/)
+    assert.match(entranceBlock, /if \(reduceMotion \|\| !allowMotion\)/)
+    assert.match(entranceBlock, /if \(reduceMotion \|\| !allowMotion\)[\s\S]*?playPosterRelight\(false\)[\s\S]*?return/)
+    assert.doesNotMatch(entranceBlock.match(/if \(reduceMotion \|\| !allowMotion\)[\s\S]*?return/)?.[0] ?? '', /preparePosterMotionInitialState/)
+    assert.match(entranceBlock, /gsap\.set\(stages,[\s\S]*?preparePosterMotionInitialState\(root\)[\s\S]*?clearShareMotionPending\(root\)/)
+    assert.match(entranceBlock, /clearShareMotionPending\(root\)/)
+    assert.match(entranceBlock, /SHARE_STAGE_ORDER/)
+    assert.match(entranceBlock, /stagger:\s*0\.08/)
+    assert.match(playPosterRelightBlock, /preparePosterMotionInitialState\(root\)[\s\S]*?buildPosterRelightTimeline\(root\)/)
+    assert.doesNotMatch(relightBlock, /strokeDasharray:\s*length/)
+    assert.doesNotMatch(relightBlock, /strokeDashoffset:\s*length/)
+    assert.doesNotMatch(relightBlock, /getTotalLength\(\)/)
+  })
+
+  test('share editor altitude profile preview does not add a profile-only TIME DATE column', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const premiumPreview = clientSource.match(/function PremiumHeroPreview[\s\S]*?function HeroPreview/)?.[0]
+
+    assert.ok(premiumPreview)
+    assert.doesNotMatch(premiumPreview, /profile \? \(\s*<div style=\{\{ position: 'absolute', right: 16, bottom: 112/)
+    assert.doesNotMatch(premiumPreview, /label="TIME" value=\{formatDuration\(data\.duration\)\} align="right"/)
+    assert.doesNotMatch(premiumPreview, /label="DATE" value=\{data\.date\} align="right"/)
   })
 
   test('transparent watermark mono-film does not render trail', () => {
@@ -239,14 +281,23 @@ describe('share render API field policy regression', () => {
     assert.doesNotMatch(monoBranch, /photoDataUrl/)
   })
 
-  test('mono-film thumbnail uses photo altitude layout instead of trail', () => {
+  test('share editor thumbnails use real registry templates inside scaled poster previews', () => {
     const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
-    const advancedThumb = clientSource.match(/function AdvancedThumb[\s\S]*?function ThumbnailRow/)?.[0]
-    const monoBranch = advancedThumb?.match(/template\.kind === 'mono-film'\s*\?\s*\([\s\S]*?\)\s*:\s*template\.kind === 'summit-certificate'/)?.[0]
+    const posterPreview = clientSource.match(/function TemplatePosterPreview[\s\S]*?function TemplateThumb/)?.[0]
+    const thumbnailRow = clientSource.match(/function ThumbnailRow[\s\S]*?function TrashIcon/)?.[0]
 
-    assert.ok(monoBranch)
-    assert.match(monoBranch, /1265m/)
-    assert.doesNotMatch(monoBranch, /M12 94 Q 26 72 40 76/)
+    assert.ok(posterPreview)
+    assert.match(posterPreview, /getShareTemplateComponent\(template\)/)
+    assert.match(posterPreview, /POSTER_WIDTH/)
+    assert.match(posterPreview, /POSTER_HEIGHT/)
+    assert.match(posterPreview, /transform: `scale\(\$\{scale\}\)`/)
+    assert.match(posterPreview, /textAlign: 'left'/)
+    assert.doesNotMatch(posterPreview, /1265m|M12 94 Q 26 72 40 76/)
+
+    assert.ok(thumbnailRow)
+    assert.match(thumbnailRow, /data-testid="share-template-progress"/)
+    assert.match(thumbnailRow, /共 10 款/)
+    assert.match(thumbnailRow, /scrollPaddingInline: 16/)
   })
 
   test('share editor removes path B disabled controls and renders one template row', () => {
@@ -261,7 +312,104 @@ describe('share render API field policy regression', () => {
     assert.doesNotMatch(clientSource, /玉山北峰|3858m|圆峰山屋|塔塔加/)
     assert.doesNotMatch(clientSource, /MoreIcon|aria-label="更多"/)
     assert.match(clientSource, /SHARE_TEMPLATE_OPTIONS/)
-    assert.match(clientSource, /gridTemplateColumns:\s*'1fr 1fr'/)
+    assert.match(clientSource, /data-testid="share-template-strip"/)
+    assert.match(clientSource, /data-testid="share-locked-field-strip"/)
+    assert.match(clientSource, /flex: 1\.25/)
+    assert.match(clientSource, /NavBarTitle title="导出透明水印"/)
+  })
+
+  test('share editor locked fields and optional chips expose missing values honestly', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const fieldSelector = clientSource.match(/function FieldSelector[\s\S]*?function ActionBar/)?.[0]
+    const fieldChip = clientSource.match(/function FieldChip[\s\S]*?function FieldSelector/)?.[0]
+
+    assert.ok(fieldSelector)
+    assert.match(clientSource, /function formatDisplayValue[\s\S]*return value === '--' \? '未记录' : value/)
+    assert.match(fieldSelector, /海拔 <span[\s\S]*formatDisplayValue\('altitude', data\)/)
+    assert.match(fieldSelector, /距离 <span[\s\S]*formatDisplayValue\('distance', data\)/)
+    assert.match(fieldSelector, /const selectableFields = FIELD_CONFIGS\.filter\(\(field\) => !field\.locked\)/)
+
+    assert.ok(fieldChip)
+    assert.match(fieldChip, /const missing = isFieldMissing\(field\.key, data\)/)
+    assert.match(fieldChip, /const value = missing \? '未记录' : formatFieldValue\(field\.key, data\)/)
+    assert.match(fieldChip, /const unavailable = missing \|\| disabled/)
+    assert.match(fieldChip, /disabled=\{unavailable\}/)
+    assert.match(fieldChip, /pointerEvents: unavailable \? 'none' : 'auto'/)
+    assert.match(fieldChip, /cursor: missing \? 'not-allowed' : disabled \? 'wait' : 'pointer'/)
+  })
+
+  test('share editor export pipeline snapshots payload and freezes editing during generation', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+
+    assert.match(clientSource, /type ExportSnapshot = \{[\s\S]*template: TemplateId[\s\S]*fieldToggles: Record<ShareFieldKey, boolean>[\s\S]*photoDataUrl: string \| null[\s\S]*transparent: boolean/)
+    assert.match(clientSource, /function createExportSnapshot\(action: ActiveExportAction, transparent: boolean\): ExportSnapshot/)
+    assert.match(clientSource, /fieldToggles: \{ \.\.\.fieldToggles \}/)
+    assert.match(clientSource, /async function renderPosterBlob\(snapshot: ExportSnapshot\)/)
+    assert.match(clientSource, /template: snapshot\.template/)
+    assert.match(clientSource, /duration: snapshot\.fieldToggles\.duration/)
+    assert.match(clientSource, /photoBase64: stripDataUrlPrefix\(snapshot\.photoDataUrl\)/)
+    assert.match(clientSource, /transparent: snapshot\.transparent/)
+    assert.match(clientSource, /exportInFlightRef\.current = true/)
+    assert.match(clientSource, /if \(exportFrozen \|\| exportInFlightRef\.current\) return/)
+    assert.match(clientSource, /disabled=\{disabled\}/)
+    assert.match(clientSource, /disabled=\{disabled \|\| transparentExporting\}/)
+    assert.match(clientSource, /disabled=\{unavailable\}/)
+    assert.match(clientSource, /data-export-dim="true"/)
+  })
+
+  test('share editor export ceremony distinguishes save, native share, fallback, abort, and failure semantics', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+
+    assert.match(clientSource, /function buildGeneratingTimeline\(root: HTMLElement\)/)
+    assert.match(clientSource, /repeat: -1/)
+    assert.match(clientSource, /duration: 1\.6/)
+    assert.match(clientSource, /yPercent: -150/)
+    assert.match(clientSource, /yPercent: 300/)
+    assert.doesNotMatch(clientSource, /xPercent: 130/)
+    assert.match(clientSource, /linear-gradient\(180deg, transparent 0%, rgba\(255,255,255,\.07\) 38%, rgba\(110,231,161,\.13\) 52%, rgba\(255,255,255,\.05\) 66%, transparent 100%\)/)
+    assert.match(clientSource, /height: 46%/)
+    assert.match(clientSource, /waitForMinimumExportDuration\(720\)/)
+    assert.match(clientSource, /Promise\.all\(\[\s*renderPosterBlob\(snapshot\),\s*waitForMinimumExportDuration\(720\),\s*\]\)/)
+    assert.match(clientSource, /const SHARE_POSTER_BASE_WIDTH = 246/)
+    assert.match(clientSource, /const DEFAULT_SHARE_POSTER_SCALE = 232 \/ SHARE_POSTER_BASE_WIDTH/)
+    assert.match(clientSource, /function syncSharePosterScale\(shell: HTMLElement\)[\s\S]*shell\.style\.setProperty\('--share-poster-scale'/)
+    assert.match(clientSource, /useLayoutEffect\(\(\) => \{[\s\S]*new ResizeObserver/)
+    assert.match(clientSource, /transform: 'scale\(var\(--share-poster-scale, 0\.9430894309\)\)'/)
+    assert.match(clientSource, /transformOrigin: 'top left'/)
+    assert.match(clientSource, /data-testid="share-poster-scale-layer"/)
+    assert.match(clientSource, /const heroPreviewInnerCardStyle: CSSProperties = \{[\s\S]*width: SHARE_POSTER_BASE_WIDTH/)
+    assert.doesNotMatch(clientSource, /width: 'min\(65vw, 246px\)'/)
+    assert.match(clientSource, /innerCard: root\.querySelector<HTMLElement>\('\[data-testid="share-poster-inner-card"\]'\)/)
+    assert.match(clientSource, /data-testid="share-poster-inner-card"/)
+    assert.match(clientSource, /data-testid="share-export-sweep-clip"/)
+    assert.match(clientSource, /\.share-export-sweep-clip \{[\s\S]*?inset: 0;[\s\S]*?overflow: hidden;/)
+    assert.match(clientSource, /border-radius: inherit/)
+    assert.match(clientSource, /function buildSuccessTimeline\(root: HTMLElement, targetButton: HTMLElement \| null\)/)
+    assert.match(clientSource, /function playSaveSuccess\(action: Exclude<ExportSuccessAction, null>\)[\s\S]*if \(root\) setPosterMotionTerminal\(root\)/)
+    assert.match(clientSource, /strokeDashoffset: 0,[\s\S]*duration: 1\.45,[\s\S]*stagger: 0\.08/)
+    assert.match(clientSource, /gsap\.set\(targets\.rim, \{ scale: 1, willChange: 'opacity' \}\)/)
+    assert.doesNotMatch(clientSource, /fromTo\(targets\.rim, \{ autoAlpha: 0, scale:/)
+    assert.match(clientSource, /const ghostSource = targets\.innerCard \?\? targets\.poster/)
+    assert.match(clientSource, /autoAlpha: 0\.82/)
+    assert.match(clientSource, /0 0 44px 6px rgba\(110,231,161,\.56\)/)
+    assert.match(clientSource, /playSaveSuccess\('save'\)/)
+    assert.match(clientSource, /playSaveSuccess\('share-fallback'\)/)
+    assert.match(clientSource, /playSaveSuccess\('transparent-save'\)/)
+    assert.match(clientSource, /playNativeShareSettle\(\)/)
+    assert.match(clientSource, /error instanceof Error && error\.name === 'AbortError'[\s\S]*finishExportIdle\(\)/)
+    assert.match(clientSource, /failExport\(error, '分享图生成失败，请稍后再试'\)/)
+    assert.match(clientSource, /failExport\(error, '透明水印保存失败，请稍后再试'\)/)
+    assert.match(clientSource, /data-testid="share-save-toast"/)
+    assert.match(clientSource, /已保存到相册/)
+  })
+
+  test('share editor watermark back clears motion pending instead of remounting hidden stages', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+
+    assert.match(clientSource, /const \[motionPending, setMotionPending\] = useState\(true\)/)
+    assert.match(clientSource, /function handleWatermarkPreviewBack\(\) \{[\s\S]*cleanupExportTimeline\(\)[\s\S]*setMotionPending\(false\)[\s\S]*setViewMode\('editor'\)/)
+    assert.match(clientSource, /data-motion-pending=\{motionPending \? 'true' : undefined\}/)
+    assert.match(clientSource, /setMotionPending\(false\)[\s\S]*playPosterRelight\(false\)/)
   })
 
   test('archive filter tabs use one selected style helper for every tab', () => {

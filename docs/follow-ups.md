@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-02 · 最新版本记录: v0.94
+> Last Updated: 2026-07-04 · 最新版本记录: v0.95
 
 ---
 
@@ -188,6 +188,13 @@
 - 人文温度：梳理需要人文化表达的节点，给精神激励，弱化纯工具感。
 - 原 FU-70「轨迹达峰」中性标签并入此处，作为文案审查的一个具体节点。
 
+**分享生成节点 + `/share` 编辑器重设计已落地（2026-07-04）**:
+- **Phase 1 布局重排**: `/share` 编辑器从约 1.7 屏收敛到约 1.2 屏；字段区把海拔 / 距离降为被动「始终展示」条，6 个可选字段改为 2×3 芯片，缺值禁用并显示「未记录」；模板条改为真实模板缩略图 + `NN / 10` 计数 + 进度条 + scroll-snap；底部按钮统一 44px；Screen D 透明水印层级对齐，填充绿为主操作。
+- **Phase 2 动效**: 显式命名 stage 入场 timeline（header → poster → templateStrip → toolsRow → fieldPanel → bottomActionBar）；海报内容重亮覆盖文字 stagger、海拔 count-up、路线自绘，并用于初载与模板切换；字段联动以 `visibleFields` 真实增删为真相源，GSAP 只做出 / 入过渡；SSR 首帧门禁采用 `data-motion-pending`，并保留 reduced-motion / noscript / JS 异常三兜底；`gsap.matchMedia` no-preference / reduce 双分支，reduced-motion 直接终态。
+- **Phase 3 动效**: promise-gated 显影绑定真实 `renderPosterBlob`，竖向柔光光带 1.6s 循环 + 数据逐项点亮 + count-up，最短 720ms（`--motion-ceremony`），失败 kill 回 idle；保存成功仪式包括海报成型 `scale 1.012 → 1`、边缘辉光升峰后落定到 55%、缩影收纳飞入保存键、按钮 `✓ 已保存到相册` 与 toast 上滑；三路语义已区分 save / share 降级下载 / native share / AbortError / transparent 保存，导出期间做 payload 快照、交互冻结与页面降噪。
+- **设计 / 实现 / 证据**: 设计稿为 Claude Design `Share Editor Redesign FU-76.dc.html`；实现集中在 `src/app/(flow)/share/ShareClient.tsx`；采用 GSAP skills（gsap-core / timeline / react / performance）；证据目录 `output/fu76-acceptance/`。
+- **边界**: **FU-76 整体仍 active**，转场 / 空态 / 加载等动效节点未落；本次只完成「分享生成 + `/share` 重设计」节点。详见 `docs/fu76-share-editor-anchor.md`。
+
 ---
 
 ### FU-77 · 300 山峰物料 pipeline
@@ -287,24 +294,6 @@
 
 ---
 
-### FU-85 · 分享/模板门面改造
-
-- **优先级**: P1
-- **归属阶段**: 产品主线（设计先行）
-- **状态**: 🟢 active（实现完成，用户验收通过，待合并）
-
-**背景（2026-06-12 用户重述确认）**: 分享模板是核心卖点但藏得太深。把出发 tab 触发按钮改为分享模板门面：用户先浏览水印模板样例，再按手头素材三选一录入（截图上传 / 轨迹上传 / 真实记录）。无登山记录时，该界面引导先完成录入。
-
-**流程**: Claude Design 先出整体方案 → 用户 review → 实施 sprint。
-
-**守门约束**: community / share 路线预览接入 `screenshot_route_shape` 时，badge 必须按 source 守门，`screenshot_recognition` 来源禁显「GPS 真实轨迹」。
-
-**进展（2026-07-02）**: 分享模板门面实现完成并经用户验收通过，待合并。`/imprint` 已接入底栏「印迹」入口、两屏门面、真实分享模板组件预览、`/share?template=` 初始模板锚定；三条真实业务流 template 传播已接通（导入 / 截图 / 实时记录最终进入分享编辑器时预选门面模板），pending intent 使用 `source + TTL + 单次消费` 防残留污染。R3 系列完成门面真实模板预览的字体 subset、可感知动效、count-up 与 facade/export parity 收口；R4 完成门面来源下 `/import` / `/screenshot` 返回 Screen 2 的上下文恢复（无自由 `returnTo`）。证据目录：`output/fu85-acceptance/r3/`。
-
-**互引**: 吸收 memory deferred task「导航分享门面」。
-
----
-
 ### FU-86 · 首页样式探索
 
 - **优先级**: P2
@@ -373,6 +362,22 @@
 - 保持安全边界：不引入自由 `returnTo`，不破坏 FU-102 trek completion navigation closure。
 
 **验收口径**: 未登录从门面选择「选山实时记录」后，登录完成仍能保留已选模板；普通非门面记录不被旧 pending 污染。
+
+---
+
+### FU-108 · `/share` 主预览（本地 HeroPreview）vs Satori 真海报漂移审计
+
+- **优先级**: P3
+- **归属阶段**: 分享编辑器视觉保真 / 后续审计
+- **状态**: 🟢 active（低优先级 preview/export parity 审计）
+
+**背景**: `/share` 主预览目前是 `ShareClient` 内部 `HeroPreview` 本地实现，真实导出则走 `src/lib/share-templates/*` + Satori。两套实现天然存在视觉漂移风险；FU-76 分享编辑器重设计期间多次踩中该类问题：字号相对偏大、`text-align` 继承、`premium-altitude-profile` TIME / DATE 列、缩放层水平偏移、overlay / 内卡几何对齐等。
+
+**待评估方向**:
+- 方案 A：审计全 10 个模板分支的本地 preview ↔ Satori 出图一致性，逐项修漂移。
+- 方案 B：主预览改用真实模板组件缩放渲染，参照 `/imprint` facade 的 `TemplatePosterPreview` 思路，一劳永逸消除双实现漂移。
+
+**验收口径**: 若启动本 FU，需要输出全 10 分支 375px preview ↔ Satori side-by-side，并明确性能 / 交互 / 导出一致性 tradeoff。
 
 ## Deferred Registration
 
@@ -464,7 +469,18 @@
 
 ---
 
-## Closed Follow-ups（91 条）
+## Closed Follow-ups（92 条）
+
+### FU-85 ✅ 分享/模板门面改造
+
+- **状态**: ✅ closed · 2026-07-02 merge `b601cf6` / PR #35 上线
+- **关闭原因**: `/imprint` 分享模板门面已合入并上线，完成「门面前置 + 三选一录入 + 模板锚定」主体目标。用户先浏览真实模板样例，再选择导入轨迹 / 识别截图 / 选山实时记录，最终进入 `/share` 时自动预选门面选择的模板。
+- **落地内容**: 新增底栏「印迹」入口与 `/imprint` 两屏门面；门面卡复用真实分享模板组件而非设计稿手绘卡面；`/share?template=` 支持初始模板；导入 / 截图 / 实时记录三条真实业务流完成出口均接通模板传播；pending intent 使用 `source + TTL + 单次消费` 防残留污染。
+- **R3 / R4 收口**: R3A route-scoped Noto subset、R3B/C/D/E 可感知动效与 preview/export parity 收口；R4 修门面来源下 `/import` / `/screenshot` 返回 Screen 2 的上下文恢复（`from=imprint` → `/imprint?template=<id>&step=source`，无自由 `returnTo`）。
+- **诚实边界**: 照片模板 facade 预览与 Satori 出图亮度 / 裁切差异另登记 FU-106；`/explore?shareTemplate` 未登录边界另登记 FU-107。
+- **资产**: `docs/fu85-share-facade-anchor.md`；证据目录 `output/fu85-acceptance/r3/`。
+- **关闭 commit**: PR #35 / merge `b601cf6`
+- **关闭时间**: 2026-07-02
 
 ### FU-91 ✅ Supabase schema baseline / fresh-apply 能力恢复
 
@@ -1636,6 +1652,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.95 — 2026-07-04**: FU-76 share editor motion closeout note + FU-85 tracker closeout。FU-76 仍 Active，但「分享生成节点 + `/share` 编辑器重设计」已落地：Phase 1 完成 `/share` 布局重排、字段区被动条 + 2×3 芯片、真实模板缩略图条与 Screen D 透明水印层级；Phase 2 完成显式 stage 入场 timeline、海报内容重亮、字段 visibleFields 真实联动、SSR 首帧门禁与 reduced-motion 终态；Phase 3 完成 promise-gated 显影、保存成功仪式、三路导出语义、payload 快照与交互冻结。新增 `docs/fu76-share-editor-anchor.md` 作为分享编辑器动效节点 anchor。FU-85 从 Active 移入 Closed（PR #35 / merge `b601cf6` 上线）。新增 FU-108 · `/share` 主预览（本地 HeroPreview）vs Satori 真海报漂移审计（P3）。Active 14 → 14（−FU-85 +FU-108）· Closed 91 → 92 · Deferred 4 → 4。
 
 **v0.94 — 2026-07-02**: FU-85 share-template facade implementation ready for merge。`/imprint` 门面实现完成并经用户验收通过，待合并：真实分享模板组件作为门面卡、`/share?template=` 初始模板锚定、三条真实业务流 template 传播、pending intent 防残留污染均已落地；R3A 字体 subset（约 26KB woff2 route-scoped，Satori 全量 OTF 不动）、R3B/R3C/R3D/R3E 动效与 parity 收口（opacity 分层点亮 + count-up + 手动 dashoffset 自绘 + 卡壳 rim/角标 focus；facade `text-align` 重置修 button 继承；数字格式与模板静态渲染逐字符一致）；R4 修门面来源返回上下文（`from=imprint` → `/imprint?template=<id>&step=source`，无自由 `returnTo`）。新增 FU-106（照片模板 facade 预览与 Satori 出图亮度 / 裁切差异，低优先级视觉 parity 评估）与 FU-107（`/explore?shareTemplate` 未登录场景 template 保留边界，低频 hardening）。Active 12 → 14 · Closed 91 → 91 · Deferred 4 → 4。
 

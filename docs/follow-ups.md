@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-04 · 最新版本记录: v0.95
+> Last Updated: 2026-07-05 · 最新版本记录: v0.96
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（14 条）
+## Active Follow-ups（15 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -181,7 +181,7 @@
 - **归属阶段**: 上线前产品品质
 - **状态**: 🟢 active
 
-**动效半边**: 建立动效 token（时长 / 缓动）与原则，做选型 spike（CSS-first vs 引库；包体积 / 低端机 / 大陆可达约束），再对关键节点分批落地：登顶确认、分享生成、转场、空态、加载。起点为 `docs/ui-interaction-spec.md` §12 微动效规范 + §4.9。现状：无动效库，`globals.css` 仅 1 个 `@keyframes`。
+**动效半边**: 建立动效 token（时长 / 缓动）与原则，并对关键节点分批落地：登顶确认、分享生成、转场、空态、加载。起点为 `docs/ui-interaction-spec.md` §12 微动效规范 + §4.9。
 
 **文案半边（2026-06-12 用户确认并入）**:
 - 人话化审查：从用户视角过全界面，把技术性 / 非面向用户的描述改为用户常规能听懂的语言（不必大白话，取度）。
@@ -193,7 +193,15 @@
 - **Phase 2 动效**: 显式命名 stage 入场 timeline（header → poster → templateStrip → toolsRow → fieldPanel → bottomActionBar）；海报内容重亮覆盖文字 stagger、海拔 count-up、路线自绘，并用于初载与模板切换；字段联动以 `visibleFields` 真实增删为真相源，GSAP 只做出 / 入过渡；SSR 首帧门禁采用 `data-motion-pending`，并保留 reduced-motion / noscript / JS 异常三兜底；`gsap.matchMedia` no-preference / reduce 双分支，reduced-motion 直接终态。
 - **Phase 3 动效**: promise-gated 显影绑定真实 `renderPosterBlob`，竖向柔光光带 1.6s 循环 + 数据逐项点亮 + count-up，最短 720ms（`--motion-ceremony`），失败 kill 回 idle；保存成功仪式包括海报成型 `scale 1.012 → 1`、边缘辉光升峰后落定到 55%、缩影收纳飞入保存键、按钮 `✓ 已保存到相册` 与 toast 上滑；三路语义已区分 save / share 降级下载 / native share / AbortError / transparent 保存，导出期间做 payload 快照、交互冻结与页面降噪。
 - **设计 / 实现 / 证据**: 设计稿为 Claude Design `Share Editor Redesign FU-76.dc.html`；实现集中在 `src/app/(flow)/share/ShareClient.tsx`；采用 GSAP skills（gsap-core / timeline / react / performance）；证据目录 `output/fu76-acceptance/`。
-- **边界**: **FU-76 整体仍 active**，转场 / 空态 / 加载等动效节点未落；本次只完成「分享生成 + `/share` 重设计」节点。详见 `docs/fu76-share-editor-anchor.md`。
+
+**Sprint A 重点页动效落地（2026-07-05，用户真机验收通过）**:
+- **Phase 1 路由转场底座**: `(main)` / `(flow)` route template opacity 淡入落地，作为零感知、无副作用底座保留。
+- **Phase 2-I import / screenshot**: `/import`、`/screenshot` 成功节点落地（解析成功 / 识别成功 / 已带回档案 GSAP L3 仪式）；门面入场落地为 entry / upload 逐模块 stagger、额度进度条 `scaleX` grow、ScanGlyph 5-path 描边。P0 修复已收口 footer CTA 卡在 GSAP 起始态的可见 / 可点回归。
+- **Phase 2-II mountain / explore**: `/mountain/[id]` 分组入场落地（hero → description → decision → weather → route → waypoints → featured，并补 stats count-up）；`/explore` 分层入场落地（首屏卡 stagger）。Smoothness Fix 已收口固定 label 绝对 position、视觉可用分阶段达标与 production build 帧率验证。
+- **附带导航修复**: `/share` 返回键改为确定性落点：`from=imprint` 走 R4 门面返回；有 `checkinId` 时回 `/activity/<id>`；否则 `back` 兜底，再 fallback `/explore`。
+- **实现 / 证据**: 实现采用 GSAP skills（gsap-core / timeline / react / performance），白名单集中在 `ImportClient.tsx`、`ScreenshotClient.tsx`、`MountainDetailClient.tsx`、`ExploreClient.tsx`、`(main)` / `(flow)` template 与 `tests/motion-nodes-static.test.ts`；证据目录 `output/fu76-motion-a-acceptance/`。
+
+- **边界**: **FU-76 整体仍 active**。剩余范围为 Phase 2-III（archive / profile / faq / prep / rankings / activity 轻扫入场）、Phase 3（空态统一 `EmptyState` / 加载 spinner 收编 / token 收编）、Phase 4（§12.12-A 三候选 demo）与全站文案人文化审查。详见 `docs/fu76-share-editor-anchor.md` 与 `docs/ui-interaction-spec.md` §12。
 
 ---
 
@@ -378,6 +386,22 @@
 - 方案 B：主预览改用真实模板组件缩放渲染，参照 `/imprint` facade 的 `TemplatePosterPreview` 思路，一劳永逸消除双实现漂移。
 
 **验收口径**: 若启动本 FU，需要输出全 10 分支 375px preview ↔ Satori side-by-side，并明确性能 / 交互 / 导出一致性 tradeoff。
+
+---
+
+### FU-109 · 动效页加载流畅度优化
+
+- **优先级**: P3
+- **归属阶段**: 全站动效性能 / 后续优化
+- **状态**: 🟢 active（低优先级性能优化）
+
+**背景**: FU-76 Sprint A Phase 2-II 帧率诊断结论显示，入场动画编排本身已通过 Smoothness Fix 收口；残留卡顿主要来自加载层而非动效本身：全站 hydration long task 会阻塞进页面首帧（dev 环境放大到约 760–853ms，生产较轻），`/mountain/[id]` 的 MapLibre / `PmtilesSnapshotMap` late long task 在入场后约 1.8–3.6s 初始化，采样约 129–486ms。
+
+**待评估方向**:
+- 全站 hydration / bundle 瘦身，降低进页面首帧阻塞。
+- `/mountain/[id]` 地图延迟初始化 / 懒加载，避免 MapLibre / PMTiles 初始化与首屏动效竞争主线程。
+
+**验收口径**: 若启动本 FU，需要分别输出 dev / production frame interval、long task 列表、首屏可交互时间与 375px 真实视频；不得把动画编排问题和加载层 long task 混为一类。
 
 ## Deferred Registration
 
@@ -1652,6 +1676,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.96 — 2026-07-05**: FU-76 Sprint A 重点页动效 docs 收尾。FU-76 仍 Active，但新增记录 Sprint A 已落地节点：Phase 1 route template opacity 淡入底座；Phase 2-I import / screenshot 成功节点 GSAP L3 仪式与 entry / upload 门面逐模块入场；Phase 2-II mountain 分组入场与 explore 分层入场，并经 Smoothness Fix 固定 label 绝对时序、视觉可用分阶段达标与 production build 帧率验证。`docs/ui-interaction-spec.md` §12.4 同步现实口径：GSAP 已从唯一 Summit pilot 解禁为多步仪式与入场编排工具，工具性单步过渡仍默认 CSS。新增 FU-109 · 动效页加载流畅度优化（P3），将 hydration long task 与 mountain 地图 late long task 作为加载层性能后续。Active 14 → 15（+FU-109）· Closed 92 → 92 · Deferred 4 → 4。
 
 **v0.95 — 2026-07-04**: FU-76 share editor motion closeout note + FU-85 tracker closeout。FU-76 仍 Active，但「分享生成节点 + `/share` 编辑器重设计」已落地：Phase 1 完成 `/share` 布局重排、字段区被动条 + 2×3 芯片、真实模板缩略图条与 Screen D 透明水印层级；Phase 2 完成显式 stage 入场 timeline、海报内容重亮、字段 visibleFields 真实联动、SSR 首帧门禁与 reduced-motion 终态；Phase 3 完成 promise-gated 显影、保存成功仪式、三路导出语义、payload 快照与交互冻结。新增 `docs/fu76-share-editor-anchor.md` 作为分享编辑器动效节点 anchor。FU-85 从 Active 移入 Closed（PR #35 / merge `b601cf6` 上线）。新增 FU-108 · `/share` 主预览（本地 HeroPreview）vs Satori 真海报漂移审计（P3）。Active 14 → 14（−FU-85 +FU-108）· Closed 91 → 92 · Deferred 4 → 4。
 

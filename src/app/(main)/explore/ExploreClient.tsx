@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import ProvinceBannerStrip, { type ProvinceBannerData } from '@/components/explore/ProvinceBannerStrip'
 import { ONBOARDING_EVENT, getProvinceDraft } from '@/lib/onboarding'
 import { isFeatureEnabled } from '@/lib/feature-flags'
@@ -14,6 +16,8 @@ import { getDifficultyLevelLabel } from '@/lib/license-ui'
 import { storePendingShareTemplate } from '@/lib/share-template-intent'
 import type { Mountain } from '@/types'
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
+
+gsap.registerPlugin(useGSAP)
 
 const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 const QUICK_TAGS = provinceRankingEnabled
@@ -34,6 +38,20 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
+function parseMotionTokenSeconds(root: HTMLElement, tokenName: string, fallbackMs: number) {
+  const raw = window.getComputedStyle(root).getPropertyValue(tokenName).trim()
+  if (!raw) return fallbackMs / 1000
+  if (raw.endsWith('ms')) {
+    const value = Number.parseFloat(raw)
+    return Number.isFinite(value) ? value / 1000 : fallbackMs / 1000
+  }
+  if (raw.endsWith('s')) {
+    const value = Number.parseFloat(raw)
+    return Number.isFinite(value) ? value : fallbackMs / 1000
+  }
+  return fallbackMs / 1000
+}
+
 export default function ExploreClient({
   list,
   hometownProvince,
@@ -46,6 +64,7 @@ export default function ExploreClient({
   shareTemplateIntent?: ShareRenderTemplate | null
 }) {
   const router = useRouter()
+  const motionScopeRef = useRef<HTMLDivElement | null>(null)
   const [search, setSearch] = useState('')
   const [tag, setTag] = useState<(typeof QUICK_TAGS)[number]>('附近')
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -148,13 +167,147 @@ export default function ExploreClient({
         ? `已优先展示 ${effectiveProvince} 的热门路线`
         : `当前找到 ${filtered.length} 座可选山峰`
 
+  useGSAP((_context, contextSafe) => {
+    const root = motionScopeRef.current
+    if (!root) return
+
+    const getScopedTargets = (selector: string, scope: ParentNode = root) =>
+      gsap.utils.toArray<HTMLElement>(scope.querySelectorAll(selector)).filter((target) => root.contains(target))
+
+    const getExploreMotionTargets = () => [
+      root,
+      ...getScopedTargets('[data-explore-motion]'),
+      ...getScopedTargets('[data-explore-pathway-card]'),
+      ...getScopedTargets('[data-testid="explore-mountain-card"]').slice(0, 4),
+    ]
+
+    const terminalizeExploreMotion = () => {
+      if (!root.isConnected) return
+      const targets = getExploreMotionTargets()
+      if (targets.length === 0) return
+      gsap.set(targets, {
+        autoAlpha: 1,
+        y: 0,
+        scale: 1,
+        clearProps: 'willChange,transform',
+      })
+    }
+
+    const runMotion = () => {
+      const mm = gsap.matchMedia()
+      mm.add(
+        {
+          allowMotion: '(prefers-reduced-motion: no-preference)',
+          reduceMotion: '(prefers-reduced-motion: reduce)',
+        },
+        (mediaContext) => {
+          if (mediaContext.conditions?.reduceMotion) {
+            terminalizeExploreMotion()
+            return () => terminalizeExploreMotion()
+          }
+
+          const baseDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.18)
+          const enterDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.2)
+          const fastDuration = Math.min(parseMotionTokenSeconds(root, '--motion-fast', 180), 0.14)
+          const schedule = {
+            shell: 0,
+            header: 0.04,
+            search: 0.12,
+            pathways: 0.22,
+            pathwayCards: 0.26,
+            listHeading: 0.34,
+            firstCards: 0.38,
+          } as const
+          const motionMap = new Map(getScopedTargets('[data-explore-motion]').map((target) => [target.dataset.exploreMotion, target]))
+          const pathwayCards = getScopedTargets('[data-explore-pathway-card]')
+          const firstScreenCards = getScopedTargets('[data-testid="explore-mountain-card"]').slice(0, 4)
+          const animatedTargets = getExploreMotionTargets()
+
+          if (animatedTargets.length > 0) gsap.set(animatedTargets, { willChange: 'transform, opacity' })
+          firstScreenCards.forEach((card, index) => {
+            card.dataset.exploreMotionParticipation = 'first-screen'
+            card.dataset.exploreMotionIndex = String(index)
+          })
+          const timeline = gsap.timeline({
+            defaults: { duration: baseDuration, ease: 'power3.out' },
+            onComplete: terminalizeExploreMotion,
+            onInterrupt: terminalizeExploreMotion,
+          })
+
+          timeline
+            .addLabel('shell', schedule.shell)
+            .fromTo(root, { y: 12 }, { y: 0, duration: baseDuration, ease: 'power3.out' }, 'shell')
+
+          const addMotion = (key: string, label: string, position: string | number, fromY = 16, scale = 0.98) => {
+            const target = motionMap.get(key)
+            if (!target) return
+            timeline.addLabel(label, position)
+            timeline.fromTo(target, { autoAlpha: 0, y: fromY, scale }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: enterDuration,
+              ease: key === 'pathways' ? 'back.out(1.3)' : 'power3.out',
+            }, label)
+          }
+
+          addMotion('header', 'header', schedule.header, 14, 0.98)
+          addMotion('search', 'search', schedule.search, 18, 0.96)
+          addMotion('pathways', 'pathways', schedule.pathways, 18, 0.96)
+          if (pathwayCards.length > 0) {
+            timeline.fromTo(pathwayCards, { autoAlpha: 0, y: 14, scale: 0.94 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: fastDuration,
+              ease: 'back.out(1.3)',
+              stagger: { each: 0.035, from: 'start' },
+            }, schedule.pathwayCards)
+          }
+          addMotion('list-heading', 'listHeading', schedule.listHeading, 14, 0.98)
+          if (firstScreenCards.length > 0) {
+            timeline.addLabel('firstCards', schedule.firstCards)
+            timeline.fromTo(firstScreenCards, { autoAlpha: 0, y: 18, scale: 0.96 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: enterDuration,
+              ease: 'back.out(1.3)',
+              stagger: { each: 0.03, from: 'start' },
+            }, 'firstCards')
+          }
+
+          return () => {
+            timeline.kill()
+            terminalizeExploreMotion()
+          }
+        },
+        root,
+      )
+
+      return () => {
+        mm.revert()
+        terminalizeExploreMotion()
+      }
+    }
+
+    const safeRunMotion = (contextSafe ? contextSafe(runMotion) : runMotion) as () => unknown
+    const cleanup = safeRunMotion()
+    return () => {
+      if (typeof cleanup === 'function') cleanup()
+      terminalizeExploreMotion()
+    }
+  }, { scope: motionScopeRef, dependencies: [] })
+
   return (
     <>
       <style>
-        {'.explore-filter-scroll::-webkit-scrollbar{display:none}.explore-search-input::placeholder{color:var(--color-on-surface-variant);opacity:1}'}
+        {'.explore-filter-scroll::-webkit-scrollbar{display:none}.explore-search-input::placeholder{color:var(--color-on-surface-variant);opacity:1}.pt-explore-press-target,.explore-page-shell [data-testid="explore-mountain-card"]{transition:transform var(--motion-press) var(--ease-out);transform-origin:center}.pt-explore-press-target:active,.explore-page-shell [data-testid="explore-mountain-card"]:active{transform:scale(.98)}'}
       </style>
       <div
+        ref={motionScopeRef}
         className="explore-page-shell"
+        data-explore-motion="shell"
         style={{
           padding: 'var(--space-4)',
           display: 'flex',
@@ -163,7 +316,7 @@ export default function ExploreClient({
           minWidth: 0,
         }}
       >
-        <header style={{ textAlign: 'center' }}>
+        <header data-explore-motion="header" style={{ textAlign: 'center' }}>
           <h1
             style={{
               margin: 0,
@@ -179,6 +332,7 @@ export default function ExploreClient({
 
         <section
           aria-label="探索搜索"
+          data-explore-motion="search"
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -263,6 +417,7 @@ export default function ExploreClient({
 
         <section
           aria-label="山行入口"
+          data-explore-motion="pathways"
           style={{
             display: 'grid',
             gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
@@ -296,6 +451,7 @@ export default function ExploreClient({
         >
           <p
             id="mountain-list-heading"
+            data-explore-motion="list-heading"
             style={{
               margin: 0,
               display: 'flex',
@@ -493,6 +649,8 @@ function PathwayCard({
     <Card>
       <button
         type="button"
+        data-explore-pathway-card={title}
+        className="pt-explore-press-target"
         onClick={onClick}
         style={{
           appearance: 'none',

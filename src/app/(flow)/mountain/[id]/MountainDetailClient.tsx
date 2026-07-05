@@ -1,7 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
 import type { Waypoint, WaypointType } from '@/lib/waypoints'
@@ -24,6 +26,8 @@ import type { LicenseProgressSummary } from '@/lib/license-progress'
 import { trackEvent } from '@/lib/analytics/client'
 import { buildTrekUrl, consumePendingShareTemplateForTrekUrl } from '@/lib/share-template-intent'
 
+gsap.registerPlugin(useGSAP)
+
 type RouteWaypoint = Waypoint & {
   latitude?: number
   longitude?: number
@@ -44,6 +48,31 @@ type MountainDetailClientProps = {
 function formatInteger(value: number | null | undefined) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '--'
   return String(Math.round(value))
+}
+
+function parseMotionTokenSeconds(root: HTMLElement, tokenName: string, fallbackMs: number) {
+  const raw = window.getComputedStyle(root).getPropertyValue(tokenName).trim()
+  if (!raw) return fallbackMs / 1000
+  if (raw.endsWith('ms')) {
+    const value = Number.parseFloat(raw)
+    return Number.isFinite(value) ? value / 1000 : fallbackMs / 1000
+  }
+  if (raw.endsWith('s')) {
+    const value = Number.parseFloat(raw)
+    return Number.isFinite(value) ? value : fallbackMs / 1000
+  }
+  return fallbackMs / 1000
+}
+
+function getDecimalPlaces(value: string) {
+  const [, decimals = ''] = value.split('.')
+  return decimals.length
+}
+
+function formatMotionCountValue(value: number, format: string | undefined, finalText: string) {
+  if (format === 'integer') return formatInteger(value)
+  if (format === 'decimal') return value.toFixed(getDecimalPlaces(finalText))
+  return finalText
 }
 
 function getRouteFacts(mountain: Mountain) {
@@ -215,6 +244,7 @@ function SectionHeader({
       }}
     >
       <h2
+        data-mountain-motion-child="section-title"
         style={{
           margin: 0,
           color: 'var(--color-on-surface-variant)',
@@ -246,14 +276,21 @@ function SectionHeader({
 function StatTile({
   label,
   value,
+  motionKind,
+  countValue,
+  countFormat,
   accent = false,
 }: {
   label: string
   value: string
+  motionKind: string
+  countValue?: number
+  countFormat?: 'integer' | 'decimal'
   accent?: boolean
 }) {
   return (
     <div
+      data-mountain-stat-tile={motionKind}
       style={{
         minWidth: 0,
         padding: 10,
@@ -263,6 +300,10 @@ function StatTile({
       }}
     >
       <div
+        data-mountain-stat-value={motionKind}
+        data-count-value={typeof countValue === 'number' ? String(countValue) : undefined}
+        data-count-format={countFormat}
+        data-final-text={value}
         style={{
           color: accent ? 'var(--color-success)' : 'var(--color-on-surface)',
           fontFamily: 'var(--font-mono)',
@@ -408,6 +449,7 @@ function HeroSection({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
+                data-mountain-hero-visual
                 src={image}
                 alt={`${mountain.name} ${index + 1}`}
                 onError={(event) => {
@@ -430,6 +472,7 @@ function HeroSection({
       />
       {!hasImages ? (
         <div
+          data-mountain-hero-visual
           aria-hidden
           style={{
             position: 'absolute',
@@ -498,6 +541,7 @@ function HeroSection({
       </div>
 
       <div
+        data-mountain-motion="hero"
         style={{
           position: 'absolute',
           left: 'var(--space-4)',
@@ -506,10 +550,11 @@ function HeroSection({
           minWidth: 0,
         }}
       >
-        <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+        <div data-mountain-hero-item="chip" style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
           <DifficultyChip difficulty={mountain.difficulty} />
         </div>
         <h1
+          data-mountain-hero-item="title"
           style={{
             margin: 0,
             color: 'var(--color-on-surface)',
@@ -523,6 +568,7 @@ function HeroSection({
           {mountain.name}
         </h1>
         <div
+          data-mountain-hero-item="location"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -556,10 +602,10 @@ function DecisionSection({
   const suitabilityCopy = getDifficultySuitabilityCopy(mountain.difficulty)
 
   return (
-    <section data-testid="mountain-decision-section">
+    <section data-testid="mountain-decision-section" data-mountain-motion="decision">
       <SectionHeader title="这座山适不适合你" />
       <div style={{ padding: '0 var(--space-4)' }}>
-        <div style={{ marginBottom: 'var(--space-3)' }}>
+        <div data-mountain-motion-child="decision-advisory" style={{ marginBottom: 'var(--space-3)' }}>
           <DifficultyAdvisory
             difficulty={mountain.difficulty}
             userLicense={userLicense}
@@ -569,6 +615,7 @@ function DecisionSection({
           />
         </div>
         <div
+          data-mountain-motion-child="decision-card"
           style={{
             background: 'var(--color-surface-variant)',
             border: '1px solid var(--color-outline)',
@@ -610,10 +657,11 @@ function DescriptionSection({ description }: { description: string | null | unde
   if (!fallbackText) return null
 
   return (
-    <section data-testid="mountain-description-section">
+    <section data-testid="mountain-description-section" data-mountain-motion="description">
       <SectionHeader title="山峰简介" />
       <div style={{ padding: '0 var(--space-4)' }}>
         <div
+          data-mountain-motion-child="description-card"
           style={{
             background: 'var(--color-surface-variant)',
             border: '1px solid var(--color-outline)',
@@ -639,7 +687,7 @@ function WaypointSection({
   }, null)
 
   return (
-    <section id="waypoints" data-testid="mountain-waypoints-section">
+    <section id="waypoints" data-testid="mountain-waypoints-section" data-mountain-motion="waypoints">
       <SectionHeader title="关键点位与风险" />
       <div style={{ padding: '0 var(--space-4)' }}>
         <div
@@ -662,6 +710,7 @@ function WaypointSection({
 
             return (
               <div
+                data-mountain-motion-child="waypoint-row"
                 key={waypoint.id}
                 style={{
                   display: 'grid',
@@ -858,6 +907,7 @@ function RouteTextFallback({ segments }: { segments: RouteSegment[] }) {
       />
       <div style={{ padding: '0 var(--space-4)' }}>
         <div
+          data-mountain-route-card
           style={{
             background: 'var(--color-surface-variant)',
             border: '1px solid var(--color-outline)',
@@ -926,6 +976,7 @@ function RouteUnavailable() {
     <section id="route" data-testid="mountain-route-section">
       <SectionHeader title="路线参考" right="暂无 · 不可用" />
       <div style={{ padding: '0 var(--space-4)' }}>
+        <div data-mountain-route-card>
         <EmptyModuleCard
           icon={
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -935,6 +986,7 @@ function RouteUnavailable() {
           title="路线参考图暂时不可用"
           description="地图服务没有响应，你仍可以查看关键点位与海拔信息。"
         />
+        </div>
       </div>
     </section>
   )
@@ -1174,6 +1226,7 @@ function RoutePmtilesCard({
       />
       <div style={{ padding: '0 var(--space-4)' }}>
         <div
+          data-mountain-route-card
           style={{
             background: 'var(--color-surface-variant)',
             border: '1px solid var(--color-outline)',
@@ -1238,11 +1291,12 @@ function RouteReferenceSection({
 
 function FeaturedSection({ posts }: { posts: CommunityPostViewModel[] }) {
   return (
-    <section data-testid="mountain-featured-posts-section">
+    <section data-testid="mountain-featured-posts-section" data-mountain-motion="featured">
       <SectionHeader title="精选攻略" />
       <div style={{ padding: '0 var(--space-4)', display: 'grid', gap: 'var(--space-3)' }}>
         {posts.slice(0, 3).map((post) => (
           <a
+            data-mountain-motion-child="featured-card"
             key={post.id}
             href={`/community/${post.id}`}
             style={{
@@ -1365,12 +1419,13 @@ function BottomCTA({
         }}
       >
         <SecondaryButton
+          className="pt-mountain-press-target"
           as="a"
           href={hasWaypoints ? '#waypoints' : '#route'}
         >
           查看路线
         </SecondaryButton>
-        <PrimaryButton as="a" href={primaryHref} onClick={handlePrimaryClick}>
+        <PrimaryButton className="pt-mountain-press-target" as="a" href={primaryHref} onClick={handlePrimaryClick}>
           {requiresLogin ? '登录后开始记录' : '开始记录'}
         </PrimaryButton>
       </div>
@@ -1390,6 +1445,7 @@ export default function MountainDetailClient({
   forceRouteMapError,
 }: MountainDetailClientProps) {
   const router = useRouter()
+  const motionScopeRef = useRef<HTMLDivElement | null>(null)
   const routeFacts = getRouteFacts(mountain)
   const [licenseSheetOpen, setLicenseSheetOpen] = useState(false)
   const displayWaypoints = useMemo(
@@ -1411,6 +1467,249 @@ export default function MountainDetailClient({
       },
     })
   }, [mountain.altitude, mountain.difficulty, mountain.id, mountain.name, mountain.province])
+
+  useGSAP((_context, contextSafe) => {
+    const root = motionScopeRef.current
+    if (!root) return
+
+    const getScopedTargets = (selector: string, scope: ParentNode = root) =>
+      gsap.utils.toArray<HTMLElement>(scope.querySelectorAll(selector)).filter((target) => root.contains(target))
+
+    const getMotionTargets = () => getScopedTargets('[data-mountain-motion]')
+
+    const getAllAnimatedTargets = () => [
+      ...getMotionTargets(),
+      ...getScopedTargets('[data-mountain-hero-visual]'),
+      ...getScopedTargets('[data-mountain-hero-item]'),
+      ...getScopedTargets('[data-mountain-stat-tile]'),
+      ...getScopedTargets('[data-mountain-motion-child]'),
+    ]
+
+    const terminalizeStatValues = () => {
+      for (const valueNode of getScopedTargets('[data-mountain-stat-value]')) {
+        const finalText = valueNode.dataset.finalText
+        if (finalText) valueNode.textContent = finalText
+      }
+    }
+
+    const terminalizeMountainMotion = () => {
+      if (!root.isConnected) return
+      const targets = getMotionTargets()
+      const allAnimatedTargets = getAllAnimatedTargets()
+      if (targets.length === 0 && allAnimatedTargets.length === 0) return
+      const shiftedTargets = targets.filter((target) => target.dataset.mountainMotionMode !== 'fade')
+      const fadeOnlyTargets = targets.filter((target) => target.dataset.mountainMotionMode === 'fade')
+      if (shiftedTargets.length > 0) {
+        gsap.set(shiftedTargets, {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          clearProps: 'willChange,transform',
+        })
+      }
+      if (fadeOnlyTargets.length > 0) {
+        gsap.set(fadeOnlyTargets, {
+          autoAlpha: 1,
+          clearProps: 'willChange,transform',
+        })
+      }
+      const childTargets = allAnimatedTargets.filter((target) => !targets.includes(target))
+      if (childTargets.length > 0) {
+        gsap.set(childTargets, {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          clearProps: 'willChange,transform',
+        })
+      }
+      terminalizeStatValues()
+    }
+
+    const runMotion = () => {
+      const mm = gsap.matchMedia()
+      mm.add(
+        {
+          allowMotion: '(prefers-reduced-motion: no-preference)',
+          reduceMotion: '(prefers-reduced-motion: reduce)',
+        },
+        (mediaContext) => {
+          const targets = getMotionTargets()
+          if (targets.length === 0) return () => undefined
+
+          if (mediaContext.conditions?.reduceMotion) {
+            terminalizeMountainMotion()
+            return () => terminalizeMountainMotion()
+          }
+
+          const baseDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.22)
+          const enterDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.24)
+          const fastDuration = Math.min(parseMotionTokenSeconds(root, '--motion-fast', 180), 0.16)
+          const schedule = {
+            hero: 0,
+            stats: 0.12,
+            description: 0.32,
+            decision: 0.48,
+            weather: 0.64,
+            route: 0.74,
+            waypoints: 0.82,
+            featured: 0.9,
+          } as const
+          const motionMap = new Map(targets.map((target) => [target.dataset.mountainMotion, target]))
+          const shiftedTargets = targets.filter((target) => target.dataset.mountainMotionMode !== 'fade')
+          const fadeOnlyTargets = targets.filter((target) => target.dataset.mountainMotionMode === 'fade')
+          const allAnimatedTargets = getAllAnimatedTargets()
+
+          if (shiftedTargets.length > 0) gsap.set(shiftedTargets, { willChange: 'transform, opacity' })
+          if (fadeOnlyTargets.length > 0) gsap.set(fadeOnlyTargets, { willChange: 'opacity' })
+          const animatedNonSectionTargets = allAnimatedTargets.filter((target) => !targets.includes(target))
+          if (animatedNonSectionTargets.length > 0) gsap.set(animatedNonSectionTargets, { willChange: 'transform, opacity' })
+
+          const timeline = gsap.timeline({
+            defaults: { duration: baseDuration, ease: 'power3.out' },
+            onComplete: terminalizeMountainMotion,
+            onInterrupt: terminalizeMountainMotion,
+          })
+
+          const addSectionShell = (target: HTMLElement, label: string, position: number) => {
+            timeline.addLabel(label, position)
+            const fadeOnly = target.dataset.mountainMotionMode === 'fade'
+            if (fadeOnly) {
+              timeline.fromTo(target, { autoAlpha: 0 }, { autoAlpha: 1, duration: baseDuration }, label)
+              return
+            }
+            timeline.fromTo(target, { autoAlpha: 0, y: 22, scale: 0.96 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              ease: 'back.out(1.3)',
+              duration: enterDuration,
+            }, label)
+          }
+
+          const addChildCascade = (target: HTMLElement, position: number, selector = '[data-mountain-motion-child]') => {
+            const children = getScopedTargets(selector, target)
+            if (children.length === 0) return
+            timeline.fromTo(children, { autoAlpha: 0, y: 14, scale: 0.98 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: fastDuration,
+              ease: 'power3.out',
+              stagger: { each: 0.035, from: 'start' },
+            }, position)
+          }
+
+          const addGroup = (key: string, label: string, position: number, options?: { children?: boolean; routeCard?: boolean }) => {
+            const target = motionMap.get(key)
+            if (!target) return
+            addSectionShell(target, label, position)
+            if (options?.routeCard) addChildCascade(target, position + 0.08, '[data-mountain-motion-child="section-title"]')
+            else if (options?.children) addChildCascade(target, position + 0.1)
+          }
+
+          const addHero = (position: number) => {
+            const target = motionMap.get('hero')
+            if (!target) return
+            timeline.addLabel('hero', position)
+            const heroVisuals = getScopedTargets('[data-mountain-hero-visual]')
+            if (heroVisuals.length > 0) {
+              timeline.fromTo(heroVisuals, { scale: 1.06 }, {
+                scale: 1,
+                duration: Math.min(0.32, enterDuration * 1.35),
+                ease: 'power2.out',
+              }, 'hero')
+            }
+            timeline.fromTo(target, { autoAlpha: 0, y: 24, scale: 0.98 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: Math.min(enterDuration, 0.22),
+              ease: 'power3.out',
+            }, position + 0.02)
+            const heroItems = getScopedTargets('[data-mountain-hero-item]', target)
+            if (heroItems.length > 0) {
+              timeline.fromTo(heroItems, { autoAlpha: 0, y: 14, scale: 0.96 }, {
+                autoAlpha: 1,
+                y: 0,
+                scale: 1,
+                duration: Math.min(fastDuration, 0.14),
+                ease: 'back.out(1.3)',
+                stagger: { each: 0.035, from: 'start' },
+              }, position + 0.12)
+            }
+          }
+
+          const addStats = (position: number) => {
+            const target = motionMap.get('stats')
+            if (!target) return
+            timeline.addLabel('stats', position)
+            timeline.fromTo(target, { autoAlpha: 0, y: 18, scale: 0.98 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: Math.min(enterDuration, 0.2),
+              ease: 'back.out(1.3)',
+            }, 'stats')
+            const statTiles = getScopedTargets('[data-mountain-stat-tile]', target)
+            if (statTiles.length > 0) {
+              timeline.fromTo(statTiles, { autoAlpha: 0, y: 16, scale: 0.94 }, {
+                autoAlpha: 1,
+                y: 0,
+                scale: 1,
+                duration: Math.min(fastDuration, 0.14),
+                ease: 'back.out(1.3)',
+                stagger: { each: 0.035, from: 'start' },
+              }, position + 0.06)
+            }
+            for (const valueNode of getScopedTargets('[data-mountain-stat-value][data-count-value]', target)) {
+              const rawTarget = Number(valueNode.dataset.countValue)
+              const finalText = valueNode.dataset.finalText ?? valueNode.textContent ?? ''
+              if (!Number.isFinite(rawTarget)) continue
+              const countState = { value: 0 }
+              timeline.to(countState, {
+                value: rawTarget,
+                duration: Math.min(0.46, enterDuration * 1.9),
+                ease: 'power2.out',
+                onUpdate: () => {
+                  valueNode.textContent = formatMotionCountValue(countState.value, valueNode.dataset.countFormat, finalText)
+                },
+                onComplete: () => {
+                  valueNode.textContent = finalText
+                },
+              }, position + 0.18)
+            }
+          }
+
+          addHero(schedule.hero)
+          addStats(schedule.stats)
+          addGroup('description', 'description', schedule.description, { children: true })
+          addGroup('decision', 'decision', schedule.decision, { children: true })
+          addGroup('weather', 'weather', schedule.weather)
+          addGroup('route', 'route', schedule.route, { routeCard: true })
+          addGroup('waypoints', 'waypoints', schedule.waypoints, { children: true })
+          addGroup('featured', 'featured', schedule.featured, { children: true })
+
+          return () => {
+            timeline.kill()
+            terminalizeMountainMotion()
+          }
+        },
+        root,
+      )
+
+      return () => {
+        mm.revert()
+        terminalizeMountainMotion()
+      }
+    }
+
+    const safeRunMotion = (contextSafe ? contextSafe(runMotion) : runMotion) as () => unknown
+    const cleanup = safeRunMotion()
+    return () => {
+      if (typeof cleanup === 'function') cleanup()
+      terminalizeMountainMotion()
+    }
+  }, { scope: motionScopeRef, dependencies: [] })
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -1440,6 +1739,7 @@ export default function MountainDetailClient({
 
   return (
     <div
+      ref={motionScopeRef}
       data-testid="mountain-detail-page"
       style={{
         minHeight: '100dvh',
@@ -1457,6 +1757,7 @@ export default function MountainDetailClient({
       />
 
       <section
+        data-mountain-motion="stats"
         aria-label="山峰核心数据"
         style={{
           padding: 'var(--space-4) var(--space-4) 0',
@@ -1469,10 +1770,29 @@ export default function MountainDetailClient({
             gap: 'var(--space-2)',
           }}
         >
-          <StatTile label="海拔 m" value={formatInteger(mountain.altitude)} accent />
-          <StatTile label="距离 km" value={String(routeFacts.length)} />
-          <StatTile label="爬升 m" value={formatInteger(routeFacts.gain)} />
-          <StatTile label="时长" value={routeFacts.duration} />
+          <StatTile
+            label="海拔 m"
+            value={formatInteger(mountain.altitude)}
+            motionKind="altitude"
+            countValue={mountain.altitude}
+            countFormat="integer"
+            accent
+          />
+          <StatTile
+            label="距离 km"
+            value={String(routeFacts.length)}
+            motionKind="distance"
+            countValue={routeFacts.length}
+            countFormat="decimal"
+          />
+          <StatTile
+            label="爬升 m"
+            value={formatInteger(routeFacts.gain)}
+            motionKind="gain"
+            countValue={routeFacts.gain}
+            countFormat="integer"
+          />
+          <StatTile label="时长" value={routeFacts.duration} motionKind="duration" />
         </div>
       </section>
 
@@ -1485,8 +1805,12 @@ export default function MountainDetailClient({
         onShowLicenseSheet={() => setLicenseSheetOpen(true)}
       />
 
-      <WeatherSection mountain={mountain} />
-      <RouteReferenceSection mountain={mountain} waypoints={displayWaypoints} forceMapError={forceRouteMapError} />
+      <div data-mountain-motion="weather">
+        <WeatherSection mountain={mountain} />
+      </div>
+      <div data-mountain-motion="route" data-mountain-motion-mode="fade">
+        <RouteReferenceSection mountain={mountain} waypoints={displayWaypoints} forceMapError={forceRouteMapError} />
+      </div>
       {displayWaypoints.length > 0 ? <WaypointSection waypoints={displayWaypoints} /> : null}
       {featuredPosts.length > 0 ? <FeaturedSection posts={featuredPosts} /> : null}
 
@@ -1500,6 +1824,16 @@ export default function MountainDetailClient({
         progress={licenseProgress}
         onClose={() => setLicenseSheetOpen(false)}
       />
+      <style>{`
+        .pt-mountain-press-target {
+          transition: transform var(--motion-press) var(--ease-out);
+          transform-origin: center;
+        }
+
+        .pt-mountain-press-target:active {
+          transform: scale(.98);
+        }
+      `}</style>
     </div>
   )
 }

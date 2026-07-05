@@ -18,6 +18,7 @@ import { POSTER_HEIGHT, POSTER_WIDTH, formatShareAltitude, hasShareAltitude } fr
 import { getShareTemplateComponent } from '@/lib/share-templates/registry'
 import type { ShareRenderTemplate, ShareTemplateData } from '@/lib/share-templates/types'
 import { buildShareTrackPreview, buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, SHARE_TRACK_RENDER_PROFILES, type ShareTrackPreview } from '@/lib/share-track-preview'
+import { buildImprintSourceUrl } from '@/lib/share-template-intent'
 
 type ShareViewMode = 'editor' | 'watermarkPreview'
 type ExportAction = 'save' | 'share' | 'transparent' | null
@@ -2926,6 +2927,25 @@ export default function ShareClient({
   const premiumPreviewLocked = paywallEnabled && isAdvancedTemplateId(selectedTemplate) && !premiumUnlocked
   const exportFrozen = Boolean(exportingAction)
 
+  function handleShareBack() {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('from') === 'imprint') {
+        router.replace(buildImprintSourceUrl(selectedTemplate))
+        return
+      }
+    }
+    if (checkinId) {
+      router.replace(`/activity/${checkinId}`)
+      return
+    }
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+      return
+    }
+    router.replace('/explore')
+  }
+
   useEffect(() => {
     mountedRef.current = true
     return () => {
@@ -3580,7 +3600,7 @@ export default function ShareClient({
           }
         `}</style>
       </noscript>
-      <NavBar onBack={() => router.back()} />
+      <NavBar onBack={handleShareBack} />
       <input
         ref={photoInputRef}
         type="file"

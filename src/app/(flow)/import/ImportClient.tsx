@@ -3,6 +3,8 @@
 import type { CSSProperties, ChangeEvent, DragEvent, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import {
   checkImportMountainDistance,
   IMPORT_MOUNTAIN_DISTANCE_THRESHOLD_METERS,
@@ -19,7 +21,6 @@ import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 import {
   ArchiveIcon,
   BackIcon,
-  CameraIcon,
   CheckIcon,
   MountainIcon,
   SearchIcon,
@@ -31,6 +32,8 @@ const IMPORT_MAX_BYTES = 20 * 1024 * 1024
 const SUPPORTED_FORMATS = ['gpx', 'kml', 'fit'] as const
 const PARSING_MIN_DURATION_MS = 700
 const PACE_WARNING_KMH = 15
+
+gsap.registerPlugin(useGSAP)
 
 type ImportStep =
   | 'entry'
@@ -233,6 +236,20 @@ function formatDuration(seconds?: number) {
 function formatElevation(meters?: number) {
   if (typeof meters !== 'number' || !Number.isFinite(meters)) return '--'
   return `${Math.round(meters).toLocaleString('en-US')} m`
+}
+
+function parseMotionTokenSeconds(root: HTMLElement, tokenName: string, fallbackMs: number) {
+  const raw = window.getComputedStyle(root).getPropertyValue(tokenName).trim()
+  if (!raw) return fallbackMs / 1000
+  if (raw.endsWith('ms')) {
+    const value = Number.parseFloat(raw)
+    return Number.isFinite(value) ? value / 1000 : fallbackMs / 1000
+  }
+  if (raw.endsWith('s')) {
+    const value = Number.parseFloat(raw)
+    return Number.isFinite(value) ? value : fallbackMs / 1000
+  }
+  return fallbackMs / 1000
 }
 
 function formatDateTime(isoString?: string) {
@@ -472,14 +489,6 @@ function ChevronIcon({ size = 16 }: { size?: number }) {
   )
 }
 
-function PenIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-      <path d="M4 19l4-1 11-11-3-3L5 15z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
 function EyeIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
@@ -495,16 +504,18 @@ function FlowHeader({
   title,
   onBack,
   backDisabled = false,
+  entryMotion = false,
 }: {
   step: number
   total?: number
   title?: ReactNode
   onBack: () => void
   backDisabled?: boolean
+  entryMotion?: boolean
 }) {
   return (
     <header style={{ padding: 'var(--space-1) var(--space-4) 14px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div data-import-entry-motion={entryMotion ? 'header' : undefined} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <button
           type="button"
           aria-label="返回"
@@ -540,6 +551,7 @@ function FlowHeader({
       </div>
       {title ? (
         <h1
+          data-import-entry-motion={entryMotion ? 'title' : undefined}
           style={{
             margin: '18px 0 0',
             color: 'var(--color-on-surface)',
@@ -589,6 +601,7 @@ function ImportScreen({
   footer?: ReactNode
   backDisabled?: boolean
 }) {
+  const isEntryStep = step === 'entry'
   return (
     <div
       data-import-step={step}
@@ -602,8 +615,14 @@ function ImportScreen({
         overflowX: 'hidden',
       }}
     >
-      <FlowHeader step={getVisualStep(step)} title={title} onBack={onBack} backDisabled={backDisabled} />
-      <main style={{ padding: 'var(--space-2) var(--space-4) 0', minWidth: 0 }}>{children}</main>
+      <FlowHeader step={getVisualStep(step)} title={title} onBack={onBack} backDisabled={backDisabled} entryMotion={isEntryStep} />
+      <main
+        className={isEntryStep ? undefined : 'pt-import-step-enter'}
+        data-import-motion="step-panel"
+        style={{ padding: 'var(--space-2) var(--space-4) 0', minWidth: 0 }}
+      >
+        {children}
+      </main>
       {footer ? <CTAFooter>{footer}</CTAFooter> : null}
     </div>
   )
@@ -618,6 +637,7 @@ function FormatChip({
 }) {
   return (
     <span
+      data-import-entry-motion="format-badge"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -657,6 +677,7 @@ function FormatGuideRow({
 }) {
   return (
     <div
+      data-import-entry-motion="format-row"
       style={{
         display: 'grid',
         gridTemplateColumns: '86px minmax(0, 1fr)',
@@ -1093,10 +1114,11 @@ function ImportEntry({
       onBack={onBack}
       footer={(
         <>
-          <PrimaryButton onClick={onUpload} style={{ width: '100%' }}>
+          <PrimaryButton data-import-entry-motion="footer-primary" onClick={onUpload} style={{ width: '100%' }}>
             上传轨迹文件
           </PrimaryButton>
           <button
+            data-import-entry-motion="footer-secondary"
             type="button"
             onClick={onHelp}
             style={{
@@ -1117,6 +1139,7 @@ function ImportEntry({
       )}
     >
       <p
+        data-import-entry-motion="description"
         style={{
           margin: 0,
           paddingInline: 'var(--space-1)',
@@ -1128,9 +1151,10 @@ function ImportEntry({
         从手表、其他 App 或健康记录中导出的轨迹，都可以导入到 Peak Trekker，作为这次山行的依据。
       </p>
 
-      <div style={{ marginTop: 22 }}>
+      <div data-import-entry-motion="format-card" style={{ marginTop: 22 }}>
         <Card>
           <div
+            data-import-entry-motion="format-label"
             style={{
               color: 'var(--color-on-surface-variant)',
               fontSize: 'var(--font-label-s-size)',
@@ -1161,6 +1185,7 @@ function ImportEntry({
       </div>
 
       <div
+        data-import-entry-motion="process-label"
         style={{
           marginTop: 14,
           color: 'var(--color-on-surface-variant)',
@@ -1181,6 +1206,7 @@ function ImportEntry({
         ].map(([number, title, description]) => (
           <div
             key={number}
+            data-import-entry-motion="process-row"
             style={{
               display: 'grid',
               gridTemplateColumns: '32px minmax(0, 1fr)',
@@ -1193,6 +1219,7 @@ function ImportEntry({
             }}
           >
             <div
+              data-import-entry-motion="process-number"
               style={{
                 color: 'var(--color-on-surface-variant)',
                 fontFamily: 'var(--font-mono)',
@@ -1583,20 +1610,24 @@ function PreviewStatTile({
   label,
   value,
   accent = false,
+  motionIndex,
 }: {
   label: string
   value: string
   accent?: boolean
+  motionIndex?: number
 }) {
   return (
     <div
+      data-import-l3-item={typeof motionIndex === 'number' ? 'stat' : undefined}
       style={{
+        ...(typeof motionIndex === 'number' ? { '--motion-index': motionIndex } : null),
         padding: 'var(--space-3)',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--color-outline)',
         background: 'color-mix(in srgb, var(--color-on-surface) 3%, transparent)',
         minWidth: 0,
-      }}
+      } as CSSProperties}
     >
       <div
         style={{
@@ -2067,29 +2098,10 @@ function ImportPreview({
               </button>
             </>
           ) : (
-            <PrimaryButton onClick={onContinue} style={{ width: '100%' }}>
+            <PrimaryButton className="pt-import-l3-cta" onClick={onContinue} style={{ width: '100%' }}>
               继续
             </PrimaryButton>
           )}
-          <button
-            type="button"
-            onClick={() => {
-              console.log('Full track preview will be connected in a later batch.')
-            }}
-            style={{
-              marginTop: 10,
-              width: '100%',
-              height: 44,
-              border: 'none',
-              background: 'transparent',
-              color: 'var(--color-on-surface-variant)',
-              font: 'inherit',
-              fontSize: 'var(--font-label-m-size)',
-              cursor: 'pointer',
-            }}
-          >
-            查看完整轨迹
-          </button>
         </>
       )}
     >
@@ -2106,13 +2118,29 @@ function ImportPreview({
       ) : null}
 
       <div
+        data-import-l3-item="summary"
         style={{
+          '--motion-index': 0,
+          position: 'relative',
           background: 'var(--color-surface-variant)',
           border: '1px solid var(--color-outline)',
           borderRadius: 'var(--radius-lg)',
           overflow: 'hidden',
-        }}
+        } as CSSProperties}
       >
+        <span
+          data-import-preview-glow="true"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 'inherit',
+            border: '1px solid color-mix(in srgb, var(--color-primary) 40%, transparent)',
+            boxShadow: '0 0 34px color-mix(in srgb, var(--color-primary) 30%, transparent), inset 0 0 24px color-mix(in srgb, var(--color-primary) 18%, transparent)',
+            opacity: 0,
+            pointerEvents: 'none',
+          }}
+        />
         <div
           style={{
             padding: '14px var(--space-4) 6px',
@@ -2140,10 +2168,10 @@ function ImportPreview({
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}>
-        <PreviewStatTile label="距离" value={formatDistance(result.distanceMeters)} />
-        <PreviewStatTile label="时长" value={formatDuration(result.durationSeconds)} />
-        <PreviewStatTile label="累计爬升" value={formatElevation(result.elevationGainMeters)} accent />
-        <PreviewStatTile label="最高点" value={formatElevation(result.maxElevation)} accent />
+        <PreviewStatTile motionIndex={1} label="距离" value={formatDistance(result.distanceMeters)} />
+        <PreviewStatTile motionIndex={2} label="时长" value={formatDuration(result.durationSeconds)} />
+        <PreviewStatTile motionIndex={3} label="累计爬升" value={formatElevation(result.elevationGainMeters)} accent />
+        <PreviewStatTile motionIndex={4} label="最高点" value={formatElevation(result.maxElevation)} accent />
       </div>
 
       {shouldShowPaceWarning ? (
@@ -3050,9 +3078,9 @@ function ConfirmingScreen() {
   )
 }
 
-function MiniResult({ label, value }: { label: string; value: string }) {
+function MiniResult({ label, value, motionKind }: { label: string; value: string; motionKind: string }) {
   return (
-    <div>
+    <div data-import-success-metric={motionKind}>
       <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 10, lineHeight: 'var(--font-label-s-line)' }}>{label}</div>
       <div style={{ marginTop: 2, color: 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontSize: 13, lineHeight: 'var(--font-label-m-line)', fontWeight: 700 }}>
         {value}
@@ -3074,26 +3102,8 @@ function NextAction({
   primary?: boolean
   onClick: () => void
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        textAlign: 'left',
-        padding: 14,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        background: primary
-          ? 'color-mix(in srgb, var(--color-primary) 8%, transparent)'
-          : 'var(--color-surface-variant)',
-        border: primary
-          ? '1px solid color-mix(in srgb, var(--color-primary) 28%, transparent)'
-          : '1px solid var(--color-outline)',
-        borderRadius: 14,
-        color: 'inherit',
-        minWidth: 0,
-      }}
-    >
+  const content = (
+    <>
       <div
         style={{
           width: 32,
@@ -3118,6 +3128,33 @@ function NextAction({
       <div style={{ marginTop: 3, color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>
         {sub}
       </div>
+    </>
+  )
+  const baseStyle: CSSProperties = {
+        textAlign: 'left',
+        padding: 14,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        background: primary
+          ? 'color-mix(in srgb, var(--color-primary) 8%, transparent)'
+          : 'var(--color-surface-variant)',
+        border: primary
+          ? '1px solid color-mix(in srgb, var(--color-primary) 28%, transparent)'
+          : '1px solid var(--color-outline)',
+        borderRadius: 14,
+        color: 'inherit',
+        minWidth: 0,
+        opacity: 1,
+  }
+
+  return (
+    <button
+      type="button"
+      data-import-success-next={primary ? 'primary' : 'secondary'}
+      onClick={onClick}
+      style={baseStyle}
+    >
+      {content}
     </button>
   )
 }
@@ -3128,16 +3165,12 @@ function ImportSuccess({
   mountainName,
   onShare,
   onView,
-  onAddPhoto,
-  onWriteNote,
 }: {
   result: ImportedTrackData | null
   confirmResult: ConfirmResult | null
   mountainName: string | null
   onShare: () => void
   onView: () => void
-  onAddPhoto: () => void
-  onWriteNote: () => void
 }) {
   const displayMountainName = mountainName ?? result?.suggestedMountain?.name ?? '未关联山峰'
   const dateLabel = formatActivityDate(result?.startTime)
@@ -3145,6 +3178,7 @@ function ImportSuccess({
   return (
     <div
       data-import-step="success"
+      data-import-success-root="true"
       style={{
         minHeight: '100dvh',
         maxWidth: 'var(--page-max-width)',
@@ -3157,7 +3191,9 @@ function ImportSuccess({
     >
       <div style={{ textAlign: 'center', paddingInline: 'var(--space-2)' }}>
         <div
+          data-import-success-badge="true"
           style={{
+            position: 'relative',
             width: 64,
             height: 64,
             borderRadius: 'var(--radius-pill)',
@@ -3169,9 +3205,22 @@ function ImportSuccess({
             margin: '0 auto',
           }}
         >
+          <span
+            data-import-success-badge-halo="true"
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: -10,
+              borderRadius: 'var(--radius-pill)',
+              background: 'radial-gradient(circle, color-mix(in srgb, var(--color-primary) 34%, transparent), transparent 68%)',
+              opacity: 0,
+              pointerEvents: 'none',
+            }}
+          />
           <CheckIcon size={30} />
         </div>
         <div
+          data-import-success-copy="title"
           style={{
             marginTop: 18,
             color: 'var(--color-on-surface)',
@@ -3183,6 +3232,7 @@ function ImportSuccess({
           已带回档案
         </div>
         <div
+          data-import-success-copy="subtitle"
           style={{
             marginTop: 'var(--space-2)',
             color: 'var(--color-on-surface-variant)',
@@ -3197,14 +3247,30 @@ function ImportSuccess({
       </div>
 
       <div
+        data-import-success-card="true"
         style={{
+          position: 'relative',
           marginTop: 'var(--space-6)',
           background: 'var(--color-surface-variant)',
           border: '1px solid var(--color-outline)',
           borderRadius: 14,
           padding: 14,
+          overflow: 'hidden',
         }}
       >
+        <span
+          data-import-success-card-rim="true"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 'inherit',
+            border: '1px solid color-mix(in srgb, var(--color-primary) 42%, transparent)',
+            boxShadow: '0 0 40px color-mix(in srgb, var(--color-primary) 30%, transparent), inset 0 0 26px color-mix(in srgb, var(--color-primary) 18%, transparent)',
+            opacity: 0,
+            pointerEvents: 'none',
+          }}
+        />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--space-3)' }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ color: 'var(--color-on-surface)', fontSize: 'var(--font-body-m-size)', lineHeight: 'var(--font-body-m-line)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -3214,7 +3280,11 @@ function ImportSuccess({
               {confirmResult?.checkinId ? `活动 ${confirmResult.checkinId.slice(0, 8)}` : '活动已生成'}
             </div>
           </div>
-          <div style={{ color: 'var(--color-success)', fontFamily: 'var(--font-mono)', fontSize: 18, lineHeight: 'var(--font-title-l-line)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+          <div
+            data-import-success-count="altitude"
+            data-val={typeof result?.maxElevation === 'number' && Number.isFinite(result.maxElevation) ? Math.round(result.maxElevation) : ''}
+            style={{ color: 'var(--color-success)', fontFamily: 'var(--font-mono)', fontSize: 18, lineHeight: 'var(--font-title-l-line)', fontWeight: 700, whiteSpace: 'nowrap' }}
+          >
             {formatElevationCompact(result?.maxElevation)}
           </div>
         </div>
@@ -3228,18 +3298,16 @@ function ImportSuccess({
             gap: 'var(--space-2)',
           }}
         >
-          <MiniResult label="距离" value={formatDistance(result?.distanceMeters)} />
-          <MiniResult label="时长" value={formatDuration(result?.durationSeconds)} />
-          <MiniResult label="爬升" value={formatElevation(result?.elevationGainMeters)} />
+          <MiniResult motionKind="distance" label="距离" value={formatDistance(result?.distanceMeters)} />
+          <MiniResult motionKind="duration" label="时长" value={formatDuration(result?.durationSeconds)} />
+          <MiniResult motionKind="gain" label="爬升" value={formatElevation(result?.elevationGainMeters)} />
         </div>
       </div>
 
-      <div style={{ marginTop: 'var(--space-5)', color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+      <div data-import-success-next-label="true" style={{ marginTop: 'var(--space-5)', color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
         接下来
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 'var(--space-2)' }}>
-        <NextAction icon={<CameraIcon size={16} />} label="补照片" sub="登顶 / 路上" onClick={onAddPhoto} />
-        <NextAction icon={<PenIcon size={16} />} label="写一句话" sub="留下这次的感受" onClick={onWriteNote} />
         <NextAction primary icon={<ShareIcon size={16} />} label="生成分享" sub="海拔卡 / 朋友圈" onClick={onShare} />
         <NextAction icon={<EyeIcon size={16} />} label="查看活动" sub="进入完整记录" onClick={onView} />
       </div>
@@ -3255,10 +3323,17 @@ export default function ImportClient({
   returnToImprint?: boolean
 }) {
   const router = useRouter()
+  const motionScopeRef = useRef<HTMLDivElement | null>(null)
+  const importMotionTimelineRef = useRef<gsap.core.Timeline | null>(null)
   const { open: openHelpSheet } = useHelpSheet()
   const { showToast, clearToasts } = useAppToast()
   const inputRef = useRef<HTMLInputElement | null>(null)
-  const [step, setStep] = useState<ImportStep>('entry')
+  const [step, setStepState] = useState<ImportStep>('entry')
+  const importStepRef = useRef<ImportStep>('entry')
+  function setStep(nextStep: ImportStep) {
+    importStepRef.current = nextStep
+    setStepState(nextStep)
+  }
   const [file, setFile] = useState<File | null>(null)
   const [parseResult, setParseResult] = useState<ImportedTrackData | null>(null)
   const [duplicateTrack, setDuplicateTrack] = useState<ImportDuplicateTrack | null>(null)
@@ -3273,6 +3348,300 @@ export default function ImportClient({
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null)
   const [confirmError, setConfirmError] = useState<string | null>(null)
   const [confirmAuthRequired, setConfirmAuthRequired] = useState(false)
+
+  useGSAP((_context, contextSafe) => {
+    const root = motionScopeRef.current
+    if (!root) return
+
+    const setImportEntryTerminal = () => {
+	      const entryTargets = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-entry-motion]'))
+	      if (entryTargets.length > 0) {
+	        gsap.set(entryTargets, {
+	          autoAlpha: 1,
+	          y: 0,
+	          scale: 1,
+	          clearProps: 'willChange',
+	        })
+	      }
+	    }
+
+    const terminalizeImportEntryIfActive = () => {
+      if (importStepRef.current !== 'entry') return
+      if (!root.querySelector('[data-import-entry-motion]')) return
+      setImportEntryTerminal()
+    }
+
+	    const clearImportMotion = () => {
+	      importMotionTimelineRef.current?.kill()
+	      importMotionTimelineRef.current = null
+	      const motionTargets = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-entry-motion], [data-import-l3-item], .pt-import-l3-cta, [data-import-preview-glow], [data-import-success-badge], [data-import-success-badge-halo], [data-import-success-copy], [data-import-success-card], [data-import-success-card-rim], [data-import-success-count], [data-import-success-metric], [data-import-success-next-label], [data-import-success-next]'))
+	      if (motionTargets.length > 0) {
+	        gsap.set(motionTargets, {
+	          clearProps: 'willChange,transform,opacity,visibility',
+	        })
+	      }
+	      terminalizeImportEntryIfActive()
+	    }
+
+    const setImportPreviewTerminal = () => {
+      const previewTargets = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-l3-item], .pt-import-l3-cta'))
+      if (previewTargets.length > 0) gsap.set(previewTargets, { autoAlpha: 1, y: 0, scale: 1, clearProps: 'willChange' })
+      const glow = root.querySelector('[data-import-preview-glow]')
+      if (glow) gsap.set(glow, { autoAlpha: 0, clearProps: 'willChange' })
+    }
+
+    const setImportSuccessTerminal = () => {
+      const badge = root.querySelector<HTMLElement>('[data-import-success-badge]')
+      const halo = root.querySelector<HTMLElement>('[data-import-success-badge-halo]')
+      const copy = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-success-copy]'))
+      const card = root.querySelector<HTMLElement>('[data-import-success-card]')
+      const rim = root.querySelector<HTMLElement>('[data-import-success-card-rim]')
+      const metrics = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-success-metric]'))
+      const next = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-success-next-label], [data-import-success-next]'))
+      const altitude = root.querySelector<HTMLElement>('[data-import-success-count="altitude"]')
+      if (altitude) altitude.textContent = formatElevationCompact(parseResult?.maxElevation)
+      const successTargets = [badge, halo, card, rim, ...copy, ...metrics, ...next].filter(Boolean)
+      if (successTargets.length > 0) {
+        gsap.set(successTargets, {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          clearProps: 'willChange',
+        })
+      }
+      if (halo) gsap.set(halo, { autoAlpha: 0.55 })
+      if (rim) gsap.set(rim, { autoAlpha: 0.55 })
+    }
+
+    const makeContextSafe = contextSafe ?? ((callback: () => void) => callback)
+    let mediaCleanup: (() => void) | null = null
+    const runImportMotion = makeContextSafe(() => {
+      clearImportMotion()
+      mediaCleanup?.()
+      mediaCleanup = null
+      const mm = gsap.matchMedia()
+      mm.add(
+        {
+          allowMotion: '(prefers-reduced-motion: no-preference)',
+          reduceMotion: '(prefers-reduced-motion: reduce)',
+        },
+        (mediaContext) => {
+	          clearImportMotion()
+	          const reduceMotion = Boolean(mediaContext.conditions?.reduceMotion)
+	          if (step === 'entry') {
+	            if (reduceMotion) {
+	              setImportEntryTerminal()
+	              return () => clearImportMotion()
+	            }
+	            const enterDuration = parseMotionTokenSeconds(root, '--motion-enter', 320)
+	            const fastDuration = parseMotionTokenSeconds(root, '--motion-fast', 180)
+	            const pressDuration = parseMotionTokenSeconds(root, '--motion-press', 120)
+	            const header = root.querySelector<HTMLElement>('[data-import-entry-motion="header"]')
+	            const title = root.querySelector<HTMLElement>('[data-import-entry-motion="title"]')
+	            const description = root.querySelector<HTMLElement>('[data-import-entry-motion="description"]')
+	            const formatCard = root.querySelector<HTMLElement>('[data-import-entry-motion="format-card"]')
+	            const formatRows = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-entry-motion="format-row"]'))
+	            const formatBadges = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-entry-motion="format-badge"]'))
+	            const processLabel = root.querySelector<HTMLElement>('[data-import-entry-motion="process-label"]')
+	            const processRows = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-entry-motion="process-row"]'))
+	            const processNumbers = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-entry-motion="process-number"]'))
+	            const footerButtons = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-entry-motion="footer-primary"], [data-import-entry-motion="footer-secondary"]'))
+	            const footerPrimary = root.querySelector<HTMLElement>('[data-import-entry-motion="footer-primary"]')
+	            const timelineTargets = [header, title, description, formatCard, processLabel, footerPrimary, ...formatRows, ...formatBadges, ...processRows, ...processNumbers, ...footerButtons].filter(Boolean)
+	            gsap.set(timelineTargets, { willChange: 'transform, opacity' })
+	            const timeline = gsap.timeline({
+	              defaults: { ease: 'power3.out' },
+	              onComplete: () => {
+	                setImportEntryTerminal()
+	                gsap.set(timelineTargets, { clearProps: 'willChange' })
+	              },
+	              onInterrupt: terminalizeImportEntryIfActive,
+	            })
+	            timeline.addLabel('header', 0)
+	            if (header) timeline.fromTo(header, { autoAlpha: 0 }, { autoAlpha: 1, duration: fastDuration }, 'header')
+	            timeline.addLabel('title', 'header+=0.06')
+	            if (title) timeline.fromTo(title, { autoAlpha: 0, y: 24 }, { autoAlpha: 1, y: 0, duration: enterDuration }, 'title')
+	            if (description) timeline.fromTo(description, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: Math.min(0.3, enterDuration) }, 'title+=0.1')
+	            timeline.addLabel('formatCard', 'title+=0.2')
+	            if (formatCard) timeline.fromTo(formatCard, { autoAlpha: 0, y: 20, scale: 0.98 }, { autoAlpha: 1, y: 0, scale: 1, duration: enterDuration }, 'formatCard')
+	            if (formatRows.length > 0) {
+	              timeline.fromTo(formatRows, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: Math.min(0.28, enterDuration), stagger: 0.065 }, 'formatCard+=0.12')
+	            }
+	            if (formatBadges.length > 0) {
+	              timeline.fromTo(formatBadges, { autoAlpha: 0, scale: 0.85 }, { autoAlpha: 1, scale: 1, duration: Math.max(0.18, pressDuration), stagger: 0.065, ease: 'back.out(1.4)' }, 'formatCard+=0.14')
+	            }
+	            timeline.addLabel('process', 'formatCard+=0.34')
+	            if (processLabel) timeline.fromTo(processLabel, { autoAlpha: 0 }, { autoAlpha: 1, duration: fastDuration }, 'process')
+	            if (processRows.length > 0) {
+	              timeline.fromTo(processRows, { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: Math.min(0.28, enterDuration), stagger: 0.075 }, 'process+=0.06')
+	            }
+	            if (processNumbers.length > 0) {
+	              timeline.fromTo(processNumbers, { autoAlpha: 0.42 }, { autoAlpha: 1, duration: Math.min(0.2, fastDuration), stagger: 0.075 }, 'process+=0.08')
+	            }
+	            timeline.addLabel('footer', 'process+=0.32')
+	            if (footerButtons.length > 0) {
+	              timeline.fromTo(footerButtons, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: Math.min(0.28, enterDuration), stagger: 0.06 }, 'footer')
+	            }
+	            if (footerPrimary) {
+	              timeline
+	                .to(footerPrimary, { scale: 1.03, duration: Math.max(0.16, pressDuration), ease: 'back.out(1.4)' }, 'footer+=0.18')
+	                .to(footerPrimary, { scale: 1, duration: Math.max(0.18, pressDuration), ease: 'power3.out' }, 'footer+=0.34')
+	            }
+	            importMotionTimelineRef.current = timeline
+	            return () => clearImportMotion()
+	          }
+
+	          if (step === 'preview') {
+            if (reduceMotion) {
+              setImportPreviewTerminal()
+              return () => clearImportMotion()
+            }
+            const ceremony = parseMotionTokenSeconds(root, '--motion-ceremony', 720)
+            const items = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-l3-item]'))
+            const cta = root.querySelector<HTMLElement>('.pt-import-l3-cta')
+            const glow = root.querySelector<HTMLElement>('[data-import-preview-glow]')
+            gsap.set(items, { autoAlpha: 0, y: 14, willChange: 'transform, opacity' })
+            if (cta) gsap.set(cta, { scale: 1, willChange: 'transform, opacity' })
+            if (glow) gsap.set(glow, { autoAlpha: 0, willChange: 'opacity' })
+            const timeline = gsap.timeline({
+              defaults: { ease: 'power3.out' },
+              onComplete: () => {
+                gsap.set([items, cta, glow].flat().filter(Boolean), { clearProps: 'willChange' })
+              },
+            })
+            timeline.addLabel('summary', 0)
+            if (items[0]) {
+              timeline.to(items[0], { autoAlpha: 1, y: 0, duration: Math.min(0.3, ceremony * 0.42) }, 'summary')
+            }
+            timeline.addLabel('glow', 'summary+=0.08')
+            if (glow) {
+              timeline
+                .to(glow, { autoAlpha: 0.72, duration: 0.2 }, 'glow')
+                .to(glow, { autoAlpha: 0.18, duration: 0.28 }, 'glow+=0.2')
+            }
+            timeline.addLabel('metrics', 'summary+=0.18')
+            if (items.length > 1) {
+              timeline.to(items.slice(1), { autoAlpha: 1, y: 0, duration: 0.28, stagger: 0.055 }, 'metrics')
+            }
+            timeline.addLabel('cta', 'metrics+=0.26')
+            if (cta) {
+              timeline
+                .to(cta, { scale: 1.04, autoAlpha: 1, duration: 0.16, ease: 'power2.out' }, 'cta')
+                .to(cta, { scale: 1, duration: 0.2, ease: 'power3.out' }, 'cta+=0.16')
+            }
+            importMotionTimelineRef.current = timeline
+            return () => clearImportMotion()
+          }
+
+          if (step === 'success') {
+            if (reduceMotion) {
+              setImportSuccessTerminal()
+              return () => clearImportMotion()
+            }
+            const ceremonyMax = parseMotionTokenSeconds(root, '--motion-ceremony-max', 1200)
+            const badge = root.querySelector<HTMLElement>('[data-import-success-badge]')
+            const halo = root.querySelector<HTMLElement>('[data-import-success-badge-halo]')
+            const copy = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-success-copy]'))
+            const card = root.querySelector<HTMLElement>('[data-import-success-card]')
+            const rim = root.querySelector<HTMLElement>('[data-import-success-card-rim]')
+            const altitude = root.querySelector<HTMLElement>('[data-import-success-count="altitude"]')
+            const metrics = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-success-metric]'))
+            const next = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-success-next-label], [data-import-success-next]'))
+            const terminalAltitude = formatElevationCompact(parseResult?.maxElevation)
+            const targetAltitude = typeof parseResult?.maxElevation === 'number' && Number.isFinite(parseResult.maxElevation)
+              ? Math.round(parseResult.maxElevation)
+              : null
+            gsap.set([badge, halo, card, rim, altitude, ...copy, ...metrics, ...next].filter(Boolean), { willChange: 'transform, opacity' })
+            if (badge) gsap.set(badge, { autoAlpha: 0, scale: 0.6 })
+            if (halo) gsap.set(halo, { autoAlpha: 0, scale: 0.9 })
+            if (copy.length > 0) gsap.set(copy, { autoAlpha: 0, y: 12 })
+            if (card) gsap.set(card, { autoAlpha: 0, y: 16, scale: 0.985 })
+            if (rim) gsap.set(rim, { autoAlpha: 0 })
+            if (metrics.length > 0) gsap.set(metrics, { autoAlpha: 0, y: 10 })
+            if (next.length > 0) gsap.set(next, { autoAlpha: 0, y: 10 })
+            if (altitude && targetAltitude !== null) altitude.textContent = formatElevationCompact(0)
+            const countState = { value: 0 }
+            const timeline = gsap.timeline({
+              defaults: { ease: 'power3.out' },
+              onComplete: () => {
+                if (altitude) altitude.textContent = terminalAltitude
+                gsap.set([badge, halo, card, rim, altitude, ...copy, ...metrics, ...next].filter(Boolean), { clearProps: 'willChange' })
+              },
+            })
+            timeline.addLabel('symbol', 0)
+            if (badge) {
+              timeline
+                .to(badge, { autoAlpha: 1, scale: 1.04, duration: Math.min(0.34, ceremonyMax * 0.28), ease: 'back.out(1.35)' }, 'symbol')
+                .to(badge, { scale: 1, duration: 0.18, ease: 'power3.out' }, 'symbol+=0.32')
+            }
+            if (halo) {
+              timeline
+                .to(halo, { autoAlpha: 0.9, scale: 1.08, duration: 0.22 }, 'symbol+=0.04')
+                .to(halo, { autoAlpha: 0.55, scale: 1, duration: 0.28 }, 'symbol+=0.28')
+            }
+            timeline.addLabel('copy', 'symbol+=0.16')
+            if (copy.length > 0) {
+              timeline.to(copy, { autoAlpha: 1, y: 0, duration: 0.32, stagger: 0.055 }, 'copy')
+            }
+            timeline.addLabel('card', 'copy+=0.18')
+            if (card) {
+              timeline.to(card, { autoAlpha: 1, y: 0, scale: 1, duration: 0.34 }, 'card')
+            }
+            if (rim) {
+              timeline
+                .to(rim, { autoAlpha: 0.82, duration: 0.22 }, 'card+=0.06')
+                .to(rim, { autoAlpha: 0.55, duration: 0.28 }, 'card+=0.28')
+            }
+            timeline.addLabel('altitude', 'card+=0.18')
+            if (altitude && targetAltitude !== null) {
+              timeline.to(countState, {
+                value: targetAltitude,
+                duration: 0.42,
+                ease: 'power2.out',
+                onUpdate: () => {
+                  altitude.textContent = formatElevationCompact(countState.value)
+                },
+                onComplete: () => {
+                  altitude.textContent = terminalAltitude
+                },
+              }, 'altitude')
+            }
+            timeline.addLabel('metrics', 'altitude+=0.18')
+            if (metrics.length > 0) {
+              timeline.to(metrics, { autoAlpha: 1, y: 0, duration: 0.28, stagger: 0.06 }, 'metrics')
+            }
+            timeline.addLabel('next', 'metrics+=0.22')
+            if (next.length > 0) {
+              timeline.to(next, { autoAlpha: 1, y: 0, duration: 0.28, stagger: 0.055 }, 'next')
+            }
+            const primaryNext = root.querySelector<HTMLElement>('[data-import-success-next="primary"]')
+            if (primaryNext) {
+              timeline
+                .to(primaryNext, { scale: 1.025, duration: 0.16, ease: 'power2.out' }, 'next+=0.24')
+                .to(primaryNext, { scale: 1, duration: 0.18, ease: 'power3.out' }, 'next+=0.4')
+            }
+            importMotionTimelineRef.current = timeline
+            return () => clearImportMotion()
+          }
+
+          return () => clearImportMotion()
+        },
+        root,
+      )
+      mediaCleanup = () => {
+        clearImportMotion()
+        mm.revert()
+      }
+    })
+
+    const frame = window.requestAnimationFrame(runImportMotion)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      mediaCleanup?.()
+      mediaCleanup = null
+      clearImportMotion()
+    }
+  }, { scope: motionScopeRef, dependencies: [step], revertOnUpdate: true })
 
   useEffect(() => {
     if (step !== 'upload_parsing') return
@@ -3374,20 +3743,18 @@ export default function ImportClient({
     setParseProgress(8)
     setStep('upload_parsing')
 
-    const startedAt = Date.now()
     const formData = new FormData()
     formData.append('file', file)
 
     try {
-      const response = await fetch('/api/import/parse', {
-        method: 'POST',
-        body: formData,
-      })
+      const [response] = await Promise.all([
+        fetch('/api/import/parse', {
+          method: 'POST',
+          body: formData,
+        }),
+        wait(PARSING_MIN_DURATION_MS),
+      ])
       const payload = (await response.json().catch(() => null)) as ParseResponse | null
-      const remainingDelay = Math.max(0, PARSING_MIN_DURATION_MS - (Date.now() - startedAt))
-      if (remainingDelay > 0) {
-        await wait(remainingDelay)
-      }
 
       if (response.status === 401) {
         setAuthRequired(true)
@@ -3579,7 +3946,7 @@ export default function ImportClient({
       return (
         <ImportEntry
           onBack={handleBack}
-          onUpload={() => setStep('upload_empty')}
+          onUpload={openFilePicker}
           onHelp={() => {
             openHelpSheet('import.export-gpx')
           }}
@@ -3785,12 +4152,6 @@ export default function ImportClient({
             }
             router.replace('/profile')
           }}
-          onAddPhoto={() => {
-            console.log('Photo attachment will be connected in a later batch.')
-          }}
-          onWriteNote={() => {
-            console.log('Note editor will be connected in a later batch.')
-          }}
         />
       )
     }
@@ -3799,7 +4160,7 @@ export default function ImportClient({
   }
 
   return (
-    <>
+    <div ref={motionScopeRef} data-import-motion-scope="true" style={{ display: 'contents' }}>
       <style>
         {`
           .import-drop-zone:focus-visible {
@@ -3812,14 +4173,30 @@ export default function ImportClient({
           .import-spinner {
             animation: import-spin 880ms linear infinite;
           }
+          .pt-import-step-enter {
+            animation: pt-import-step-enter var(--motion-enter) var(--ease-out) both;
+          }
           @keyframes import-spin {
             to {
               transform: rotate(360deg);
             }
           }
+          @keyframes pt-import-step-enter {
+            from {
+              opacity: 0;
+              transform: translateY(12px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
           @media (prefers-reduced-motion: reduce) {
+            .pt-import-step-enter,
             .import-spinner {
               animation: none !important;
+              opacity: 1 !important;
+              transform: none !important;
             }
           }
         `}
@@ -3843,6 +4220,6 @@ export default function ImportClient({
         }}
       />
       {renderStep()}
-    </>
+    </div>
   )
 }

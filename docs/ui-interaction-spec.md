@@ -1269,8 +1269,9 @@ Banner 用于：
 ## 12.4 CSS / GSAP 分工
 
 * **默认 CSS**：单步 transition / hover / press / fade / slide / 单 keyframe 状态脉冲（L0–L2，以及能用纯 CSS 序列表达的 L3）。
-* **GSAP 仅在**多步仪式**确需 timeline 编排**时引入（position/labels/嵌套、可跳过控制、统一 matchMedia）。引入边界已收敛为：FU-76 先在 **Summit L3 礼成屏**做唯一 pilot；其它页面 / 工具面不跟进，后续扩散另走 FU-87+。
+* **GSAP 用于多步仪式与入场编排**：当动效需要 timeline position / labels / 嵌套 / 可跳过控制 / 统一 matchMedia 时引入。当前已落地范围包括 Summit 礼成、`/share` 编辑器、`/imprint`、`/import` / `/screenshot` 成功节点与门面入场、`/mountain/[id]` / `/explore` 入场。工具性单步过渡（hover / press / 单 keyframe 状态脉冲）仍默认 CSS。
 * GSAP 缓动对应：`ease-standard→power2.inOut`、`ease-out→power3.out`、`ease-pulse→sine.inOut`；`ease-emphasis` 内置 ease 不足时才用 `CustomEase.create("pt-emphasis",".34,1.4,.5,1")`（依据 `gsap-plugins/SKILL.md:339`「built-in 不够才用」）。
+* 插件口径：Webflow 收购后全 GSAP plugin 免费，DrawSVG / CustomEase 等不再需要单独商业授权；项目仍按需引入，避免无意义扩散。
 * React 集成（GSAP 引入后）：用 `useGSAP({scope})` 自动清理；可跳过仪式用 `contextSafe` 包 `tl.progress(1)`；不在 SSR 执行 GSAP。
 
 ## 12.5 性能红线
@@ -1333,6 +1334,8 @@ Banner 用于：
 
 > 框架被验证：工具性越高的面（校准 / 全局）动效越克制、几乎无仪式；情感峰值（登顶 / 归档 / onboarding）才有 L3。约 85% 已对齐 C+。
 
+> **Sprint A 收编标注（2026-07-05）**：FU-76 Sprint A 已补充 route template 淡入底座、`/import` / `/screenshot` 成功节点与门面入场、`/mountain/[id]` 分组入场、`/explore` 分层入场。§12.11 的逐面表仍保留 C1 audit 结构；逐动效点完整回写作为 **docs debt**，待 FU-76 Sprint A Phase 2-III / Phase 3 / Phase 4 全部完成后统一同步 §12 / §12.4 / §12.11。
+
 ## 12.12 收编 backlog（FU-76，全 CSS）
 
 > 具体 symbol 在 Phase C 收编时按文件逐一复核（本表 symbol 已一手 grep 核实存在）。
@@ -1343,6 +1346,13 @@ Banner 用于：
 2. 登顶辉光由 7s 无限呼吸改为 **一次 settle 到稳定辉光**，不再循环抢注意力。
 3. 已有官方海拔 count-up 由 rAF 改为 GSAP timeline 接管 / 重编排，与 medal、seal、文字、数据行统一时序；不是新增功能。
 4. `prefers-reduced-motion: reduce` 下直接终态：无位移 / 无漂移 / 数字直接最终值。
+
+**✅ Sprint A 已收编重点页（2026-07-05）**
+
+1. **路由转场底座**：`(main)` / `(flow)` template opacity 淡入已落地，保留为零感知底座。
+2. **Import / Screenshot**：解析成功、识别成功、已带回档案节点采用 GSAP L3 仪式；entry / upload 门面采用逐模块 stagger、进度条 `scaleX` grow 与 ScanGlyph 一次性描边。
+3. **Mountain / Explore**：`/mountain/[id]` 采用 hero / stats / description / decision / weather / route / waypoints / featured 分组入场与 stats count-up；`/explore` 采用首屏分层入场与首屏卡 stagger。Smoothness Fix 已将首屏关键内容时序收紧到 production build 可验范围。
+4. **待最终回写**：§12 逐动效点完整表、Phase 2-III 轻扫页、Phase 3 EmptyState / spinner / token 收编、Phase 4 demo 包，统一留到 FU-76 Sprint A 最终收尾。
 
 **🔴 A 候选视觉复核项——装饰性 loop（demo 后定，非判定降级）**
 

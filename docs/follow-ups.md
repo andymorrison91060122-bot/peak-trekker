@@ -9,7 +9,7 @@
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`47a35a4fe50a71bd4e8213e92aafa059a9dfe925`（Merge FU-99 auto-summit measured-field persistence · 2026-06-23）
+`3dce04ef9554cb3e1bddda4a1120c3f0350e4e6e`（Merge FU-76 P2-III 4-page entrances + archive tab-replay · 2026-07-06）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint

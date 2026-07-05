@@ -1,11 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import type { UserContribution } from '@/lib/province-ranking'
 import type { LicenseProgressSummary } from '@/lib/license-progress'
 import { isFeatureEnabled } from '@/lib/feature-flags'
+import { formatMotionCountValue, parseMotionTokenSeconds, type MotionCountFormat } from '@/lib/motion-count-format'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { trackEventNow } from '@/lib/analytics/client'
 import { useAppToast } from '@/components/ui/AppToastProvider'
@@ -15,6 +18,8 @@ import type { CheckinDisplayTitleSource } from '@/lib/checkin-display-title'
 import ProfileAvatarUploader from '@/components/profile/ProfileAvatarUploader'
 import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
 import ProvinceContributionSection from '@/components/profile/ProvinceContributionSection'
+
+gsap.registerPlugin(useGSAP)
 
 export type ProfileV2Identity = {
   userId: string
@@ -117,13 +122,20 @@ function ShareGlyph() {
 
 function SummaryTiles({ summary }: { summary: ProfileV2Summary }) {
   const items = [
-    { label: '山行', value: formatNumber(summary.tripCount), accent: false },
-    { label: '最高海拔', value: summary.maxAltitudeM > 0 ? formatNumber(summary.maxAltitudeM) : '--', accent: true },
-    { label: '已访省份', value: formatNumber(summary.visitedProvinceCount), accent: false },
+    { label: '山行', value: formatNumber(summary.tripCount), countValue: summary.tripCount, countFormat: 'integer' as MotionCountFormat, accent: false },
+    {
+      label: '最高海拔',
+      value: summary.maxAltitudeM > 0 ? formatNumber(summary.maxAltitudeM) : '--',
+      countValue: summary.maxAltitudeM > 0 ? summary.maxAltitudeM : undefined,
+      countFormat: 'integer' as MotionCountFormat,
+      accent: true,
+    },
+    { label: '已访省份', value: formatNumber(summary.visitedProvinceCount), countValue: summary.visitedProvinceCount, countFormat: 'integer' as MotionCountFormat, accent: false },
   ]
 
   return (
     <section
+      data-profile-motion="summary"
       aria-label="山行概览"
       style={{
         display: 'grid',
@@ -135,6 +147,7 @@ function SummaryTiles({ summary }: { summary: ProfileV2Summary }) {
       {items.map((item) => (
         <div
           key={item.label}
+          data-profile-summary-tile={item.label}
           style={{
             minWidth: 0,
             borderRadius: 'var(--radius-md)',
@@ -144,6 +157,10 @@ function SummaryTiles({ summary }: { summary: ProfileV2Summary }) {
           }}
         >
           <div
+            data-profile-summary-value={item.label}
+            data-count-value={typeof item.countValue === 'number' ? String(item.countValue) : undefined}
+            data-count-format={item.countFormat}
+            data-final-text={item.value}
             style={{
               fontFamily: 'var(--font-mono)',
               fontVariantNumeric: 'tabular-nums',
@@ -276,7 +293,7 @@ function TripThumb({ trip }: { trip: ProfileV2TripPreview }) {
 
 function ArchivePreviewSection({ trips }: { trips: ProfileV2TripPreview[] }) {
   return (
-    <section style={{ marginBottom: 'var(--space-6)' }} data-testid="profile-archive-preview">
+    <section style={{ marginBottom: 'var(--space-6)' }} data-testid="profile-archive-preview" data-profile-motion="archive-preview">
       <SectionHeading title="我的山行档案" copy="你完成的真实山行,都在这里" />
       {trips.length === 0 ? (
         <div
@@ -309,6 +326,7 @@ function ArchivePreviewSection({ trips }: { trips: ProfileV2TripPreview[] }) {
             <article
               key={trip.checkinId}
               data-testid="profile-trip-card"
+              data-profile-archive-card={trip.checkinId}
               style={{
                 padding: 'var(--space-3)',
                 minWidth: 0,
@@ -416,7 +434,7 @@ function SharePreviewSection({
   currentUserId: string
 }) {
   return (
-    <section style={{ marginBottom: 'var(--space-6)' }} data-testid="profile-share-preview-section">
+    <section style={{ marginBottom: 'var(--space-6)' }} data-testid="profile-share-preview-section" data-profile-motion="share-preview">
       <SectionHeading title="我的分享" copy="已发布到山友圈的山行" />
       {shares.length === 0 ? (
         <div
@@ -437,6 +455,7 @@ function SharePreviewSection({
             <Link
               key={share.id}
               href={`/community/${share.id}`}
+              data-profile-share-row={share.id}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -504,7 +523,7 @@ function SupportSection() {
   ]
 
   return (
-    <section style={{ marginBottom: 'var(--space-6)' }} data-testid="profile-support-section">
+    <section style={{ marginBottom: 'var(--space-6)' }} data-testid="profile-support-section" data-profile-motion="support">
       <SectionHeading title="支持" />
       <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
         {rows.map((row) => {
@@ -587,7 +606,7 @@ function LogoutLink() {
   }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-2) 0 var(--space-8)' }}>
+    <div data-profile-motion="logout" style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-2) 0 var(--space-8)' }}>
       <button
         type="button"
         className="pt-label-s"
@@ -625,6 +644,7 @@ export default function ProfileV2Client({
   licenseProgress: LicenseProgressSummary
 }) {
   const router = useRouter()
+  const motionScopeRef = useRef<HTMLDivElement | null>(null)
   const searchParams = useSearchParams()
   const visibleTrips = useMemo(() => trips.slice(0, 3), [trips])
   const visibleShares = useMemo(() => shares.slice(0, 3), [shares])
@@ -639,23 +659,212 @@ export default function ProfileV2Client({
     }
   }
 
+  useGSAP((_context, contextSafe) => {
+    const root = motionScopeRef.current
+    if (!root) return
+
+    const getScopedTargets = (selector: string, scope: ParentNode = root) =>
+      gsap.utils.toArray<HTMLElement>(scope.querySelectorAll(selector)).filter((target) => root.contains(target))
+
+    const getMotionTargets = () => getScopedTargets('[data-profile-motion]')
+    const getAnimatedTargets = () => [
+      ...getMotionTargets(),
+      ...getScopedTargets('[data-profile-summary-tile]'),
+      ...getScopedTargets('[data-profile-archive-card]').slice(0, 3),
+      ...getScopedTargets('[data-profile-share-row]').slice(0, 3),
+    ]
+
+    const terminalizeProfileCountValues = () => {
+      for (const valueNode of getScopedTargets('[data-profile-summary-value]')) {
+        const finalText = valueNode.dataset.finalText
+        if (finalText) valueNode.textContent = finalText
+      }
+    }
+
+    const terminalizeProfileMotion = () => {
+      if (!root.isConnected) return
+      const targets = getAnimatedTargets()
+      const fadeOnlyTargets = targets.filter((target) => target.dataset.profileMotionMode === 'fade')
+      const shiftedTargets = targets.filter((target) => target.dataset.profileMotionMode !== 'fade')
+      if (fadeOnlyTargets.length > 0) {
+        gsap.set(fadeOnlyTargets, {
+          autoAlpha: 1,
+          clearProps: 'willChange,transform',
+        })
+      }
+      if (shiftedTargets.length > 0) {
+        gsap.set(shiftedTargets, {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          clearProps: 'willChange,transform',
+        })
+      }
+      terminalizeProfileCountValues()
+    }
+
+    const runMotion = () => {
+      const mm = gsap.matchMedia()
+      mm.add(
+        {
+          allowMotion: '(prefers-reduced-motion: no-preference)',
+          reduceMotion: '(prefers-reduced-motion: reduce)',
+        },
+        (mediaContext) => {
+          if (queryRequestsLicenseSheet || mediaContext.conditions?.reduceMotion) {
+            terminalizeProfileMotion()
+            return () => terminalizeProfileMotion()
+          }
+
+          const baseDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.2)
+          const enterDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.24)
+          const fastDuration = Math.min(parseMotionTokenSeconds(root, '--motion-fast', 180), 0.16)
+          const schedule = {
+            identity: 0,
+            summary: 0.1,
+            archive: 0.26,
+            share: 0.42,
+            province: 0.58,
+            support: 0.66,
+            logout: 0.72,
+          } as const
+          const motionMap = new Map(getMotionTargets().map((target) => [target.dataset.profileMotion, target]))
+          const animatedTargets = getAnimatedTargets()
+          const fadeOnlyTargets = animatedTargets.filter((target) => target.dataset.profileMotionMode === 'fade')
+          const shiftedTargets = animatedTargets.filter((target) => target.dataset.profileMotionMode !== 'fade')
+          if (fadeOnlyTargets.length > 0) gsap.set(fadeOnlyTargets, { willChange: 'opacity' })
+          if (shiftedTargets.length > 0) gsap.set(shiftedTargets, { willChange: 'transform, opacity' })
+
+          const timeline = gsap.timeline({
+            defaults: { duration: baseDuration, ease: 'power3.out' },
+            onComplete: terminalizeProfileMotion,
+            onInterrupt: terminalizeProfileMotion,
+          })
+
+          const addShell = (key: string, label: string, position: number, fromY = 16, scale = 0.96, ease = 'back.out(1.3)') => {
+            const target = motionMap.get(key)
+            if (!target) return
+            timeline.addLabel(label, position)
+            if (target.dataset.profileMotionMode === 'fade') {
+              timeline.fromTo(target, { autoAlpha: 0 }, { autoAlpha: 1, duration: baseDuration, ease: 'power3.out' }, label)
+              return
+            }
+            timeline.fromTo(target, { autoAlpha: 0, y: fromY, scale }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: enterDuration,
+              ease,
+            }, label)
+          }
+
+          addShell('identity', 'identity', schedule.identity, 0, 1)
+          addShell('summary', 'summary', schedule.summary, 14, 0.94)
+          const summaryTiles = getScopedTargets('[data-profile-summary-tile]')
+          if (summaryTiles.length > 0) {
+            timeline.fromTo(summaryTiles, { autoAlpha: 0, y: 14, scale: 0.94 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: fastDuration,
+              ease: 'back.out(1.3)',
+              stagger: { each: 0.035, from: 'start' },
+            }, 'summary')
+            for (const valueNode of getScopedTargets('[data-profile-summary-value][data-count-value]')) {
+              const rawTarget = Number(valueNode.dataset.countValue)
+              const finalText = valueNode.dataset.finalText ?? valueNode.textContent ?? ''
+              if (!Number.isFinite(rawTarget)) continue
+              const countState = { value: 0 }
+              timeline.to(countState, {
+                value: rawTarget,
+                duration: Math.min(0.46, enterDuration * 1.9),
+                ease: 'power2.out',
+                onStart: () => {
+                  valueNode.textContent = formatMotionCountValue(0, valueNode.dataset.countFormat, finalText)
+                },
+                onUpdate: () => {
+                  valueNode.textContent = formatMotionCountValue(countState.value, valueNode.dataset.countFormat, finalText)
+                },
+                onComplete: () => {
+                  valueNode.textContent = finalText
+                },
+              }, 'summary')
+            }
+          }
+
+          addShell('archive-preview', 'archivePreview', schedule.archive, 18, 0.96)
+          const archiveCards = getScopedTargets('[data-profile-archive-card]').slice(0, 3)
+          if (archiveCards.length > 0) {
+            timeline.fromTo(archiveCards, { autoAlpha: 0, y: 18, scale: 0.96 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: fastDuration,
+              ease: 'back.out(1.3)',
+              stagger: { each: 0.035, from: 'start' },
+            }, 'archivePreview')
+          }
+
+          addShell('share-preview', 'sharePreview', schedule.share, 16, 0.97)
+          const shareRows = getScopedTargets('[data-profile-share-row]').slice(0, 3)
+          if (shareRows.length > 0) {
+            timeline.fromTo(shareRows, { autoAlpha: 0, y: 14, scale: 0.97 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: fastDuration,
+              ease: 'power3.out',
+              stagger: { each: 0.035, from: 'start' },
+            }, 'sharePreview')
+          }
+
+          addShell('province', 'province', schedule.province, 14, 0.98)
+          addShell('support', 'support', schedule.support, 14, 0.98)
+          addShell('logout', 'logout', schedule.logout, 0, 1)
+
+          return () => {
+            timeline.kill()
+            terminalizeProfileMotion()
+          }
+        },
+        root,
+      )
+
+      return () => {
+        mm.revert()
+        terminalizeProfileMotion()
+      }
+    }
+
+    const safeRunMotion = (contextSafe ? contextSafe(runMotion) : runMotion) as () => unknown
+    const cleanup = safeRunMotion()
+    return () => {
+      if (typeof cleanup === 'function') cleanup()
+      terminalizeProfileMotion()
+    }
+  }, { scope: motionScopeRef, dependencies: [] })
+
   return (
     <div
+      ref={motionScopeRef}
+      data-profile-motion-root
       style={{
         minHeight: '100vh',
         background: 'var(--color-surface)',
         padding: 'var(--space-4) var(--page-padding) calc(112px + env(safe-area-inset-bottom))',
       }}
     >
-      <ProfileAvatarUploader
-        userId={identity.userId}
-        username={identity.username}
-        province={identity.province}
-        joinedAt={identity.joinedAt}
-        initialAvatarUrl={identity.avatarUrl}
-        licenseLevel={identity.licenseLevel}
-        onLicenseClick={() => setLicenseSheetOpen(true)}
-      />
+      <div data-profile-motion="identity" data-profile-motion-mode="fade">
+        <ProfileAvatarUploader
+          userId={identity.userId}
+          username={identity.username}
+          province={identity.province}
+          joinedAt={identity.joinedAt}
+          initialAvatarUrl={identity.avatarUrl}
+          licenseLevel={identity.licenseLevel}
+          onLicenseClick={() => setLicenseSheetOpen(true)}
+        />
+      </div>
       <LicenseProgressSheet
         open={licenseSheetOpen || queryRequestsLicenseSheet}
         progress={licenseProgress}
@@ -665,7 +874,9 @@ export default function ProfileV2Client({
       <ArchivePreviewSection trips={visibleTrips} />
       <SharePreviewSection shares={visibleShares} currentUserId={identity.userId} />
       {provinceRankingEnabled ? (
-        <ProvinceContributionSection contribution={provinceContribution} monthLabel={monthLabel} />
+        <div data-profile-motion="province">
+          <ProvinceContributionSection contribution={provinceContribution} monthLabel={monthLabel} />
+        </div>
       ) : null}
       <SupportSection />
       <LogoutLink />

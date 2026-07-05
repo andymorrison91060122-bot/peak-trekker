@@ -1,13 +1,18 @@
 'use client'
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import IconButton from '@/components/ui/IconButton'
-import { BackIcon, MoreIcon, PinIcon } from '@/components/ui/Icons'
+import { BackIcon, PinIcon } from '@/components/ui/Icons'
 import { getLicenseShortLabel } from '@/lib/license-ui'
+import { formatMotionCountValue, parseMotionTokenSeconds, type MotionCountFormat } from '@/lib/motion-count-format'
 import type { CheckinDisplayTitleSource } from '@/lib/checkin-display-title'
+
+gsap.registerPlugin(useGSAP)
 
 export type ArchiveUserViewModel = {
   displayName: string
@@ -209,11 +214,12 @@ function Chip({
 function ArchiveHeader({ onBack }: { onBack: () => void }) {
   return (
     <header
+      data-archive-motion="header"
       style={{
-        display: 'flex',
+        display: 'grid',
+        gridTemplateColumns: '44px minmax(0, 1fr) 44px',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 'var(--space-3)',
+        gap: 'var(--space-2)',
         padding: 'var(--space-1) var(--space-3)',
       }}
     >
@@ -224,11 +230,12 @@ function ArchiveHeader({ onBack }: { onBack: () => void }) {
           fontSize: 'var(--font-label-m-size)',
           lineHeight: 'var(--font-label-m-line)',
           fontWeight: 600,
+          textAlign: 'center',
         }}
       >
         我的山行档案
       </div>
-      <ArchiveIconButton ariaLabel="更多" icon={<MoreIcon size={20} />} />
+      <div aria-hidden="true" />
     </header>
   )
 }
@@ -323,16 +330,26 @@ function SummaryStat({
   value,
   accent = false,
   valueTestId,
+  motionKind,
+  countValue,
+  countFormat,
 }: {
   label: string
   value: string
   accent?: boolean
   valueTestId?: string
+  motionKind?: string
+  countValue?: number
+  countFormat?: MotionCountFormat
 }) {
   return (
-    <div style={{ minWidth: 0, textAlign: 'center' }}>
+    <div data-archive-stat-tile={motionKind} style={{ minWidth: 0, textAlign: 'center' }}>
       <div
         data-testid={valueTestId}
+        data-archive-stat-value={motionKind}
+        data-count-value={typeof countValue === 'number' ? String(countValue) : undefined}
+        data-count-format={countFormat}
+        data-final-text={value}
         style={{
           ...monoStyle,
           color: accent ? 'var(--color-success)' : 'var(--color-on-surface)',
@@ -366,7 +383,7 @@ function IdentityCard({
   summary: ArchiveSummaryViewModel
 }) {
   return (
-    <section style={{ padding: '14px var(--space-4) 0' }}>
+    <section data-archive-motion="identity" style={{ padding: '14px var(--space-4) 0' }}>
       <div
         style={{
           padding: 'var(--space-4)',
@@ -386,13 +403,28 @@ function IdentityCard({
             borderTop: '1px solid var(--color-outline)',
           }}
         >
-          <SummaryStat label="山行" value={formatNumber(summary.totalTrips)} />
-          <SummaryStat label="登顶" value={formatNumber(summary.summitCount)} />
+          <SummaryStat
+            label="山行"
+            value={formatNumber(summary.totalTrips)}
+            motionKind="total-trips"
+            countValue={summary.totalTrips}
+            countFormat="integer"
+          />
+          <SummaryStat
+            label="登顶"
+            value={formatNumber(summary.summitCount)}
+            motionKind="summit-count"
+            countValue={summary.summitCount}
+            countFormat="integer"
+          />
           <SummaryStat
             label="最高 m"
             value={formatPositiveAltitude(summary.maxAltitudeM)}
             accent
             valueTestId="archive-summary-max-altitude-value"
+            motionKind="max-altitude"
+            countValue={summary.maxAltitudeM > 0 ? summary.maxAltitudeM : undefined}
+            countFormat="integer"
           />
         </div>
       </div>
@@ -402,7 +434,7 @@ function IdentityCard({
 
 function IdentityCardEmpty({ user }: { user: ArchiveUserViewModel }) {
   return (
-    <section style={{ padding: '14px var(--space-4) 0' }}>
+    <section data-archive-motion="identity" style={{ padding: '14px var(--space-4) 0' }}>
       <div
         style={{
           padding: 'var(--space-4)',
@@ -426,15 +458,18 @@ function getArchiveTabStyle(isActive: boolean): CSSProperties {
     minHeight: 32,
     padding: '7px 12px',
     borderRadius: 'var(--radius-pill)',
-    border: isActive ? '1px solid transparent' : '1px solid var(--color-outline)',
+    border: '1px solid var(--archive-tab-border)',
     color: isActive ? 'var(--color-surface)' : 'var(--color-on-surface-variant)',
-    background: isActive ? 'var(--color-on-surface)' : 'transparent',
+    background: 'var(--archive-tab-bg)',
+    boxShadow: 'var(--archive-tab-shadow)',
     font: 'inherit',
     fontSize: 12,
     lineHeight: '16px',
     fontWeight: 600,
     whiteSpace: 'nowrap',
     cursor: 'pointer',
+    transition:
+      'background var(--motion-press) var(--ease-out), border-color var(--motion-press) var(--ease-out), box-shadow var(--motion-press) var(--ease-out)',
   }
 }
 
@@ -471,7 +506,36 @@ function FilterTabs({
   ]
 
   return (
-    <section style={{ padding: '18px var(--space-4) 0' }}>
+    <section data-archive-motion="filters" style={{ padding: '18px var(--space-4) 0' }}>
+      <style>
+        {`
+          .pt-archive-filter-tab {
+            --archive-tab-bg: transparent;
+            --archive-tab-border: var(--color-outline);
+            --archive-tab-shadow: none;
+          }
+
+          .pt-archive-filter-tab[aria-pressed="true"] {
+            --archive-tab-bg: var(--color-on-surface);
+            --archive-tab-border: transparent;
+            --archive-tab-shadow: none;
+          }
+
+          .pt-archive-filter-tab:active,
+          .pt-archive-filter-tab[data-archive-press-active="true"] {
+            --archive-tab-bg: color-mix(in srgb, var(--color-on-surface) 9%, transparent);
+            --archive-tab-border: color-mix(in srgb, var(--color-on-surface) 30%, transparent);
+            --archive-tab-shadow: inset 0 0 0 999px color-mix(in srgb, var(--color-on-surface) 7%, transparent);
+          }
+
+          .pt-archive-filter-tab[aria-pressed="true"]:active,
+          .pt-archive-filter-tab[aria-pressed="true"][data-archive-press-active="true"] {
+            --archive-tab-bg: color-mix(in srgb, var(--color-on-surface) 88%, var(--color-surface));
+            --archive-tab-border: transparent;
+            --archive-tab-shadow: inset 0 0 0 999px color-mix(in srgb, var(--color-surface) 9%, transparent);
+          }
+        `}
+      </style>
       <div
         style={{
           display: 'flex',
@@ -487,7 +551,33 @@ function FilterTabs({
             <button
               key={tab.id}
               type="button"
+              className="pt-archive-filter-tab"
+              data-archive-filter-tab={tab.id}
               aria-pressed={isActive}
+              onPointerDown={(event) => {
+                event.currentTarget.dataset.archivePressActive = 'true'
+              }}
+              onPointerUp={(event) => {
+                delete event.currentTarget.dataset.archivePressActive
+              }}
+              onPointerCancel={(event) => {
+                delete event.currentTarget.dataset.archivePressActive
+              }}
+              onPointerLeave={(event) => {
+                delete event.currentTarget.dataset.archivePressActive
+              }}
+              onMouseDown={(event) => {
+                event.currentTarget.dataset.archivePressActive = 'true'
+              }}
+              onMouseUp={(event) => {
+                delete event.currentTarget.dataset.archivePressActive
+              }}
+              onMouseLeave={(event) => {
+                delete event.currentTarget.dataset.archivePressActive
+              }}
+              onBlur={(event) => {
+                delete event.currentTarget.dataset.archivePressActive
+              }}
               onClick={() => onChange(tab.id)}
               style={getArchiveTabStyle(isActive)}
             >
@@ -506,6 +596,8 @@ function FilterTabs({
 function YearDivider({ year, count }: { year: string; count: number }) {
   return (
     <div
+      data-archive-motion="year-divider"
+      data-archive-motion-mode="fade"
       style={{
         position: 'sticky',
         zIndex: 1,
@@ -757,6 +849,7 @@ function TripCard({ trip, onOpen }: { trip: ArchiveTripViewModel; onOpen: (trip:
   return (
     <button
       type="button"
+      data-archive-trip-card={trip.id}
       onClick={() => onOpen(trip)}
       style={{
         display: 'block',
@@ -799,7 +892,7 @@ function ArchiveEmptyState({
 }) {
   return (
     <>
-      <section style={{ padding: '28px var(--space-6) 0' }}>
+      <section data-archive-motion="empty-state" style={{ padding: '28px var(--space-6) 0' }}>
         <div
           style={{
             padding: '26px var(--space-5)',
@@ -855,6 +948,8 @@ function ArchiveEmptyState({
         </div>
       </section>
       <section
+        data-archive-motion="empty-copy"
+        data-archive-motion-mode="fade"
         style={{
           padding: 'var(--space-5) 28px 0',
           color: 'var(--color-on-surface-variant)',
@@ -881,8 +976,13 @@ export default function ArchiveClient({
   trips: ArchiveTripViewModel[]
 }) {
   const router = useRouter()
+  const motionScopeRef = useRef<HTMLDivElement | null>(null)
+  const replayArchiveListRef = useRef<(() => void) | null>(null)
+  const terminalizeArchiveListRef = useRef<(() => void) | null>(null)
+  const pendingFilterReplayRef = useRef(false)
   const [activeFilter, setActiveFilter] = useState<FilterId>('all')
   const filteredTrips = useMemo(() => filterTrips(trips, activeFilter), [trips, activeFilter])
+  const filteredTripSignature = useMemo(() => filteredTrips.map((trip) => trip.id).join('|'), [filteredTrips])
   const yearGroups = useMemo(() => groupTripsByYear(filteredTrips), [filteredTrips])
   const hasTrips = trips.length > 0
 
@@ -890,8 +990,282 @@ export default function ArchiveClient({
     router.replace('/explore')
   }
 
+  function handleFilterChange(nextFilter: FilterId) {
+    if (nextFilter === activeFilter) return
+    terminalizeArchiveListRef.current?.()
+    pendingFilterReplayRef.current = true
+    setActiveFilter(nextFilter)
+  }
+
+  useGSAP((_context, contextSafe) => {
+    const root = motionScopeRef.current
+    if (!root) return
+
+    const getScopedTargets = (selector: string, scope: ParentNode = root) =>
+      gsap.utils.toArray<HTMLElement>(scope.querySelectorAll(selector)).filter((target) => root.contains(target))
+
+    const getMotionTargets = () => getScopedTargets('[data-archive-motion]')
+    const getFirstScreenTripCards = () => getScopedTargets('[data-archive-trip-card]').slice(0, 4)
+    const getLiveArchiveListTargets = () => {
+      const yearDividers = getScopedTargets('[data-archive-motion="year-divider"]')
+      const tripCards = getScopedTargets('[data-archive-trip-card]')
+      const footer = getScopedTargets('[data-archive-motion="footer"]')
+      return {
+        yearDividers,
+        tripCards,
+        firstScreenTripCards: tripCards.slice(0, 4),
+        terminalTargets: [...yearDividers, ...tripCards, ...footer],
+      }
+    }
+    const getAnimatedTargets = () => [
+      ...getMotionTargets(),
+      ...getFirstScreenTripCards(),
+      ...getScopedTargets('[data-archive-stat-tile]'),
+    ]
+
+    const terminalizeArchiveCountValues = () => {
+      for (const valueNode of getScopedTargets('[data-archive-stat-value]')) {
+        const finalText = valueNode.dataset.finalText
+        if (finalText) valueNode.textContent = finalText
+      }
+    }
+
+    const terminalizeArchiveMotion = () => {
+      if (!root.isConnected) return
+      const targets = getAnimatedTargets()
+      if (targets.length > 0) {
+        gsap.set(targets, {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          clearProps: 'willChange,transform',
+        })
+      }
+      terminalizeArchiveCountValues()
+    }
+
+    let archiveListReplayTimeline: gsap.core.Timeline | null = null
+
+    const terminalizeArchiveListMotion = () => {
+      if (!root.isConnected) return
+      const { terminalTargets } = getLiveArchiveListTargets()
+      if (terminalTargets.length > 0) {
+        gsap.set(terminalTargets, {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          clearProps: 'willChange,transform',
+        })
+      }
+    }
+
+    const stopArchiveListReplay = () => {
+      archiveListReplayTimeline?.kill()
+      archiveListReplayTimeline = null
+      terminalizeArchiveListMotion()
+    }
+
+    const runArchiveListReplay = () => {
+      if (!root.isConnected) return
+      stopArchiveListReplay()
+
+      const { yearDividers, firstScreenTripCards, terminalTargets } = getLiveArchiveListTargets()
+      if (terminalTargets.length === 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        terminalizeArchiveListMotion()
+        return
+      }
+
+      if (yearDividers.length > 0) gsap.set(yearDividers, { willChange: 'opacity' })
+      if (firstScreenTripCards.length > 0) {
+        gsap.set(firstScreenTripCards, {
+          willChange: 'transform, opacity',
+        })
+      }
+
+      const fadeDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.2)
+      const replayDuration = Math.min(Math.max(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.42), 0.52)
+
+      archiveListReplayTimeline = gsap.timeline({
+        defaults: { ease: 'power3.out' },
+        onComplete: terminalizeArchiveListMotion,
+        onInterrupt: terminalizeArchiveListMotion,
+      })
+      archiveListReplayTimeline.addLabel('listReplay', 0)
+
+      if (yearDividers.length > 0) {
+        archiveListReplayTimeline.fromTo(yearDividers, { autoAlpha: 0 }, {
+          autoAlpha: 1,
+          duration: fadeDuration,
+          ease: 'power3.out',
+        }, 'listReplay')
+      }
+
+      if (firstScreenTripCards.length > 0) {
+        archiveListReplayTimeline.fromTo(firstScreenTripCards, { autoAlpha: 0, y: 16, scale: 0.96 }, {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          duration: replayDuration,
+          ease: 'back.out(1.3)',
+          stagger: { each: 0.03, from: 'start' },
+        }, 'listReplay')
+      }
+    }
+
+    const runMotion = () => {
+      const mm = gsap.matchMedia()
+      mm.add(
+        {
+          allowMotion: '(prefers-reduced-motion: no-preference)',
+          reduceMotion: '(prefers-reduced-motion: reduce)',
+        },
+        (mediaContext) => {
+          if (mediaContext.conditions?.reduceMotion) {
+            terminalizeArchiveMotion()
+            return () => terminalizeArchiveMotion()
+          }
+
+          const baseDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.2)
+          const enterDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.24)
+          const fastDuration = Math.min(parseMotionTokenSeconds(root, '--motion-fast', 180), 0.16)
+          const schedule = {
+            header: 0,
+            identity: 0.08,
+            stats: 0.18,
+            filters: 0.3,
+            trips: 0.38,
+            emptyState: 0.18,
+            emptyCopy: 0.46,
+            footer: 0.68,
+          } as const
+          const motionMap = new Map(getMotionTargets().map((target) => [target.dataset.archiveMotion, target]))
+          const shiftedTargets = getAnimatedTargets().filter((target) => target.dataset.archiveMotionMode !== 'fade')
+          const fadeOnlyTargets = getAnimatedTargets().filter((target) => target.dataset.archiveMotionMode === 'fade')
+
+          if (shiftedTargets.length > 0) gsap.set(shiftedTargets, { willChange: 'transform, opacity' })
+          if (fadeOnlyTargets.length > 0) gsap.set(fadeOnlyTargets, { willChange: 'opacity' })
+
+          const timeline = gsap.timeline({
+            defaults: { duration: baseDuration, ease: 'power3.out' },
+            onComplete: terminalizeArchiveMotion,
+            onInterrupt: terminalizeArchiveMotion,
+          })
+
+          const addShell = (key: string, label: string, position: number, fromY = 16, scale = 0.98, ease = 'power3.out') => {
+            const target = motionMap.get(key)
+            if (!target) return
+            timeline.addLabel(label, position)
+            if (target.dataset.archiveMotionMode === 'fade') {
+              timeline.fromTo(target, { autoAlpha: 0 }, { autoAlpha: 1, duration: baseDuration, ease: 'power3.out' }, label)
+              return
+            }
+            timeline.fromTo(target, { autoAlpha: 0, y: fromY, scale }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: enterDuration,
+              ease,
+            }, label)
+          }
+
+          addShell('header', 'header', schedule.header, 14, 0.98)
+          addShell('identity', 'identity', schedule.identity, 18, 0.96, 'back.out(1.3)')
+
+          const statTiles = getScopedTargets('[data-archive-stat-tile]')
+          if (statTiles.length > 0) {
+            timeline.addLabel('stats', schedule.stats)
+            timeline.fromTo(statTiles, { autoAlpha: 0, y: 12, scale: 0.96 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: fastDuration,
+              ease: 'back.out(1.3)',
+              stagger: { each: 0.035, from: 'start' },
+            }, 'stats')
+            for (const valueNode of getScopedTargets('[data-archive-stat-value][data-count-value]')) {
+              const rawTarget = Number(valueNode.dataset.countValue)
+              const finalText = valueNode.dataset.finalText ?? valueNode.textContent ?? ''
+              if (!Number.isFinite(rawTarget)) continue
+              const countState = { value: 0 }
+              timeline.to(countState, {
+                value: rawTarget,
+                duration: Math.min(0.46, enterDuration * 1.9),
+                ease: 'power2.out',
+                onStart: () => {
+                  valueNode.textContent = formatMotionCountValue(0, valueNode.dataset.countFormat, finalText)
+                },
+                onUpdate: () => {
+                  valueNode.textContent = formatMotionCountValue(countState.value, valueNode.dataset.countFormat, finalText)
+                },
+                onComplete: () => {
+                  valueNode.textContent = finalText
+                },
+              }, 'stats')
+            }
+          }
+
+          addShell('filters', 'filters', schedule.filters, 10, 1)
+
+          const firstScreenTripCards = getFirstScreenTripCards()
+          if (firstScreenTripCards.length > 0) {
+            timeline.addLabel('trips', schedule.trips)
+            firstScreenTripCards.forEach((card, index) => {
+              card.dataset.archiveMotionParticipation = 'first-screen'
+              card.dataset.archiveMotionIndex = String(index)
+            })
+            timeline.fromTo(firstScreenTripCards, { autoAlpha: 0, y: 18, scale: 0.96 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: enterDuration,
+              ease: 'back.out(1.3)',
+              stagger: { each: 0.03, from: 'start' },
+            }, 'trips')
+          }
+
+          addShell('empty-state', 'emptyState', schedule.emptyState, 18, 0.96, 'back.out(1.3)')
+          addShell('empty-copy', 'emptyCopy', schedule.emptyCopy, 0, 1)
+          addShell('footer', 'footer', schedule.footer, 0, 1)
+
+          return () => {
+            timeline.kill()
+            terminalizeArchiveMotion()
+          }
+        },
+        root,
+      )
+
+      return () => {
+        mm.revert()
+        terminalizeArchiveMotion()
+      }
+    }
+
+    const safeRunMotion = (contextSafe ? contextSafe(runMotion) : runMotion) as () => unknown
+    const safeRunArchiveListReplay = (contextSafe ? contextSafe(runArchiveListReplay) : runArchiveListReplay) as () => void
+    const safeTerminalizeArchiveList = (contextSafe ? contextSafe(stopArchiveListReplay) : stopArchiveListReplay) as () => void
+    replayArchiveListRef.current = safeRunArchiveListReplay
+    terminalizeArchiveListRef.current = safeTerminalizeArchiveList
+    const cleanup = safeRunMotion()
+    return () => {
+      replayArchiveListRef.current = null
+      terminalizeArchiveListRef.current = null
+      stopArchiveListReplay()
+      if (typeof cleanup === 'function') cleanup()
+      terminalizeArchiveMotion()
+    }
+  }, { scope: motionScopeRef, dependencies: [] })
+
+  useLayoutEffect(() => {
+    if (!pendingFilterReplayRef.current) return
+    pendingFilterReplayRef.current = false
+    replayArchiveListRef.current?.()
+  }, [activeFilter, filteredTripSignature])
+
   return (
     <main
+      ref={motionScopeRef}
+      data-archive-motion-root
       style={{
         minHeight: 'calc(100dvh - max(env(safe-area-inset-top), var(--space-2)))',
         maxWidth: 'var(--page-max-width)',
@@ -906,7 +1280,7 @@ export default function ArchiveClient({
       {hasTrips ? (
         <>
           <IdentityCard user={user} summary={summary} />
-          <FilterTabs active={activeFilter} onChange={setActiveFilter} trips={trips} />
+          <FilterTabs active={activeFilter} onChange={handleFilterChange} trips={trips} />
           {yearGroups.map((group) => (
             <section key={group.year}>
               <YearDivider year={group.year} count={group.trips.length} />
@@ -918,6 +1292,8 @@ export default function ArchiveClient({
             </section>
           ))}
           <div
+            data-archive-motion="footer"
+            data-archive-motion-mode="fade"
             style={{
               ...monoStyle,
               padding: '28px 0',

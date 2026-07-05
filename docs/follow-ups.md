@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-05 · 最新版本记录: v0.96
+> Last Updated: 2026-07-06 · 最新版本记录: v0.97
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（15 条）
+## Active Follow-ups（18 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -402,6 +402,42 @@
 - `/mountain/[id]` 地图延迟初始化 / 懒加载，避免 MapLibre / PMTiles 初始化与首屏动效竞争主线程。
 
 **验收口径**: 若启动本 FU，需要分别输出 dev / production frame interval、long task 列表、首屏可交互时间与 375px 真实视频；不得把动画编排问题和加载层 long task 混为一类。
+
+---
+
+### FU-110 · Explore 下半段入场割裂
+
+- **优先级**: P2（high priority）
+- **归属阶段**: FU-76 后续动效一致性
+- **状态**: 🟢 active
+
+**背景**: FU-76 P2-III Round 1 审查确认：Explore 下半段仍有入场割裂。`QUICK_TAGS` row 与山峰列表 subheading 未被 motion 标记；且运行时已确认，地理位置授权后 position resolve 会按距离重排列表，新 first-screen cards 在 mount entrance 之后渲染，保持 `opacity: 1` 静态出现。
+
+**待修方向**: 不是补一个静态 schedule；需要 whole-bottom-section entrance orchestration，并在异步列表来源变化（position / tag / province）时用 `contextSafe` replay first-screen cards，保持 reduced-motion 终态与 rapid source change interrupt-safety。
+
+---
+
+### FU-111 · 全局点击反馈审计 + 补足
+
+- **优先级**: P2（high priority）
+- **归属阶段**: 全站交互手感统一
+- **状态**: 🟢 active
+
+**背景**: 多轮视觉验收暴露点击反馈不一致：部分高价值入口有 press/tap feedback，部分列表卡、筛选、底部 tab / tab switch 仍缺统一规则或反馈弱。
+
+**待修方向**: 审计全站 clickable entries，建立统一 press rule；对高价值入口补 bespoke feedback；底部 tab switch motion 也纳入本 FU，而不是散落在单页动效任务里。
+
+---
+
+### FU-112 · 导航一致性规则 / bottom-tab presence
+
+- **优先级**: P2
+- **归属阶段**: 导航结构一致性 / FU-102 后续
+- **状态**: 🟢 active
+
+**背景**: 一级页 / 二级页的 bottom-tab presence 与显式 back path 需要形成规则，避免页面类型、入口来源和 tab 可见性之间出现不一致。此项是导航结构规则，不是 motion 任务。
+
+**待修方向**: 明确一级页 bottom-tab presence consistency；二级页何时隐藏 tab；tab hidden 时必须有显式 back path。关联 FU-102 navigation closure。
 
 ## Deferred Registration
 
@@ -1676,6 +1712,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.97 — 2026-07-06**: FU-76 P2-III Round 1 archive-only 视觉审查后续登记。仅新增 downstream Active，不把本轮 archive tab replay / dead-button 修复登记成新 FU：FU-110 Explore 下半段入场割裂（含 geolocation position resolve 重排后 first-screen cards 静态出现的 runtime-confirmed finding）、FU-111 全局点击反馈审计 + 补足（含 bottom-tab switch motion）、FU-112 导航一致性规则 / bottom-tab presence（P2，关联 FU-102）。Active 15 → 18（+FU-110/+FU-111/+FU-112）· Closed 92 → 92 · Deferred 4 → 4。
 
 **v0.96 — 2026-07-05**: FU-76 Sprint A 重点页动效 docs 收尾。FU-76 仍 Active，但新增记录 Sprint A 已落地节点：Phase 1 route template opacity 淡入底座；Phase 2-I import / screenshot 成功节点 GSAP L3 仪式与 entry / upload 门面逐模块入场；Phase 2-II mountain 分组入场与 explore 分层入场，并经 Smoothness Fix 固定 label 绝对时序、视觉可用分阶段达标与 production build 帧率验证。`docs/ui-interaction-spec.md` §12.4 同步现实口径：GSAP 已从唯一 Summit pilot 解禁为多步仪式与入场编排工具，工具性单步过渡仍默认 CSS。新增 FU-109 · 动效页加载流畅度优化（P3），将 hydration long task 与 mountain 地图 late long task 作为加载层性能后续。Active 14 → 15（+FU-109）· Closed 92 → 92 · Deferred 4 → 4。
 

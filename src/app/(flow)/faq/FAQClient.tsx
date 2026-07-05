@@ -3,11 +3,16 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import IconButton from '@/components/ui/IconButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import { BackIcon, SearchIcon } from '@/components/ui/Icons'
+import { parseMotionTokenSeconds } from '@/lib/motion-count-format'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import { FAQ_BY_ANCHOR, FAQ_GROUPS, type FaqGroup, type FaqQuestion } from '@/lib/faq-content'
+
+gsap.registerPlugin(useGSAP)
 
 type FAQClientProps = {
   initialAnchor: string | null
@@ -135,7 +140,7 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
 
 function FAQHeader({ onBack }: { onBack: () => void }) {
   return (
-    <header>
+    <header data-faq-motion="header">
       <div
         style={{
           height: 48,
@@ -192,7 +197,7 @@ function FAQSearchField({
   onClear: () => void
 }) {
   return (
-    <div style={{ padding: 'var(--space-4) var(--space-4) var(--space-1)' }}>
+    <div data-faq-motion="search" style={{ padding: 'var(--space-4) var(--space-4) var(--space-1)' }}>
       <label
         style={{
           height: 42,
@@ -390,6 +395,7 @@ function FAQGroupCard({
 }) {
   return (
     <section
+      data-faq-group-card={group.id}
       style={{
         margin: '0 var(--space-4) var(--space-3)',
         borderRadius: 14,
@@ -664,7 +670,7 @@ function FAQEmptySearch({ onFeedback }: { onFeedback: () => void }) {
 
 function FAQFooter({ onFeedback }: { onFeedback: () => void }) {
   return (
-    <footer>
+    <footer data-faq-motion="footer">
       <div
         style={{
           margin: 'var(--space-6) var(--space-5) 0',
@@ -736,6 +742,7 @@ function FAQFooter({ onFeedback }: { onFeedback: () => void }) {
 
 export default function FAQClient({ initialAnchor }: FAQClientProps) {
   const router = useRouter()
+  const motionScopeRef = useRef<HTMLElement | null>(null)
   const targetRef = useRef<HTMLDivElement | null>(null)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
@@ -808,8 +815,131 @@ export default function FAQClient({ initialAnchor }: FAQClientProps) {
 
   const hasSearch = Boolean(debouncedQuery.trim())
 
+  useGSAP((_context, contextSafe) => {
+    const root = motionScopeRef.current
+    if (!root) return
+
+    const getScopedTargets = (selector: string, scope: ParentNode = root) =>
+      gsap.utils.toArray<HTMLElement>(scope.querySelectorAll(selector)).filter((target) => root.contains(target))
+
+    const getAnimatedTargets = () => [
+      ...getScopedTargets('[data-faq-motion]'),
+      ...getScopedTargets('[data-faq-group-card]'),
+    ]
+
+    const terminalizeFAQMotion = () => {
+      if (!root.isConnected) return
+      const targets = getAnimatedTargets()
+      if (targets.length === 0) return
+      gsap.set(targets, {
+        autoAlpha: 1,
+        y: 0,
+        scale: 1,
+        clearProps: 'willChange,transform',
+      })
+    }
+
+    const runMotion = () => {
+      const mm = gsap.matchMedia()
+      mm.add(
+        {
+          allowMotion: '(prefers-reduced-motion: no-preference)',
+          reduceMotion: '(prefers-reduced-motion: reduce)',
+        },
+        (mediaContext) => {
+          if (initialAnchor || mediaContext.conditions?.reduceMotion) {
+            terminalizeFAQMotion()
+            return () => terminalizeFAQMotion()
+          }
+
+          const baseDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.2)
+          const enterDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.22)
+          const fastDuration = Math.min(parseMotionTokenSeconds(root, '--motion-fast', 180), 0.16)
+          const schedule = {
+            header: 0,
+            search: 0.1,
+            groups: 0.22,
+            footer: 0.58,
+          } as const
+          const header = getScopedTargets('[data-faq-motion="header"]')
+          const search = getScopedTargets('[data-faq-motion="search"]')
+          const groups = getScopedTargets('[data-faq-group-card]')
+          const footer = getScopedTargets('[data-faq-motion="footer"]')
+          const animatedTargets = getAnimatedTargets()
+
+          if (animatedTargets.length > 0) gsap.set(animatedTargets, { willChange: 'transform, opacity' })
+
+          const timeline = gsap.timeline({
+            defaults: { duration: baseDuration, ease: 'power3.out' },
+            onComplete: terminalizeFAQMotion,
+            onInterrupt: terminalizeFAQMotion,
+          })
+
+          if (header.length > 0) {
+            timeline.addLabel('header', schedule.header)
+            timeline.fromTo(header, { autoAlpha: 0, y: 14, scale: 0.98 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: enterDuration,
+              ease: 'power3.out',
+            }, 'header')
+          }
+
+          if (search.length > 0) {
+            timeline.addLabel('search', schedule.search)
+            timeline.fromTo(search, { autoAlpha: 0, y: 10 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: baseDuration,
+              ease: 'power3.out',
+            }, 'search')
+          }
+
+          if (groups.length > 0) {
+            timeline.addLabel('groups', schedule.groups)
+            timeline.fromTo(groups, { autoAlpha: 0, y: 16, scale: 0.97 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: enterDuration,
+              ease: 'back.out(1.25)',
+              stagger: { each: 0.045, from: 'start' },
+            }, 'groups')
+          }
+
+          if (footer.length > 0) {
+            timeline.addLabel('footer', schedule.footer)
+            timeline.fromTo(footer, { autoAlpha: 0 }, { autoAlpha: 1, duration: fastDuration, ease: 'power3.out' }, 'footer')
+          }
+
+          return () => {
+            timeline.kill()
+            terminalizeFAQMotion()
+          }
+        },
+        root,
+      )
+
+      return () => {
+        mm.revert()
+        terminalizeFAQMotion()
+      }
+    }
+
+    const safeRunMotion = (contextSafe ? contextSafe(runMotion) : runMotion) as () => unknown
+    const cleanup = safeRunMotion()
+    return () => {
+      if (typeof cleanup === 'function') cleanup()
+      terminalizeFAQMotion()
+    }
+  }, { scope: motionScopeRef, dependencies: [] })
+
   return (
     <main
+      ref={motionScopeRef}
+      data-faq-motion-root
       data-testid="faq-page"
       style={{
         minHeight: '100dvh',

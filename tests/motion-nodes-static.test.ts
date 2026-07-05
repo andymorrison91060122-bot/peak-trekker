@@ -96,6 +96,11 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
   const shareClient = readSource('../src/app/(flow)/share/ShareClient.tsx')
   const mountainDetailClient = readSource('../src/app/(flow)/mountain/[id]/MountainDetailClient.tsx')
   const exploreClient = readSource('../src/app/(main)/explore/ExploreClient.tsx')
+  const archiveClient = readSource('../src/app/(flow)/archive/ArchiveClient.tsx')
+  const profileClient = readSource('../src/components/profile/ProfileV2Client.tsx')
+  const faqClient = readSource('../src/app/(flow)/faq/FAQClient.tsx')
+  const activityClient = readSource('../src/app/(flow)/activity/[id]/ActivityDetailClient.tsx')
+  const motionCountHelper = readSource('../src/lib/motion-count-format.ts')
 
 	  test('import ceremony uses scoped GSAP timeline with reduced-motion terminal state', () => {
     assert.match(importClient, /import gsap from 'gsap'/)
@@ -324,6 +329,168 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(exploreClient, /filtered\.map\(\(\{ mountain \}\) => \(\s*<ExploreMountainCard key=\{mountain\.id\} mountain=\{mountain\} \/>/m)
     assert.match(exploreClient, /pt-explore-press-target:active/)
     assert.match(exploreClient, /\[data-testid="explore-mountain-card"\]:active/)
+  })
+
+  test('Phase 2-III 4-page client subset uses scoped Sprint A GSAP root template', () => {
+    const clients = [
+      ['archive', archiveClient, 'data-archive-motion-root'],
+      ['profile', profileClient, 'data-profile-motion-root'],
+      ['faq', faqClient, 'data-faq-motion-root'],
+      ['activity', activityClient, 'data-activity-motion-root'],
+    ] as const
+
+    for (const [name, source, rootMarker] of clients) {
+      assert.match(source, /import gsap from 'gsap'/, `${name} should import gsap`)
+      assert.match(source, /import \{ useGSAP \} from '@gsap\/react'/, `${name} should import useGSAP`)
+      assert.match(source, /gsap\.registerPlugin\(useGSAP\)/, `${name} should register useGSAP`)
+      assert.match(source, /useGSAP\(\(_context, contextSafe\) =>/, `${name} should use callback-first useGSAP`)
+      assert.match(source, /scope: motionScopeRef/, `${name} should scope GSAP to page root`)
+      assert.match(source, /dependencies: \[\]/, `${name} should keep mount-only dependencies`)
+      assert.match(source, /gsap\.matchMedia\(\)/, `${name} should use matchMedia`)
+      assert.match(source, /allowMotion: '\(prefers-reduced-motion: no-preference\)'/, `${name} should define allowMotion`)
+      assert.match(source, /reduceMotion: '\(prefers-reduced-motion: reduce\)'/, `${name} should define reduceMotion`)
+      assert.match(source, /mm\.revert\(\)/, `${name} should revert matchMedia`)
+      assert.match(source, /clearProps: 'willChange,transform'/, `${name} should clear willChange and transform`)
+      assert.match(source, new RegExp(rootMarker), `${name} should expose a motion evidence root`)
+      assert.doesNotMatch(source, /\.from\(/, `${name} should not use bare gsap.from`)
+      assert.doesNotMatch(source, /delay:/, `${name} should not use delay chains`)
+      assert.doesNotMatch(source, /<0\.\d+/, `${name} should not use relative timeline offsets`)
+    }
+  })
+
+  test('Phase 2-III archive/profile/faq/activity schedule labels and motion markers match the approved 4-page scope', () => {
+    assert.match(archiveClient, /data-archive-motion="header"/)
+    assert.match(archiveClient, /data-archive-motion="identity"/)
+    assert.match(archiveClient, /data-archive-stat-value=\{motionKind\}/)
+    assert.match(archiveClient, /data-archive-motion="filters"/)
+    assert.match(archiveClient, /data-archive-trip-card=\{trip\.id\}/)
+    assert.match(archiveClient, /data-archive-motion="year-divider"[\s\S]*data-archive-motion-mode="fade"/)
+    assert.match(archiveClient, /const schedule = \{[\s\S]*header: 0,[\s\S]*identity: 0\.08,[\s\S]*stats: 0\.18,[\s\S]*filters: 0\.3,[\s\S]*trips: 0\.38/)
+    assert.match(archiveClient, /stagger: \{ each: 0\.03, from: 'start' \}/)
+
+    assert.match(profileClient, /data-profile-motion="identity" data-profile-motion-mode="fade"/)
+    assert.match(profileClient, /data-profile-motion="summary"/)
+    assert.match(profileClient, /data-profile-summary-value=\{item\.label\}/)
+    assert.match(profileClient, /data-profile-archive-card=\{trip\.checkinId\}/)
+    assert.match(profileClient, /data-profile-share-row=\{share\.id\}/)
+    assert.match(profileClient, /data-profile-motion="province"/)
+    assert.match(profileClient, /data-profile-motion="support"/)
+    assert.match(profileClient, /data-profile-motion="logout"/)
+    assert.match(profileClient, /if \(queryRequestsLicenseSheet \|\| mediaContext\.conditions\?\.reduceMotion\)/)
+    assert.match(profileClient, /const schedule = \{[\s\S]*identity: 0,[\s\S]*summary: 0\.1,[\s\S]*archive: 0\.26,[\s\S]*share: 0\.42,[\s\S]*province: 0\.58,[\s\S]*support: 0\.66,[\s\S]*logout: 0\.72/)
+
+    assert.match(faqClient, /data-faq-motion="header"/)
+    assert.match(faqClient, /data-faq-motion="search"/)
+    assert.match(faqClient, /data-faq-group-card=\{group\.id\}/)
+    assert.match(faqClient, /data-faq-motion="footer"/)
+    assert.match(faqClient, /if \(initialAnchor \|\| mediaContext\.conditions\?\.reduceMotion\)/)
+    assert.match(faqClient, /const schedule = \{[\s\S]*header: 0,[\s\S]*search: 0\.1,[\s\S]*groups: 0\.22,[\s\S]*footer: 0\.58/)
+    assert.match(faqClient, /stagger: \{ each: 0\.045, from: 'start' \}/)
+
+    assert.match(activityClient, /data-activity-motion="hero-background" data-activity-motion-mode="fade"/)
+    assert.match(activityClient, /data-activity-hero-text="copy"/)
+    assert.match(activityClient, /data-activity-motion="memo-card"/)
+    assert.match(activityClient, /data-activity-motion="summit-card"/)
+    assert.match(activityClient, /data-activity-motion="key-data"/)
+    assert.match(activityClient, /data-activity-motion="route-map" data-activity-motion-mode="fade"/)
+    assert.match(activityClient, /data-activity-motion="route-snapshot" data-activity-motion-mode="fade"/)
+    assert.match(activityClient, /data-activity-motion="photo-strip" data-activity-motion-mode="fade"/)
+    assert.match(activityClient, /const schedule = \{[\s\S]*heroBackground: 0,[\s\S]*heroText: 0\.05,[\s\S]*memo: 0\.18,[\s\S]*summit: 0\.32,[\s\S]*keyData: 0\.42,[\s\S]*map: 0\.56,[\s\S]*routeSnapshot: 0\.64,[\s\S]*photoStrip: 0\.72/)
+  })
+
+  test('Phase 2-III archive filter replay is pre-paint, interrupt-safe, and removes the dead more button', () => {
+    assert.doesNotMatch(archiveClient, /MoreIcon/)
+    assert.doesNotMatch(archiveClient, /ariaLabel="更多"/)
+    assert.match(archiveClient, /gridTemplateColumns: '44px minmax\(0, 1fr\) 44px'/)
+    assert.match(archiveClient, /<div aria-hidden="true" \/>/)
+
+    assert.match(archiveClient, /className="pt-archive-filter-tab"/)
+    assert.match(archiveClient, /\.pt-archive-filter-tab:active/)
+    assert.match(archiveClient, /data-archive-press-active="true"/)
+    assert.match(archiveClient, /onPointerCancel=\{\(event\) => \{[\s\S]*delete event\.currentTarget\.dataset\.archivePressActive/)
+    assert.match(archiveClient, /onPointerLeave=\{\(event\) => \{[\s\S]*delete event\.currentTarget\.dataset\.archivePressActive/)
+    assert.match(archiveClient, /onMouseLeave=\{\(event\) => \{[\s\S]*delete event\.currentTarget\.dataset\.archivePressActive/)
+    assert.match(archiveClient, /onBlur=\{\(event\) => \{[\s\S]*delete event\.currentTarget\.dataset\.archivePressActive/)
+    assert.match(archiveClient, /background var\(--motion-press\) var\(--ease-out\)/)
+    assert.match(archiveClient, /border-color var\(--motion-press\) var\(--ease-out\)/)
+    assert.match(archiveClient, /box-shadow var\(--motion-press\) var\(--ease-out\)/)
+    assert.doesNotMatch(archiveClient, /pressedTab|setPressedTab/)
+
+    assert.match(archiveClient, /import \{ useLayoutEffect, useMemo, useRef, useState/)
+    assert.match(archiveClient, /function handleFilterChange\(nextFilter: FilterId\)/)
+    assert.match(archiveClient, /if \(nextFilter === activeFilter\) return/)
+    assert.match(archiveClient, /terminalizeArchiveListRef\.current\?\.\(\)/)
+    assert.match(archiveClient, /pendingFilterReplayRef\.current = true/)
+    assert.match(archiveClient, /useLayoutEffect\(\(\) => \{[\s\S]*pendingFilterReplayRef\.current[\s\S]*replayArchiveListRef\.current\?\.\(\)[\s\S]*\}, \[activeFilter, filteredTripSignature\]\)/)
+
+    assert.match(archiveClient, /const getLiveArchiveListTargets = \(\) => \{/)
+    assert.match(archiveClient, /const yearDividers = getScopedTargets\('\[data-archive-motion="year-divider"\]'\)/)
+    assert.match(archiveClient, /const tripCards = getScopedTargets\('\[data-archive-trip-card\]'\)/)
+    assert.match(archiveClient, /firstScreenTripCards: tripCards\.slice\(0, 4\)/)
+    assert.match(archiveClient, /archiveListReplayTimeline\?\.kill\(\)/)
+    assert.match(archiveClient, /archiveListReplayTimeline = null/)
+    assert.match(archiveClient, /terminalizeArchiveListMotion\(\)/)
+    assert.match(archiveClient, /window\.matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches/)
+    assert.match(archiveClient, /archiveListReplayTimeline\.fromTo\(yearDividers, \{ autoAlpha: 0 \}/)
+    assert.match(archiveClient, /archiveListReplayTimeline\.fromTo\(firstScreenTripCards, \{ autoAlpha: 0, y: 16, scale: 0\.96 \}/)
+    assert.match(archiveClient, /stagger: \{ each: 0\.03, from: 'start' \}/)
+    assert.match(archiveClient, /parseMotionTokenSeconds\(root, '--motion-enter', 320\)/)
+    assert.match(archiveClient, /clearProps: 'willChange,transform'/)
+  })
+
+  test('Phase 2-III transform-unsafe elements are excluded or fade-only and list keys remain stable', () => {
+    assert.match(archiveClient, /group\.trips\.map\(\(trip\) => \(\s*<TripCard key=\{trip\.id\}/m)
+    assert.match(archiveClient, /yearGroups\.map\(\(group\) => \(\s*<section key=\{group\.year\}>/m)
+    assert.doesNotMatch(archiveClient, /data-testid="archive-trip-media"[\s\S]{0,160}data-archive-(motion|trip-card)/)
+    assert.doesNotMatch(archiveClient, /data-archive-motion="filters"[\s\S]{0,900}scale: 0\.(9|8)/)
+
+    assert.match(profileClient, /trips\.slice\(0, 3\)/)
+    assert.match(profileClient, /shares\.slice\(0, 3\)/)
+    assert.match(profileClient, /key=\{trip\.checkinId\}/)
+    assert.match(profileClient, /key=\{share\.id\}/)
+    assert.match(profileClient, /key=\{row\.label\}/)
+    assert.doesNotMatch(profileClient, /profile-avatar-shell[\s\S]{0,120}data-profile-motion/)
+    assert.doesNotMatch(profileClient, /profile-nickname-success-toast[\s\S]{0,160}data-profile-motion/)
+
+    assert.match(faqClient, /FAQ_GROUPS\.map\(\(group\) => \(\s*<FAQGroupCard\s+key=\{group\.id\}/m)
+    assert.match(faqClient, /key=\{question\.anchor\}/)
+    assert.match(faqClient, /key=\{result\.anchor\}/)
+    assert.doesNotMatch(faqClient, /data-testid="faq-search-input"[\s\S]{0,180}data-faq-motion/)
+    assert.doesNotMatch(faqClient, /contactEmail[\s\S]{0,500}data-faq-(motion|group-card)/)
+
+    assert.match(activityClient, /key=\{cell\.label\}/)
+    assert.match(activityClient, /key=\{photo\.id\}/)
+    assert.match(activityClient, /key=\{`\$\{photo\.id\}-thumb`\}/)
+    assert.doesNotMatch(activityClient, /className="act-actions"[\s\S]{0,160}data-activity-motion/)
+    assert.doesNotMatch(activityClient, /ActivityTopBar[\s\S]{0,180}data-activity-motion/)
+    assert.doesNotMatch(activityClient, /querySelector(?:All)?\([^)]*(canvas|MapLibre|PmtilesSnapshotMap|act-actions|act-lightbox)/)
+  })
+
+  test('Phase 2-III count-up reuses the Mountain formatter without changing Mountain terminal formatting', () => {
+    assert.match(mountainDetailClient, /import \{ formatMotionCountValue, formatMotionInteger as formatInteger, parseMotionTokenSeconds \} from '@\/lib\/motion-count-format'/)
+    assert.match(mountainDetailClient, /formatMotionCountValue\(countState\.value, valueNode\.dataset\.countFormat, finalText\)/)
+    assert.match(mountainDetailClient, /valueNode\.textContent = finalText/)
+    assert.match(motionCountHelper, /export function formatMotionInteger\(value: number \| null \| undefined\)/)
+    assert.match(motionCountHelper, /return String\(Math\.round\(value\)\)/)
+    assert.match(motionCountHelper, /format === 'duration'/)
+    assert.match(archiveClient, /import \{ formatMotionCountValue, parseMotionTokenSeconds, type MotionCountFormat \} from '@\/lib\/motion-count-format'/)
+    assert.match(profileClient, /import \{ formatMotionCountValue, parseMotionTokenSeconds, type MotionCountFormat \} from '@\/lib\/motion-count-format'/)
+    assert.match(activityClient, /import \{ formatMotionCountValue, parseMotionTokenSeconds, type MotionCountFormat \} from '@\/lib\/motion-count-format'/)
+    assert.doesNotMatch(archiveClient, /function formatMotionCountValue/)
+    assert.doesNotMatch(profileClient, /function formatMotionCountValue/)
+    assert.doesNotMatch(activityClient, /function formatMotionCountValue/)
+  })
+
+  test('Phase 2-III 4-page subset does not add a motion island or expand to cut pages', () => {
+    const changed = execSync('git diff --name-only && git ls-files --others --exclude-standard', {
+      encoding: 'utf8',
+    }).trim().split(/\n/u).filter(Boolean)
+    assert.equal(changed.includes('src/app/(flow)/template.tsx'), false)
+    assert.equal(changed.includes('src/app/(main)/template.tsx'), false)
+    assert.equal(changed.some((file) => /PageSweepEntrance/.test(file)), false)
+    assert.equal(changed.some((file) => file.includes('/prep/')), false)
+    assert.equal(changed.some((file) => file.includes('/rankings/')), false)
+    assert.equal(changed.some((file) => file.includes('/community/')), false)
   })
 
   test('Phase 2-II motion helpers do not animate layout properties', () => {

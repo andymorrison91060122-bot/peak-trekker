@@ -23,6 +23,7 @@ import SanitizedMountainDescription, {
 import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
 import PmtilesSnapshotMap from '@/components/map/PmtilesSnapshotMap'
 import type { LicenseProgressSummary } from '@/lib/license-progress'
+import { formatMotionCountValue, formatMotionInteger as formatInteger, parseMotionTokenSeconds } from '@/lib/motion-count-format'
 import { trackEvent } from '@/lib/analytics/client'
 import { buildTrekUrl, consumePendingShareTemplateForTrekUrl } from '@/lib/share-template-intent'
 
@@ -43,36 +44,6 @@ type MountainDetailClientProps = {
   heroImages: string[]
   routeMockEnabled: boolean
   forceRouteMapError: boolean
-}
-
-function formatInteger(value: number | null | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--'
-  return String(Math.round(value))
-}
-
-function parseMotionTokenSeconds(root: HTMLElement, tokenName: string, fallbackMs: number) {
-  const raw = window.getComputedStyle(root).getPropertyValue(tokenName).trim()
-  if (!raw) return fallbackMs / 1000
-  if (raw.endsWith('ms')) {
-    const value = Number.parseFloat(raw)
-    return Number.isFinite(value) ? value / 1000 : fallbackMs / 1000
-  }
-  if (raw.endsWith('s')) {
-    const value = Number.parseFloat(raw)
-    return Number.isFinite(value) ? value : fallbackMs / 1000
-  }
-  return fallbackMs / 1000
-}
-
-function getDecimalPlaces(value: string) {
-  const [, decimals = ''] = value.split('.')
-  return decimals.length
-}
-
-function formatMotionCountValue(value: number, format: string | undefined, finalText: string) {
-  if (format === 'integer') return formatInteger(value)
-  if (format === 'decimal') return value.toFixed(getDecimalPlaces(finalText))
-  return finalText
 }
 
 function getRouteFacts(mountain: Mountain) {

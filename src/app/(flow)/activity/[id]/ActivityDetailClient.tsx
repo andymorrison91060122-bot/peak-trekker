@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import gsap from 'gsap'
+import { useGSAP } from '@gsap/react'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import IconButton from '@/components/ui/IconButton'
@@ -28,7 +30,10 @@ import {
   getActivityPhotoDeleteValidation,
   getActivityPhotoUploadValidation,
 } from '@/lib/activity-detail-validation'
+import { formatMotionCountValue, parseMotionTokenSeconds, type MotionCountFormat } from '@/lib/motion-count-format'
 import { trackEvent } from '@/lib/analytics/client'
+
+gsap.registerPlugin(useGSAP)
 
 export type ActivityPhotoViewModel = {
   id: string
@@ -309,7 +314,7 @@ function ActivityHero({ activity }: { activity: ActivityDetailViewModel }) {
   const regionLine = regionParts.join(' · ')
 
   return (
-    <section style={{ position: 'relative', height: 320, overflow: 'hidden' }}>
+    <section data-activity-motion="hero-background" data-activity-motion-mode="fade" style={{ position: 'relative', height: 320, overflow: 'hidden' }}>
       {heroPhoto ? (
         <div
           aria-label="活动封面照片"
@@ -354,7 +359,7 @@ function ActivityHero({ activity }: { activity: ActivityDetailViewModel }) {
             'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 55%, transparent) 0%, transparent 35%, color-mix(in srgb, var(--color-surface) 95%, transparent) 100%)',
         }}
       />
-      <div style={{ position: 'absolute', left: 16, right: 16, bottom: 18 }}>
+      <div data-activity-hero-text="copy" style={{ position: 'absolute', left: 16, right: 16, bottom: 18 }}>
         <div
           style={{
             ...monoStyle,
@@ -400,7 +405,7 @@ function ActivityHero({ activity }: { activity: ActivityDetailViewModel }) {
 
 function SummitReachedCard({ activity }: { activity: ActivityDetailViewModel }) {
   return (
-    <section style={sectionPadding('var(--space-4)')}>
+    <section data-activity-motion="summit-card" style={sectionPadding('var(--space-4)')}>
       <div
         style={{
           display: 'grid',
@@ -438,7 +443,14 @@ function SummitReachedCard({ activity }: { activity: ActivityDetailViewModel }) 
               letterSpacing: '-0.02em',
             }}
           >
-            {formatNumber(activity.metrics.maxAltitudeM)}
+            <span
+              data-activity-count-value="summit-altitude"
+              data-count-value={activity.metrics.maxAltitudeM > 0 ? String(activity.metrics.maxAltitudeM) : undefined}
+              data-count-format="integer"
+              data-final-text={formatNumber(activity.metrics.maxAltitudeM)}
+            >
+              {formatNumber(activity.metrics.maxAltitudeM)}
+            </span>
             <span
               style={{
                 marginLeft: 4,
@@ -484,7 +496,7 @@ function MaxAltitudeCard({ activity }: { activity: ActivityDetailViewModel }) {
   const hasMaxAltitude = activity.metrics.maxAltitudeM > 0
 
   return (
-    <section style={sectionPadding('var(--space-4)')}>
+    <section data-activity-motion="summit-card" style={sectionPadding('var(--space-4)')}>
       <div
         style={{
           padding: '14px var(--space-4)',
@@ -520,7 +532,14 @@ function MaxAltitudeCard({ activity }: { activity: ActivityDetailViewModel }) {
             >
               {hasMaxAltitude ? (
                 <>
-                  {formatNumber(activity.metrics.maxAltitudeM)}
+                  <span
+                    data-activity-count-value="max-altitude"
+                    data-count-value={String(activity.metrics.maxAltitudeM)}
+                    data-count-format="integer"
+                    data-final-text={formatNumber(activity.metrics.maxAltitudeM)}
+                  >
+                    {formatNumber(activity.metrics.maxAltitudeM)}
+                  </span>
                   <span
                     style={{
                       marginLeft: 4,
@@ -562,14 +581,35 @@ function MaxAltitudeCard({ activity }: { activity: ActivityDetailViewModel }) {
 
 function KeyDataGrid({ activity }: { activity: ActivityDetailViewModel }) {
   const cells = [
-    { label: '最高海拔 m', value: activity.metrics.maxAltitudeM > 0 ? formatNumber(activity.metrics.maxAltitudeM) : '--' },
-    { label: '总用时', value: activity.metrics.durationSeconds > 0 ? formatDuration(activity.metrics.durationSeconds) : '--' },
-    { label: '总距离 km', value: activity.metrics.distanceKm > 0 ? activity.metrics.distanceKm.toFixed(1) : '--' },
-    { label: '累计爬升 m', value: activity.metrics.ascentM > 0 ? formatNumber(activity.metrics.ascentM) : '--' },
+    {
+      label: '最高海拔 m',
+      value: activity.metrics.maxAltitudeM > 0 ? formatNumber(activity.metrics.maxAltitudeM) : '--',
+      countValue: activity.metrics.maxAltitudeM > 0 ? activity.metrics.maxAltitudeM : undefined,
+      countFormat: 'integer' as MotionCountFormat,
+    },
+    {
+      label: '总用时',
+      value: activity.metrics.durationSeconds > 0 ? formatDuration(activity.metrics.durationSeconds) : '--',
+      countValue: activity.metrics.durationSeconds > 0 ? activity.metrics.durationSeconds : undefined,
+      countFormat: 'duration' as MotionCountFormat,
+    },
+    {
+      label: '总距离 km',
+      value: activity.metrics.distanceKm > 0 ? activity.metrics.distanceKm.toFixed(1) : '--',
+      countValue: activity.metrics.distanceKm > 0 ? activity.metrics.distanceKm : undefined,
+      countFormat: 'decimal' as MotionCountFormat,
+    },
+    {
+      label: '累计爬升 m',
+      value: activity.metrics.ascentM > 0 ? formatNumber(activity.metrics.ascentM) : '--',
+      countValue: activity.metrics.ascentM > 0 ? activity.metrics.ascentM : undefined,
+      countFormat: 'integer' as MotionCountFormat,
+    },
   ]
 
   return (
     <section
+      data-activity-motion="key-data"
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -580,6 +620,7 @@ function KeyDataGrid({ activity }: { activity: ActivityDetailViewModel }) {
       {cells.map((cell) => (
         <div
           key={cell.label}
+          data-activity-key-data-cell={cell.label}
           style={{
             padding: '12px 10px',
             textAlign: 'center',
@@ -589,6 +630,10 @@ function KeyDataGrid({ activity }: { activity: ActivityDetailViewModel }) {
           }}
         >
           <div
+            data-activity-count-value={cell.label}
+            data-count-value={typeof cell.countValue === 'number' ? String(cell.countValue) : undefined}
+            data-count-format={cell.countFormat}
+            data-final-text={cell.value}
             style={{
               ...monoStyle,
               color: 'var(--color-on-surface)',
@@ -644,7 +689,7 @@ function RouteSnapshot({ activity }: { activity: ActivityDetailViewModel }) {
   }
 
   return (
-    <section style={sectionPadding('var(--space-5)')}>
+    <section data-activity-motion="route-snapshot" data-activity-motion-mode="fade" style={sectionPadding('var(--space-5)')}>
       <SectionHead right="走过的路线">轨迹记忆</SectionHead>
       <div
         style={{
@@ -747,7 +792,7 @@ function PhotoStrip({
 
   if (!photos.length) {
     return (
-      <section style={sectionPadding('var(--space-5)')}>
+      <section data-activity-motion="photo-strip" data-activity-motion-mode="fade" style={sectionPadding('var(--space-5)')}>
         <SectionHead right={`已 ${photoCount}/${ACTIVITY_PHOTO_MAX_COUNT} 张`}>照片</SectionHead>
         <div
           style={{
@@ -828,7 +873,7 @@ function PhotoStrip({
             : 'act-photos__layout act-photos__layout--one'
 
   return (
-    <section style={sectionPadding('var(--space-5)')}>
+    <section data-activity-motion="photo-strip" data-activity-motion-mode="fade" style={sectionPadding('var(--space-5)')}>
       <SectionHead right={`已 ${photoCount}/${ACTIVITY_PHOTO_MAX_COUNT} 张`}>这次的照片</SectionHead>
       <div className={layoutClass} data-testid="activity-photo-gallery">
         {photos.map((photo, index) => {
@@ -1061,7 +1106,7 @@ function MemoryNote({
 
   if (isEditing) {
     return (
-      <section style={sectionPadding('var(--space-5)')}>
+      <section data-activity-motion="memo-card" style={sectionPadding('var(--space-5)')}>
         <SectionHead>手记</SectionHead>
         <div
           style={{
@@ -1137,7 +1182,7 @@ function MemoryNote({
   }
 
   return (
-    <section style={sectionPadding('var(--space-5)')}>
+    <section data-activity-motion="memo-card" style={sectionPadding('var(--space-5)')}>
       <SectionHead>手记</SectionHead>
       {hasNote ? (
         <div
@@ -1432,6 +1477,7 @@ function ActivityInlineActions({ activity }: { activity: ActivityDetailViewModel
 
 export default function ActivityDetailClient({ activity, activityMapError = null }: ActivityDetailClientProps) {
   const router = useRouter()
+  const motionScopeRef = useRef<HTMLElement | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const [savedNote, setSavedNote] = useState(activity.note)
   const [draftNote, setDraftNote] = useState(activity.note)
@@ -1475,6 +1521,194 @@ export default function ActivityDetailClient({ activity, activityMapError = null
       },
     })
   }, [activity.id, activity.isSummit, activity.mountain.id, activity.proofStatus, activity.sourceType])
+
+  useGSAP((_context, contextSafe) => {
+    const root = motionScopeRef.current
+    if (!root) return
+
+    const getScopedTargets = (selector: string, scope: ParentNode = root) =>
+      gsap.utils.toArray<HTMLElement>(scope.querySelectorAll(selector)).filter((target) => root.contains(target))
+
+    const getMotionTargets = () => getScopedTargets('[data-activity-motion]')
+    const getFadeOnlyTargets = () => getMotionTargets().filter((target) => target.dataset.activityMotionMode === 'fade')
+    const getShiftedTargets = () => getMotionTargets().filter((target) => target.dataset.activityMotionMode !== 'fade')
+
+    const terminalizeActivityCountValues = () => {
+      for (const valueNode of getScopedTargets('[data-activity-count-value]')) {
+        const finalText = valueNode.dataset.finalText
+        if (finalText) valueNode.textContent = finalText
+      }
+    }
+
+    const terminalizeActivityMotion = () => {
+      if (!root.isConnected) return
+      const fadeOnlyTargets = getFadeOnlyTargets()
+      const shiftedTargets = [
+        ...getShiftedTargets(),
+        ...getScopedTargets('[data-activity-hero-text]'),
+        ...getScopedTargets('[data-activity-key-data-cell]'),
+      ]
+      if (fadeOnlyTargets.length > 0) {
+        gsap.set(fadeOnlyTargets, {
+          autoAlpha: 1,
+          clearProps: 'willChange,transform',
+        })
+      }
+      if (shiftedTargets.length > 0) {
+        gsap.set(shiftedTargets, {
+          autoAlpha: 1,
+          y: 0,
+          scale: 1,
+          clearProps: 'willChange,transform',
+        })
+      }
+      terminalizeActivityCountValues()
+    }
+
+    const runMotion = () => {
+      const mm = gsap.matchMedia()
+      mm.add(
+        {
+          allowMotion: '(prefers-reduced-motion: no-preference)',
+          reduceMotion: '(prefers-reduced-motion: reduce)',
+        },
+        (mediaContext) => {
+          if (mediaContext.conditions?.reduceMotion) {
+            terminalizeActivityMotion()
+            return () => terminalizeActivityMotion()
+          }
+
+          const baseDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.2)
+          const enterDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.24)
+          const fastDuration = Math.min(parseMotionTokenSeconds(root, '--motion-fast', 180), 0.16)
+          const schedule = {
+            heroBackground: 0,
+            heroText: 0.05,
+            memo: 0.18,
+            summit: 0.32,
+            keyData: 0.42,
+            map: 0.56,
+            routeSnapshot: 0.64,
+            photoStrip: 0.72,
+          } as const
+          const motionMap = new Map(getMotionTargets().map((target) => [target.dataset.activityMotion, target]))
+          const fadeOnlyTargets = getFadeOnlyTargets()
+          const shiftedTargets = [
+            ...getShiftedTargets(),
+            ...getScopedTargets('[data-activity-hero-text]'),
+            ...getScopedTargets('[data-activity-key-data-cell]'),
+          ]
+
+          if (fadeOnlyTargets.length > 0) gsap.set(fadeOnlyTargets, { willChange: 'opacity' })
+          if (shiftedTargets.length > 0) gsap.set(shiftedTargets, { willChange: 'transform, opacity' })
+
+          const timeline = gsap.timeline({
+            defaults: { duration: baseDuration, ease: 'power3.out' },
+            onComplete: terminalizeActivityMotion,
+            onInterrupt: terminalizeActivityMotion,
+          })
+
+          const addMotion = (key: string, label: string, position: number, fromY = 16, scale = 0.96, ease = 'back.out(1.3)') => {
+            const target = motionMap.get(key)
+            if (!target) return
+            timeline.addLabel(label, position)
+            if (target.dataset.activityMotionMode === 'fade') {
+              timeline.fromTo(target, { autoAlpha: 0 }, { autoAlpha: 1, duration: baseDuration, ease: 'power3.out' }, label)
+              return
+            }
+            timeline.fromTo(target, { autoAlpha: 0, y: fromY, scale }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: enterDuration,
+              ease,
+            }, label)
+          }
+
+          const heroBackground = motionMap.get('hero-background')
+          if (heroBackground) {
+            timeline.addLabel('heroBackground', schedule.heroBackground)
+            timeline.fromTo(heroBackground, { autoAlpha: 0 }, {
+              autoAlpha: 1,
+              duration: Math.min(enterDuration, 0.32),
+              ease: 'power3.out',
+            }, 'heroBackground')
+          }
+          const heroText = getScopedTargets('[data-activity-hero-text]')
+          if (heroText.length > 0) {
+            timeline.addLabel('heroText', schedule.heroText)
+            timeline.fromTo(heroText, { autoAlpha: 0, y: 12 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: baseDuration,
+              ease: 'power3.out',
+            }, 'heroText')
+          }
+
+          addMotion('memo-card', 'memo', schedule.memo, 16, 0.96)
+          addMotion('summit-card', 'summit', schedule.summit, 16, 0.96)
+          addMotion('key-data', 'keyData', schedule.keyData, 14, 0.94)
+
+          for (const valueNode of getScopedTargets('[data-activity-count-value][data-count-value]')) {
+            const rawTarget = Number(valueNode.dataset.countValue)
+            const finalText = valueNode.dataset.finalText ?? valueNode.textContent ?? ''
+            if (!Number.isFinite(rawTarget)) continue
+            const countState = { value: 0 }
+            const startLabel = valueNode.closest('[data-activity-motion="summit-card"]') ? 'summit' : 'keyData'
+            timeline.to(countState, {
+              value: rawTarget,
+              duration: Math.min(0.46, enterDuration * 1.9),
+              ease: 'power2.out',
+              onStart: () => {
+                valueNode.textContent = formatMotionCountValue(0, valueNode.dataset.countFormat, finalText)
+              },
+              onUpdate: () => {
+                valueNode.textContent = formatMotionCountValue(countState.value, valueNode.dataset.countFormat, finalText)
+              },
+              onComplete: () => {
+                valueNode.textContent = finalText
+              },
+            }, startLabel)
+          }
+
+          const keyCells = getScopedTargets('[data-activity-key-data-cell]')
+          if (keyCells.length > 0) {
+            timeline.fromTo(keyCells, { autoAlpha: 0, y: 14, scale: 0.94 }, {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: fastDuration,
+              ease: 'back.out(1.3)',
+              stagger: { each: 0.035, from: 'start' },
+            }, 'keyData')
+          }
+
+          addMotion('route-map', 'routeMap', schedule.map, 0, 1)
+          addMotion('route-snapshot', 'routeSnapshot', schedule.routeSnapshot, 0, 1)
+          addMotion('photo-strip', 'photoStrip', schedule.photoStrip, 0, 1)
+
+          return () => {
+            timeline.kill()
+            terminalizeActivityMotion()
+          }
+        },
+        root,
+      )
+
+      return () => {
+        mm.revert()
+        terminalizeActivityMotion()
+      }
+    }
+
+    const safeRunMotion = (contextSafe ? contextSafe(runMotion) : runMotion) as () => unknown
+    const cleanup = safeRunMotion()
+    return () => {
+      if (typeof cleanup === 'function') cleanup()
+      terminalizeActivityMotion()
+    }
+  }, { scope: motionScopeRef, dependencies: [] })
 
   useEffect(() => {
     if (lightboxIndex === null) return
@@ -1724,7 +1958,9 @@ export default function ActivityDetailClient({ activity, activityMapError = null
 
   return (
     <main
+      ref={motionScopeRef}
       className="activity-detail-page"
+      data-activity-motion-root
       data-activity-checkin-id={activity.id}
       style={{
         position: 'relative',
@@ -1750,7 +1986,9 @@ export default function ActivityDetailClient({ activity, activityMapError = null
       />
       {renderedActivity.isSummit ? <SummitReachedCard activity={renderedActivity} /> : <MaxAltitudeCard activity={renderedActivity} />}
       <KeyDataGrid activity={renderedActivity} />
-      <ActivityRouteMap activity={renderedActivity} forceMapError={activityMapError} />
+      <div data-activity-motion="route-map" data-activity-motion-mode="fade">
+        <ActivityRouteMap activity={renderedActivity} forceMapError={activityMapError} />
+      </div>
       <RouteSnapshot activity={renderedActivity} />
       <PhotoStrip
         activity={renderedActivity}

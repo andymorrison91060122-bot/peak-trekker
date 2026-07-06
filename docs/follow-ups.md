@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-06 · 最新版本记录: v0.97
+> Last Updated: 2026-07-06 · 最新版本记录: v0.98
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`3dce04ef9554cb3e1bddda4a1120c3f0350e4e6e`（Merge FU-76 P2-III 4-page entrances + archive tab-replay · 2026-07-06）
+`dcddd92a04a28f14e11f6b51b0cfd7f8e7e4d308`（Merge FU-110 explore bottom-section entrance + geo replay stability · 2026-07-06）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（18 条）
+## Active Follow-ups（17 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -405,20 +405,6 @@
 
 ---
 
-### FU-110 · Explore 下半段入场割裂
-
-- **优先级**: P2（high priority）
-- **归属阶段**: FU-76 后续动效一致性
-- **状态**: 🟡 in-progress（本地 evidence 生成后待用户验收，不关闭）
-
-**背景**: FU-76 P2-III Round 1 审查确认：Explore 下半段仍有入场割裂。`QUICK_TAGS` row 与山峰列表 subheading 未被 motion 标记；且运行时已确认，地理位置授权后 position resolve 会按距离重排列表，新 first-screen cards 在 mount entrance 之后渲染，保持 `opacity: 1` 静态出现。
-
-**待修方向**: 不是补一个静态 schedule；需要 whole-bottom-section entrance orchestration，并在异步列表来源变化（position / tag / province）时用 `contextSafe` replay first-screen cards，保持 reduced-motion 终态与 rapid source change interrupt-safety。
-
-**本轮证据路径**: `output/fu76-p2iii-acceptance/fu110-explore/`（controlled local production build；no-geo / geo re-sort / SPA route-return cache-hit + cache-miss / empty-state / rapid collision / reduced-motion evidence）。
-
----
-
 ### FU-111 · 全局点击反馈审计 + 补足
 
 - **优先级**: P2（high priority）
@@ -531,7 +517,16 @@
 
 ---
 
-## Closed Follow-ups（92 条）
+## Closed Follow-ups（93 条）
+
+### FU-110 ✅ Explore 下半段入场割裂
+
+- **关闭原因**: FU-110 已完成 `/explore` 下半段入场割裂修复并合入生产主线。PR #39 / branch `codex/fu110-explore` / merge `dcddd92a04a28f14e11f6b51b0cfd7f8e7e4d308` 合入 commit `cd0df5ef41c96462195f9af8df9319abefeac63e`，无 DB / migration / backend 改动。
+- **落地内容**: `QUICK_TAGS` chips 与「山峰列表」subheading 纳入 mount entrance，保持 tight schedule（第 4 张卡 ≤700ms）；新增 module-level session geolocation cache，SPA route-return 直接以 cache 初始化排序，避免二次播放；地理位置 resolve 后的 re-sort replay 改为 non-destructive，已经可见的卡片不再被重新 hide，只有新增 / reorder 的 first-four 卡片轻量 `y/scale` 过渡；修复 route leave 时 GSAP context cleanup `RangeError`；增加 two-layer replay reason log。
+- **验收 / 证据**: 用户 2026-07-06 视觉验收 PASS。门禁：`npm run lint` 0 errors / 6 existing warnings；`node --test --experimental-strip-types tests/motion-nodes-static.test.ts` 22/22 pass；`npm run build` pass（52/52 static pages）；`git diff --check` clean。Focused evidence guard 保留在 `tests/e2e/fu76-p2iii-motion-evidence.spec.ts`。
+- **生产部署**: Vercel production deploy for merge `dcddd92a04a28f14e11f6b51b0cfd7f8e7e4d308` 已触发；最终部署状态以后续 Vercel READY 核验为准。
+- **关闭 commit**: 本次 PR commit
+- **关闭时间**: 2026-07-06
 
 ### FU-85 ✅ 分享/模板门面改造
 
@@ -1714,6 +1709,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.98 — 2026-07-06**: FU-110 closeout · Explore 下半段入场割裂修复上线。`QUICK_TAGS` chips +「山峰列表」subheading 纳入 mount entrance；新增 session geolocation cache，SPA route-return 以 cache 初始化排序避免 double-play；geo resolve / tag / province 等来源变化的 first-screen replay 改为 non-destructive（不重新 hide 已可见卡，只轻动新增 / reorder 卡）；修复 route leave GSAP context cleanup `RangeError`，并保留 two-layer replay reason log 与 focused evidence guard。PR #39 / merge `dcddd92a04a28f14e11f6b51b0cfd7f8e7e4d308`。Active 18 → 17 · Closed 92 → 93 · Deferred 4 → 4。
 
 **v0.97 — 2026-07-06**: FU-76 P2-III Round 1 archive-only 视觉审查后续登记。仅新增 downstream Active，不把本轮 archive tab replay / dead-button 修复登记成新 FU：FU-110 Explore 下半段入场割裂（含 geolocation position resolve 重排后 first-screen cards 静态出现的 runtime-confirmed finding）、FU-111 全局点击反馈审计 + 补足（含 bottom-tab switch motion）、FU-112 导航一致性规则 / bottom-tab presence（P2，关联 FU-102）。Active 15 → 18（+FU-110/+FU-111/+FU-112）· Closed 92 → 92 · Deferred 4 → 4。
 

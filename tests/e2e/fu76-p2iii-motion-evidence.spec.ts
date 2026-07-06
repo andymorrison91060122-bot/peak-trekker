@@ -1,4 +1,4 @@
-import { test, expect, type Browser, type BrowserContext, type ConsoleMessage, type Page } from '@playwright/test'
+import { test, expect, type Browser, type BrowserContext, type ConsoleMessage, type Locator, type Page } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -13,6 +13,7 @@ import {
 
 const OUTPUT_DIR = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu76-p2iii-acceptance'
 const FU110_OUTPUT_DIR = join(OUTPUT_DIR, 'fu110-explore')
+const FU111_OUTPUT_DIR = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu111-acceptance'
 const STORAGE_STATE = join(OUTPUT_DIR, 'fu76-p2iii-storage-state.json')
 
 type PageKey = 'archive' | 'profile' | 'faq' | 'activity'
@@ -202,6 +203,39 @@ async function seedActivityPhoto(checkinId: string) {
   if (coverError) throw new Error(`Failed to seed activity evidence cover: ${coverError.message}`)
 }
 
+async function seedPublishedPostForCheckin(page: Page, baseURL: string, checkinId: string) {
+  const imageUrl = createPngDataUrl()
+  const assetId = `fu111-share-asset-${Date.now()}`
+  const response = await page.request.post(`${baseURL}/api/community/actions`, {
+    data: {
+      action: 'create_or_update_post',
+      checkinId,
+      title: 'FU-111 press evidence share',
+      body: 'Controlled published post for profile share-row press evidence.',
+      visibility: 'public',
+      tags: [],
+      assets: [
+        {
+          id: assetId,
+          checkin_id: checkinId,
+          type: 'image',
+          url: imageUrl,
+          thumbnail_url: imageUrl,
+          created_at: new Date().toISOString(),
+          sort_order: 0,
+          source: 'record',
+        },
+      ],
+      coverAssetId: assetId,
+    },
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok() || typeof payload?.postId !== 'string') {
+    throw new Error(`Failed to seed FU-111 profile share row: ${JSON.stringify(payload)}`)
+  }
+  return String(payload.postId)
+}
+
 async function resolveEvidenceUserId(email: string) {
   const supabase = getSupabaseAdminClient()
   const { data, error } = await supabase.auth.admin.listUsers()
@@ -265,7 +299,7 @@ async function seedArchiveReplayRows({
 }
 
 function classifyMessage(text: string): ConsoleEntry['classification'] {
-  if (/analytics|favicon|maplibre|Failed to load resource|net::ERR|401|403|404/i.test(text)) return 'environment'
+  if (/analytics|favicon|maplibre|Unable to load glyph range|protomaps|basemaps-assets|Failed to load resource|net::ERR|401|403|404/i.test(text)) return 'environment'
   if (/recognitionFailureResponse|requestSource|TrackPoint|feedbackTimersRef|ButtonPrimitive/i.test(text)) return 'pre-existing'
   return 'new-this-round'
 }
@@ -378,6 +412,7 @@ async function newEvidenceContext(browser: Browser, baseURL: string, options: {
       })
     })
   } else if (options.geolocation) {
+    await context.grantPermissions(['geolocation'], { origin: baseURL })
     await context.addInitScript((geo) => {
       Object.defineProperty(navigator, 'geolocation', {
         configurable: true,
@@ -1229,6 +1264,370 @@ async function collectReducedScreenshot(browser: Browser, baseURL: string, key: 
   await context.close()
   return screenshotPath
 }
+
+type PressStyleSnapshot = {
+  opacity: string
+  transform: string
+  filter: string
+  backgroundColor: string
+  borderColor: string
+  afterOpacity: string
+  afterBorderRadius: string
+  afterBoxShadow: string
+  box: { x: number; y: number; width: number; height: number }
+}
+
+type PressEvidence = {
+  label: string
+  selector: string
+  before: PressStyleSnapshot
+  pressed: PressStyleSnapshot
+  released: PressStyleSnapshot
+  visualChanged: boolean
+  returnedToTerminal: boolean
+  screenshot: string
+}
+
+async function snapshotPressStyle(locator: Locator): Promise<PressStyleSnapshot> {
+  return locator.evaluate((element) => {
+    const style = window.getComputedStyle(element as HTMLElement)
+    const afterStyle = window.getComputedStyle(element as HTMLElement, '::after')
+    const box = (element as HTMLElement).getBoundingClientRect()
+    return {
+      opacity: style.opacity,
+      transform: style.transform,
+      filter: style.filter,
+      backgroundColor: style.backgroundColor,
+      borderColor: style.borderColor,
+      afterOpacity: afterStyle.opacity,
+      afterBorderRadius: afterStyle.borderRadius,
+      afterBoxShadow: afterStyle.boxShadow,
+      box: {
+        x: Number(box.x.toFixed(2)),
+        y: Number(box.y.toFixed(2)),
+        width: Number(box.width.toFixed(2)),
+        height: Number(box.height.toFixed(2)),
+      },
+    }
+  })
+}
+
+function pressStyleChanged(before: PressStyleSnapshot, pressed: PressStyleSnapshot) {
+  return before.transform !== pressed.transform ||
+    before.filter !== pressed.filter ||
+    before.backgroundColor !== pressed.backgroundColor ||
+    before.borderColor !== pressed.borderColor ||
+    before.opacity !== pressed.opacity ||
+    before.afterOpacity !== pressed.afterOpacity
+}
+
+function normalizeTerminalTransform(value: string) {
+  return value === 'none' || value === 'matrix(1, 0, 0, 1, 0, 0)' ? 'identity' : value
+}
+
+async function collectHeldPressEvidence(page: Page, label: string, target: string | Locator, screenshotPath: string): Promise<PressEvidence> {
+  const locator = typeof target === 'string' ? page.locator(target).first() : target.first()
+  const selector = typeof target === 'string' ? target : label
+  await locator.waitFor({ state: 'visible', timeout: 20_000 })
+  await locator.scrollIntoViewIfNeeded()
+  await locator.evaluate((element) => new Promise<void>((resolve) => {
+    const deadline = performance.now() + 5000
+    const isTerminalTransform = (value: string) => value === 'none' || value === 'matrix(1, 0, 0, 1, 0, 0)'
+    const tick = () => {
+      const style = window.getComputedStyle(element as HTMLElement)
+      if (Number(style.opacity) > 0.99 && style.visibility !== 'hidden' && isTerminalTransform(style.transform)) {
+        resolve()
+        return
+      }
+      if (performance.now() >= deadline) {
+        resolve()
+        return
+      }
+      window.requestAnimationFrame(tick)
+    }
+    tick()
+  }))
+  const before = await snapshotPressStyle(locator)
+  const box = await locator.boundingBox()
+  if (!box) throw new Error(`FU-111 press target has no box: ${label}`)
+  await locator.evaluate((element) => {
+    const target = element as HTMLElement
+    const preventClickOnce = (event: MouseEvent) => {
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      target.removeEventListener('click', preventClickOnce, true)
+    }
+    target.addEventListener('click', preventClickOnce, true)
+  })
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.waitForTimeout(180)
+  const pressed = await snapshotPressStyle(locator)
+  await page.screenshot({ path: screenshotPath, fullPage: false })
+  await page.mouse.up()
+  await page.mouse.move(1, 1)
+  await page.waitForTimeout(180)
+  const released = await snapshotPressStyle(locator)
+  return {
+    label,
+    selector,
+    before,
+    pressed,
+    released,
+    visualChanged: pressStyleChanged(before, pressed),
+    returnedToTerminal: normalizeTerminalTransform(released.transform) === normalizeTerminalTransform(before.transform) && released.filter === before.filter,
+    screenshot: screenshotPath,
+  }
+}
+
+async function collectPointerFallbackReset(page: Page, selector: string) {
+  const locator = page.locator(selector).first()
+  await locator.waitFor({ state: 'visible', timeout: 20_000 })
+  await locator.scrollIntoViewIfNeeded()
+  const box = await locator.boundingBox()
+  if (!box) throw new Error(`FU-111 pointer fallback target has no box: ${selector}`)
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  const activeAfterDown = await locator.evaluate((element) => (element as HTMLElement).dataset.ptPressActive === 'true')
+  await page.mouse.up()
+  const activeAfterUp = await locator.evaluate((element) => (element as HTMLElement).dataset.ptPressActive === 'true')
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width + 32, box.y + box.height + 32)
+  const activeAfterLeave = await locator.evaluate((element) => (element as HTMLElement).dataset.ptPressActive === 'true')
+  await page.mouse.up().catch(() => undefined)
+  await locator.dispatchEvent('pointerdown', { pointerType: 'touch', bubbles: true })
+  await locator.dispatchEvent('pointercancel', { pointerType: 'touch', bubbles: true })
+  const activeAfterCancel = await locator.evaluate((element) => (element as HTMLElement).dataset.ptPressActive === 'true')
+  await locator.focus()
+  await locator.dispatchEvent('pointerdown', { pointerType: 'touch', bubbles: true })
+  await locator.evaluate((element) => (element as HTMLElement).blur())
+  const activeAfterBlur = await locator.evaluate((element) => (element as HTMLElement).dataset.ptPressActive === 'true')
+  return {
+    activeAfterDown,
+    activeAfterUp,
+    activeAfterLeave,
+    activeAfterCancel,
+    activeAfterBlur,
+    resetOk: activeAfterDown && !activeAfterUp && !activeAfterLeave && !activeAfterCancel && !activeAfterBlur,
+  }
+}
+
+test('FU-111 global L1 press feedback evidence', async ({ browser, page, baseURL }) => {
+  test.setTimeout(240_000)
+  if (!baseURL) throw new Error('Playwright baseURL is required for FU-111 press evidence.')
+  await mkdir(OUTPUT_DIR, { recursive: true })
+  await mkdir(FU111_OUTPUT_DIR, { recursive: true })
+
+  await page.route('**/api/analytics/event', async (route) => {
+    await route.fulfill({ status: 204, body: '' })
+  })
+  const registeredUser = await registerFreshUser(page, baseURL, {
+    returnTo: '/explore',
+    email: createTestEmail('fu111'),
+    username: `fu111-${Date.now()}`,
+    province: '四川',
+  })
+  await markEvidenceProfileOnboarded(registeredUser.username)
+  const mountain = await fetchMostPopularMountain()
+  const checkinId = await createGpsCheckinViaApi(page, mountain, `fu111-${Date.now()}`)
+  await seedActivityPhoto(checkinId)
+  await seedPublishedPostForCheckin(page, baseURL, checkinId)
+  await seedArchiveReplayRows({ page, email: registeredUser.email, mountain })
+  await page.context().storageState({ path: STORAGE_STATE })
+
+  const videoDir = join(FU111_OUTPUT_DIR, 'videos')
+  await mkdir(videoDir, { recursive: true })
+  const consoleEntries: ConsoleEntry[] = []
+  const pageErrors: PageEvidence['pageErrors'] = []
+  const context = await newEvidenceContext(browser, baseURL, {
+    recordVideo: true,
+    videoDir,
+    reducedMotion: 'no-preference',
+    geolocation: { latitude: mountain.latitude, longitude: mountain.longitude, delayMs: 0 },
+  })
+  const pressPage = await context.newPage()
+  await attachCapture(pressPage, consoleEntries, pageErrors)
+
+  const pressEvidence: PressEvidence[] = []
+  const addPress = async (label: string, selector: string | Locator) => {
+    const safeLabel = label.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+    const screenshotPath = join(FU111_OUTPUT_DIR, `${safeLabel}-pressed.png`)
+    pressEvidence.push(await collectHeldPressEvidence(pressPage, label, selector, screenshotPath))
+  }
+
+  await pressPage.goto('/explore', { waitUntil: 'domcontentloaded' })
+  await pressPage.locator('[data-explore-pathway-card="导入记录"]').waitFor({ state: 'visible', timeout: 20_000 })
+  await addPress('tabbar-archive-icon', '.pt-tab-link[href="/archive"] .pt-tab-icon')
+  await addPress('explore-import-hero', '[data-explore-pathway-button="导入记录"]')
+  await addPress('explore-screenshot-hero', '[data-explore-pathway-button="识别截图"]')
+  const pathwayTransformSeparation = await pressPage.evaluate(() => {
+    const wrapper = document.querySelector<HTMLElement>('[data-explore-pathway-card="导入记录"]')
+    const button = document.querySelector<HTMLElement>('[data-explore-pathway-button="导入记录"]')
+    return {
+      sameNode: wrapper === button,
+      wrapperHasPressClass: Boolean(wrapper?.className?.includes('pt-pathway-press')),
+      buttonHasPressClass: Boolean(button?.className?.includes('pt-pathway-press')),
+      wrapperTransform: wrapper ? window.getComputedStyle(wrapper).transform : null,
+      buttonTransform: button ? window.getComputedStyle(button).transform : null,
+    }
+  })
+  await addPress('explore-mountain-inner-card', '[data-testid="explore-mountain-card"] .explore-card')
+  const exploreTransformSeparation = await pressPage.evaluate(() => {
+    const outer = document.querySelector<HTMLElement>('[data-testid="explore-mountain-card"]')
+    const inner = document.querySelector<HTMLElement>('[data-testid="explore-mountain-card"] .explore-card')
+    return {
+      outerHasPressClass: Boolean(outer?.className?.includes('pt-pressable')),
+      innerHasPressClass: Boolean(inner?.className?.includes('pt-pressable-card')),
+      outerTransform: outer ? window.getComputedStyle(outer).transform : null,
+      innerTransform: inner ? window.getComputedStyle(inner).transform : null,
+    }
+  })
+
+  await pressPage.locator('.pt-tab-link[href="/archive"]').click()
+  await pressPage.waitForURL(/\/archive/, { timeout: 20_000 })
+  await pressPage.locator('[data-archive-filter-tab="summit"]').waitFor({ state: 'visible', timeout: 20_000 })
+  await addPress('archive-filter-summit', '[data-archive-filter-tab="summit"]')
+  await addPress('archive-trip-card', '[data-archive-trip-card]')
+
+  await pressPage.goto('/profile', { waitUntil: 'domcontentloaded' })
+  await pressPage.locator('[data-profile-archive-card]').first().waitFor({ state: 'visible', timeout: 20_000 })
+  await addPress('profile-archive-row', '[data-profile-archive-card] [data-testid="profile-trip-activity-link"]')
+  await addPress('profile-share-row', '[data-profile-share-row]')
+
+  await pressPage.goto('/faq', { waitUntil: 'domcontentloaded' })
+  await pressPage.locator('[data-faq-group-card]').first().waitFor({ state: 'visible', timeout: 20_000 })
+  await addPress('faq-group-card', '[data-faq-group-card] > button')
+
+  await pressPage.goto(`/activity/${checkinId}`, { waitUntil: 'domcontentloaded' })
+  await pressPage.locator('[data-testid="activity-inline-actions"]').waitFor({ state: 'visible', timeout: 20_000 })
+  await addPress('activity-share-cta', '[data-testid="activity-inline-actions"] .pt-pressable-hero')
+  await addPress('activity-photo-card', '[data-testid="activity-photo-tile-0"]')
+
+  await pressPage.goto('/import', { waitUntil: 'domcontentloaded' })
+  await pressPage.locator('[data-import-entry-motion="footer-primary"]').waitFor({ state: 'visible', timeout: 20_000 })
+  await addPress('import-main-cta', '[data-import-entry-motion="footer-primary"]')
+
+  await pressPage.goto('/screenshot', { waitUntil: 'domcontentloaded' })
+  await pressPage.locator('[data-screenshot-upload-motion="footer-primary"]').waitFor({ state: 'visible', timeout: 20_000 })
+  await addPress('screenshot-main-cta', '[data-screenshot-upload-motion="footer-primary"]')
+
+  await pressPage.goto(`/share?checkinId=${checkinId}`, { waitUntil: 'domcontentloaded' })
+  await pressPage.locator('[data-testid="share-share-button"]').waitFor({ state: 'visible', timeout: 20_000 })
+  await addPress('share-primary-button', '[data-testid="share-share-button"]')
+  await addPress('share-save-button', '[data-testid="share-save-button"]')
+  await addPress('share-template-card', '[data-template-thumb]')
+  await addPress('share-field-chip', '[data-field-key]')
+
+  await pressPage.goto('/explore', { waitUntil: 'domcontentloaded' })
+  await pressPage.locator('[data-explore-pathway-button="导入记录"]').click()
+  await pressPage.waitForURL(/\/import/, { timeout: 20_000 })
+  const exploreImportClickNavigates = /\/import$/.test(new URL(pressPage.url()).pathname)
+  await pressPage.goto('/explore', { waitUntil: 'domcontentloaded' })
+  await pressPage.locator('[data-explore-pathway-button="识别截图"]').click()
+  await pressPage.waitForURL(/\/screenshot/, { timeout: 20_000 })
+  const exploreScreenshotClickNavigates = /\/screenshot$/.test(new URL(pressPage.url()).pathname)
+  await pressPage.goto('/explore', { waitUntil: 'domcontentloaded' })
+  await pressPage.locator('[data-testid="explore-mountain-card"]').first().click()
+  await pressPage.waitForURL(/\/mountain\//, { timeout: 20_000 })
+  const exploreCardClickNavigates = /\/mountain\//.test(pressPage.url())
+
+  await pressPage.goto(`/trek?mountainId=${mountain.id}`, { waitUntil: 'domcontentloaded' })
+  const trekStartControl = pressPage.locator('[data-onboarding="trek-start"]')
+  const trekPermissionControl = pressPage.locator('.ui-btn-root:not([disabled])')
+  const trekControl = await trekStartControl.first().isVisible().catch(() => false)
+    ? trekStartControl
+    : trekPermissionControl
+  await trekControl.first().waitFor({ state: 'visible', timeout: 20_000 })
+  await addPress('trek-record-or-permission-cta', trekControl)
+
+  await pressPage.goto('/explore', { waitUntil: 'domcontentloaded' })
+  await pressPage.locator('[data-explore-pathway-card="导入记录"]').waitFor({ state: 'visible', timeout: 20_000 })
+  const pointerFallback = await collectPointerFallbackReset(pressPage, '[data-explore-pathway-button="导入记录"]')
+  await pressPage.locator('.pt-tab-link[href="/profile"]').dispatchEvent('pointerdown', { pointerType: 'touch', bubbles: true })
+  await pressPage.locator('.pt-tab-link[href="/profile"]').click()
+  await pressPage.waitForURL(/\/profile/, { timeout: 20_000 })
+  const stuckPressAfterFastRoute = await pressPage.evaluate(() =>
+    Array.from(document.querySelectorAll<HTMLElement>('[data-pt-press-active="true"]')).map((element) => element.outerHTML.slice(0, 160))
+  )
+  const noHorizontalOverflow = await pressPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)
+  const terminalScreenshot = join(FU111_OUTPUT_DIR, 'fu111-terminal.png')
+  await pressPage.screenshot({ path: terminalScreenshot, fullPage: true })
+  const video = pressPage.video()
+  await context.close()
+  const videoPath = video ? await video.path() : null
+
+  const reducedContext = await newEvidenceContext(browser, baseURL, {
+    reducedMotion: 'reduce',
+  })
+  const reducedPage = await reducedContext.newPage()
+  await reducedPage.route('**/api/analytics/event', async (route) => {
+    await route.fulfill({ status: 204, body: '' })
+  })
+  await reducedPage.goto('/explore', { waitUntil: 'domcontentloaded' })
+  await reducedPage.locator('[data-explore-pathway-button="导入记录"]').waitFor({ state: 'visible', timeout: 20_000 })
+  const reducedEvidence = await collectHeldPressEvidence(
+    reducedPage,
+    'reduced-motion-explore-import',
+    '[data-explore-pathway-button="导入记录"]',
+    join(FU111_OUTPUT_DIR, 'reduced-motion-pressed.png'),
+  )
+  const reducedScreenshot = join(FU111_OUTPUT_DIR, 'reduced-motion-terminal.png')
+  await reducedPage.screenshot({ path: reducedScreenshot, fullPage: true })
+  await reducedContext.close()
+
+  const summary = {
+    evidenceKind: 'controlled-local-production-build',
+    scope: 'FU-111 global L1 click/tap feedback',
+    viewport: { width: 375, height: 812 },
+    video: videoPath,
+    terminalScreenshot,
+    reducedScreenshot,
+    pressEvidence,
+    reducedMotion: {
+      evidence: reducedEvidence,
+      noTransformResidue: reducedEvidence.pressed.transform === 'none' && reducedEvidence.released.transform === 'none',
+      noHaloWhilePressed: reducedEvidence.pressed.afterOpacity === '0',
+    },
+    pointerFallback,
+    fastRouteSwitch: {
+      stuckPressAfterFastRoute,
+      resetOk: stuckPressAfterFastRoute.length === 0,
+    },
+    clickNavigation: {
+      exploreImportClickNavigates,
+      exploreScreenshotClickNavigates,
+      exploreCardClickNavigates,
+    },
+    pathwayTransformSeparation,
+    exploreTransformSeparation,
+    noHorizontalOverflow,
+    console: consoleEntries,
+    pageErrors,
+  }
+  const summaryPath = join(FU111_OUTPUT_DIR, 'fu111-press-summary.json')
+  await writeFile(summaryPath, JSON.stringify(summary, null, 2))
+
+  expect(videoPath).toContain(FU111_OUTPUT_DIR)
+  expect(pressEvidence.every((entry) => entry.visualChanged)).toBe(true)
+  expect(pressEvidence.every((entry) => entry.returnedToTerminal)).toBe(true)
+  expect(pointerFallback.resetOk).toBe(true)
+  expect(stuckPressAfterFastRoute).toEqual([])
+  expect(exploreImportClickNavigates).toBe(true)
+  expect(exploreScreenshotClickNavigates).toBe(true)
+  expect(exploreCardClickNavigates).toBe(true)
+  expect(pathwayTransformSeparation.sameNode).toBe(false)
+  expect(pathwayTransformSeparation.wrapperHasPressClass).toBe(false)
+  expect(pathwayTransformSeparation.buttonHasPressClass).toBe(true)
+  expect(exploreTransformSeparation.outerHasPressClass).toBe(false)
+  expect(exploreTransformSeparation.innerHasPressClass).toBe(true)
+  expect(reducedEvidence.pressed.transform).toBe('none')
+  expect(reducedEvidence.pressed.afterOpacity).toBe('0')
+  expect(reducedEvidence.released.transform).toBe('none')
+  expect(noHorizontalOverflow).toBe(true)
+  expect(consoleEntries.filter((entry) => entry.classification === 'new-this-round')).toEqual([])
+  expect(pageErrors.filter((entry) => entry.classification === 'new-this-round')).toEqual([])
+})
 
 test('FU-76 Phase 2-III 4-page client subset motion evidence', async ({ browser, page, baseURL }) => {
   test.setTimeout(180_000)

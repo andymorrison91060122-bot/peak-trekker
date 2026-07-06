@@ -1,6 +1,6 @@
 'use client'
 
-import type { CSSProperties, ChangeEvent, DragEvent, ReactNode } from 'react'
+import type { CSSProperties, ChangeEvent, DragEvent, FocusEvent, PointerEvent, ReactNode } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
@@ -34,6 +34,16 @@ const PARSING_MIN_DURATION_MS = 700
 const PACE_WARNING_KMH = 15
 
 gsap.registerPlugin(useGSAP)
+
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 type ImportStep =
   | 'entry'
@@ -519,8 +529,14 @@ function FlowHeader({
         <button
           type="button"
           aria-label="返回"
+          className="pt-pressable"
           onClick={onBack}
           disabled={backDisabled}
+          onPointerDown={backDisabled ? undefined : markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             width: 36,
             height: 36,
@@ -784,8 +800,13 @@ function UploadDropZone({
   return (
     <button
       type="button"
-      className="import-drop-zone"
+      className="import-drop-zone pt-pressable-hero"
       onClick={onPick}
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       onDrop={onDrop}
       onDragOver={(event) => event.preventDefault()}
       style={{
@@ -924,7 +945,13 @@ function FileInfoCard({
             <button
               type="button"
               aria-label="移除文件"
+              className="pt-pressable"
               onClick={onRemove}
+              onPointerDown={markPressFallback}
+              onPointerUp={clearPressFallback}
+              onPointerCancel={clearPressFallback}
+              onPointerLeave={clearPressFallback}
+              onBlur={clearPressFallback}
               style={{
                 width: 32,
                 height: 32,
@@ -1114,13 +1141,19 @@ function ImportEntry({
       onBack={onBack}
       footer={(
         <>
-          <PrimaryButton data-import-entry-motion="footer-primary" onClick={onUpload} style={{ width: '100%' }}>
+          <PrimaryButton className="pt-pressable-hero" data-import-entry-motion="footer-primary" onClick={onUpload} style={{ width: '100%' }}>
             上传轨迹文件
           </PrimaryButton>
           <button
             data-import-entry-motion="footer-secondary"
             type="button"
+            className="pt-pressable"
             onClick={onHelp}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               marginTop: 10,
               width: '100%',
@@ -1273,7 +1306,7 @@ function ImportUploadEmpty({
       title="上传轨迹文件"
       onBack={onBack}
       footer={(
-        <PrimaryButton onClick={onPick} style={{ width: '100%' }}>
+        <PrimaryButton className="pt-pressable-hero" onClick={onPick} style={{ width: '100%' }}>
           从「文件」中选择
         </PrimaryButton>
       )}
@@ -1305,7 +1338,7 @@ function ImportUploadSelected({
       title="上传轨迹文件"
       onBack={onBack}
       footer={(
-        <PrimaryButton onClick={onContinue} style={{ width: '100%' }}>
+        <PrimaryButton className="pt-pressable-hero" onClick={onContinue} style={{ width: '100%' }}>
           开始解析
         </PrimaryButton>
       )}
@@ -1376,18 +1409,24 @@ function ImportUploadError({
       footer={(
         <>
           {authRequired ? (
-            <PrimaryButton onClick={onLogin} style={{ width: '100%' }}>
+            <PrimaryButton className="pt-pressable-hero" onClick={onLogin} style={{ width: '100%' }}>
               去登录
             </PrimaryButton>
           ) : (
-            <PrimaryButton onClick={onPickAnother} style={{ width: '100%' }}>
+            <PrimaryButton className="pt-pressable-hero" onClick={onPickAnother} style={{ width: '100%' }}>
               选择其他文件
             </PrimaryButton>
           )}
           <button
             type="button"
+            className="pt-pressable"
             onClick={authRequired ? onPickAnother : onRetry}
             disabled={!file && !authRequired}
+            onPointerDown={!file && !authRequired ? undefined : markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               marginTop: 10,
               width: '100%',
@@ -1713,7 +1752,13 @@ function ConfirmErrorNotice({
       {authRequired ? (
         <button
           type="button"
+          className="pt-pressable"
           onClick={onLogin}
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             marginTop: 'var(--space-2)',
             height: 32,
@@ -1766,7 +1811,13 @@ function DistanceValidationNotice({
       {isError && onRequestMountain ? (
         <button
           type="button"
+          className="pt-pressable"
           onClick={onRequestMountain}
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             marginTop: 'var(--space-2)',
             minHeight: 32,
@@ -1992,7 +2043,13 @@ function TimeFallbackEditor({
       >
         <button
           type="button"
+          className="pt-pressable"
           onClick={onSkip}
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             height: 36,
             padding: '0 var(--space-3)',
@@ -2011,6 +2068,12 @@ function TimeFallbackEditor({
         <button
           type="button"
           disabled={!canApply}
+          className="pt-pressable"
+          onPointerDown={!canApply ? undefined : markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           onClick={() => {
             if (!startIso || !endIso || durationSeconds === null) return
             onApply({
@@ -2076,12 +2139,18 @@ function ImportPreview({
         <>
           {duplicateTrack ? (
             <>
-              <PrimaryButton onClick={() => onViewDuplicate(duplicateTrack.existingCheckinId)} style={{ width: '100%' }}>
+              <PrimaryButton className="pt-pressable-hero" onClick={() => onViewDuplicate(duplicateTrack.existingCheckinId)} style={{ width: '100%' }}>
                 查看已存在活动
               </PrimaryButton>
               <button
                 type="button"
+                className="pt-pressable"
                 onClick={onPickAnother}
+                onPointerDown={markPressFallback}
+                onPointerUp={clearPressFallback}
+                onPointerCancel={clearPressFallback}
+                onPointerLeave={clearPressFallback}
+                onBlur={clearPressFallback}
                 style={{
                   marginTop: 10,
                   width: '100%',
@@ -2098,7 +2167,7 @@ function ImportPreview({
               </button>
             </>
           ) : (
-            <PrimaryButton className="pt-import-l3-cta" onClick={onContinue} style={{ width: '100%' }}>
+            <PrimaryButton className="pt-import-l3-cta pt-pressable-hero" onClick={onContinue} style={{ width: '100%' }}>
               继续
             </PrimaryButton>
           )}
@@ -2285,7 +2354,7 @@ function ImportMatch({
               {confirmError}
             </div>
           ) : null}
-          <PrimaryButton onClick={confirmAuthRequired ? onLogin : onConfirm} style={{ width: '100%' }} disabled={!mountain?.id}>
+          <PrimaryButton className="pt-pressable-hero" onClick={confirmAuthRequired ? onLogin : onConfirm} style={{ width: '100%' }} disabled={!mountain?.id}>
             {confirmAuthRequired ? '去登录' : '确认是这一座'}
           </PrimaryButton>
         </>
@@ -2306,7 +2375,13 @@ function ImportMatch({
       {mountain ? (
         <button
           type="button"
+          className="pt-pressable-card"
           onClick={() => onSelect(toSelectableMountain(mountain))}
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             marginTop: 14,
             width: '100%',
@@ -2394,7 +2469,13 @@ function ImportMatch({
 
       <button
         type="button"
+        className="pt-pressable-card"
         onClick={onManual}
+        onPointerDown={markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
         style={{
           marginTop: 14,
           width: '100%',
@@ -2435,7 +2516,13 @@ function MountainChoiceRow({
   return (
     <button
       type="button"
+      className="pt-pressable-card"
       onClick={onClick}
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       style={{
         width: '100%',
         minHeight: 56,
@@ -2656,7 +2743,13 @@ function ImportMountainSelection({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <button
             type="button"
+            className="pt-pressable"
             onClick={onCancel}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               height: 44,
               borderRadius: 'var(--radius-md)',
@@ -2672,6 +2765,7 @@ function ImportMountainSelection({
             取消
           </button>
           <PrimaryButton
+            className="pt-pressable-hero"
             onClick={() => {
               if (selected) onConfirm(selected)
             }}
@@ -2739,7 +2833,13 @@ function ImportMountainSelection({
       >
         <button
           type="button"
+          className="pt-pressable-card"
           onClick={() => setSearchOpen((current) => !current)}
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             width: '100%',
             minHeight: 48,
@@ -2875,7 +2975,13 @@ function NoMatchOption({
   return (
     <button
       type="button"
+      className="pt-pressable-card"
       onClick={onClick}
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       style={{
         width: '100%',
         textAlign: 'left',
@@ -3151,7 +3257,13 @@ function NextAction({
     <button
       type="button"
       data-import-success-next={primary ? 'primary' : 'secondary'}
+      className={primary ? 'pt-pressable-hero' : 'pt-pressable-card'}
       onClick={onClick}
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       style={baseStyle}
     >
       {content}

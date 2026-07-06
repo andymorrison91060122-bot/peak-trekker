@@ -1,6 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FocusEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
@@ -67,6 +77,16 @@ import {
 import type { Mountain, User } from '@/types'
 
 gsap.registerPlugin(useGSAP)
+
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 type TrekStatus =
   | 'idle'
@@ -2719,13 +2739,13 @@ export default function TrekClient({
               >
                 结束并保存
               </SecondaryButton>
-              <PrimaryButton style={{ width: '100%' }} onClick={resumeTrek} disabled={finishTrekLoading}>
+              <PrimaryButton className="pt-pressable-hero" style={{ width: '100%' }} onClick={resumeTrek} disabled={finishTrekLoading}>
                 继续记录
               </PrimaryButton>
             </BottomActionBar>
           ) : (
             <BottomActionBar columns="single">
-              <PrimaryButton style={{ width: '100%' }} onClick={pauseTrek}>
+              <PrimaryButton className="pt-pressable-hero" style={{ width: '100%' }} onClick={pauseTrek}>
                 暂停
               </PrimaryButton>
             </BottomActionBar>
@@ -3506,6 +3526,7 @@ function NearSummitView({
 
       <BottomActionBar columns="single">
         <PrimaryButton
+          className="pt-pressable-hero"
           data-testid="trek-near-summit-cta"
           style={{ width: '100%' }}
           loading={loading}
@@ -3662,8 +3683,14 @@ function SummitPhotoView({
 
           <button
             type="button"
+            className="pt-pressable"
             onClick={onPickPhoto}
             disabled={photoLoading}
+            onPointerDown={photoLoading ? undefined : markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               minHeight: 44,
               borderRadius: 12,
@@ -3696,7 +3723,7 @@ function SummitPhotoView({
         <SecondaryButton style={{ width: '100%' }} onClick={onBack} disabled={photoLoading}>
           返回
         </SecondaryButton>
-        <PrimaryButton style={{ width: '100%' }} onClick={onSubmit} loading={photoLoading}>
+        <PrimaryButton className="pt-pressable-hero" style={{ width: '100%' }} onClick={onSubmit} loading={photoLoading}>
           确认登顶
         </PrimaryButton>
       </BottomActionBar>
@@ -3929,6 +3956,7 @@ function PreStartView({
 
           <BottomActionBar columns="single">
             <PrimaryButton
+              className="pt-pressable-hero"
               style={{ width: '100%' }}
               onClick={onStart}
               disabled={!canStart}
@@ -4025,8 +4053,14 @@ function PreStartMountainCard({
     <div style={{ padding: 'var(--space-5) var(--space-4) 0' }}>
       <button
         type="button"
+        className="pt-pressable-card"
         onClick={onClick}
         disabled={!mountain}
+        onPointerDown={!mountain ? undefined : markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
         style={{
           width: '100%',
           minHeight: 64,
@@ -4115,7 +4149,13 @@ function MountainContext({
     <div style={{ padding: '0 var(--space-4)', marginTop: 'var(--space-3)' }}>
       <button
         type="button"
+        className={onClick ? 'pt-pressable-card' : undefined}
         onClick={onClick}
+        onPointerDown={onClick ? markPressFallback : undefined}
+        onPointerUp={onClick ? clearPressFallback : undefined}
+        onPointerCancel={onClick ? clearPressFallback : undefined}
+        onPointerLeave={onClick ? clearPressFallback : undefined}
+        onBlur={onClick ? clearPressFallback : undefined}
         style={{
           width: '100%',
           minHeight: 60,
@@ -4457,7 +4497,7 @@ function MountainTargetPicker({
           </div>
         </div>
       ) : null}
-      <PrimaryButton style={{ width: '100%', marginTop: 'var(--space-4)' }} disabled={!selectedMountain} onClick={onConfirm}>
+      <PrimaryButton className="pt-pressable-hero" style={{ width: '100%', marginTop: 'var(--space-4)' }} disabled={!selectedMountain} onClick={onConfirm}>
         {actionLabel}
       </PrimaryButton>
     </div>
@@ -4580,7 +4620,7 @@ function PrepGpsWeakCard({
           继续等待
         </SecondaryButton>
         {allowWeakGpsStart ? (
-          <PrimaryButton style={{ width: '100%' }} onClick={onStart}>
+          <PrimaryButton className="pt-pressable-hero" style={{ width: '100%' }} onClick={onStart}>
             GPS 较弱，仍开始
           </PrimaryButton>
         ) : null}
@@ -5402,6 +5442,7 @@ function SummitConfirmedView({
       <section style={{ position: 'relative', zIndex: 2, flex: '0 0 auto', padding: '14px var(--space-4) 0' }}>
         <PrimaryButton
           data-testid="trek-summit-primary-cta"
+          className="pt-summit-honor-reveal pt-pressable-hero"
           style={{
             fontSize: 'var(--font-title-m-size)',
             fontWeight: 'var(--font-title-m-weight)',
@@ -5410,7 +5451,6 @@ function SummitConfirmedView({
             minHeight: 46,
             borderRadius: 12,
           }}
-          className="pt-summit-honor-reveal"
           data-pt-summit-action-primary=""
           onClick={onShare}
         >
@@ -5422,7 +5462,7 @@ function SummitConfirmedView({
 
         <SecondaryButton
           data-testid="trek-summit-activity-cta"
-          className="pt-summit-honor-reveal"
+          className="pt-summit-honor-reveal pt-pressable"
           data-pt-summit-action-secondary=""
           style={{
             marginTop: 10,
@@ -5444,9 +5484,14 @@ function SummitConfirmedView({
         <button
           type="button"
           data-testid="trek-summit-explore-exit"
-          className="pt-summit-honor-reveal"
+          className="pt-summit-honor-reveal pt-pressable"
           data-pt-summit-action-exit=""
           onClick={onExploreExit}
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             display: 'block',
             width: '100%',

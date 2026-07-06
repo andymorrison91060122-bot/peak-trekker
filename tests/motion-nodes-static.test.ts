@@ -100,6 +100,12 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
   const profileClient = readSource('../src/components/profile/ProfileV2Client.tsx')
   const faqClient = readSource('../src/app/(flow)/faq/FAQClient.tsx')
   const activityClient = readSource('../src/app/(flow)/activity/[id]/ActivityDetailClient.tsx')
+  const globalsCss = readSource('../src/app/globals.css')
+  const tabBar = readSource('../src/components/layout/TabBar.tsx')
+  const trekClient = readSource('../src/app/(flow)/trek/TrekClient.tsx')
+  const imprintClient = readSource('../src/app/(flow)/imprint/ImprintClient.tsx')
+  const exploreMountainCard = readSource('../src/components/ui/ExploreMountainCard.tsx')
+  const checkinButton = readSource('../src/components/ui/CheckinButton.tsx')
   const motionCountHelper = readSource('../src/lib/motion-count-format.ts')
 
 	  test('import ceremony uses scoped GSAP timeline with reduced-motion terminal state', () => {
@@ -119,7 +125,7 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(importClient, /addLabel\('next'/)
 	    assert.match(importClient, /className=\{isEntryStep \? undefined : 'pt-import-step-enter'\}/)
 	    assert.match(importClient, /data-import-l3-item="summary"/)
-    assert.match(importClient, /className="pt-import-l3-cta"/)
+	    assert.match(importClient, /className="pt-import-l3-cta pt-pressable-hero"/)
     assert.match(importClient, /pt-import-step-enter var\(--motion-enter\) var\(--ease-out\)/)
     assert.doesNotMatch(importClient, /pt-import-l3-item var\(--motion-enter\)/)
     assert.doesNotMatch(importClient, /pt-import-l3-cta calc\(var\(--motion-press\)/)
@@ -142,7 +148,7 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
 	    assert.match(screenshotClient, /className=\{isUploadStep \? undefined : 'pt-screenshot-step-enter'\}/)
     assert.match(screenshotClient, /data-screenshot-recognition-item=\{typeof motionIndex === 'number' \? 'field' : undefined\}/)
     assert.match(screenshotClient, /data-screenshot-recognition-item=\{typeof motionIndex === 'number' \? 'match' : undefined\}/)
-    assert.match(screenshotClient, /className="pt-screenshot-recognition-cta"/)
+    assert.match(screenshotClient, /className="pt-screenshot-recognition-cta pt-pressable-hero"/)
     assert.match(screenshotClient, /pt-screenshot-step-enter var\(--motion-enter\) var\(--ease-out\)/)
     assert.doesNotMatch(screenshotClient, /pt-screenshot-recognition-item var\(--motion-enter\)/)
     assert.doesNotMatch(screenshotClient, /pt-screenshot-recognition-cta calc\(var\(--motion-press\)/)
@@ -289,7 +295,7 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.doesNotMatch(mountainDetailClient, /<0\.\d+/)
     assert.doesNotMatch(mountainDetailClient, /\$\{label\}</)
     assert.doesNotMatch(mountainDetailClient, /querySelector(?:All)?\([^)]*(PmtilesSnapshotMap|canvas|mountain-bottom-cta)/)
-    assert.match(mountainDetailClient, /className="pt-mountain-press-target"/)
+	    assert.doesNotMatch(mountainDetailClient, /pt-mountain-press-target/)
   })
 
   test('explore motion is layered, limits first-screen card stagger, and does not alter list key structure', () => {
@@ -336,12 +342,18 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.doesNotMatch(exploreClient, /<0\.\d+/)
     assert.doesNotMatch(exploreClient, /\$\{label\}</)
     assert.match(exploreClient, /filtered\.map\(\(\{ mountain \}\) => \(\s*<ExploreMountainCard key=\{mountain\.id\} mountain=\{mountain\} \/>/m)
-    assert.match(exploreClient, /pt-explore-press-target:active/)
-    assert.match(exploreClient, /\[data-testid="explore-mountain-card"\]:active/)
+    assert.doesNotMatch(exploreClient, /pt-explore-press-target/)
+    assert.doesNotMatch(exploreClient, /\[data-testid="explore-mountain-card"\]:active/)
+    assert.match(exploreClient, /<div data-explore-pathway-card=\{title\}[\s\S]{0,120}<button[\s\S]{0,180}data-explore-pathway-button=\{title\}[\s\S]{0,80}className="pt-pathway-press"/)
+    assert.doesNotMatch(exploreClient, /<button[^>]*data-explore-pathway-card=\{title\}/)
+    assert.doesNotMatch(exploreClient, /<div[^>]*data-explore-pathway-button=\{title\}/)
+    assert.doesNotMatch(exploreClient, /className="pt-pressable-hero"/)
+    assert.match(exploreMountainCard, /data-testid="explore-mountain-card"/)
+    assert.match(exploreMountainCard, /className="surface-card explore-card pt-pressable-card"/)
   })
 
   test('FU-110 explore source-change replay is pre-paint, live-query, and interrupt-safe', () => {
-    assert.match(exploreClient, /import \{ useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState/)
+    assert.match(exploreClient, /import \{[\s\S]*useCallback,[\s\S]*useEffect,[\s\S]*useLayoutEffect,[\s\S]*useMemo,[\s\S]*useRef,[\s\S]*useState,[\s\S]*\} from 'react'/)
     assert.match(exploreClient, /const replayExploreListRef = useRef<\(\(reasons: ExploreReplayReason\[\]\) => void\) \| null>\(null\)/)
     assert.match(exploreClient, /const terminalizeExploreListRef = useRef<\(\(\) => void\) \| null>\(null\)/)
     assert.match(exploreClient, /const pendingExploreReplayRef = useRef\(false\)/)
@@ -479,19 +491,18 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(archiveClient, /gridTemplateColumns: '44px minmax\(0, 1fr\) 44px'/)
     assert.match(archiveClient, /<div aria-hidden="true" \/>/)
 
-    assert.match(archiveClient, /className="pt-archive-filter-tab"/)
-    assert.match(archiveClient, /\.pt-archive-filter-tab:active/)
-    assert.match(archiveClient, /data-archive-press-active="true"/)
-    assert.match(archiveClient, /onPointerCancel=\{\(event\) => \{[\s\S]*delete event\.currentTarget\.dataset\.archivePressActive/)
-    assert.match(archiveClient, /onPointerLeave=\{\(event\) => \{[\s\S]*delete event\.currentTarget\.dataset\.archivePressActive/)
-    assert.match(archiveClient, /onMouseLeave=\{\(event\) => \{[\s\S]*delete event\.currentTarget\.dataset\.archivePressActive/)
-    assert.match(archiveClient, /onBlur=\{\(event\) => \{[\s\S]*delete event\.currentTarget\.dataset\.archivePressActive/)
-    assert.match(archiveClient, /background var\(--motion-press\) var\(--ease-out\)/)
+    assert.match(archiveClient, /className="archive-filter-tab pt-pressable"/)
+    assert.match(archiveClient, /\.archive-filter-tab:active/)
+    assert.match(archiveClient, /\[data-pt-press-active="true"\]/)
+    assert.match(archiveClient, /onPointerCancel=\{clearPressFallback\}/)
+    assert.match(archiveClient, /onPointerLeave=\{clearPressFallback\}/)
+    assert.match(archiveClient, /onBlur=\{clearPressFallback\}/)
+    assert.match(archiveClient, /background-color var\(--motion-press\) var\(--ease-out\)/)
     assert.match(archiveClient, /border-color var\(--motion-press\) var\(--ease-out\)/)
     assert.match(archiveClient, /box-shadow var\(--motion-press\) var\(--ease-out\)/)
     assert.doesNotMatch(archiveClient, /pressedTab|setPressedTab/)
 
-    assert.match(archiveClient, /import \{ useLayoutEffect, useMemo, useRef, useState/)
+    assert.match(archiveClient, /import \{[\s\S]*useLayoutEffect,[\s\S]*useMemo,[\s\S]*useRef,[\s\S]*useState,[\s\S]*\} from 'react'/)
     assert.match(archiveClient, /function handleFilterChange\(nextFilter: FilterId\)/)
     assert.match(archiveClient, /if \(nextFilter === activeFilter\) return/)
     assert.match(archiveClient, /terminalizeArchiveListRef\.current\?\.\(\)/)
@@ -556,6 +567,74 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.doesNotMatch(activityClient, /function formatMotionCountValue/)
   })
 
+  test('FU-111 global press system is tokenized, consolidated, and avoids transform target conflicts', () => {
+    const fu111Sources = [
+      exploreClient,
+      exploreMountainCard,
+      mountainDetailClient,
+      shareClient,
+      imprintClient,
+      archiveClient,
+      profileClient,
+      tabBar,
+      trekClient,
+      importClient,
+      screenshotClient,
+      activityClient,
+      faqClient,
+      checkinButton,
+    ].join('\n')
+
+    assert.match(globalsCss, /\.pt-pressable,[\s\S]*\.pt-pressable-card,[\s\S]*\.pt-pressable-hero/)
+    assert.match(globalsCss, /\.pt-pressable-hero__icon/)
+    assert.match(globalsCss, /\[data-pt-press-active='true'\]/)
+    assert.match(globalsCss, /transform var\(--motion-press\) var\(--ease-standard\)/)
+    assert.match(globalsCss, /\.pt-pressable:active[\s\S]*transform: scale\(0\.97\)/)
+    assert.match(globalsCss, /\.pt-pressable-card:active[\s\S]*transform: scale\(0\.985\)/)
+    assert.match(globalsCss, /\.pt-pressable-hero:active[\s\S]*transform: scale\(0\.98\)/)
+    assert.match(globalsCss, /\.pt-pathway-press \{[\s\S]*transition:[\s\S]*transform var\(--motion-fast\) var\(--ease-emphasis\)[\s\S]*filter var\(--motion-fast\) var\(--ease-out\)[\s\S]*border-color var\(--motion-fast\) var\(--ease-out\)/)
+    assert.match(globalsCss, /\.pt-pathway-press::after \{[\s\S]*border-radius: inherit;[\s\S]*opacity: 0;[\s\S]*box-shadow:[\s\S]*transition: opacity var\(--motion-fast\) var\(--ease-out\)/)
+    assert.match(globalsCss, /\.pt-pathway-press:active[\s\S]*transform: scale\(\.975\)/)
+    assert.match(globalsCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.pt-pathway-press,[\s\S]*\.pt-pathway-press::after \{[\s\S]*transition: none !important/)
+    assert.match(globalsCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.pt-pathway-press:active[\s\S]*transform: none/)
+    assert.match(globalsCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.pt-pathway-press:active[\s\S]*::after[\s\S]*opacity: 0 !important/)
+    assert.match(globalsCss, /\.ui-chip:active[\s\S]*transform: scale\(0\.97\)/)
+    assert.match(globalsCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.pt-pressable:active[\s\S]*transform: none/)
+    assert.doesNotMatch(globalsCss, /transition:\s*all/)
+
+    assert.match(globalsCss, /\.pixel-btn:active,[\s\S]*\.primary-btn:active[\s\S]*transform: scale\(0\.97\)/)
+    assert.match(globalsCss, /\.secondary-btn:active[\s\S]*transform: scale\(0\.97\)/)
+    assert.match(globalsCss, /\.ui-btn-root:active:not[\s\S]*transform: scale\(0\.97\)/)
+    assert.match(globalsCss, /\.ui-icon-btn-root:active:not[\s\S]*transform: scale\(0\.97\)/)
+
+    assert.doesNotMatch(fu111Sources, /pt-explore-press-target|pt-mountain-press-target|share-editor-pressable|pt-archive-filter-tab|data-archive-press-active/)
+    assert.doesNotMatch(imprintClient, /\.imprint-cta:active|\.imprint-source-option:active/)
+    assert.match(shareClient, /data-testid="share-share-button"[\s\S]{0,140}className="pt-pressable-hero"/)
+    assert.match(shareClient, /className="pt-pressable-card"[\s\S]{0,240}data-template-thumb=\{template\}/)
+    assert.match(exploreClient, /<div data-explore-pathway-card=\{title\}[\s\S]{0,120}<button[\s\S]{0,180}data-explore-pathway-button=\{title\}[\s\S]{0,80}className="pt-pathway-press"/)
+    assert.doesNotMatch(exploreClient, /<button[^>]*data-explore-pathway-card=\{title\}/)
+    assert.doesNotMatch(exploreClient, /<div[^>]*data-explore-pathway-button=\{title\}/)
+    assert.doesNotMatch(exploreClient, /className="pt-pressable-hero"/)
+
+    assert.match(exploreMountainCard, /<Link[\s\S]*data-testid="explore-mountain-card"[\s\S]*style=\{\{ textDecoration: 'none', display: 'block' \}\}/)
+    assert.doesNotMatch(exploreMountainCard, /<Link[\s\S]{0,260}pt-pressable/)
+    assert.match(exploreMountainCard, /<article[\s\S]{0,160}className="surface-card explore-card pt-pressable-card"/)
+
+    assert.match(tabBar, /className="flex flex-col items-center gap-1\.5 pt-tab-link pt-pressable"/)
+    assert.match(globalsCss, /\.pt-tab-link\.pt-pressable:active[\s\S]*transform: none/)
+    assert.match(globalsCss, /\.pt-tab-link:active \.pt-tab-icon[\s\S]*transform: scale\(0\.94\)/)
+
+    assert.match(fu111Sources, /function markPressFallback\(event: PointerEvent<HTMLElement>\)/)
+    assert.match(fu111Sources, /function clearPressFallback\(event: PressFallbackEvent\)/)
+    assert.match(fu111Sources, /onPointerCancel=\{clearPressFallback\}/)
+    assert.match(fu111Sources, /onPointerLeave=\{clearPressFallback\}/)
+    assert.match(fu111Sources, /onBlur=\{clearPressFallback\}/)
+
+    assert.doesNotMatch(tabBar, /<nav[\s\S]{0,260}pt-pressable/)
+    assert.doesNotMatch(activityClient, /<section className="act-actions"[\s\S]{0,180}pt-pressable/)
+    assert.doesNotMatch(trekClient, /function BottomActionBar[\s\S]{0,520}pt-pressable/)
+  })
+
   test('Phase 2-III 4-page subset does not add a motion island or expand to cut pages', () => {
     const changed = execSync('git diff --name-only && git ls-files --others --exclude-standard', {
       encoding: 'utf8',
@@ -611,23 +690,41 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(shareClient, /router\.replace\('\/explore'\)/)
   })
 
-  test('motion nodes patch stays out of excluded product areas', () => {
+  test('motion nodes patch stays inside the FU-111 whitelist and out of excluded product areas', () => {
     const changed = execSync('git diff --name-only && git ls-files --others --exclude-standard', {
       encoding: 'utf8',
     }).trim().split(/\n/u).filter(Boolean)
+    const allowedFU111Files = new Set([
+      'docs/follow-ups.md',
+      'docs/ui-interaction-spec.md',
+      'src/app/globals.css',
+      'src/app/(main)/explore/ExploreClient.tsx',
+      'src/components/ui/ExploreMountainCard.tsx',
+      'src/app/(flow)/mountain/[id]/MountainDetailClient.tsx',
+      'src/components/ui/CheckinButton.tsx',
+      'src/app/(flow)/imprint/ImprintClient.tsx',
+      'src/app/(flow)/archive/ArchiveClient.tsx',
+      'src/components/profile/ProfileV2Client.tsx',
+      'src/components/layout/TabBar.tsx',
+      'src/app/(flow)/trek/TrekClient.tsx',
+      'src/app/(flow)/import/ImportClient.tsx',
+      'src/app/(flow)/screenshot/ScreenshotClient.tsx',
+      'src/app/(flow)/activity/[id]/ActivityDetailClient.tsx',
+      'src/app/(flow)/faq/FAQClient.tsx',
+      'src/app/(flow)/share/ShareClient.tsx',
+      'tests/motion-nodes-static.test.ts',
+      'tests/e2e/fu76-p2iii-motion-evidence.spec.ts',
+    ])
     const forbidden = [
       /^src\/app\/\(flow\)\/community\//,
       /^src\/app\/admin\//,
       /^src\/app\/auth\//,
       /^src\/app\/debug\//,
-      /^src\/app\/\(flow\)\/imprint\//,
-      /^src\/app\/\(flow\)\/trek\/TrekClient\.tsx$/,
+      /^src\/app\/\(flow\)\/prep\//,
+      /^src\/app\/\(main\)\/rankings\//,
     ]
-    const allowedShareFiles = new Set(['src/app/(flow)/share/ShareClient.tsx'])
     for (const file of changed) {
-      if (file.startsWith('src/app/(flow)/share/') && !allowedShareFiles.has(file)) {
-        assert.fail(`${file} should stay out of excluded share areas`)
-      }
+      assert.equal(allowedFU111Files.has(file), true, `${file} should be explicitly whitelisted for FU-111`)
       assert.equal(forbidden.some((pattern) => pattern.test(file)), false, `${file} should stay out of excluded areas`)
     }
   })

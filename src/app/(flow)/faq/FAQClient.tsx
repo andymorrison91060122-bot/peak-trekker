@@ -2,7 +2,16 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FocusEvent,
+  type PointerEvent,
+  type RefObject,
+} from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import IconButton from '@/components/ui/IconButton'
@@ -13,6 +22,16 @@ import { useAppToast } from '@/components/ui/AppToastProvider'
 import { FAQ_BY_ANCHOR, FAQ_GROUPS, type FaqGroup, type FaqQuestion } from '@/lib/faq-content'
 
 gsap.registerPlugin(useGSAP)
+
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 type FAQClientProps = {
   initialAnchor: string | null
@@ -243,7 +262,13 @@ function FAQSearchField({
           <button
             type="button"
             aria-label="清除搜索"
+            className="pt-pressable"
             onClick={onClear}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               width: 28,
               height: 28,
@@ -332,8 +357,14 @@ function AnswerCard({ question }: { question: FaqQuestion }) {
           </span>
           <button
             type="button"
+            className="pt-pressable"
             onClick={handleCopyEmail}
             aria-label={`复制邮箱 ${question.contactEmail}`}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               width: '100%',
               minHeight: 44,
@@ -406,8 +437,14 @@ function FAQGroupCard({
     >
       <button
         type="button"
+        className="pt-pressable-card"
         onClick={() => onToggleGroup(group.id)}
         aria-expanded={open}
+        onPointerDown={markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
         style={{
           width: '100%',
           minHeight: 56,
@@ -473,8 +510,14 @@ function FAQGroupCard({
               >
                 <button
                   type="button"
+                  className="pt-pressable-card"
                   onClick={() => onToggleQuestion(group.id, question.anchor)}
                   aria-expanded={expanded}
+                  onPointerDown={markPressFallback}
+                  onPointerUp={clearPressFallback}
+                  onPointerCancel={clearPressFallback}
+                  onPointerLeave={clearPressFallback}
+                  onBlur={clearPressFallback}
                   style={{
                     width: '100%',
                     display: 'flex',
@@ -526,7 +569,13 @@ function FAQResultCard({
   return (
     <button
       type="button"
+      className="pt-pressable-card"
       onClick={() => onOpen(result.anchor)}
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       style={{
         width: '100%',
         padding: '14px var(--space-4)',
@@ -694,6 +743,12 @@ function FAQFooter({ onFeedback }: { onFeedback: () => void }) {
       >
         <Link
           href="/explore"
+          className="pt-pressable"
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             color: 'inherit',
             textDecoration: 'underline',
@@ -708,7 +763,13 @@ function FAQFooter({ onFeedback }: { onFeedback: () => void }) {
         </span>
         <button
           type="button"
+          className="pt-pressable"
           onClick={onFeedback}
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             border: 0,
             padding: 0,

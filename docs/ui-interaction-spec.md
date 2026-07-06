@@ -1274,6 +1274,15 @@ Banner 用于：
 * 插件口径：Webflow 收购后全 GSAP plugin 免费，DrawSVG / CustomEase 等不再需要单独商业授权；项目仍按需引入，避免无意义扩散。
 * React 集成（GSAP 引入后）：用 `useGSAP({scope})` 自动清理；可跳过仪式用 `contextSafe` 包 `tl.progress(1)`；不在 SSR 执行 GSAP。
 
+### FU-111 L1 press system note
+
+* L1 点击 / 触控反馈统一由全局 CSS utilities 承担：`.pt-pressable`（标准按钮 / chip / 小控件）、`.pt-pressable-card`（卡片 / 列表行）、`.pt-pressable-hero`（高价值入口 / 生成 / 记录 CTA）和 `.pt-pressable-hero__icon`（hero icon 同步）。
+* `--motion-press` 现在系统性接入按钮 primitive、`.ui-chip`、TabBar、Explore / Mountain / Share / Imprint / Archive 既有 press 入口，以及 Trek / Import / Screenshot / Activity / FAQ / Profile 的 raw buttons / list rows。
+* press 反馈仅使用 CSS，禁止 GSAP；只允许 transform / opacity / filter / background-color / border-color，fixed / sticky 外层容器不得作为 transform target。
+* iOS 可靠性使用 `[data-pt-press-active="true"]` 作为 pointer fallback；状态必须在 pointerup / pointercancel / pointerleave / blur / route navigation 前后清理。
+* reduced-motion 下 press 降级为即时颜色 / 边框变化，不保留 scale / glow / transform residue。
+* 本项是 FU-111 的 L1 系统化收编，独立于 §12.12 Phase C backlog。
+
 ## 12.5 性能红线
 
 * **只动 `transform`（x/y/scale/rotation）和 `opacity`**；禁止动画 `width/height/top/left/margin/padding`（触发 layout，掉帧）。FU-76 C1 已把扫描线 `top→translateY`、两个 toggle slider `left→translateX`；进度条 / 分页点 `width→scaleX` 经复核决定不做（见 §12.12）。

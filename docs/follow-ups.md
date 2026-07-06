@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-06 · 最新版本记录: v0.98
+> Last Updated: 2026-07-06 · 最新版本记录: v0.99
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`dcddd92a04a28f14e11f6b51b0cfd7f8e7e4d308`（Merge FU-110 explore bottom-section entrance + geo replay stability · 2026-07-06）
+`2d7966f098718a715baac34e5060f6014dc2948d`（Merge FU-111 global click/tap feedback system + explore pathway press redesign · 2026-07-06）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（17 条）
+## Active Follow-ups（16 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -405,20 +405,6 @@
 
 ---
 
-### FU-111 · 全局点击反馈审计 + 补足
-
-- **优先级**: P2（high priority）
-- **归属阶段**: 全站交互手感统一
-- **状态**: 🟡 in-progress
-
-**背景**: 多轮视觉验收暴露点击反馈不一致：部分高价值入口有 press/tap feedback，部分列表卡、筛选、底部 tab / tab switch 仍缺统一规则或反馈弱。
-
-**待修方向**: 审计全站 clickable entries，建立统一 press rule；对高价值入口补 bespoke feedback；底部 tab switch motion 也纳入本 FU，而不是散落在单页动效任务里。
-
-**当前执行备注（2026-07-06）**: FU-111 已进入实现验证阶段；目标是把 explore / mountain / share / imprint / archive 的分散 press 规则统一为全局 L1 CSS press system，并补齐 TabBar、记录控制、导入/截图/活动/FAQ/Profile/Archive 卡片与按钮 press 反馈。待 375px production held-press evidence 与用户视觉验收后再关闭。
-
----
-
 ### FU-112 · 导航一致性规则 / bottom-tab presence
 
 - **优先级**: P2
@@ -519,7 +505,18 @@
 
 ---
 
-## Closed Follow-ups（93 条）
+## Closed Follow-ups（94 条）
+
+### FU-111 ✅ 全局点击反馈审计 + 补足
+
+- **关闭原因**: FU-111 已完成全站 L1 click/tap feedback system 与 Explore pathway press redesign，并合入生产主线。PR #40 / branch `codex/fu111-click-feedback` / merge `2d7966f098718a715baac34e5060f6014dc2948d` 合入 commit `e4221ef94b7ed8de4dc2c950c27e127792973a23`，无 DB / migration / backend 改动。
+- **落地内容**: 将 explore / mountain / share / imprint / archive 的 5 套分散 press 规则收敛到全局 `.pt-pressable` / `.pt-pressable-card` / `.pt-pressable-hero`，统一 tokenized transform + opacity、`--motion-press`、pointer fallback 与 reduced-motion reset；补齐 button primitives、`.ui-chip`、TabBar tap+active、TripCard、profile rows、trek / import / screenshot / activity / FAQ 按钮等零反馈缺口；Explore PathwayCard（导入记录 / 识别截图）改为 wrapper `data-explore-pathway-card` 与 button `data-explore-pathway-button` 分层，使用 `.pt-pathway-press` sink + rounded halo，避免 press transform 与 FU-110 entrance GSAP 冲突；tracker 同步修正 FU-51 状态误翻转。
+- **验收 / 证据**: 用户 2026-07-06 真机视觉验收 PASS。门禁：`node --test --experimental-strip-types tests/motion-nodes-static.test.ts` 23/23 pass；`npm run lint` 0 errors / 6 existing warnings；`npm run build` pass（52/52 static pages）；`npx playwright test tests/e2e/fu76-p2iii-motion-evidence.spec.ts -g "FU-111"` 1 passed；`git diff --check` clean。
+- **生产部署**: Vercel production deploy for merge `2d7966f098718a715baac34e5060f6014dc2948d` READY（deployment `dpl_4nZoyNACd9AE7CqsCg9mu8dzdEMR`，URL `peak-trekker-797fj1iw0-andymorrison91060122-8673s-projects.vercel.app`，production alias `peak-trekker.vercel.app`）。
+- **关闭 commit**: 本次 PR commit
+- **关闭时间**: 2026-07-06
+
+---
 
 ### FU-110 ✅ Explore 下半段入场割裂
 
@@ -1711,6 +1708,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.99 — 2026-07-06**: FU-111 closeout · 全局点击反馈系统 + Explore pathway press redesign 上线。收敛 5 套分散 press 规则为全局 `.pt-pressable` / `.pt-pressable-card` / `.pt-pressable-hero`，补齐 TabBar、chips、profile rows、trek / import / screenshot / activity / FAQ 等高频入口 press feedback；Explore「导入记录 / 识别截图」pathway card 改为 wrapper/button 分层的 sink + rounded halo，避免与 FU-110 entrance GSAP transform 冲突。用户 2026-07-06 真机视觉验收 PASS。PR #40 / merge `2d7966f098718a715baac34e5060f6014dc2948d`。Active 17 → 16 · Closed 93 → 94 · Deferred 4 → 4。
 
 **v0.98 — 2026-07-06**: FU-110 closeout · Explore 下半段入场割裂修复上线。`QUICK_TAGS` chips +「山峰列表」subheading 纳入 mount entrance；新增 session geolocation cache，SPA route-return 以 cache 初始化排序避免 double-play；geo resolve / tag / province 等来源变化的 first-screen replay 改为 non-destructive（不重新 hide 已可见卡，只轻动新增 / reorder 卡）；修复 route leave GSAP context cleanup `RangeError`，并保留 two-layer replay reason log 与 focused evidence guard。PR #39 / merge `dcddd92a04a28f14e11f6b51b0cfd7f8e7e4d308`。Active 18 → 17 · Closed 92 → 93 · Deferred 4 → 4。
 

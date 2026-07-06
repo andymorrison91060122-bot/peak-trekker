@@ -1121,7 +1121,11 @@ async function collectClickability(page: Page, key: PageKey) {
   }
 
   if (key === 'archive') {
-    await trial('archive-back', page.getByRole('button', { name: '返回' }))
+    clickability['archive-no-page-back'] = await page.getByRole('button', { name: '返回' }).count()
+      .then((count) => count === 0)
+      .catch(() => false)
+    clickability['archive-tabbar'] = await page.locator('.pt-tab-link[href="/archive"]').isVisible()
+      .catch(() => false)
     await trial('archive-filter', page.locator('[data-archive-motion="filters"] button').filter({ hasText: /^登顶/ }).first())
     await trial('archive-card', page.locator('[data-archive-trip-card]').first())
   }
@@ -1750,7 +1754,11 @@ test('FU-76 Phase 2-III Round 1 archive filter replay evidence', async ({ browse
       .then(() => true)
       .catch(() => false)
   }
-  await trial('archive-back', evidencePage.getByRole('button', { name: '返回' }))
+  clickability['archive-no-page-back'] = await evidencePage.getByRole('button', { name: '返回' }).count()
+    .then((count) => count === 0)
+    .catch(() => false)
+  clickability['archive-tabbar'] = await evidencePage.locator('.pt-tab-link[href="/archive"]').isVisible()
+    .catch(() => false)
   await trial('archive-filter', evidencePage.locator('[data-archive-filter-tab="summit"]'))
   await trial('archive-card', evidencePage.locator('[data-archive-trip-card]').first())
 

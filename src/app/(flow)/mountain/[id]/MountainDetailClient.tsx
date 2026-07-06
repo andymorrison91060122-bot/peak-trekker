@@ -36,6 +36,7 @@ import type { LicenseProgressSummary } from '@/lib/license-progress'
 import { formatMotionCountValue, formatMotionInteger as formatInteger, parseMotionTokenSeconds } from '@/lib/motion-count-format'
 import { trackEvent } from '@/lib/analytics/client'
 import { buildTrekUrl, consumePendingShareTemplateForTrekUrl } from '@/lib/share-template-intent'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 
 gsap.registerPlugin(useGSAP)
 
@@ -1459,6 +1460,7 @@ export default function MountainDetailClient({
   const router = useRouter()
   const motionScopeRef = useRef<HTMLDivElement | null>(null)
   const routeFacts = getRouteFacts(mountain)
+  const communityEnabled = isFeatureEnabled('COMMUNITY_ENABLED')
   const [licenseSheetOpen, setLicenseSheetOpen] = useState(false)
   const displayWaypoints = useMemo(
     () => (routeMockEnabled ? buildFu47bMockWaypoints(mountain) : waypoints),
@@ -1824,7 +1826,7 @@ export default function MountainDetailClient({
         <RouteReferenceSection mountain={mountain} waypoints={displayWaypoints} forceMapError={forceRouteMapError} />
       </div>
       {displayWaypoints.length > 0 ? <WaypointSection waypoints={displayWaypoints} /> : null}
-      {featuredPosts.length > 0 ? <FeaturedSection posts={featuredPosts} /> : null}
+      {communityEnabled && featuredPosts.length > 0 ? <FeaturedSection posts={featuredPosts} /> : null}
 
       <BottomCTA
         mountain={mountain}

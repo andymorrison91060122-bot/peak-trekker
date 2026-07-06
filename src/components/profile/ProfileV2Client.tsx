@@ -712,6 +712,7 @@ export default function ProfileV2Client({
   const visibleTrips = useMemo(() => trips.slice(0, 3), [trips])
   const visibleShares = useMemo(() => shares.slice(0, 3), [shares])
   const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
+  const communityEnabled = isFeatureEnabled('COMMUNITY_ENABLED')
   const [licenseSheetOpen, setLicenseSheetOpen] = useState(false)
   const queryRequestsLicenseSheet = searchParams.get('licenseSheet') === '1'
 
@@ -935,7 +936,7 @@ export default function ProfileV2Client({
       />
       <SummaryTiles summary={summary} />
       <ArchivePreviewSection trips={visibleTrips} />
-      <SharePreviewSection shares={visibleShares} currentUserId={identity.userId} />
+      {communityEnabled ? <SharePreviewSection shares={visibleShares} currentUserId={identity.userId} /> : null}
       {provinceRankingEnabled ? (
         <div data-profile-motion="province">
           <ProvinceContributionSection contribution={provinceContribution} monthLabel={monthLabel} />

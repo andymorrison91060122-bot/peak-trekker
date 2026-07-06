@@ -16,7 +16,7 @@ const sharePage = readFileSync('src/app/(flow)/share/page.tsx', 'utf8')
 const shareRender = readFileSync('src/app/api/share/render/route.ts', 'utf8')
 const posterRoute = readFileSync('src/app/api/poster/route.ts', 'utf8')
 const profileRecords = readFileSync('src/lib/profile-records-server.ts', 'utf8')
-const archivePage = readFileSync('src/app/(flow)/archive/page.tsx', 'utf8')
+const archivePage = readFileSync('src/app/(main)/archive/page.tsx', 'utf8')
 const analyticsKpis = readFileSync('src/lib/analytics/kpis.ts', 'utf8')
 
 const measuredColumns = [

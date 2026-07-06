@@ -7,8 +7,8 @@ function readSource(path: string) {
 }
 
 const tabBar = readSource('src/components/layout/TabBar.tsx')
-const imprintClient = readSource('src/app/(flow)/imprint/ImprintClient.tsx')
-const imprintPage = readSource('src/app/(flow)/imprint/page.tsx')
+const imprintClient = readSource('src/app/(main)/imprint/ImprintClient.tsx')
+const imprintPage = readSource('src/app/(main)/imprint/page.tsx')
 const registry = readSource('src/lib/share-templates/registry.tsx')
 const renderRoute = readSource('src/app/api/share/render/route.ts')
 const sharePage = readSource('src/app/(flow)/share/page.tsx')
@@ -25,6 +25,8 @@ const trekClient = readSource('src/app/(flow)/trek/TrekClient.tsx')
 
 test('tab bar routes the third tab to the imprint facade', () => {
   assert.match(tabBar, /\{ href: '\/imprint', label: '印迹', icon: TabIcons\.imprint \}/)
+  assert.match(tabBar, /\{ href: '\/community', label: '山友圈', icon: TabIcons\.community \}/)
+  assert.match(tabBar, /tab\.href !== '\/community' \|\| isFeatureEnabled\('COMMUNITY_ENABLED'\)/)
   assert.doesNotMatch(tabBar, /\{ href: '\/trek', label: '出发'/)
 })
 

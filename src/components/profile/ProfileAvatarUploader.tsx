@@ -8,10 +8,13 @@ import IconButton from '@/components/ui/IconButton'
 import { getLicenseLevelLabel } from '@/lib/license-ui'
 import { LicenseTierGlyph } from '@/components/profile/LicenseProgressSheet'
 import ProfileNicknameSheet, { EditNicknameButton } from '@/components/profile/ProfileNicknameSheet'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 
 const AVATAR_TOAST_STORAGE_KEY = 'peak-trekker:avatar-uploaded'
 const AVATAR_STATUS_STORAGE_KEY = 'peak-trekker:avatar-status'
-const AVATAR_INLINE_SUCCESS_MESSAGE = '头像更新成功，个人主页和山友圈会同步刷新。'
+const AVATAR_INLINE_SUCCESS_MESSAGE = isFeatureEnabled('COMMUNITY_ENABLED')
+  ? '头像更新成功，个人主页和山友圈会同步刷新。'
+  : '头像更新成功，个人主页会同步刷新。'
 
 export default function ProfileAvatarUploader({
   username,

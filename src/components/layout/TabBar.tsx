@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { FocusEvent, PointerEvent } from 'react'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 
 type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
 
@@ -98,6 +99,7 @@ const tabs = [
 
 export default function TabBar() {
   const pathname = usePathname()
+  const visibleTabs = tabs.filter((tab) => tab.href !== '/community' || isFeatureEnabled('COMMUNITY_ENABLED'))
 
   return (
     <nav
@@ -112,7 +114,7 @@ export default function TabBar() {
         className="flex justify-around items-center max-w-lg mx-auto"
         style={{ padding: '10px 12px max(12px, env(safe-area-inset-bottom))' }}
       >
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = pathname.startsWith(tab.href)
           return (
             <Link

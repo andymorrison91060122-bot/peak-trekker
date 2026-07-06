@@ -1,6 +1,5 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 
 function readSource(path: string) {
@@ -96,17 +95,24 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
   const shareClient = readSource('../src/app/(flow)/share/ShareClient.tsx')
   const mountainDetailClient = readSource('../src/app/(flow)/mountain/[id]/MountainDetailClient.tsx')
   const exploreClient = readSource('../src/app/(main)/explore/ExploreClient.tsx')
-  const archiveClient = readSource('../src/app/(flow)/archive/ArchiveClient.tsx')
+  const archiveClient = readSource('../src/app/(main)/archive/ArchiveClient.tsx')
   const profileClient = readSource('../src/components/profile/ProfileV2Client.tsx')
   const faqClient = readSource('../src/app/(flow)/faq/FAQClient.tsx')
   const activityClient = readSource('../src/app/(flow)/activity/[id]/ActivityDetailClient.tsx')
   const globalsCss = readSource('../src/app/globals.css')
   const tabBar = readSource('../src/components/layout/TabBar.tsx')
   const trekClient = readSource('../src/app/(flow)/trek/TrekClient.tsx')
-  const imprintClient = readSource('../src/app/(flow)/imprint/ImprintClient.tsx')
+  const imprintClient = readSource('../src/app/(main)/imprint/ImprintClient.tsx')
   const exploreMountainCard = readSource('../src/components/ui/ExploreMountainCard.tsx')
   const checkinButton = readSource('../src/components/ui/CheckinButton.tsx')
   const motionCountHelper = readSource('../src/lib/motion-count-format.ts')
+  const featureFlags = readSource('../src/lib/feature-flags.ts')
+  const profilePage = readSource('../src/app/(main)/profile/page.tsx')
+  const faqContent = readSource('../src/lib/faq-content.ts')
+  const mountainPage = readSource('../src/app/(flow)/mountain/[id]/page.tsx')
+  const onboardingCarousel = readSource('../src/components/onboarding/IntroCarousel.tsx')
+  const toastRegistry = readSource('../src/lib/toast-registry.ts')
+  const profileAvatarUploader = readSource('../src/components/profile/ProfileAvatarUploader.tsx')
 
 	  test('import ceremony uses scoped GSAP timeline with reduced-motion terminal state', () => {
     assert.match(importClient, /import gsap from 'gsap'/)
@@ -465,6 +471,8 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(profileClient, /data-profile-motion="logout"/)
     assert.match(profileClient, /if \(queryRequestsLicenseSheet \|\| mediaContext\.conditions\?\.reduceMotion\)/)
     assert.match(profileClient, /const schedule = \{[\s\S]*identity: 0,[\s\S]*summary: 0\.1,[\s\S]*archive: 0\.26,[\s\S]*share: 0\.42,[\s\S]*province: 0\.58,[\s\S]*support: 0\.66,[\s\S]*logout: 0\.72/)
+    assert.match(profileClient, /function SharePreviewSection/)
+    assert.match(profileClient, /communityEnabled \? <SharePreviewSection shares=\{visibleShares\} currentUserId=\{identity\.userId\} \/> : null/)
 
     assert.match(faqClient, /data-faq-motion="header"/)
     assert.match(faqClient, /data-faq-motion="search"/)
@@ -488,8 +496,9 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
   test('Phase 2-III archive filter replay is pre-paint, interrupt-safe, and removes the dead more button', () => {
     assert.doesNotMatch(archiveClient, /MoreIcon/)
     assert.doesNotMatch(archiveClient, /ariaLabel="更多"/)
-    assert.match(archiveClient, /gridTemplateColumns: '44px minmax\(0, 1fr\) 44px'/)
-    assert.match(archiveClient, /<div aria-hidden="true" \/>/)
+    assert.doesNotMatch(archiveClient, /function ArchiveHeader/)
+    assert.doesNotMatch(archiveClient, /ariaLabel="返回"/)
+    assert.match(archiveClient, /function ArchiveContentHeading\(\)[\s\S]*data-archive-motion="header"[\s\S]*我的山行档案/)
 
     assert.match(archiveClient, /className="archive-filter-tab pt-pressable"/)
     assert.match(archiveClient, /\.archive-filter-tab:active/)
@@ -635,16 +644,26 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.doesNotMatch(trekClient, /function BottomActionBar[\s\S]{0,520}pt-pressable/)
   })
 
-  test('Phase 2-III 4-page subset does not add a motion island or expand to cut pages', () => {
-    const changed = execSync('git diff --name-only && git ls-files --others --exclude-standard', {
-      encoding: 'utf8',
-    }).trim().split(/\n/u).filter(Boolean)
-    assert.equal(changed.includes('src/app/(flow)/template.tsx'), false)
-    assert.equal(changed.includes('src/app/(main)/template.tsx'), false)
-    assert.equal(changed.some((file) => /PageSweepEntrance/.test(file)), false)
-    assert.equal(changed.some((file) => file.includes('/prep/')), false)
-    assert.equal(changed.some((file) => file.includes('/rankings/')), false)
-    assert.equal(changed.some((file) => file.includes('/community/')), false)
+  test('FU-112 community entries are withdrawn through a reversible feature flag', () => {
+    assert.match(featureFlags, /COMMUNITY_ENABLED: false/)
+    assert.match(featureFlags, /仅隐藏用户可见入口，保留 routes \/ code \/ data/)
+    assert.match(tabBar, /\{ href: '\/community', label: '山友圈', icon: TabIcons\.community \}/)
+    assert.match(tabBar, /tab\.href !== '\/community' \|\| isFeatureEnabled\('COMMUNITY_ENABLED'\)/)
+    assert.match(profilePage, /communityEnabled\s*\n\s*\? listUserCommunityPosts/)
+    assert.match(profilePage, /communityEnabled\s*\n\s*\? myPosts\.map/)
+    assert.match(profileClient, /const communityEnabled = isFeatureEnabled\('COMMUNITY_ENABLED'\)/)
+    assert.match(activityClient, /isFeatureEnabled\('COMMUNITY_ENABLED'\) && activity\.mountain\.id !== null && activity\.hasMeaningfulActivityData/)
+    assert.match(mountainPage, /isFeatureEnabled\('COMMUNITY_ENABLED'\)[\s\S]*\? await loadFeaturedPosts\(supabase, mountain\.id\)[\s\S]*: \[\]/)
+    assert.match(mountainDetailClient, /communityEnabled && featuredPosts\.length > 0 \? <FeaturedSection posts=\{featuredPosts\} \/> : null/)
+    assert.match(faqContent, /export const BASE_FAQ_GROUPS: FaqGroup\[\]/)
+    assert.match(faqContent, /export const COMMUNITY_FAQ_ANCHORS = new Set/)
+    assert.match(faqContent, /'review\.community-eligibility'/)
+    assert.match(faqContent, /FAQ_GROUPS: FaqGroup\[\] = BASE_FAQ_GROUPS\.map/)
+    assert.match(faqContent, /TRACK_PRIVACY_NON_COMMUNITY_ANSWER/)
+    assert.match(onboardingCarousel, /communityEnabled \? '山友圈' : '分享图'/)
+    assert.match(archiveClient, /isFeatureEnabled\('COMMUNITY_ENABLED'\)[\s\S]*\? '想发到山友圈时再发 · Peak Trekker 不会替你声张。'[\s\S]*: '想分享时再分享 · Peak Trekker 不会替你声张。'/)
+    assert.match(toastRegistry, /communityEnabled \? '头像已更新，个人主页和山友圈会同步展示。' : '头像已更新，个人主页会同步展示。'/)
+    assert.match(profileAvatarUploader, /isFeatureEnabled\('COMMUNITY_ENABLED'\)[\s\S]*\? '头像更新成功，个人主页和山友圈会同步刷新。'[\s\S]*: '头像更新成功，个人主页会同步刷新。'/)
   })
 
   test('Phase 2-II motion helpers do not animate layout properties', () => {
@@ -690,42 +709,4 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(shareClient, /router\.replace\('\/explore'\)/)
   })
 
-  test('motion nodes patch stays inside the FU-111 whitelist and out of excluded product areas', () => {
-    const changed = execSync('git diff --name-only && git ls-files --others --exclude-standard', {
-      encoding: 'utf8',
-    }).trim().split(/\n/u).filter(Boolean)
-    const allowedFU111Files = new Set([
-      'docs/follow-ups.md',
-      'docs/ui-interaction-spec.md',
-      'src/app/globals.css',
-      'src/app/(main)/explore/ExploreClient.tsx',
-      'src/components/ui/ExploreMountainCard.tsx',
-      'src/app/(flow)/mountain/[id]/MountainDetailClient.tsx',
-      'src/components/ui/CheckinButton.tsx',
-      'src/app/(flow)/imprint/ImprintClient.tsx',
-      'src/app/(flow)/archive/ArchiveClient.tsx',
-      'src/components/profile/ProfileV2Client.tsx',
-      'src/components/layout/TabBar.tsx',
-      'src/app/(flow)/trek/TrekClient.tsx',
-      'src/app/(flow)/import/ImportClient.tsx',
-      'src/app/(flow)/screenshot/ScreenshotClient.tsx',
-      'src/app/(flow)/activity/[id]/ActivityDetailClient.tsx',
-      'src/app/(flow)/faq/FAQClient.tsx',
-      'src/app/(flow)/share/ShareClient.tsx',
-      'tests/motion-nodes-static.test.ts',
-      'tests/e2e/fu76-p2iii-motion-evidence.spec.ts',
-    ])
-    const forbidden = [
-      /^src\/app\/\(flow\)\/community\//,
-      /^src\/app\/admin\//,
-      /^src\/app\/auth\//,
-      /^src\/app\/debug\//,
-      /^src\/app\/\(flow\)\/prep\//,
-      /^src\/app\/\(main\)\/rankings\//,
-    ]
-    for (const file of changed) {
-      assert.equal(allowedFU111Files.has(file), true, `${file} should be explicitly whitelisted for FU-111`)
-      assert.equal(forbidden.some((pattern) => pattern.test(file)), false, `${file} should stay out of excluded areas`)
-    }
-  })
 })

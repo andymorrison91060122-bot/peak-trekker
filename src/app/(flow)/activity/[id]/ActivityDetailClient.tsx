@@ -23,6 +23,7 @@ import {
 import type { CheckinSource } from '@/types'
 import type { PersistedScreenshotRouteShape } from '@/lib/screenshot-route-shape'
 import { getDifficultyLevelLabel } from '@/lib/license-ui'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import {
   ACTIVITY_NOTE_MAX_LENGTH,
   ACTIVITY_PHOTO_MAX_COUNT,
@@ -1490,7 +1491,8 @@ function BackToRecords({ activity }: { activity: ActivityDetailViewModel }) {
 
 function ActivityInlineActions({ activity }: { activity: ActivityDetailViewModel }) {
   const router = useRouter()
-  const canPublishToCommunity = activity.mountain.id !== null && activity.hasMeaningfulActivityData
+  const canPublishToCommunity =
+    isFeatureEnabled('COMMUNITY_ENABLED') && activity.mountain.id !== null && activity.hasMeaningfulActivityData
 
   return (
     <section className="act-actions" data-testid="activity-inline-actions">

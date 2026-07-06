@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 
 type IntroCarouselProps = {
   currentIndex: number
@@ -37,6 +38,7 @@ const SLIDES: SlideCopy[] = [
 const surfaceShadow = '0 18px 40px color-mix(in oklch, var(--color-surface) 70%, transparent)'
 const softBorder = '1px solid color-mix(in oklch, var(--color-outline) 72%, transparent)'
 const mutedPanel = 'color-mix(in oklch, var(--color-surface-variant) 80%, transparent)'
+const communityEnabled = isFeatureEnabled('COMMUNITY_ENABLED')
 
 function useCountUpValue({
   active,
@@ -628,7 +630,7 @@ function ShareStackPreview({ active, reducedMotion }: { active: boolean; reduced
               fontWeight: 500,
             }}
           >
-            山友圈
+            {communityEnabled ? '山友圈' : '分享图'}
           </div>
         </div>
         <div

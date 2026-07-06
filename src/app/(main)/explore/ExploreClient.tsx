@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
@@ -23,6 +23,32 @@ const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 const QUICK_TAGS = provinceRankingEnabled
   ? (['附近', '本省热门', '无执照可进', '高海拔', '长线'] as const)
   : (['附近', '无执照可进', '高海拔', '长线'] as const)
+
+type ExploreReplayReason = 'geo' | 'tag' | 'province' | 'advancedFilter'
+type ExploreReplayReasonLayer = 'queuedReasons' | 'firedReplayReasons'
+type ExploreReplayReasonState = Record<ExploreReplayReasonLayer, ExploreReplayReason[]>
+type ExplorePosition = { lat: number; lng: number }
+
+let cachedExplorePosition: ExplorePosition | null = null
+
+function getExploreReplayReasonState() {
+  const win = window as Window & { __fu110ExploreReplayReasons?: ExploreReplayReasonState }
+  win.__fu110ExploreReplayReasons ??= { queuedReasons: [], firedReplayReasons: [] }
+  return win.__fu110ExploreReplayReasons
+}
+
+function recordExploreReplayReasons(layer: ExploreReplayReasonLayer, reasons: ExploreReplayReason[]) {
+  if (reasons.length === 0) return
+  const state = getExploreReplayReasonState()
+  state[layer].push(...reasons)
+  if (layer === 'firedReplayReasons') {
+    window.dispatchEvent(new CustomEvent('fu110:explore-replay-fired', { detail: { reasons } }))
+  }
+}
+
+function sameExplorePosition(left: ExplorePosition | null, right: ExplorePosition) {
+  return left?.lat === right.lat && left.lng === right.lng
+}
 
 function estimateLength(mountain: Mountain) {
   return mountain.length_km ?? Number(Math.max(4.2, Math.min(26, mountain.altitude / 260)).toFixed(1))
@@ -65,13 +91,23 @@ export default function ExploreClient({
 }) {
   const router = useRouter()
   const motionScopeRef = useRef<HTMLDivElement | null>(null)
+  const replayExploreListRef = useRef<((reasons: ExploreReplayReason[]) => void) | null>(null)
+  const terminalizeExploreListRef = useRef<(() => void) | null>(null)
+  const pendingExploreReplayRef = useRef(false)
+  const pendingExploreReplayReasonsRef = useRef<Set<ExploreReplayReason>>(new Set())
+  const mountSettledRef = useRef(false)
+  const draftProvinceInitialSyncDoneRef = useRef(false)
+  const draftProvinceRef = useRef<string | null>(hometownProvince)
+  const positionRef = useRef<ExplorePosition | null>(cachedExplorePosition)
+  const lastVisibleFirst4IdsRef = useRef<string[]>([])
+  const mountTimelineRef = useRef<gsap.core.Timeline | null>(null)
   const [search, setSearch] = useState('')
   const [tag, setTag] = useState<(typeof QUICK_TAGS)[number]>('附近')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [difficulty, setDifficulty] = useState<'all' | Mountain['difficulty']>('all')
   const [altitudeBand, setAltitudeBand] = useState<'all' | 'low' | 'mid' | 'high'>('all')
   const [lengthBand, setLengthBand] = useState<'all' | 'short' | 'mid' | 'long'>('all')
-  const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null)
+  const [position, setPosition] = useState<ExplorePosition | null>(() => cachedExplorePosition)
   const [draftProvince, setDraftProvince] = useState<string | null>(hometownProvince)
 
   useEffect(() => {
@@ -80,19 +116,63 @@ export default function ExploreClient({
     router.replace('/explore')
   }, [router, shareTemplateIntent])
 
+  const readLiveFirst4Ids = useCallback(() => {
+    const root = motionScopeRef.current
+    if (!root) return []
+    return gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-testid="explore-mountain-card"]'))
+      .slice(0, 4)
+      .map((card) => (card.getAttribute('href') ?? '').split('/').filter(Boolean).at(-1) ?? '')
+      .filter(Boolean)
+  }, [])
+
+  const queueExploreListReplay = useCallback((reason: ExploreReplayReason) => {
+    if (reason === 'geo') {
+      const first4Ids = readLiveFirst4Ids()
+      if (first4Ids.length > 0) lastVisibleFirst4IdsRef.current = first4Ids
+    }
+    pendingExploreReplayReasonsRef.current.add(reason)
+    recordExploreReplayReasons('queuedReasons', [reason])
+    pendingExploreReplayRef.current = true
+    if (mountSettledRef.current) terminalizeExploreListRef.current?.()
+  }, [readLiveFirst4Ids])
+
+  function flushPendingExploreListReplay(replay = replayExploreListRef.current) {
+    if (!mountSettledRef.current || !pendingExploreReplayRef.current) return
+    const reasons = [...pendingExploreReplayReasonsRef.current]
+    pendingExploreReplayReasonsRef.current.clear()
+    pendingExploreReplayRef.current = false
+    if (reasons.length === 0) return
+    replay?.(reasons)
+  }
+
   useEffect(() => {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
       (coords) => {
-        setPosition({ lat: coords.coords.latitude, lng: coords.coords.longitude })
+        const nextPosition = { lat: coords.coords.latitude, lng: coords.coords.longitude }
+        const previousPosition = positionRef.current
+        if (sameExplorePosition(previousPosition, nextPosition)) return
+        cachedExplorePosition = nextPosition
+        positionRef.current = nextPosition
+        queueExploreListReplay('geo')
+        setPosition(nextPosition)
       },
       () => undefined,
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 }
     )
-  }, [])
+  }, [queueExploreListReplay])
 
   useEffect(() => {
-    const syncDraftProvince = () => setDraftProvince(getProvinceDraft())
+    const syncDraftProvince = () => {
+      const nextProvince = getProvinceDraft()
+      const previousProvince = draftProvinceRef.current
+      const isInitialSync = !draftProvinceInitialSyncDoneRef.current
+      draftProvinceInitialSyncDoneRef.current = true
+      if (previousProvince === nextProvince) return
+      draftProvinceRef.current = nextProvince
+      if (!isInitialSync && hometownProvince === null) queueExploreListReplay('province')
+      setDraftProvince(nextProvince)
+    }
     syncDraftProvince()
     window.addEventListener(ONBOARDING_EVENT, syncDraftProvince)
     window.addEventListener('storage', syncDraftProvince)
@@ -100,7 +180,7 @@ export default function ExploreClient({
       window.removeEventListener(ONBOARDING_EVENT, syncDraftProvince)
       window.removeEventListener('storage', syncDraftProvince)
     }
-  }, [])
+  }, [hometownProvince, queueExploreListReplay])
 
   const effectiveProvince = hometownProvince ?? draftProvince
   const sorted = useMemo(() => {
@@ -157,6 +237,10 @@ export default function ExploreClient({
     })
   }, [sorted, search, tag, difficulty, altitudeBand, lengthBand, effectiveProvince])
 
+  const filteredMountainSignature = useMemo(
+    () => filtered.map(({ mountain }) => mountain.id).join('|'),
+    [filtered],
+  )
   const activeFilterCount = [difficulty, altitudeBand, lengthBand].filter((value) => value !== 'all').length
   const goImport = () => router.push('/import')
   const goScreenshot = () => router.push('/screenshot')
@@ -167,30 +251,230 @@ export default function ExploreClient({
         ? `已优先展示 ${effectiveProvince} 的热门路线`
         : `当前找到 ${filtered.length} 座可选山峰`
 
+  function handleTagChange(nextTag: (typeof QUICK_TAGS)[number]) {
+    if (nextTag === tag) return
+    queueExploreListReplay('tag')
+    setTag(nextTag)
+  }
+
+  function handleDifficultyChange(nextDifficulty: typeof difficulty) {
+    if (nextDifficulty === difficulty) return
+    queueExploreListReplay('advancedFilter')
+    setDifficulty(nextDifficulty)
+  }
+
+  function handleAltitudeBandChange(nextAltitudeBand: typeof altitudeBand) {
+    if (nextAltitudeBand === altitudeBand) return
+    queueExploreListReplay('advancedFilter')
+    setAltitudeBand(nextAltitudeBand)
+  }
+
+  function handleLengthBandChange(nextLengthBand: typeof lengthBand) {
+    if (nextLengthBand === lengthBand) return
+    queueExploreListReplay('advancedFilter')
+    setLengthBand(nextLengthBand)
+  }
+
   useGSAP((_context, contextSafe) => {
     const root = motionScopeRef.current
     if (!root) return
 
-    const getScopedTargets = (selector: string, scope: ParentNode = root) =>
-      gsap.utils.toArray<HTMLElement>(scope.querySelectorAll(selector)).filter((target) => root.contains(target))
+    const setOutsideContext = (targets: gsap.TweenTarget, vars: gsap.TweenVars) => {
+      _context.ignore(() => {
+        gsap.set(targets, vars)
+      })
+    }
 
-    const getExploreMotionTargets = () => [
+    const uniqueConnectedTargets = (targets: HTMLElement[]) => {
+      const seen = new Set<HTMLElement>()
+      return targets.filter((target) => {
+        if (!target.isConnected || !root.contains(target) || seen.has(target)) return false
+        seen.add(target)
+        return true
+      })
+    }
+    const getScopedTargets = (selector: string, scope: ParentNode = root) =>
+      uniqueConnectedTargets(gsap.utils.toArray<HTMLElement>(scope.querySelectorAll(selector)))
+    const getFirstScreenMountainCards = () => getScopedTargets('[data-testid="explore-mountain-card"]').slice(0, 4)
+    const getMountainCardId = (card: HTMLElement) =>
+      (card.getAttribute('href') ?? '').split('/').filter(Boolean).at(-1) ?? ''
+    const updateLastVisibleFirst4Ids = () => {
+      lastVisibleFirst4IdsRef.current = getFirstScreenMountainCards().map(getMountainCardId).filter(Boolean)
+    }
+    const getLiveExploreListTargets = () => {
+      const listSubheading = getScopedTargets('[data-explore-motion="list-subheading"]')
+      const firstScreenCards = getFirstScreenMountainCards()
+      const emptyState = getScopedTargets('[data-explore-list-empty]')
+      return {
+        listSubheading,
+        firstScreenCards,
+        emptyState,
+        replayTargets: [...listSubheading, ...firstScreenCards, ...emptyState],
+        terminalTargets: [...listSubheading, ...firstScreenCards, ...emptyState],
+      }
+    }
+
+    const getExploreMotionTargets = () => uniqueConnectedTargets([
       root,
       ...getScopedTargets('[data-explore-motion]'),
       ...getScopedTargets('[data-explore-pathway-card]'),
-      ...getScopedTargets('[data-testid="explore-mountain-card"]').slice(0, 4),
-    ]
+      ...getScopedTargets('.explore-filter-chip'),
+      ...getFirstScreenMountainCards(),
+      ...getScopedTargets('[data-explore-list-empty]'),
+    ])
 
-    const terminalizeExploreMotion = () => {
+    const applyTerminalDomStyles = (targets: HTMLElement[], updateLastVisible = true) => {
+      uniqueConnectedTargets(targets).forEach((target) => {
+        target.style.opacity = '1'
+        target.style.visibility = 'visible'
+        target.style.transform = ''
+        target.style.willChange = ''
+      })
+      if (updateLastVisible) updateLastVisibleFirst4Ids()
+    }
+
+    const terminalizeExploreMotion = (updateLastVisible = true) => {
       if (!root.isConnected) return
       const targets = getExploreMotionTargets()
       if (targets.length === 0) return
-      gsap.set(targets, {
+      setOutsideContext(targets, {
         autoAlpha: 1,
         y: 0,
         scale: 1,
         clearProps: 'willChange,transform',
       })
+      if (updateLastVisible) updateLastVisibleFirst4Ids()
+    }
+
+    const terminalizeExploreMotionForCleanup = (updateLastVisible = true) => {
+      if (!root.isConnected) return
+      applyTerminalDomStyles(getExploreMotionTargets(), updateLastVisible)
+    }
+
+    let exploreListReplayTimeline: gsap.core.Timeline | null = null
+
+    const terminalizeExploreListMotion = (updateLastVisible = true) => {
+      if (!root.isConnected) return
+      const { terminalTargets } = getLiveExploreListTargets()
+      if (terminalTargets.length === 0) return
+      setOutsideContext(terminalTargets, {
+        autoAlpha: 1,
+        y: 0,
+        scale: 1,
+        clearProps: 'willChange,transform',
+      })
+      if (updateLastVisible) updateLastVisibleFirst4Ids()
+    }
+
+    const terminalizeExploreListMotionForCleanup = (updateLastVisible = true) => {
+      if (!root.isConnected) return
+      const { terminalTargets } = getLiveExploreListTargets()
+      if (terminalTargets.length === 0) return
+      applyTerminalDomStyles(terminalTargets, updateLastVisible)
+    }
+
+    const stopExploreListReplay = () => {
+      exploreListReplayTimeline?.eventCallback('onInterrupt', null)
+      exploreListReplayTimeline?.kill()
+      exploreListReplayTimeline = null
+      terminalizeExploreListMotion(false)
+    }
+
+    const stopExploreListReplayForCleanup = () => {
+      exploreListReplayTimeline?.eventCallback('onComplete', null)
+      exploreListReplayTimeline?.eventCallback('onInterrupt', null)
+      exploreListReplayTimeline?.kill()
+      exploreListReplayTimeline = null
+      terminalizeExploreListMotionForCleanup(false)
+    }
+
+    const stopMountMotionAndTerminalize = (updateLastVisible = true) => {
+      mountTimelineRef.current?.eventCallback('onInterrupt', null)
+      mountTimelineRef.current?.kill()
+      mountTimelineRef.current = null
+      terminalizeExploreMotion(updateLastVisible)
+    }
+
+    const runExploreListReplay = (reasons: ExploreReplayReason[]) => {
+      if (!root.isConnected) return
+      const isGeoOnlyReplay = reasons.length > 0 && reasons.every((reason) => reason === 'geo')
+      stopExploreListReplay()
+      if (mountTimelineRef.current) stopMountMotionAndTerminalize(!isGeoOnlyReplay)
+
+      const { replayTargets, terminalTargets } = getLiveExploreListTargets()
+      if (terminalTargets.length === 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        terminalizeExploreListMotion()
+        return
+      }
+
+      if (isGeoOnlyReplay) {
+        const previousFirst4Ids = lastVisibleFirst4IdsRef.current
+        const previousFirst4Set = new Set(previousFirst4Ids)
+        const currentCards = getFirstScreenMountainCards()
+        const newFirstScreenCards = currentCards.filter((card) => {
+          const id = getMountainCardId(card)
+          return id !== '' && !previousFirst4Set.has(id)
+        })
+        const reorderedFirstScreenCards = currentCards.filter((card, index) => {
+          const id = getMountainCardId(card)
+          return id !== '' && previousFirst4Set.has(id) && previousFirst4Ids[index] !== id
+        })
+        const geoMotionTargets = [...newFirstScreenCards, ...reorderedFirstScreenCards]
+        if (geoMotionTargets.length === 0) {
+          recordExploreReplayReasons('firedReplayReasons', reasons)
+          terminalizeExploreListMotion()
+          return
+        }
+
+        setOutsideContext(geoMotionTargets, { autoAlpha: 1, y: 10, scale: 0.985, willChange: 'transform, opacity' })
+        recordExploreReplayReasons('firedReplayReasons', reasons)
+
+        const geoReplayDuration = Math.min(Math.max(parseMotionTokenSeconds(root, '--motion-base', 240), 0.28), 0.38)
+        exploreListReplayTimeline = gsap.timeline({
+          defaults: { duration: geoReplayDuration, ease: 'power3.out' },
+          onComplete: () => terminalizeExploreListMotion(),
+          onInterrupt: () => terminalizeExploreListMotion(),
+        })
+        exploreListReplayTimeline.addLabel('sourceReplay', 0)
+        if (newFirstScreenCards.length > 0) {
+          exploreListReplayTimeline.fromTo(newFirstScreenCards, { autoAlpha: 1, y: 12, scale: 0.985 }, {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            stagger: { each: 0.025, from: 'start' },
+          }, 'sourceReplay')
+        }
+        if (reorderedFirstScreenCards.length > 0) {
+          exploreListReplayTimeline.fromTo(reorderedFirstScreenCards, { y: 8, scale: 0.99 }, {
+            autoAlpha: 1,
+            y: 0,
+            scale: 1,
+            stagger: { each: 0.02, from: 'start' },
+          }, 'sourceReplay')
+        }
+        return
+      }
+
+      if (replayTargets.length > 0) {
+        setOutsideContext(replayTargets, { autoAlpha: 0, y: 18, scale: 0.96, willChange: 'transform, opacity' })
+      }
+      recordExploreReplayReasons('firedReplayReasons', reasons)
+
+      const replayDuration = Math.min(Math.max(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.42), 0.52)
+      exploreListReplayTimeline = gsap.timeline({
+        defaults: { ease: 'back.out(1.3)' },
+        onComplete: terminalizeExploreListMotion,
+        onInterrupt: terminalizeExploreListMotion,
+      })
+      exploreListReplayTimeline.addLabel('sourceReplay', 0)
+      exploreListReplayTimeline.fromTo(replayTargets, { autoAlpha: 0, y: 18, scale: 0.96 }, {
+        autoAlpha: 1,
+        y: 0,
+        scale: 1,
+        duration: replayDuration,
+        ease: 'back.out(1.3)',
+        stagger: { each: 0.03, from: 'start' },
+      }, 'sourceReplay')
     }
 
     const runMotion = () => {
@@ -202,37 +486,50 @@ export default function ExploreClient({
         },
         (mediaContext) => {
           if (mediaContext.conditions?.reduceMotion) {
+            mountSettledRef.current = true
             terminalizeExploreMotion()
+            flushPendingExploreListReplay(runExploreListReplay)
             return () => terminalizeExploreMotion()
           }
 
           const baseDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.18)
           const enterDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.2)
           const fastDuration = Math.min(parseMotionTokenSeconds(root, '--motion-fast', 180), 0.14)
+          const cardDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.16)
           const schedule = {
             shell: 0,
             header: 0.04,
             search: 0.12,
             pathways: 0.22,
             pathwayCards: 0.26,
-            listHeading: 0.34,
-            firstCards: 0.38,
+            listHeading: 0.3,
+            quickTags: 0.34,
+            listSubheading: 0.4,
+            firstCards: 0.45,
           } as const
           const motionMap = new Map(getScopedTargets('[data-explore-motion]').map((target) => [target.dataset.exploreMotion, target]))
           const pathwayCards = getScopedTargets('[data-explore-pathway-card]')
-          const firstScreenCards = getScopedTargets('[data-testid="explore-mountain-card"]').slice(0, 4)
+          const quickTagChips = getScopedTargets('.explore-filter-chip')
+          const firstScreenCards = getFirstScreenMountainCards()
           const animatedTargets = getExploreMotionTargets()
 
-          if (animatedTargets.length > 0) gsap.set(animatedTargets, { willChange: 'transform, opacity' })
+          if (animatedTargets.length > 0) setOutsideContext(animatedTargets, { willChange: 'transform, opacity' })
           firstScreenCards.forEach((card, index) => {
             card.dataset.exploreMotionParticipation = 'first-screen'
             card.dataset.exploreMotionIndex = String(index)
           })
           const timeline = gsap.timeline({
             defaults: { duration: baseDuration, ease: 'power3.out' },
-            onComplete: terminalizeExploreMotion,
+            onComplete: () => {
+              mountTimelineRef.current = null
+              const preserveQueuedFirst4 = pendingExploreReplayReasonsRef.current.has('geo')
+              terminalizeExploreMotion(!preserveQueuedFirst4)
+              mountSettledRef.current = true
+              flushPendingExploreListReplay(runExploreListReplay)
+            },
             onInterrupt: terminalizeExploreMotion,
           })
+          mountTimelineRef.current = timeline
 
           timeline
             .addLabel('shell', schedule.shell)
@@ -242,13 +539,11 @@ export default function ExploreClient({
             const target = motionMap.get(key)
             if (!target) return
             timeline.addLabel(label, position)
-            timeline.fromTo(target, { autoAlpha: 0, y: fromY, scale }, {
-              autoAlpha: 1,
-              y: 0,
-              scale: 1,
-              duration: enterDuration,
-              ease: key === 'pathways' ? 'back.out(1.3)' : 'power3.out',
-            }, label)
+            const fromVars = scale === 1 ? { autoAlpha: 0, y: fromY } : { autoAlpha: 0, y: fromY, scale }
+            const toVars = scale === 1
+              ? { autoAlpha: 1, y: 0, duration: enterDuration, ease: key === 'pathways' ? 'back.out(1.3)' : 'power3.out' }
+              : { autoAlpha: 1, y: 0, scale: 1, duration: enterDuration, ease: key === 'pathways' ? 'back.out(1.3)' : 'power3.out' }
+            timeline.fromTo(target, fromVars, toVars, label)
           }
 
           addMotion('header', 'header', schedule.header, 14, 0.98)
@@ -265,21 +560,35 @@ export default function ExploreClient({
             }, schedule.pathwayCards)
           }
           addMotion('list-heading', 'listHeading', schedule.listHeading, 14, 0.98)
+          if (quickTagChips.length > 0) {
+            timeline.addLabel('quickTags', schedule.quickTags)
+            timeline.fromTo(quickTagChips, { autoAlpha: 0, y: 10 }, {
+              autoAlpha: 1,
+              y: 0,
+              duration: fastDuration,
+              ease: 'power3.out',
+              stagger: { each: 0.03, from: 'start' },
+            }, 'quickTags')
+          }
+          addMotion('list-subheading', 'listSubheading', schedule.listSubheading, 12, 1)
           if (firstScreenCards.length > 0) {
             timeline.addLabel('firstCards', schedule.firstCards)
             timeline.fromTo(firstScreenCards, { autoAlpha: 0, y: 18, scale: 0.96 }, {
               autoAlpha: 1,
               y: 0,
               scale: 1,
-              duration: enterDuration,
+              duration: cardDuration,
               ease: 'back.out(1.3)',
               stagger: { each: 0.03, from: 'start' },
             }, 'firstCards')
           }
 
           return () => {
+            timeline.eventCallback('onComplete', null)
+            timeline.eventCallback('onInterrupt', null)
             timeline.kill()
-            terminalizeExploreMotion()
+            if (mountTimelineRef.current === timeline) mountTimelineRef.current = null
+            terminalizeExploreMotionForCleanup()
           }
         },
         root,
@@ -291,13 +600,26 @@ export default function ExploreClient({
       }
     }
 
-    const safeRunMotion = (contextSafe ? contextSafe(runMotion) : runMotion) as () => unknown
-    const cleanup = safeRunMotion()
+    const safeRunExploreListReplay = (
+      contextSafe ? contextSafe(runExploreListReplay) : runExploreListReplay
+    ) as (reasons: ExploreReplayReason[]) => void
+    const safeTerminalizeExploreList = (contextSafe ? contextSafe(stopExploreListReplay) : stopExploreListReplay) as () => void
+    replayExploreListRef.current = safeRunExploreListReplay
+    terminalizeExploreListRef.current = safeTerminalizeExploreList
+    const cleanup = runMotion()
     return () => {
+      replayExploreListRef.current = null
+      terminalizeExploreListRef.current = null
+      stopExploreListReplayForCleanup()
       if (typeof cleanup === 'function') cleanup()
-      terminalizeExploreMotion()
+      mountTimelineRef.current = null
+      terminalizeExploreMotionForCleanup()
     }
   }, { scope: motionScopeRef, dependencies: [] })
+
+  useLayoutEffect(() => {
+    flushPendingExploreListReplay()
+  }, [tag, effectiveProvince, difficulty, altitudeBand, lengthBand, position, filteredMountainSignature])
 
   return (
     <>
@@ -308,6 +630,7 @@ export default function ExploreClient({
         ref={motionScopeRef}
         className="explore-page-shell"
         data-explore-motion="shell"
+        data-explore-position-state={position ? 'resolved' : 'null'}
         style={{
           padding: 'var(--space-4)',
           display: 'flex',
@@ -503,7 +826,7 @@ export default function ExploreClient({
             {QUICK_TAGS.map((item) => (
               <Chip
                 key={item}
-                onClick={() => setTag(item)}
+                onClick={() => handleTagChange(item)}
                 active={tag === item}
                 className="explore-filter-chip"
               >
@@ -531,7 +854,7 @@ export default function ExploreClient({
                   { label: getDifficultyLevelLabel('advanced'), value: 'advanced' },
                   { label: getDifficultyLevelLabel('expert'), value: 'expert' },
                 ]}
-                onChange={(value) => setDifficulty(value as typeof difficulty)}
+                onChange={(value) => handleDifficultyChange(value as typeof difficulty)}
               />
               <FilterGroup
                 label="海拔"
@@ -542,7 +865,7 @@ export default function ExploreClient({
                   { label: '2000-4000m', value: 'mid' },
                   { label: '>4000m', value: 'high' },
                 ]}
-                onChange={(value) => setAltitudeBand(value as typeof altitudeBand)}
+                onChange={(value) => handleAltitudeBandChange(value as typeof altitudeBand)}
               />
               <FilterGroup
                 label="路线长度"
@@ -553,12 +876,13 @@ export default function ExploreClient({
                   { label: '中线', value: 'mid' },
                   { label: '长线', value: 'long' },
                 ]}
-                onChange={(value) => setLengthBand(value as typeof lengthBand)}
+                onChange={(value) => handleLengthBandChange(value as typeof lengthBand)}
               />
             </div>
           )}
 
           <div
+            data-explore-motion="list-subheading"
             style={{
               display: 'grid',
               gap: 'var(--space-1)',
@@ -591,30 +915,32 @@ export default function ExploreClient({
           </div>
 
           {filtered.length === 0 ? (
-            <Card>
-              <div style={{ display: 'grid', gap: 'var(--space-2)', textAlign: 'center' }}>
-                <div
-                  style={{
-                    color: 'var(--color-on-surface)',
-                    fontSize: 'var(--font-title-m-size)',
-                    lineHeight: 'var(--font-title-m-line)',
-                    fontWeight: 600,
-                  }}
-                >
-                  没有找到匹配的山峰
+            <div data-explore-list-empty>
+              <Card>
+                <div style={{ display: 'grid', gap: 'var(--space-2)', textAlign: 'center' }}>
+                  <div
+                    style={{
+                      color: 'var(--color-on-surface)',
+                      fontSize: 'var(--font-title-m-size)',
+                      lineHeight: 'var(--font-title-m-line)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    没有找到匹配的山峰
+                  </div>
+                  <div
+                    style={{
+                      color: 'var(--color-on-surface-variant)',
+                      fontSize: 'var(--font-body-m-size)',
+                      lineHeight: 'var(--font-body-m-line)',
+                      fontWeight: 'var(--font-body-m-weight)',
+                    }}
+                  >
+                    试试切换标签或清空高级筛选条件。
+                  </div>
                 </div>
-                <div
-                  style={{
-                    color: 'var(--color-on-surface-variant)',
-                    fontSize: 'var(--font-body-m-size)',
-                    lineHeight: 'var(--font-body-m-line)',
-                    fontWeight: 'var(--font-body-m-weight)',
-                  }}
-                >
-                  试试切换标签或清空高级筛选条件。
-                </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
           ) : (
             <div
               style={{

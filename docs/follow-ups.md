@@ -409,11 +409,13 @@
 
 - **优先级**: P2（high priority）
 - **归属阶段**: FU-76 后续动效一致性
-- **状态**: 🟢 active
+- **状态**: 🟡 in-progress（本地 evidence 生成后待用户验收，不关闭）
 
 **背景**: FU-76 P2-III Round 1 审查确认：Explore 下半段仍有入场割裂。`QUICK_TAGS` row 与山峰列表 subheading 未被 motion 标记；且运行时已确认，地理位置授权后 position resolve 会按距离重排列表，新 first-screen cards 在 mount entrance 之后渲染，保持 `opacity: 1` 静态出现。
 
 **待修方向**: 不是补一个静态 schedule；需要 whole-bottom-section entrance orchestration，并在异步列表来源变化（position / tag / province）时用 `contextSafe` replay first-screen cards，保持 reduced-motion 终态与 rapid source change interrupt-safety。
+
+**本轮证据路径**: `output/fu76-p2iii-acceptance/fu110-explore/`（controlled local production build；no-geo / geo re-sort / SPA route-return cache-hit + cache-miss / empty-state / rapid collision / reduced-motion evidence）。
 
 ---
 

@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-06 · 最新版本记录: v0.99
+> Last Updated: 2026-07-06 · 最新版本记录: v0.100
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`2d7966f098718a715baac34e5060f6014dc2948d`（Merge FU-111 global click/tap feedback system + explore pathway press redesign · 2026-07-06）
+`811de79e87007065b22ee50dd6ee4fc196cba394`（Merge FU-112 navigation consistency + v1 community entry withdrawal · 2026-07-06）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（16 条）
+## Active Follow-ups（15 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -405,16 +405,6 @@
 
 ---
 
-### FU-112 · 导航一致性规则 / bottom-tab presence
-
-- **优先级**: P2
-- **归属阶段**: 导航结构一致性 / FU-102 后续
-- **状态**: 🟡 in-progress
-
-**背景**: 一级页 / 二级页的 bottom-tab presence 与显式 back path 需要形成规则，避免页面类型、入口来源和 tab 可见性之间出现不一致。此项是导航结构规则，不是 motion 任务。
-
-**待修方向**: 明确一级页 bottom-tab presence consistency；二级页何时隐藏 tab；tab hidden 时必须有显式 back path。关联 FU-102 navigation closure。
-
 ## Deferred Registration
 
 ### Deferred · FU-88 · 商业化专项
@@ -505,7 +495,19 @@
 
 ---
 
-## Closed Follow-ups（94 条）
+## Closed Follow-ups（95 条）
+
+### FU-112 ✅ 导航一致性规则 / bottom-tab presence
+
+- **关闭原因**: FU-112 已完成导航一致性规则落地与 v1 社区入口撤除，并合入生产主线。PR #41 / branch `codex/fu112-nav-consistency` / merge `811de79e87007065b22ee50dd6ee4fc196cba394` 合入 commit `0ca06704975d820a5c6f9608a871ba2006702632`，无 DB / migration / backend 改动。
+- **落地内容**: 新增 `COMMUNITY_ENABLED` feature flag，仅做入口撤除，不删除 `/community*` routes / code / data，flag 改回 `true` 即可恢复入口；TabBar 从 5 tab 收敛到 4 tab，Profile「我的分享」、Activity「发布到山友圈」CTA + help、Mountain「精选攻略」、FAQ 4 个 community anchors 与相关文案均收在 flag 后；关闭时跳过 Profile community posts fetch 与 Mountain featured posts fetch。保留 `/community*` direct URL 可达，不做 redirect / guard。
+- **导航结构**: `/archive` 与 `/imprint` 从 `(flow)` 迁入 `(main)` route group，作为 Tier-1 页面使用 shared TabBar / AppHeader；Archive 移除 page-level back 与 double header，`ArchiveContentHeading` 保留 `data-archive-motion=header`；Imprint 移除手写 TabBar，协调 100dvh facade 与 CTA entrance。`docs/ui-interaction-spec.md` 新增 Navigation Consistency Rules：Tier-1 / Tier-2 与 entry-withdrawal-not-route-takedown。
+- **测试 / 验收**: 用户 2026-07-06 真机视觉验收 PASS。门禁：`node --test --experimental-strip-types tests/motion-nodes-static.test.ts tests/navigation-closure-static.test.ts tests/imprint-facade-static.test.ts tests/share-render-api.test.ts tests/verify-checkin-measured-fields.test.ts` 85/85 pass；`npm run lint` 0 errors / 6 existing warnings；`npm run build` pass（52/52 static pages）；`npx playwright test tests/e2e/fu112-nav-consistency.spec.ts` 1 passed；`git diff --check` clean。
+- **生产部署**: Vercel production deploy for merge `811de79e87007065b22ee50dd6ee4fc196cba394` READY（deployment `dpl_7Md1qfVY9JAbbp6mRygQ7bguBE2R`，URL `peak-trekker-qud22lvze-andymorrison91060122-8673s-projects.vercel.app`，production alias `peak-trekker.vercel.app`）。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-07-06
+
+---
 
 ### FU-111 ✅ 全局点击反馈审计 + 补足
 
@@ -1708,6 +1710,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.100 — 2026-07-06**: FU-112 closeout · 导航一致性规则 + v1 社区入口撤除上线。新增 `COMMUNITY_ENABLED` feature flag，仅撤用户可见入口，不删除 `/community*` routes / code / data；TabBar 收敛到 4 tab，Profile / Activity / Mountain / FAQ / onboarding / archive / avatar toast 等 community copy 与入口按 flag 收起，并跳过关闭态下的 community fetch；`/archive` 与 `/imprint` 从 `(flow)` 迁入 `(main)` route group，统一 shared TabBar / AppHeader，移除 archive page-level back / double header 与 imprint manual TabBar。`docs/ui-interaction-spec.md` 新增 Tier-1 / Tier-2 与 entry-withdrawal-not-route-takedown 导航规则。用户 2026-07-06 真机视觉验收 PASS。PR #41 / merge `811de79e87007065b22ee50dd6ee4fc196cba394`。Active 16 → 15 · Closed 94 → 95 · Deferred 4 → 4。
 
 **v0.99 — 2026-07-06**: FU-111 closeout · 全局点击反馈系统 + Explore pathway press redesign 上线。收敛 5 套分散 press 规则为全局 `.pt-pressable` / `.pt-pressable-card` / `.pt-pressable-hero`，补齐 TabBar、chips、profile rows、trek / import / screenshot / activity / FAQ 等高频入口 press feedback；Explore「导入记录 / 识别截图」pathway card 改为 wrapper/button 分层的 sink + rounded halo，避免与 FU-110 entrance GSAP transform 冲突。用户 2026-07-06 真机视觉验收 PASS。PR #40 / merge `2d7966f098718a715baac34e5060f6014dc2948d`。Active 17 → 16 · Closed 93 → 94 · Deferred 4 → 4。
 

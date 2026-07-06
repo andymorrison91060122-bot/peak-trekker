@@ -12,10 +12,28 @@ import {
 } from './community.helpers'
 
 const OUTPUT_DIR = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu76-p2iii-acceptance'
+const FU110_OUTPUT_DIR = join(OUTPUT_DIR, 'fu110-explore')
 const STORAGE_STATE = join(OUTPUT_DIR, 'fu76-p2iii-storage-state.json')
 
 type PageKey = 'archive' | 'profile' | 'faq' | 'activity'
 type ArchiveFilterId = 'all' | 'summit' | 'proof' | 'unproof'
+
+type ExploreMountainEvidenceRow = {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  altitude: number
+  difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert'
+  checkin_count: number
+  length_km?: number | null
+}
+
+type ExploreReplayReason = 'geo' | 'tag' | 'province' | 'advancedFilter'
+type ExploreReplayReasonLog = {
+  queuedReasons: ExploreReplayReason[]
+  firedReplayReasons: ExploreReplayReason[]
+}
 
 type ConsoleEntry = {
   type: string
@@ -154,6 +172,18 @@ function getSupabaseAdminClient() {
       autoRefreshToken: false,
     },
   })
+}
+
+async function markEvidenceProfileOnboarded(username: string) {
+  const supabase = getSupabaseAdminClient()
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      onboarding_version: '2026-v2',
+      onboarding_completed_at: new Date('2026-07-06T00:00:00.000Z').toISOString(),
+    })
+    .eq('username', username)
+  if (error) throw new Error(`Failed to mark FU-110 evidence profile onboarded: ${error.message}`)
 }
 
 async function seedActivityPhoto(checkinId: string) {
@@ -305,6 +335,11 @@ async function newEvidenceContext(browser: Browser, baseURL: string, options: {
   recordVideo?: boolean
   reducedMotion?: 'reduce' | 'no-preference'
   videoDir?: string
+  geolocation?: 'deny' | 'absent' | {
+    latitude: number
+    longitude: number
+    delayMs: number
+  }
 }) {
   const context = await browser.newContext({
     baseURL,
@@ -318,6 +353,73 @@ async function newEvidenceContext(browser: Browser, baseURL: string, options: {
   await context.addInitScript(() => {
     window.localStorage.setItem('peak_trekker_intro_seen', '2026-v2')
   })
+  if (options.geolocation === 'deny') {
+    await context.addInitScript(() => {
+      const deniedError = { code: 1, message: 'FU-110 controlled geolocation denied' }
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: {
+          getCurrentPosition(_success: PositionCallback, error?: PositionErrorCallback) {
+            window.setTimeout(() => error?.(deniedError as GeolocationPositionError), 0)
+          },
+          watchPosition(_success: PositionCallback, error?: PositionErrorCallback) {
+            window.setTimeout(() => error?.(deniedError as GeolocationPositionError), 0)
+            return 110
+          },
+          clearWatch() {},
+        },
+      })
+    })
+  } else if (options.geolocation === 'absent') {
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: undefined,
+      })
+    })
+  } else if (options.geolocation) {
+    await context.addInitScript((geo) => {
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: {
+          getCurrentPosition(success: PositionCallback) {
+            window.setTimeout(() => {
+              success({
+                coords: {
+                  latitude: geo.latitude,
+                  longitude: geo.longitude,
+                  accuracy: 5,
+                  altitude: null,
+                  altitudeAccuracy: null,
+                  heading: null,
+                  speed: null,
+                },
+                timestamp: Date.now(),
+              } as GeolocationPosition)
+            }, geo.delayMs)
+          },
+          watchPosition(success: PositionCallback) {
+            window.setTimeout(() => {
+              success({
+                coords: {
+                  latitude: geo.latitude,
+                  longitude: geo.longitude,
+                  accuracy: 5,
+                  altitude: null,
+                  altitudeAccuracy: null,
+                  heading: null,
+                  speed: null,
+                },
+                timestamp: Date.now(),
+              } as GeolocationPosition)
+            }, geo.delayMs)
+            return 110
+          },
+          clearWatch() {},
+        },
+      })
+    }, options.geolocation)
+  }
   return context
 }
 
@@ -482,6 +584,483 @@ async function collectArchiveTerminalState(page: Page) {
       stuck: Number.parseFloat(style.opacity || '1') < 0.99 || style.visibility === 'hidden' || style.transform !== 'none',
     }
   }))
+}
+
+function estimateExploreLength(mountain: Pick<ExploreMountainEvidenceRow, 'altitude' | 'length_km'>) {
+  return mountain.length_km ?? Number(Math.max(4.2, Math.min(26, mountain.altitude / 260)).toFixed(1))
+}
+
+function exploreHaversine(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const radiusKm = 6371
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
+  return radiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+async function fetchExploreEvidenceMountains() {
+  const supabase = getSupabaseAdminClient()
+  const { data, error } = await supabase
+    .from('mountains')
+    .select('id, name, latitude, longitude, altitude, difficulty, checkin_count')
+    .eq('is_active', true)
+    .order('checkin_count', { ascending: false })
+    .limit(80)
+  if (error) throw new Error(`Failed to load FU-110 explore evidence mountains: ${error.message}`)
+  const rows = (data ?? []) as ExploreMountainEvidenceRow[]
+  if (rows.length < 5) throw new Error(`FU-110 geo evidence needs at least 5 active mountains; got ${rows.length}.`)
+  return rows
+}
+
+function firstFourIds(rows: ExploreMountainEvidenceRow[]) {
+  return rows.slice(0, 4).map((mountain) => mountain.id)
+}
+
+function chooseSortChangingCoordinate(rows: ExploreMountainEvidenceRow[]) {
+  const popularityFirst4 = firstFourIds(rows)
+  for (const candidate of rows.slice(4)) {
+    const distanceSorted = [...rows].sort((a, b) =>
+      exploreHaversine(candidate.latitude, candidate.longitude, a.latitude, a.longitude) -
+      exploreHaversine(candidate.latitude, candidate.longitude, b.latitude, b.longitude)
+    )
+    const distanceFirst4 = firstFourIds(distanceSorted)
+    if (distanceFirst4.join('|') !== popularityFirst4.join('|')) {
+      return {
+        coordinate: {
+          latitude: candidate.latitude,
+          longitude: candidate.longitude,
+          mountainId: candidate.id,
+          mountainName: candidate.name,
+        },
+        predictedFirst4Before: popularityFirst4,
+        predictedFirst4After: distanceFirst4,
+      }
+    }
+  }
+  throw new Error('FU-110 geo evidence could not find a controlled coordinate that changes first4 ordering.')
+}
+
+type ExploreElementState = {
+  id: string | null
+  opacity: number
+  transform: string
+  visibility: string
+  text: string
+  stuck: boolean
+}
+
+type ExploreReplaySample = {
+  label: string
+  atMs: number
+  positionState: string | null
+  first4Ids: string[]
+  listSubheading: ExploreElementState[]
+  cards: ExploreElementState[]
+  emptyState: ExploreElementState[]
+}
+
+type ExploreOpacityTraceSample = {
+  atMs: number
+  id: string | null
+  opacity: number
+  visibility: string
+  transform: string
+  positionState: string | null
+  first4: Array<{
+    id: string | null
+    opacity: number
+    visibility: string
+    transform: string
+  }>
+}
+
+type ExploreOpacityTraceScenario = 'denied' | 'absent' | 'spa-cache-hit' | 'spa-cache-miss'
+
+type ExploreOpacityTrace = {
+  scenario: ExploreOpacityTraceScenario
+  samples: ExploreOpacityTraceSample[]
+  firstCardIdUnchanged: boolean
+  rises: number
+  dipAfterHigh: boolean
+  minOpacityAfterFirstHigh: number | null
+  listWideResetAfterHigh: boolean
+  queuedReasons: ExploreReplayReason[]
+  firedReplayReasons: ExploreReplayReason[]
+}
+
+function serializeExploreStateChanged(left: ExploreElementState | undefined, right: ExploreElementState | undefined) {
+  if (!left || !right) return false
+  return left.opacity !== right.opacity ||
+    left.transform !== right.transform ||
+    left.visibility !== right.visibility ||
+    left.text !== right.text
+}
+
+function exploreReplayHasMotion(samples: ExploreReplaySample[]) {
+  const initial = samples[0]?.cards[0] ?? samples[0]?.emptyState[0] ?? samples[0]?.listSubheading[0]
+  const mid = samples.find((sample) => sample.label === 'mid')?.cards[0] ??
+    samples.find((sample) => sample.label === 'mid')?.emptyState[0] ??
+    samples.find((sample) => sample.label === 'mid')?.listSubheading[0]
+  const final = samples.at(-1)?.cards[0] ?? samples.at(-1)?.emptyState[0] ?? samples.at(-1)?.listSubheading[0]
+  return serializeExploreStateChanged(initial, mid) && serializeExploreStateChanged(mid, final)
+}
+
+function noSourceReplayReasons(log: ExploreReplayReasonLog) {
+  return log.queuedReasons.length === 0 && log.firedReplayReasons.length === 0
+}
+
+function expectSingleVisualRise(trace: ExploreOpacityTrace) {
+  expect(trace.samples.length).toBeGreaterThan(60)
+  expect(trace.rises).toBe(1)
+  expect(trace.dipAfterHigh).toBe(false)
+  expect(trace.minOpacityAfterFirstHigh ?? 1).toBeGreaterThan(0.2)
+  expect(trace.listWideResetAfterHigh).toBe(false)
+}
+
+async function getExploreReplayReasonLog(page: Page): Promise<ExploreReplayReasonLog> {
+  return page.evaluate(() => {
+    const win = window as Window & { __fu110ExploreReplayReasons?: ExploreReplayReasonLog }
+    return win.__fu110ExploreReplayReasons ?? { queuedReasons: [], firedReplayReasons: [] }
+  })
+}
+
+async function captureExplorePlainLoadOpacityTrace(
+  page: Page,
+  scenario: ExploreOpacityTraceScenario,
+  durationMs = 1700,
+): Promise<ExploreOpacityTrace> {
+  return page.evaluate(async ({ traceScenario, traceDurationMs }) => {
+    const samples: ExploreOpacityTraceSample[] = []
+    const startedAt = performance.now()
+    const getCards = () => Array.from(document.querySelectorAll<HTMLElement>('[data-testid="explore-mountain-card"]')).slice(0, 4)
+    const serializeCard = (card: HTMLElement) => {
+      const style = window.getComputedStyle(card)
+      const href = card.getAttribute('href') ?? ''
+      return {
+        id: href.split('/').filter(Boolean).at(-1) ?? null,
+        opacity: Number.parseFloat(style.opacity || '1'),
+        visibility: style.visibility,
+        transform: style.transform,
+      }
+    }
+
+    const sample = () => {
+      const cards = getCards()
+      const card = cards[0]
+      if (!card) return
+      const first4 = cards.map(serializeCard)
+      const first = first4[0]
+      samples.push({
+        atMs: Number((performance.now() - startedAt).toFixed(2)),
+        id: first.id,
+        opacity: first.opacity,
+        visibility: first.visibility,
+        transform: first.transform,
+        positionState: document.querySelector<HTMLElement>('.explore-page-shell')?.dataset.explorePositionState ?? null,
+        first4,
+      })
+    }
+
+    await new Promise<void>((resolve) => {
+      const tick = () => {
+        sample()
+        if (performance.now() - startedAt >= traceDurationMs) {
+          resolve()
+          return
+        }
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    })
+
+    const ids = samples.map((trace) => trace.id).filter(Boolean)
+    let rises = 0
+    let armedForRise = true
+    let hasBeenHigh = false
+    let dipAfterHigh = false
+    let minOpacityAfterFirstHigh: number | null = null
+    let listWideResetAfterHigh = false
+    for (const trace of samples) {
+      if (trace.opacity <= 0.2) armedForRise = true
+      if (armedForRise && trace.opacity >= 0.85) {
+        rises += 1
+        armedForRise = false
+      }
+      if (hasBeenHigh) {
+        minOpacityAfterFirstHigh = minOpacityAfterFirstHigh === null
+          ? trace.opacity
+          : Math.min(minOpacityAfterFirstHigh, trace.opacity)
+        if (trace.opacity <= 0.2) dipAfterHigh = true
+        const resetCount = trace.first4.filter((card) => card.opacity <= 0.2 || card.visibility === 'hidden').length
+        if (resetCount >= Math.min(3, trace.first4.length)) listWideResetAfterHigh = true
+      }
+      if (trace.opacity >= 0.85) hasBeenHigh = true
+    }
+    const win = window as Window & { __fu110ExploreReplayReasons?: ExploreReplayReasonLog }
+    const reasons = win.__fu110ExploreReplayReasons ?? { queuedReasons: [], firedReplayReasons: [] }
+
+    return {
+      scenario: traceScenario,
+      samples,
+      firstCardIdUnchanged: ids.length > 0 && new Set(ids).size === 1,
+      rises,
+      dipAfterHigh,
+      minOpacityAfterFirstHigh,
+      listWideResetAfterHigh,
+      queuedReasons: reasons.queuedReasons,
+      firedReplayReasons: reasons.firedReplayReasons,
+    }
+  }, { traceScenario: scenario, traceDurationMs: durationMs })
+}
+
+async function installExploreSpaRouteTrace(page: Page, scenario: ExploreOpacityTraceScenario, durationMs = 2400) {
+  await page.evaluate(({ traceScenario, traceDurationMs }) => {
+    const win = window as Window & { __fu110ExploreSpaTracePromise?: Promise<ExploreOpacityTrace> }
+    win.__fu110ExploreSpaTracePromise = new Promise<ExploreOpacityTrace>((resolve) => {
+      const samples: ExploreOpacityTraceSample[] = []
+      let startedAt: number | null = null
+      const getCards = () => Array.from(document.querySelectorAll<HTMLElement>('[data-testid="explore-mountain-card"]')).slice(0, 4)
+      const serializeCard = (card: HTMLElement) => {
+        const style = window.getComputedStyle(card)
+        const href = card.getAttribute('href') ?? ''
+        return {
+          id: href.split('/').filter(Boolean).at(-1) ?? null,
+          opacity: Number.parseFloat(style.opacity || '1'),
+          visibility: style.visibility,
+          transform: style.transform,
+        }
+      }
+      const finish = () => {
+        const ids = samples.map((trace) => trace.id).filter(Boolean)
+        let rises = 0
+        let armedForRise = true
+        let hasBeenHigh = false
+        let dipAfterHigh = false
+        let minOpacityAfterFirstHigh: number | null = null
+        let listWideResetAfterHigh = false
+        for (const trace of samples) {
+          if (trace.opacity <= 0.2) armedForRise = true
+          if (armedForRise && trace.opacity >= 0.85) {
+            rises += 1
+            armedForRise = false
+          }
+          if (hasBeenHigh) {
+            minOpacityAfterFirstHigh = minOpacityAfterFirstHigh === null
+              ? trace.opacity
+              : Math.min(minOpacityAfterFirstHigh, trace.opacity)
+            if (trace.opacity <= 0.2) dipAfterHigh = true
+            const resetCount = trace.first4.filter((card) => card.opacity <= 0.2 || card.visibility === 'hidden').length
+            if (resetCount >= Math.min(3, trace.first4.length)) listWideResetAfterHigh = true
+          }
+          if (trace.opacity >= 0.85) hasBeenHigh = true
+        }
+        const reasons = win.__fu110ExploreReplayReasons ?? { queuedReasons: [], firedReplayReasons: [] }
+        resolve({
+          scenario: traceScenario,
+          samples,
+          firstCardIdUnchanged: ids.length > 0 && new Set(ids).size === 1,
+          rises,
+          dipAfterHigh,
+          minOpacityAfterFirstHigh,
+          listWideResetAfterHigh,
+          queuedReasons: reasons.queuedReasons,
+          firedReplayReasons: reasons.firedReplayReasons,
+        })
+      }
+      const tick = () => {
+        const cards = getCards()
+        const firstCard = cards[0]
+        if (firstCard && window.location.pathname === '/explore') {
+          if (startedAt === null) startedAt = performance.now()
+          const first4 = cards.map(serializeCard)
+          const first = first4[0]
+          samples.push({
+            atMs: Number((performance.now() - startedAt).toFixed(2)),
+            id: first.id,
+            opacity: first.opacity,
+            visibility: first.visibility,
+            transform: first.transform,
+            positionState: document.querySelector<HTMLElement>('.explore-page-shell')?.dataset.explorePositionState ?? null,
+            first4,
+          })
+          if (performance.now() - startedAt >= traceDurationMs) {
+            finish()
+            return
+          }
+        }
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    })
+  }, { traceScenario: scenario, traceDurationMs: durationMs })
+}
+
+async function readExploreSpaRouteTrace(page: Page): Promise<ExploreOpacityTrace> {
+  return page.evaluate(() => {
+    const win = window as Window & { __fu110ExploreSpaTracePromise?: Promise<ExploreOpacityTrace> }
+    if (!win.__fu110ExploreSpaTracePromise) throw new Error('FU-110 SPA route trace was not installed.')
+    return win.__fu110ExploreSpaTracePromise
+  })
+}
+
+async function bypassIntroOverlayForExploreEvidence(page: Page) {
+  await page.evaluate(() => {
+    window.localStorage.setItem('peak_trekker_intro_seen', '2026-v2')
+    window.dispatchEvent(new CustomEvent('peak-trekker:onboarding-update'))
+  })
+  const skipButton = page.getByRole('button', { name: '跳过' })
+  await skipButton.waitFor({ state: 'attached', timeout: 15_000 }).catch(() => {})
+  if (await skipButton.count()) {
+    await skipButton.click({ force: true, timeout: 15_000 })
+    await expect(skipButton).not.toBeVisible({ timeout: 10_000 })
+  }
+  const provincePrompt = page.getByText('告诉我，你将为哪片土地而战？')
+  await provincePrompt.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {})
+  if (await provincePrompt.isVisible().catch(() => false)) {
+    await page.getByRole('button', { name: '四川' }).click()
+    await page.getByRole('button', { name: '生成空白执照' }).click()
+    await expect(provincePrompt).not.toBeVisible({ timeout: 10_000 })
+  }
+}
+
+async function snapshotExploreReplayState(page: Page, label: string, startedAt: number): Promise<ExploreReplaySample> {
+  return page.evaluate(({ sampleLabel, sampleStartedAt }) => {
+    const serialize = (element: HTMLElement): ExploreElementState => {
+      const style = window.getComputedStyle(element)
+      const opacity = Number.parseFloat(style.opacity || '1')
+      const href = element.getAttribute('href') ?? ''
+      const id = href.split('/').filter(Boolean).at(-1) ?? element.dataset.exploreMotion ?? null
+      return {
+        id,
+        opacity,
+        transform: style.transform,
+        visibility: style.visibility,
+        text: element.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+        stuck: opacity < 0.99 || style.visibility === 'hidden' || style.transform !== 'none',
+      }
+    }
+    const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="explore-mountain-card"]')).slice(0, 4)
+    return {
+      label: sampleLabel,
+      atMs: Math.round(performance.now() - sampleStartedAt),
+      positionState: document.querySelector<HTMLElement>('.explore-page-shell')?.dataset.explorePositionState ?? null,
+      first4Ids: cards.map((card) => (card.getAttribute('href') ?? '').split('/').filter(Boolean).at(-1) ?? ''),
+      listSubheading: Array.from(document.querySelectorAll<HTMLElement>('[data-explore-motion="list-subheading"]')).map(serialize),
+      cards: cards.map(serialize),
+      emptyState: Array.from(document.querySelectorAll<HTMLElement>('[data-explore-list-empty]')).map(serialize),
+    }
+  }, { sampleLabel: label, sampleStartedAt: startedAt })
+}
+
+async function getExploreFirst4Ids(page: Page) {
+  return page.locator('[data-testid="explore-mountain-card"]').evaluateAll((cards) =>
+    cards.slice(0, 4).map((card) => (card.getAttribute('href') ?? '').split('/').filter(Boolean).at(-1) ?? '')
+  )
+}
+
+async function collectExploreVisibility(page: Page) {
+  return {
+    listHeading: await page.locator('[data-explore-motion="list-heading"]').first().isVisible().catch(() => false),
+    quickTags: await page.locator('.explore-filter-chip').first().isVisible().catch(() => false),
+    listSubheading: await page.locator('[data-explore-motion="list-subheading"]').first().isVisible().catch(() => false),
+    firstCard: await page.locator('[data-testid="explore-mountain-card"]').first().isVisible().catch(() => false),
+    emptyState: await page.locator('[data-explore-list-empty]').first().isVisible().catch(() => false),
+  }
+}
+
+async function collectExploreTerminalState(page: Page) {
+  return page.evaluate(() => {
+    const serialize = (element: HTMLElement) => {
+      const style = window.getComputedStyle(element)
+      const opacity = Number.parseFloat(style.opacity || '1')
+      return {
+        marker: element.dataset.exploreMotion ?? element.getAttribute('href') ?? element.dataset.exploreListEmpty ?? element.className,
+        opacity,
+        transform: style.transform,
+        visibility: style.visibility,
+        stuck: opacity < 0.99 || style.visibility === 'hidden' || style.transform !== 'none',
+      }
+    }
+    return [
+      ...Array.from(document.querySelectorAll<HTMLElement>('[data-explore-motion]')),
+      ...Array.from(document.querySelectorAll<HTMLElement>('.explore-filter-chip')),
+      ...Array.from(document.querySelectorAll<HTMLElement>('[data-testid="explore-mountain-card"]')).slice(0, 4),
+      ...Array.from(document.querySelectorAll<HTMLElement>('[data-explore-list-empty]')),
+    ].map(serialize)
+  })
+}
+
+const EXPLORE_DIFFICULTY_LABEL: Record<ExploreMountainEvidenceRow['difficulty'] | 'all', string> = {
+  all: '全部',
+  beginner: '入门线',
+  intermediate: '进阶线',
+  advanced: '高阶线',
+  expert: '专家线',
+}
+
+const EXPLORE_ALTITUDE_LABEL = {
+  all: '全部',
+  low: '<2000m',
+  mid: '2000-4000m',
+  high: '>4000m',
+} as const
+
+const EXPLORE_LENGTH_LABEL = {
+  all: '全部',
+  short: '短线',
+  mid: '中线',
+  long: '长线',
+} as const
+
+type ExploreFilterCombo = {
+  difficulty: keyof typeof EXPLORE_DIFFICULTY_LABEL
+  altitude: keyof typeof EXPLORE_ALTITUDE_LABEL
+  length: keyof typeof EXPLORE_LENGTH_LABEL
+}
+
+function chooseEmptyExploreFilterCombo(rows: ExploreMountainEvidenceRow[]): ExploreFilterCombo {
+  const difficulties = ['beginner', 'intermediate', 'advanced', 'expert'] as const
+  const altitudes = ['low', 'mid', 'high'] as const
+  const lengths = ['short', 'mid', 'long'] as const
+  const matches = (row: ExploreMountainEvidenceRow, combo: ExploreFilterCombo) => {
+    const length = estimateExploreLength(row)
+    const altitudeMatch =
+      combo.altitude === 'low' ? row.altitude < 2000 :
+        combo.altitude === 'mid' ? row.altitude >= 2000 && row.altitude < 4000 :
+          row.altitude >= 4000
+    const lengthMatch =
+      combo.length === 'short' ? length < 8 :
+        combo.length === 'mid' ? length >= 8 && length < 16 :
+          length >= 16
+    return row.difficulty === combo.difficulty && altitudeMatch && lengthMatch
+  }
+  for (const difficulty of difficulties) {
+    for (const altitude of altitudes) {
+      for (const length of lengths) {
+        const combo = { difficulty, altitude, length }
+        if (!rows.some((row) => matches(row, combo))) return combo
+      }
+    }
+  }
+  throw new Error('FU-110 empty-state evidence could not find an advanced-filter combination with zero results.')
+}
+
+async function clickExploreFilterAndSample(page: Page, locator: ReturnType<Page['locator']>, label: string) {
+  const startedAt = await page.evaluate(() => performance.now())
+  await locator.click()
+  const samples: ExploreReplaySample[] = []
+  samples.push(await snapshotExploreReplayState(page, 'initial', startedAt))
+  await page.waitForTimeout(180)
+  samples.push(await snapshotExploreReplayState(page, 'mid', startedAt))
+  await page.waitForTimeout(560)
+  samples.push(await snapshotExploreReplayState(page, 'final', startedAt))
+  return {
+    label,
+    samples,
+    motionChanged: exploreReplayHasMotion(samples),
+  }
 }
 
 async function sampleVisibility(page: Page, selectors: Record<string, string>) {
@@ -832,4 +1411,419 @@ test('FU-76 Phase 2-III Round 1 archive filter replay evidence', async ({ browse
   expect(Object.values(clickability).every(Boolean)).toBe(true)
   expect(consoleEntries.filter((entry) => entry.classification === 'new-this-round')).toEqual([])
   expect(pageErrors.filter((entry) => entry.classification === 'new-this-round')).toEqual([])
+})
+
+test('FU-110 Explore entrance and async source replay evidence', async ({ browser, page, baseURL }) => {
+  test.setTimeout(210_000)
+  if (!baseURL) throw new Error('Playwright baseURL is required for FU-110 explore evidence.')
+  await mkdir(FU110_OUTPUT_DIR, { recursive: true })
+
+  await page.route('**/api/analytics/event', async (route) => {
+    await route.fulfill({ status: 204, body: '' })
+  })
+
+  const email = createTestEmail('fu110-explore')
+  const registeredUser = await registerFreshUser(page, baseURL, {
+    returnTo: '/explore',
+    email,
+    username: `fu110-explore-${Date.now()}`,
+    province: '四川',
+  })
+  await markEvidenceProfileOnboarded(registeredUser.username)
+  await page.context().storageState({ path: STORAGE_STATE })
+
+  const mountains = await fetchExploreEvidenceMountains()
+  const geoChoice = chooseSortChangingCoordinate(mountains)
+  const emptyCombo = chooseEmptyExploreFilterCombo(mountains)
+  const videoDir = join(FU110_OUTPUT_DIR, 'videos')
+  await mkdir(videoDir, { recursive: true })
+
+  const runPlainNoGeoScenario = async (
+    scenario: ExploreOpacityTrace['scenario'],
+    geolocation: 'deny' | 'absent',
+  ) => {
+    const consoleEntries: ConsoleEntry[] = []
+    const pageErrors: PageEvidence['pageErrors'] = []
+    const context = await newEvidenceContext(browser, baseURL, {
+      recordVideo: true,
+      videoDir,
+      reducedMotion: 'no-preference',
+      geolocation,
+    })
+    const noGeoPage = await context.newPage()
+    await attachCapture(noGeoPage, consoleEntries, pageErrors)
+    await noGeoPage.goto('/explore', { waitUntil: 'domcontentloaded' })
+    await noGeoPage.locator('[data-testid="explore-mountain-card"]').first().waitFor({ state: 'attached', timeout: 20_000 })
+    const trace = await captureExplorePlainLoadOpacityTrace(noGeoPage, scenario, 1700)
+    const visibility = await collectExploreVisibility(noGeoPage)
+    const terminalState = await collectExploreTerminalState(noGeoPage)
+    const video = noGeoPage.video()
+    await context.close()
+    return {
+      scenario,
+      video: video ? await video.path() : null,
+      trace,
+      visibility,
+      terminalState,
+      console: consoleEntries,
+      pageErrors,
+    }
+  }
+
+  const noGeoDenied = await runPlainNoGeoScenario('denied', 'deny')
+  const noGeoAbsent = await runPlainNoGeoScenario('absent', 'absent')
+
+  const runSpaRouteReturnScenario = async (
+    scenario: 'spa-cache-hit' | 'spa-cache-miss',
+    startPath: '/explore' | '/profile',
+    geoDelayMs: number,
+  ) => {
+    const consoleEntries: ConsoleEntry[] = []
+    const pageErrors: PageEvidence['pageErrors'] = []
+    const context = await newEvidenceContext(browser, baseURL, {
+      recordVideo: true,
+      videoDir,
+      reducedMotion: 'no-preference',
+      geolocation: {
+        latitude: geoChoice.coordinate.latitude,
+        longitude: geoChoice.coordinate.longitude,
+        delayMs: geoDelayMs,
+      },
+    })
+    const spaPage = await context.newPage()
+    await attachCapture(spaPage, consoleEntries, pageErrors)
+
+    const waitForBottomExploreTab = async () => {
+      let hasExploreTab = false
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        hasExploreTab = await spaPage.evaluate(() =>
+          Boolean(document.querySelector('nav a[href="/explore"], nav a[href$="/explore"]'))
+        ).catch(() => false)
+        if (hasExploreTab) break
+        await spaPage.waitForTimeout(500)
+      }
+      const routeReturnDebug = hasExploreTab ? null : await spaPage.evaluate(() => ({
+        href: window.location.href,
+        pathname: window.location.pathname,
+        navHtml: document.querySelector('nav')?.outerHTML ?? null,
+        links: Array.from(document.querySelectorAll<HTMLAnchorElement>('a')).map((link) => ({
+          href: link.getAttribute('href'),
+          text: link.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+        })),
+        bodyText: document.body.textContent?.replace(/\s+/g, ' ').trim().slice(0, 800) ?? '',
+      }))
+      expect(hasExploreTab, JSON.stringify(routeReturnDebug, null, 2)).toBe(true)
+    }
+
+    await spaPage.goto('/profile', { waitUntil: 'domcontentloaded' })
+    await spaPage.waitForURL((url) => url.pathname === '/profile', { timeout: 20_000 })
+    await bypassIntroOverlayForExploreEvidence(spaPage)
+
+    if (startPath === '/explore') {
+      await waitForBottomExploreTab()
+      await spaPage.locator('nav a[href="/explore"]').first().click({ timeout: 20_000 })
+      await spaPage.waitForURL((url) => url.pathname === '/explore', { timeout: 20_000 })
+      await spaPage.locator('[data-testid="explore-mountain-card"]').first().waitFor({ state: 'attached', timeout: 20_000 })
+      await spaPage.waitForFunction(() =>
+        document.querySelector<HTMLElement>('.explore-page-shell')?.dataset.explorePositionState === 'resolved',
+        null,
+        { timeout: 20_000 }
+      )
+      await spaPage.waitForTimeout(700)
+      await spaPage.goBack()
+      await spaPage.waitForURL((url) => url.pathname === '/profile', { timeout: 20_000 })
+    }
+
+    await waitForBottomExploreTab()
+    await spaPage.evaluate(() => {
+      const win = window as Window & { __fu110ExploreReplayReasons?: ExploreReplayReasonLog }
+      win.__fu110ExploreReplayReasons = { queuedReasons: [], firedReplayReasons: [] }
+    })
+    await installExploreSpaRouteTrace(spaPage, scenario, 2400)
+    await spaPage.locator('nav a[href="/explore"]').first().click({ timeout: 20_000 })
+    await expect(spaPage).toHaveURL(/\/explore/)
+    await spaPage.locator('[data-testid="explore-mountain-card"]').first().waitFor({ state: 'attached', timeout: 20_000 })
+    const trace = await readExploreSpaRouteTrace(spaPage)
+    const reasonLog = await getExploreReplayReasonLog(spaPage)
+    const terminalState = await collectExploreTerminalState(spaPage)
+    const first4 = await getExploreFirst4Ids(spaPage)
+    const video = spaPage.video()
+    await context.close()
+    return {
+      scenario,
+      video: video ? await video.path() : null,
+      trace,
+      reasonLog,
+      terminalState,
+      first4,
+      console: consoleEntries,
+      pageErrors,
+    }
+  }
+
+  const spaCacheHit = await runSpaRouteReturnScenario('spa-cache-hit', '/explore', 140)
+  const spaCacheMiss = await runSpaRouteReturnScenario('spa-cache-miss', '/profile', 780)
+
+  const geoConsole: ConsoleEntry[] = []
+  const geoPageErrors: PageEvidence['pageErrors'] = []
+  const geoContext = await newEvidenceContext(browser, baseURL, {
+    recordVideo: true,
+    videoDir,
+    reducedMotion: 'no-preference',
+    geolocation: {
+      latitude: geoChoice.coordinate.latitude,
+      longitude: geoChoice.coordinate.longitude,
+      delayMs: 520,
+    },
+  })
+  const geoPage = await geoContext.newPage()
+  await attachCapture(geoPage, geoConsole, geoPageErrors)
+  await geoPage.goto('/explore', { waitUntil: 'domcontentloaded' })
+  await geoPage.locator('[data-testid="explore-mountain-card"]').first().waitFor({ state: 'attached', timeout: 20_000 })
+  const first4Before = await getExploreFirst4Ids(geoPage)
+  await geoPage.evaluate(() => {
+    const win = window as unknown as { __fu110ExploreGeoReplaySamples?: unknown[] }
+    const serialize = (element: HTMLElement) => {
+      const style = window.getComputedStyle(element)
+      const opacity = Number.parseFloat(style.opacity || '1')
+      const href = element.getAttribute('href') ?? ''
+      return {
+        id: href.split('/').filter(Boolean).at(-1) ?? element.dataset.exploreMotion ?? null,
+        opacity,
+        transform: style.transform,
+        visibility: style.visibility,
+        text: element.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+        stuck: opacity < 0.99 || style.visibility === 'hidden' || style.transform !== 'none',
+      }
+    }
+    const sample = (label: string, startedAt: number) => {
+      const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="explore-mountain-card"]')).slice(0, 4)
+      return {
+        label,
+        atMs: Math.round(performance.now() - startedAt),
+        positionState: document.querySelector<HTMLElement>('.explore-page-shell')?.dataset.explorePositionState ?? null,
+        first4Ids: cards.map((card) => (card.getAttribute('href') ?? '').split('/').filter(Boolean).at(-1) ?? ''),
+        listSubheading: Array.from(document.querySelectorAll<HTMLElement>('[data-explore-motion="list-subheading"]')).map(serialize),
+        cards: cards.map(serialize),
+        emptyState: Array.from(document.querySelectorAll<HTMLElement>('[data-explore-list-empty]')).map(serialize),
+      }
+    }
+    const startSampling = () => {
+      const startedAt = performance.now()
+      win.__fu110ExploreGeoReplaySamples = [sample('initial', startedAt)]
+      window.setTimeout(() => win.__fu110ExploreGeoReplaySamples?.push(sample('mid', startedAt)), 180)
+      window.setTimeout(() => win.__fu110ExploreGeoReplaySamples?.push(sample('final', startedAt)), 720)
+    }
+    window.addEventListener('fu110:explore-replay-fired', (event) => {
+      const reasons = ((event as CustomEvent).detail?.reasons ?? []) as string[]
+      if (!reasons.includes('geo')) return
+      startSampling()
+    })
+    const existingReasons = (
+      window as Window & { __fu110ExploreReplayReasons?: ExploreReplayReasonLog }
+    ).__fu110ExploreReplayReasons
+    if (existingReasons?.firedReplayReasons.includes('geo')) startSampling()
+  })
+  await geoPage.waitForFunction(() =>
+    document.querySelector<HTMLElement>('.explore-page-shell')?.dataset.explorePositionState === 'resolved',
+    null,
+    { timeout: 20_000 }
+  )
+  await geoPage.waitForFunction(() => {
+    const state = window as unknown as { __fu110ExploreGeoReplaySamples?: unknown[] }
+    return (state.__fu110ExploreGeoReplaySamples ?? []).length >= 3
+  }, null, { timeout: 20_000 })
+  const geoReplaySamples = await geoPage.evaluate(() => {
+    const state = window as unknown as { __fu110ExploreGeoReplaySamples?: ExploreReplaySample[] }
+    return state.__fu110ExploreGeoReplaySamples ?? []
+  })
+  const first4After = geoReplaySamples.at(-1)?.first4Ids ?? await getExploreFirst4Ids(geoPage)
+  const sortChanged = first4Before.join('|') !== first4After.join('|')
+  const geoReplayReasonLog = await getExploreReplayReasonLog(geoPage)
+
+  await geoPage.getByRole('button', { name: '展开高级筛选' }).click()
+  const emptyActions = [
+    {
+      label: `difficulty:${emptyCombo.difficulty}`,
+      locator: geoPage.getByRole('button', { name: EXPLORE_DIFFICULTY_LABEL[emptyCombo.difficulty], exact: true }),
+    },
+    {
+      label: `altitude:${emptyCombo.altitude}`,
+      locator: geoPage.getByRole('button', { name: EXPLORE_ALTITUDE_LABEL[emptyCombo.altitude], exact: true }),
+    },
+    {
+      label: `length:${emptyCombo.length}`,
+      locator: geoPage.getByRole('button', { name: EXPLORE_LENGTH_LABEL[emptyCombo.length], exact: true }),
+    },
+  ]
+  const emptyReplays = []
+  let emptyReplay = null as Awaited<ReturnType<typeof clickExploreFilterAndSample>> | null
+  for (const action of emptyActions) {
+    const replay = await clickExploreFilterAndSample(geoPage, action.locator, action.label)
+    emptyReplays.push(replay)
+    if ((replay.samples.at(-1)?.emptyState.length ?? 0) > 0) {
+      emptyReplay = replay
+      break
+    }
+  }
+  if (!emptyReplay) {
+    throw new Error(`FU-110 empty-state evidence did not reach an empty result for ${JSON.stringify(emptyCombo)}.`)
+  }
+
+  const restoreReplays = []
+  let restoreReplay = null as Awaited<ReturnType<typeof clickExploreFilterAndSample>> | null
+  for (const [index, label] of ['restore-difficulty', 'restore-altitude', 'restore-length'].entries()) {
+    const replay = await clickExploreFilterAndSample(
+      geoPage,
+      geoPage.getByRole('button', { name: '全部', exact: true }).nth(index),
+      label,
+    )
+    restoreReplays.push(replay)
+    if ((replay.samples.at(-1)?.cards.length ?? 0) > 0) {
+      restoreReplay = replay
+      break
+    }
+  }
+  if (!restoreReplay) {
+    throw new Error('FU-110 restore evidence did not return to a non-empty result set.')
+  }
+  const geoVideo = geoPage.video()
+  await geoContext.close()
+  const geoVideoPath = geoVideo ? await geoVideo.path() : null
+
+  const collisionConsole: ConsoleEntry[] = []
+  const collisionErrors: PageEvidence['pageErrors'] = []
+  const collisionContext = await newEvidenceContext(browser, baseURL, {
+    reducedMotion: 'no-preference',
+    geolocation: {
+      latitude: geoChoice.coordinate.latitude,
+      longitude: geoChoice.coordinate.longitude,
+      delayMs: 520,
+    },
+  })
+  const collisionPage = await collisionContext.newPage()
+  await attachCapture(collisionPage, collisionConsole, collisionErrors)
+  await collisionPage.goto('/explore', { waitUntil: 'domcontentloaded' })
+  await collisionPage.locator('.explore-filter-chip').first().waitFor({ state: 'visible', timeout: 20_000 })
+  for (const label of ['高海拔', '长线', '附近', '无执照可进', '附近']) {
+    const chip = collisionPage.getByRole('button', { name: label, exact: true })
+    if (await chip.isVisible().catch(() => false)) await chip.click()
+  }
+  await collisionPage.waitForFunction(() =>
+    document.querySelector<HTMLElement>('.explore-page-shell')?.dataset.explorePositionState === 'resolved',
+    null,
+    { timeout: 20_000 }
+  )
+  await collisionPage.waitForTimeout(900)
+  const collisionTerminalState = await collectExploreTerminalState(collisionPage)
+  await collisionContext.close()
+
+  const reducedContext = await newEvidenceContext(browser, baseURL, {
+    reducedMotion: 'reduce',
+    geolocation: 'deny',
+  })
+  const reducedPage = await reducedContext.newPage()
+  await reducedPage.route('**/api/analytics/event', async (route) => {
+    await route.fulfill({ status: 204, body: '' })
+  })
+  await reducedPage.goto('/explore', { waitUntil: 'domcontentloaded' })
+  await reducedPage.locator('[data-explore-motion="list-heading"]').waitFor({ state: 'visible', timeout: 20_000 })
+  await reducedPage.waitForTimeout(600)
+  const reducedTerminalState = await collectExploreTerminalState(reducedPage)
+  const reducedScreenshot = join(FU110_OUTPUT_DIR, 'explore-reduced-terminal.png')
+  await reducedPage.screenshot({ path: reducedScreenshot, fullPage: true })
+  await reducedContext.close()
+
+  const allConsole = [
+    ...noGeoDenied.console,
+    ...noGeoAbsent.console,
+    ...spaCacheHit.console,
+    ...spaCacheMiss.console,
+    ...geoConsole,
+    ...collisionConsole,
+  ]
+  const allPageErrors = [
+    ...noGeoDenied.pageErrors,
+    ...noGeoAbsent.pageErrors,
+    ...spaCacheHit.pageErrors,
+    ...spaCacheMiss.pageErrors,
+    ...geoPageErrors,
+    ...collisionErrors,
+  ]
+  const summary = {
+    evidenceKind: 'controlled-local-production-build',
+    page: 'explore',
+    path: '/explore',
+    noGeo: {
+      denied: noGeoDenied,
+      absent: noGeoAbsent,
+    },
+    spaRouteReturn: {
+      cacheHit: spaCacheHit,
+      cacheMiss: spaCacheMiss,
+    },
+    geo: {
+      video: geoVideoPath,
+      coordinate: geoChoice.coordinate,
+      predictedFirst4Before: geoChoice.predictedFirst4Before,
+      predictedFirst4After: geoChoice.predictedFirst4After,
+      first4Before,
+      first4After,
+      sortChanged,
+      replayReasons: geoReplayReasonLog,
+      replaySamples: geoReplaySamples,
+      motionChanged: exploreReplayHasMotion(geoReplaySamples),
+    },
+    emptyState: {
+      combo: emptyCombo,
+      replays: emptyReplays,
+      selectedReplay: emptyReplay,
+      restoreReplays,
+      selectedRestoreReplay: restoreReplay,
+    },
+    rapidTagGeoCollision: {
+      noStuckHidden: collisionTerminalState.every((state) => !state.stuck),
+      terminalState: collisionTerminalState,
+    },
+    reducedMotion: {
+      screenshot: reducedScreenshot,
+      terminalVisible: reducedTerminalState.every((state) => !state.stuck),
+      terminalState: reducedTerminalState,
+    },
+    console: allConsole,
+    pageErrors: allPageErrors,
+  }
+  const summaryPath = join(FU110_OUTPUT_DIR, 'fu110-explore-summary.json')
+  await writeFile(summaryPath, JSON.stringify(summary, null, 2))
+
+  for (const noGeoRun of [noGeoDenied, noGeoAbsent]) {
+    expect(noGeoRun.video).toContain(FU110_OUTPUT_DIR)
+    expectSingleVisualRise(noGeoRun.trace)
+    expect(noGeoRun.trace.samples.every((sample) => sample.positionState === 'null')).toBe(true)
+    expect(noGeoRun.trace.firstCardIdUnchanged).toBe(true)
+    expect(noSourceReplayReasons(noGeoRun.trace)).toBe(true)
+    expect(noGeoRun.visibility.listHeading).toBe(true)
+    expect(noGeoRun.visibility.quickTags).toBe(true)
+    expect(noGeoRun.visibility.listSubheading).toBe(true)
+    expect(noGeoRun.visibility.firstCard).toBe(true)
+    expect(noGeoRun.terminalState.every((state) => !state.stuck)).toBe(true)
+  }
+  for (const spaRun of [spaCacheHit, spaCacheMiss]) {
+    expect(spaRun.video).toContain(FU110_OUTPUT_DIR)
+    expectSingleVisualRise(spaRun.trace)
+    expect(spaRun.terminalState.every((state) => !state.stuck)).toBe(true)
+  }
+  expect(noSourceReplayReasons(spaCacheHit.reasonLog)).toBe(true)
+  expect(sortChanged).toBe(true)
+  expect(geoReplayReasonLog.queuedReasons).toContain('geo')
+  expect(geoReplayReasonLog.firedReplayReasons).toContain('geo')
+  expect(exploreReplayHasMotion(geoReplaySamples)).toBe(true)
+  expect(emptyReplay.motionChanged).toBe(true)
+  expect(emptyReplay.samples.at(-1)?.emptyState.every((state) => !state.stuck)).toBe(true)
+  expect(restoreReplay.motionChanged).toBe(true)
+  expect(restoreReplay.samples.at(-1)?.cards.length ?? 0).toBeGreaterThan(0)
+  expect(collisionTerminalState.every((state) => !state.stuck)).toBe(true)
+  expect(reducedTerminalState.every((state) => !state.stuck)).toBe(true)
+  expect(allConsole.filter((entry) => entry.classification === 'new-this-round')).toEqual([])
+  expect(allPageErrors.filter((entry) => entry.classification === 'new-this-round')).toEqual([])
 })

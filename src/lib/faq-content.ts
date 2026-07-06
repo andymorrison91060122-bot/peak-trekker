@@ -1,3 +1,5 @@
+import { isFeatureEnabled } from '@/lib/feature-flags'
+
 export type FaqQuestion = {
   id: string
   anchor: string
@@ -13,7 +15,7 @@ export type FaqGroup = {
   questions: FaqQuestion[]
 }
 
-export const FAQ_GROUPS: FaqGroup[] = [
+export const BASE_FAQ_GROUPS: FaqGroup[] = [
   {
     id: 'start',
     title: '开始一次山行',
@@ -221,6 +223,33 @@ export const FAQ_GROUPS: FaqGroup[] = [
     ],
   },
 ]
+
+export const COMMUNITY_FAQ_ANCHORS = new Set([
+  'review.community-eligibility',
+  'review.community-scope',
+  'privacy.visibility',
+  'privacy.delete-published',
+])
+
+const TRACK_PRIVACY_NON_COMMUNITY_ANSWER =
+  '只有你自己。\n\n生成分享图时，只会包含你在分享编辑里选择展示的字段，不包含原始轨迹。我们不会把你的 GPS 数据卖给第三方，也不会用来训练别的什么。'
+
+function getFlagAwareQuestion(question: FaqQuestion): FaqQuestion {
+  if (isFeatureEnabled('COMMUNITY_ENABLED')) return question
+  if (question.anchor !== 'privacy.who-sees-track') return question
+
+  return {
+    ...question,
+    a: TRACK_PRIVACY_NON_COMMUNITY_ANSWER,
+  }
+}
+
+export const FAQ_GROUPS: FaqGroup[] = BASE_FAQ_GROUPS.map((group) => ({
+  ...group,
+  questions: group.questions
+    .filter((question) => isFeatureEnabled('COMMUNITY_ENABLED') || !COMMUNITY_FAQ_ANCHORS.has(question.anchor))
+    .map(getFlagAwareQuestion),
+})).filter((group) => group.questions.length > 0)
 
 export const FAQ_BY_ANCHOR = (() => {
   const m: Record<string, FaqQuestion & { group: FaqGroup }> = {}

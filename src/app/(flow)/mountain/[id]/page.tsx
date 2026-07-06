@@ -5,6 +5,7 @@ import { listWaypointsByMountain } from '@/lib/waypoints-queries'
 import { listFeaturedPostsByMountain } from '@/lib/community-server'
 import { listProfileTrips } from '@/lib/profile-records-server'
 import { buildLicenseProgressSummary } from '@/lib/license-progress'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
 import type { Waypoint } from '@/lib/waypoints'
 import MountainDetailClient from './MountainDetailClient'
@@ -72,7 +73,9 @@ export default async function MountainDetailPage({
   const mountain = mountainRes.data as Mountain | null
   if (!mountain) notFound()
 
-  const featuredPosts = await loadFeaturedPosts(supabase, mountain.id)
+  const featuredPosts = isFeatureEnabled('COMMUNITY_ENABLED')
+    ? await loadFeaturedPosts(supabase, mountain.id)
+    : []
 
   return (
     <MountainDetailClient

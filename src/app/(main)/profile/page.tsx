@@ -84,6 +84,7 @@ export default async function ProfilePage() {
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
   const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
+  const communityEnabled = isFeatureEnabled('COMMUNITY_ENABLED')
   const currentMonth = getShanghaiYearMonth()
 
   const [trips, myPosts, provinceContribution] = await Promise.all([
@@ -91,10 +92,12 @@ export default async function ProfilePage() {
       supabase,
       userId: user.id,
     }),
-    listUserCommunityPosts({
-      supabase,
-      userId: user.id,
-    }),
+    communityEnabled
+      ? listUserCommunityPosts({
+        supabase,
+        userId: user.id,
+      })
+      : Promise.resolve([]),
     provinceRankingEnabled
       ? getUserMonthlyContribution(user.id, currentMonth.year, currentMonth.month)
       : Promise.resolve(null),
@@ -117,14 +120,16 @@ export default async function ProfilePage() {
     license_level: licenseProgress.effectiveLevel,
   } as ProfileRow
 
-  const shares: ProfileV2SharePreview[] = myPosts.map((post) => ({
-    id: post.id,
-    checkinId: post.checkinId,
-    mountainName: (post.mountain?.name ?? post.title) || '未命名山行',
-    province: post.mountain?.province ?? null,
-    publishedAt: post.publishedAt,
-    likeCount: post.likeCount,
-  }))
+  const shares: ProfileV2SharePreview[] = communityEnabled
+    ? myPosts.map((post) => ({
+      id: post.id,
+      checkinId: post.checkinId,
+      mountainName: (post.mountain?.name ?? post.title) || '未命名山行',
+      province: post.mountain?.province ?? null,
+      publishedAt: post.publishedAt,
+      likeCount: post.likeCount,
+    }))
+    : []
 
   return (
     <ProfileV2Client

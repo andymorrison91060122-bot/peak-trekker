@@ -15,9 +15,9 @@ import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
-import IconButton from '@/components/ui/IconButton'
-import { BackIcon, PinIcon } from '@/components/ui/Icons'
+import { PinIcon } from '@/components/ui/Icons'
 import { getLicenseShortLabel } from '@/lib/license-ui'
+import { isFeatureEnabled } from '@/lib/feature-flags'
 import { formatMotionCountValue, parseMotionTokenSeconds, type MotionCountFormat } from '@/lib/motion-count-format'
 import type { CheckinDisplayTitleSource } from '@/lib/checkin-display-title'
 
@@ -147,33 +147,6 @@ function groupTripsByYear(trips: ArchiveTripViewModel[]): YearGroup[] {
     .map(([year, yearTrips]) => ({ year, trips: yearTrips }))
 }
 
-function ArchiveIconButton({
-  icon,
-  ariaLabel,
-  onClick,
-}: {
-  icon: ReactNode
-  ariaLabel: string
-  onClick?: () => void
-}) {
-  return (
-    <IconButton
-      ariaLabel={ariaLabel}
-      icon={icon}
-      shape="circular"
-      variant="filled"
-      onClick={onClick}
-      style={{
-        width: 'var(--control-size)',
-        height: 'var(--control-size)',
-        color: 'var(--color-on-surface)',
-        background: 'var(--color-surface-variant)',
-        border: '1px solid var(--color-outline)',
-      }}
-    />
-  )
-}
-
 function Chip({
   children,
   tone = 'neutral',
@@ -229,32 +202,26 @@ function Chip({
   )
 }
 
-function ArchiveHeader({ onBack }: { onBack: () => void }) {
+function ArchiveContentHeading() {
   return (
-    <header
+    <section
       data-archive-motion="header"
       style={{
-        display: 'grid',
-        gridTemplateColumns: '44px minmax(0, 1fr) 44px',
-        alignItems: 'center',
-        gap: 'var(--space-2)',
-        padding: 'var(--space-1) var(--space-3)',
+        padding: 'var(--space-2) var(--space-4) var(--space-1)',
       }}
     >
-      <ArchiveIconButton ariaLabel="返回" icon={<BackIcon size={20} />} onClick={onBack} />
-      <div
+      <h1
         style={{
+          margin: 0,
           color: 'var(--color-on-surface)',
-          fontSize: 'var(--font-label-m-size)',
-          lineHeight: 'var(--font-label-m-line)',
-          fontWeight: 600,
-          textAlign: 'center',
+          fontSize: 'var(--font-title-l-size)',
+          lineHeight: 'var(--font-title-l-line)',
+          fontWeight: 700,
         }}
       >
         我的山行档案
-      </div>
-      <div aria-hidden="true" />
-    </header>
+      </h1>
+    </section>
   )
 }
 
@@ -895,6 +862,10 @@ function ArchiveEmptyState({
   onFindMountain: () => void
   onBringBack: () => void
 }) {
+  const privacyCopy = isFeatureEnabled('COMMUNITY_ENABLED')
+    ? '想发到山友圈时再发 · Peak Trekker 不会替你声张。'
+    : '想分享时再分享 · Peak Trekker 不会替你声张。'
+
   return (
     <>
       <section data-archive-motion="empty-state" style={{ padding: '28px var(--space-6) 0' }}>
@@ -965,7 +936,7 @@ function ArchiveEmptyState({
       >
         档案只保存 <span style={{ color: 'var(--color-on-surface)', fontWeight: 600 }}>自己</span> 的山行记录。
         <br />
-        想发到山友圈时再发 · Peak Trekker 不会替你声张。
+        {privacyCopy}
       </section>
     </>
   )
@@ -990,10 +961,6 @@ export default function ArchiveClient({
   const filteredTripSignature = useMemo(() => filteredTrips.map((trip) => trip.id).join('|'), [filteredTrips])
   const yearGroups = useMemo(() => groupTripsByYear(filteredTrips), [filteredTrips])
   const hasTrips = trips.length > 0
-
-  function handleBack() {
-    router.replace('/explore')
-  }
 
   function handleFilterChange(nextFilter: FilterId) {
     if (nextFilter === activeFilter) return
@@ -1268,20 +1235,16 @@ export default function ArchiveClient({
   }, [activeFilter, filteredTripSignature])
 
   return (
-    <main
+    <div
       ref={motionScopeRef}
       data-archive-motion-root
       style={{
-        minHeight: 'calc(100dvh - max(env(safe-area-inset-top), var(--space-2)))',
-        maxWidth: 'var(--page-max-width)',
-        margin: '0 auto',
-        paddingBottom: 'var(--space-6)',
         color: 'var(--color-on-surface)',
         background: 'var(--color-surface)',
         overflowX: 'hidden',
       }}
     >
-      <ArchiveHeader onBack={handleBack} />
+      <ArchiveContentHeading />
       {hasTrips ? (
         <>
           <IdentityCard user={user} summary={summary} />
@@ -1321,6 +1284,6 @@ export default function ArchiveClient({
           />
         </>
       )}
-    </main>
+    </div>
   )
 }

@@ -413,7 +413,7 @@ describe('share render API field policy regression', () => {
   })
 
   test('archive filter tabs use one selected style helper for every tab', () => {
-    const archiveSource = readSource('../src/app/(flow)/archive/ArchiveClient.tsx')
+    const archiveSource = readSource('../src/app/(main)/archive/ArchiveClient.tsx')
     const filterTabsSource = archiveSource.match(/function FilterTabs[\s\S]*?function YearDivider/)?.[0]
 
     assert.ok(filterTabsSource)

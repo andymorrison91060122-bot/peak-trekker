@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const trekClient = readFileSync('src/app/(flow)/trek/TrekClient.tsx', 'utf8')
-const archiveClient = readFileSync('src/app/(flow)/archive/ArchiveClient.tsx', 'utf8')
+const archiveClient = readFileSync('src/app/(main)/archive/ArchiveClient.tsx', 'utf8')
 const communityDetailClient = readFileSync('src/app/(flow)/community/[postId]/CommunityDetailClient.tsx', 'utf8')
 const activityDetailClient = readFileSync('src/app/(flow)/activity/[id]/ActivityDetailClient.tsx', 'utf8')
 const shareClient = readFileSync('src/app/(flow)/share/ShareClient.tsx', 'utf8')
@@ -69,11 +69,13 @@ test('trek completion uses local loop-pop guard neutralization only after comple
   assert.match(guardEffect, /void pauseAndNavigateAway\(true\)/)
 })
 
-test('archive top back is a stable app-level exit to explore', () => {
-  const handleBack = archiveClient.match(/function handleBack\(\) \{[\s\S]*?\n  \}/)?.[0] ?? ''
-  assert.match(handleBack, /router\.replace\('\/explore'\)/)
-  assert.doesNotMatch(handleBack, /router\.back\(\)/)
-  assert.doesNotMatch(handleBack, /router\.push\('\/profile'\)/)
+test('archive is a tier-1 tab page without page-level back chrome', () => {
+  assert.doesNotMatch(archiveClient, /function ArchiveHeader/)
+  assert.doesNotMatch(archiveClient, /ariaLabel="返回"/)
+  assert.doesNotMatch(archiveClient, /function handleBack\(\)/)
+  assert.doesNotMatch(archiveClient, /router\.replace\('\/explore'\)/)
+  assert.match(archiveClient, /function ArchiveContentHeading\(\)/)
+  assert.match(archiveClient, /data-archive-motion="header"/)
 })
 
 test('community delete replaces deleted detail with activity result', () => {
@@ -83,6 +85,9 @@ test('community delete replaces deleted detail with activity result', () => {
 })
 
 test('share and activity detail retain normal back behavior instead of masking upstream history leaks', () => {
-  assert.match(shareClient, /<NavBar onBack=\{\(\) => router\.back\(\)\} \/>/)
+  const handleShareBack = shareClient.match(/function handleShareBack\(\) \{[\s\S]*?\n  \}/)?.[0] ?? ''
+  assert.match(shareClient, /<NavBar onBack=\{handleShareBack\} \/>/)
+  assert.match(handleShareBack, /router\.back\(\)/)
+  assert.match(handleShareBack, /router\.replace\('\/explore'\)/)
   assert.match(activityDetailClient, /function handleBack\(\) \{[\s\S]{0,120}router\.back\(\)/)
 })

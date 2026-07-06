@@ -13,7 +13,6 @@ import {
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
-import TabBar from '@/components/layout/TabBar'
 import { CameraIcon, MountainIcon } from '@/components/ui/Icons'
 import {
   buildExploreShareTemplateUrl,
@@ -96,9 +95,8 @@ function buildFacadeShareData(): ShareTemplateData {
   }
 }
 
-function calculateCardHeight() {
-  if (typeof window === 'undefined') return MAX_CARD_HEIGHT
-  return Math.max(MIN_CARD_HEIGHT, Math.min(MAX_CARD_HEIGHT, window.innerHeight - 317))
+function calculateCardHeight(availableHeight = MAX_CARD_HEIGHT + 260) {
+  return Math.max(MIN_CARD_HEIGHT, Math.min(MAX_CARD_HEIGHT, availableHeight - 230))
 }
 
 function initialIndexForTemplate(template?: ShareRenderTemplate) {
@@ -333,7 +331,7 @@ export default function ImprintClient({
   initialStep?: 'source'
 }) {
   const router = useRouter()
-  const rootRef = useRef<HTMLElement | null>(null)
+  const rootRef = useRef<HTMLDivElement | null>(null)
   const initialIndex = useMemo(() => initialIndexForTemplate(initialTemplate), [initialTemplate])
   const initialScreen: ImprintScreen = initialStep === 'source' ? 'method' : 'facade'
   const activeIndexRef = useRef(initialIndex)
@@ -351,7 +349,8 @@ export default function ImprintClient({
 
   useEffect(() => {
     function syncHeight() {
-      setCardHeight(calculateCardHeight())
+      const availableHeight = rootRef.current?.clientHeight ?? window.innerHeight
+      setCardHeight(calculateCardHeight(availableHeight))
     }
     syncHeight()
     window.addEventListener('resize', syncHeight)
@@ -635,6 +634,7 @@ export default function ImprintClient({
     const dots = rootEl.querySelector('.imprint-dots')
     const hint = rootEl.querySelector('.imprint-hint')
     const cta = rootEl.querySelector('.imprint-cta')
+    const entranceHints = [dots, hint].filter((target): target is Element => target !== null)
 
     gsap.set(cards, { autoAlpha: 0, y: 24 })
     const tl = gsap.timeline()
@@ -646,7 +646,16 @@ export default function ImprintClient({
       stagger: { each: 0.08, from: 'center' },
       ease: 'power3.out',
     }, 0.05)
-    tl.from([dots, hint, cta], { y: 12, autoAlpha: 0, duration: 0.5, stagger: 0.07, ease: 'power2.out' }, 0.32)
+    tl.from(entranceHints, { y: 12, autoAlpha: 0, duration: 0.5, stagger: 0.07, ease: 'power2.out' }, 0.32)
+    if (cta) {
+      tl.fromTo(cta, { y: 12, autoAlpha: 0 }, {
+        y: 0,
+        autoAlpha: 1,
+        duration: 0.5,
+        ease: 'power2.out',
+      }, 0.46)
+      tl.set(cta, { autoAlpha: 1, y: 0 }, 1.02)
+    }
     tl.add(() => {
       const activeCard = getActiveCard()
       playCard(activeCard, true)
@@ -789,7 +798,7 @@ export default function ImprintClient({
   }
 
   return (
-    <main
+    <div
       ref={rootRef}
       className="imprint-root"
       data-testid="imprint-facade"
@@ -807,9 +816,7 @@ export default function ImprintClient({
           font-display: swap;
         }
         .imprint-root {
-          min-height: 100dvh;
-          max-width: var(--page-max-width);
-          margin: 0 auto;
+          min-height: calc(100dvh - 61px - 88px - env(safe-area-inset-bottom));
           position: relative;
           overflow: hidden;
           color: var(--color-on-surface);
@@ -828,7 +835,7 @@ export default function ImprintClient({
         }
         .imprint-screen {
           position: absolute;
-          inset: 0 0 calc(92px + env(safe-area-inset-bottom));
+          inset: 0;
           display: flex;
           flex-direction: column;
           overflow: hidden;
@@ -1282,7 +1289,6 @@ export default function ImprintClient({
         </div>
       </section>
 
-      <TabBar />
-    </main>
+    </div>
   )
 }

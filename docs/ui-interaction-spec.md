@@ -421,6 +421,11 @@ JSX 像素值与 token 矛盾时，以 token 为准；JSX 文案与 PNG 规范�
 ### D. 底部导航区
 * 一级导航保持固定，不频繁变化
 
+### E. 导航一致性规则
+* 一级页放在 `(main)` 路由组，由全局 `AppHeader` + `TabBar` 承担顶栏和底栏，不再保留页面级返回按钮。
+* 二级流程页 / 详情页放在 `(flow)` 路由组，由页面提供明确返回路径，不展示底部 TabBar。
+* `COMMUNITY_ENABLED` 只控制 v1 用户可见入口撤回：关闭时隐藏 TabBar 山友圈、Profile 我的分享、Activity 发布入口、Mountain 精选攻略和社区 FAQ / 文案；社区 routes / code / data 保留，改回 `true` 时恢复入口。
+
 ## 7.3 安全区域
 
 必须考虑：

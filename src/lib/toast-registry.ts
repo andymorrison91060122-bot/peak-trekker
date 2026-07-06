@@ -1,5 +1,9 @@
+import { isFeatureEnabled } from '@/lib/feature-flags'
+
 export type ToastTone = 'success' | 'error' | 'info'
 export type ToastAppearance = 'tone' | 'surface'
+
+const communityEnabled = isFeatureEnabled('COMMUNITY_ENABLED')
 
 export const TOAST_REGISTRY = {
   trek_start_success: {
@@ -148,7 +152,7 @@ export const TOAST_REGISTRY = {
   },
   avatar_upload_success: {
     tone: 'success',
-    message: '头像已更新，个人主页和山友圈会同步展示。',
+    message: communityEnabled ? '头像已更新，个人主页和山友圈会同步展示。' : '头像已更新，个人主页会同步展示。',
   },
   avatar_upload_failure: {
     tone: 'error',

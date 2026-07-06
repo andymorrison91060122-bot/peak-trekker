@@ -1,6 +1,15 @@
 'use client'
 
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FocusEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
@@ -53,6 +62,7 @@ export type ArchiveTripViewModel = {
 }
 
 type FilterId = 'all' | 'summit' | 'proof' | 'unproof'
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
 
 type YearGroup = {
   year: string
@@ -65,6 +75,14 @@ const monoStyle: CSSProperties = {
 }
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 function formatNumber(value: number) {
   return numberFormatter.format(Math.round(value))
@@ -460,7 +478,7 @@ function getArchiveTabStyle(isActive: boolean): CSSProperties {
     borderRadius: 'var(--radius-pill)',
     border: '1px solid var(--archive-tab-border)',
     color: isActive ? 'var(--color-surface)' : 'var(--color-on-surface-variant)',
-    background: 'var(--archive-tab-bg)',
+    backgroundColor: 'var(--archive-tab-bg)',
     boxShadow: 'var(--archive-tab-shadow)',
     font: 'inherit',
     fontSize: 12,
@@ -469,7 +487,7 @@ function getArchiveTabStyle(isActive: boolean): CSSProperties {
     whiteSpace: 'nowrap',
     cursor: 'pointer',
     transition:
-      'background var(--motion-press) var(--ease-out), border-color var(--motion-press) var(--ease-out), box-shadow var(--motion-press) var(--ease-out)',
+      'background-color var(--motion-press) var(--ease-out), border-color var(--motion-press) var(--ease-out), box-shadow var(--motion-press) var(--ease-out)',
   }
 }
 
@@ -509,27 +527,27 @@ function FilterTabs({
     <section data-archive-motion="filters" style={{ padding: '18px var(--space-4) 0' }}>
       <style>
         {`
-          .pt-archive-filter-tab {
+          .archive-filter-tab {
             --archive-tab-bg: transparent;
             --archive-tab-border: var(--color-outline);
             --archive-tab-shadow: none;
           }
 
-          .pt-archive-filter-tab[aria-pressed="true"] {
+          .archive-filter-tab[aria-pressed="true"] {
             --archive-tab-bg: var(--color-on-surface);
             --archive-tab-border: transparent;
             --archive-tab-shadow: none;
           }
 
-          .pt-archive-filter-tab:active,
-          .pt-archive-filter-tab[data-archive-press-active="true"] {
+          .archive-filter-tab:active,
+          .archive-filter-tab[data-pt-press-active="true"] {
             --archive-tab-bg: color-mix(in srgb, var(--color-on-surface) 9%, transparent);
             --archive-tab-border: color-mix(in srgb, var(--color-on-surface) 30%, transparent);
             --archive-tab-shadow: inset 0 0 0 999px color-mix(in srgb, var(--color-on-surface) 7%, transparent);
           }
 
-          .pt-archive-filter-tab[aria-pressed="true"]:active,
-          .pt-archive-filter-tab[aria-pressed="true"][data-archive-press-active="true"] {
+          .archive-filter-tab[aria-pressed="true"]:active,
+          .archive-filter-tab[aria-pressed="true"][data-pt-press-active="true"] {
             --archive-tab-bg: color-mix(in srgb, var(--color-on-surface) 88%, var(--color-surface));
             --archive-tab-border: transparent;
             --archive-tab-shadow: inset 0 0 0 999px color-mix(in srgb, var(--color-surface) 9%, transparent);
@@ -551,33 +569,14 @@ function FilterTabs({
             <button
               key={tab.id}
               type="button"
-              className="pt-archive-filter-tab"
+              className="archive-filter-tab pt-pressable"
               data-archive-filter-tab={tab.id}
               aria-pressed={isActive}
-              onPointerDown={(event) => {
-                event.currentTarget.dataset.archivePressActive = 'true'
-              }}
-              onPointerUp={(event) => {
-                delete event.currentTarget.dataset.archivePressActive
-              }}
-              onPointerCancel={(event) => {
-                delete event.currentTarget.dataset.archivePressActive
-              }}
-              onPointerLeave={(event) => {
-                delete event.currentTarget.dataset.archivePressActive
-              }}
-              onMouseDown={(event) => {
-                event.currentTarget.dataset.archivePressActive = 'true'
-              }}
-              onMouseUp={(event) => {
-                delete event.currentTarget.dataset.archivePressActive
-              }}
-              onMouseLeave={(event) => {
-                delete event.currentTarget.dataset.archivePressActive
-              }}
-              onBlur={(event) => {
-                delete event.currentTarget.dataset.archivePressActive
-              }}
+              onPointerDown={markPressFallback}
+              onPointerUp={clearPressFallback}
+              onPointerCancel={clearPressFallback}
+              onPointerLeave={clearPressFallback}
+              onBlur={clearPressFallback}
               onClick={() => onChange(tab.id)}
               style={getArchiveTabStyle(isActive)}
             >
@@ -850,6 +849,12 @@ function TripCard({ trip, onOpen }: { trip: ArchiveTripViewModel; onOpen: (trip:
     <button
       type="button"
       data-archive-trip-card={trip.id}
+      className="pt-pressable-card"
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       onClick={() => onOpen(trip)}
       style={{
         display: 'block',

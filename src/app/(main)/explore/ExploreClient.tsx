@@ -1,6 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FocusEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
@@ -28,8 +38,17 @@ type ExploreReplayReason = 'geo' | 'tag' | 'province' | 'advancedFilter'
 type ExploreReplayReasonLayer = 'queuedReasons' | 'firedReplayReasons'
 type ExploreReplayReasonState = Record<ExploreReplayReasonLayer, ExploreReplayReason[]>
 type ExplorePosition = { lat: number; lng: number }
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
 
 let cachedExplorePosition: ExplorePosition | null = null
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 function getExploreReplayReasonState() {
   const win = window as Window & { __fu110ExploreReplayReasons?: ExploreReplayReasonState }
@@ -624,7 +643,7 @@ export default function ExploreClient({
   return (
     <>
       <style>
-        {'.explore-filter-scroll::-webkit-scrollbar{display:none}.explore-search-input::placeholder{color:var(--color-on-surface-variant);opacity:1}.pt-explore-press-target,.explore-page-shell [data-testid="explore-mountain-card"]{transition:transform var(--motion-press) var(--ease-out);transform-origin:center}.pt-explore-press-target:active,.explore-page-shell [data-testid="explore-mountain-card"]:active{transform:scale(.98)}'}
+        {'.explore-filter-scroll::-webkit-scrollbar{display:none}.explore-search-input::placeholder{color:var(--color-on-surface-variant);opacity:1}'}
       </style>
       <div
         ref={motionScopeRef}
@@ -708,7 +727,13 @@ export default function ExploreClient({
             </label>
             <button
               type="button"
+              className="pt-pressable"
               onClick={() => setShowAdvanced((value) => !value)}
+              onPointerDown={markPressFallback}
+              onPointerUp={clearPressFallback}
+              onPointerCancel={clearPressFallback}
+              onPointerLeave={clearPressFallback}
+              onBlur={clearPressFallback}
               aria-label={showAdvanced ? '收起高级筛选' : '展开高级筛选'}
               aria-pressed={showAdvanced}
               style={{
@@ -972,25 +997,32 @@ function PathwayCard({
   onClick: () => void
 }) {
   return (
-    <Card>
+    <div data-explore-pathway-card={title} style={{ minWidth: 0 }}>
       <button
         type="button"
-        data-explore-pathway-card={title}
-        className="pt-explore-press-target"
+        data-explore-pathway-button={title}
+        className="pt-pathway-press"
         onClick={onClick}
+        onPointerDown={markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
         style={{
           appearance: 'none',
-          width: '100%',
+          width: 'calc(100% - (var(--space-4) * 2) - 2px)',
+          boxSizing: 'content-box',
           minWidth: 0,
           minHeight: 100,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-start',
           gap: 'var(--space-3)',
-          padding: 0,
-          background: 'transparent',
+          padding: 'var(--space-4)',
+          background: 'var(--color-surface-variant)',
           color: 'var(--color-on-surface)',
-          border: 'none',
+          border: '1px solid var(--color-outline)',
+          borderRadius: 'var(--radius-lg)',
           textAlign: 'left',
           cursor: 'pointer',
           font: 'inherit',
@@ -1034,7 +1066,7 @@ function PathwayCard({
           </span>
         </span>
       </button>
-    </Card>
+    </div>
   )
 }
 

@@ -1,6 +1,15 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FocusEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
@@ -22,6 +31,7 @@ gsap.registerPlugin(useGSAP)
 type FacadeTemplateKey = 'minimal' | 'route' | 'alt' | 'profile' | 'photo'
 type ImprintScreen = 'facade' | 'method'
 type MotionFormat = 'comma' | 'dec1' | 'plus'
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
 
 type FacadeTemplate = {
   key: FacadeTemplateKey
@@ -35,6 +45,14 @@ const POSTER_WIDTH = 1080
 const POSTER_HEIGHT = 1920
 const MIN_CARD_HEIGHT = 320
 const MAX_CARD_HEIGHT = 426
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 const TEMPLATE_ITEMS: FacadeTemplate[] = [
   { key: 'minimal', template: 'base-classic' },
@@ -225,13 +243,18 @@ function TemplateCard({
   return (
     <button
       type="button"
-      className="imprint-card"
+      className="imprint-card pt-pressable-card"
       data-imprint-card
       data-template={item.template}
       data-index={index}
       data-action="card"
       data-i={index}
       onClick={onSelect}
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       aria-label={`选择第 ${index + 1} 款样式`}
     >
       {registryEntry.tier === 'premium' ? <PremiumBadge paywallEnabled={paywallEnabled} /> : null}
@@ -257,7 +280,16 @@ function SourceOption({
   onClick: () => void
 }) {
   return (
-    <button type="button" className="imprint-source-option" onClick={onClick}>
+    <button
+      type="button"
+      className="imprint-source-option pt-pressable-card"
+      onClick={onClick}
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
+    >
       <span className="imprint-source-icon">{icon}</span>
       <span className="imprint-source-copy">
         <span className="imprint-source-title">{title}</span>
@@ -274,11 +306,16 @@ function Dot({ active, onClick, index }: { active: boolean; onClick: () => void;
   return (
     <button
       type="button"
-      className="imprint-dot"
+      className="imprint-dot pt-pressable"
       data-imprint-dot
       data-i={index}
       data-active={active ? 'true' : 'false'}
       onClick={onClick}
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       aria-label={active ? '当前样式' : `切换到第 ${index + 1} 款样式`}
     />
   )
@@ -954,10 +991,6 @@ export default function ImprintClient({
             0 14px 30px rgba(34,197,94,.26),
             inset 0 1px 0 rgba(255,255,255,.18);
         }
-        .imprint-cta:active,
-        .imprint-source-option:active {
-          filter: brightness(.93);
-        }
         .imprint-method {
           opacity: 0;
           visibility: hidden;
@@ -1156,7 +1189,16 @@ export default function ImprintClient({
         <div className="imprint-hint">左右滑动 · 浏览样式</div>
 
         <div className="imprint-cta-wrap">
-          <button className="imprint-cta" type="button" onClick={selectActiveTemplate}>
+          <button
+            className="imprint-cta pt-pressable-hero"
+            type="button"
+            onClick={selectActiveTemplate}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
+          >
             就用这一款 <span aria-hidden="true">→</span>
           </button>
         </div>
@@ -1164,7 +1206,17 @@ export default function ImprintClient({
 
       <section className="imprint-screen imprint-method" data-imprint-screen="method">
         <div className="imprint-method-topbar">
-          <button className="imprint-back-btn" type="button" onClick={() => goToScreen('facade')} aria-label="返回样式选择">
+          <button
+            className="imprint-back-btn pt-pressable"
+            type="button"
+            onClick={() => goToScreen('facade')}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
+            aria-label="返回样式选择"
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M15 6l-6 6 6 6" stroke="#F5F7F8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
@@ -1191,7 +1243,16 @@ export default function ImprintClient({
               <div className="imprint-chosen-copy">
                 稍后生成分享卡时，<br />会自动为你预选这一款
               </div>
-              <button className="imprint-change-style" type="button" onClick={() => goToScreen('facade')}>
+              <button
+                className="imprint-change-style pt-pressable"
+                type="button"
+                onClick={() => goToScreen('facade')}
+                onPointerDown={markPressFallback}
+                onPointerUp={clearPressFallback}
+                onPointerCancel={clearPressFallback}
+                onPointerLeave={clearPressFallback}
+                onBlur={clearPressFallback}
+              >
                 换一个样式 →
               </button>
             </div>

@@ -409,11 +409,13 @@
 
 - **优先级**: P2（high priority）
 - **归属阶段**: 全站交互手感统一
-- **状态**: 🟢 active
+- **状态**: 🟡 in-progress
 
 **背景**: 多轮视觉验收暴露点击反馈不一致：部分高价值入口有 press/tap feedback，部分列表卡、筛选、底部 tab / tab switch 仍缺统一规则或反馈弱。
 
 **待修方向**: 审计全站 clickable entries，建立统一 press rule；对高价值入口补 bespoke feedback；底部 tab switch motion 也纳入本 FU，而不是散落在单页动效任务里。
+
+**当前执行备注（2026-07-06）**: FU-111 已进入实现验证阶段；目标是把 explore / mountain / share / imprint / archive 的分散 press 规则统一为全局 L1 CSS press system，并补齐 TabBar、记录控制、导入/截图/活动/FAQ/Profile/Archive 卡片与按钮 press 反馈。待 375px production held-press evidence 与用户视觉验收后再关闭。
 
 ---
 

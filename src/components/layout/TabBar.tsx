@@ -2,6 +2,17 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import type { FocusEvent, PointerEvent } from 'react'
+
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 function Icon({
   active,
@@ -12,6 +23,7 @@ function Icon({
 }) {
   return (
     <span
+      className="pt-tab-icon"
       style={{
         width: 30,
         height: 30,
@@ -20,6 +32,8 @@ function Icon({
         borderRadius: 10,
         background: active ? 'color-mix(in srgb, var(--color-primary) 14%, transparent)' : 'transparent',
         border: active ? '1px solid color-mix(in srgb, var(--color-primary) 22%, transparent)' : '1px solid transparent',
+        transition:
+          'background-color var(--motion-base) var(--ease-standard), border-color var(--motion-base) var(--ease-standard), transform var(--motion-press) var(--ease-standard)',
       }}
     >
       {children}
@@ -104,7 +118,12 @@ export default function TabBar() {
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex flex-col items-center gap-1.5"
+              className="flex flex-col items-center gap-1.5 pt-tab-link pt-pressable"
+              onPointerDown={markPressFallback}
+              onPointerUp={clearPressFallback}
+              onPointerCancel={clearPressFallback}
+              onPointerLeave={clearPressFallback}
+              onBlur={clearPressFallback}
               style={{ minWidth: 58, flex: 1, textDecoration: 'none' }}
             >
               {tab.icon(isActive)}

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type FocusEvent, type PointerEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
@@ -20,6 +20,16 @@ import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
 import ProvinceContributionSection from '@/components/profile/ProvinceContributionSection'
 
 gsap.registerPlugin(useGSAP)
+
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 export type ProfileV2Identity = {
   userId: string
@@ -309,7 +319,12 @@ function ArchivePreviewSection({ trips }: { trips: ProfileV2TripPreview[] }) {
           </div>
           <Link
             href="/explore"
-            className="pt-body-m"
+            className="pt-body-m pt-pressable"
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               display: 'inline-flex',
               marginTop: 'var(--space-2)',
@@ -339,6 +354,12 @@ function ArchivePreviewSection({ trips }: { trips: ProfileV2TripPreview[] }) {
               <Link
                 href={`/activity/${trip.checkinId}`}
                 data-testid="profile-trip-activity-link"
+                className="pt-pressable-card"
+                onPointerDown={markPressFallback}
+                onPointerUp={clearPressFallback}
+                onPointerCancel={clearPressFallback}
+                onPointerLeave={clearPressFallback}
+                onBlur={clearPressFallback}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -392,7 +413,12 @@ function ArchivePreviewSection({ trips }: { trips: ProfileV2TripPreview[] }) {
                 href={`/share?checkinId=${encodeURIComponent(trip.checkinId)}`}
                 data-testid="profile-trip-share-link"
                 aria-label={`${trip.mountainName} 分享素材`}
-                className="pt-label-m"
+                className="pt-label-m pt-pressable"
+                onPointerDown={markPressFallback}
+                onPointerUp={clearPressFallback}
+                onPointerCancel={clearPressFallback}
+                onPointerLeave={clearPressFallback}
+                onBlur={clearPressFallback}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -415,7 +441,12 @@ function ArchivePreviewSection({ trips }: { trips: ProfileV2TripPreview[] }) {
           ))}
           <Link
             href="/archive"
-            className="pt-label-m"
+            className="pt-label-m pt-pressable"
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{ justifySelf: 'start', color: 'var(--color-success)', textDecoration: 'none' }}
           >
             查看完整档案 →
@@ -455,7 +486,13 @@ function SharePreviewSection({
             <Link
               key={share.id}
               href={`/community/${share.id}`}
+              className="pt-pressable-card"
               data-profile-share-row={share.id}
+              onPointerDown={markPressFallback}
+              onPointerUp={clearPressFallback}
+              onPointerCancel={clearPressFallback}
+              onPointerLeave={clearPressFallback}
+              onBlur={clearPressFallback}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -501,7 +538,12 @@ function SharePreviewSection({
           ))}
           <Link
             href={`/community/user/${currentUserId}`}
-            className="pt-label-m"
+            className="pt-label-m pt-pressable"
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{ justifySelf: 'start', color: 'var(--color-success)', textDecoration: 'none' }}
           >
             查看全部 →
@@ -565,7 +607,17 @@ function SupportSection() {
 
           if ('href' in row) {
             return (
-              <Link key={row.label} href={row.href} style={sharedStyle}>
+              <Link
+                key={row.label}
+                href={row.href}
+                className="pt-pressable-card"
+                onPointerDown={markPressFallback}
+                onPointerUp={clearPressFallback}
+                onPointerCancel={clearPressFallback}
+                onPointerLeave={clearPressFallback}
+                onBlur={clearPressFallback}
+                style={sharedStyle}
+              >
                 {content}
               </Link>
             )
@@ -575,7 +627,13 @@ function SupportSection() {
             <button
               key={row.label}
               type="button"
+              className="pt-pressable-card"
               onClick={() => showToast({ tone: 'info', message: row.toast })}
+              onPointerDown={markPressFallback}
+              onPointerUp={clearPressFallback}
+              onPointerCancel={clearPressFallback}
+              onPointerLeave={clearPressFallback}
+              onBlur={clearPressFallback}
               style={{ ...sharedStyle, width: '100%', cursor: 'pointer' }}
             >
               {content}
@@ -609,9 +667,14 @@ function LogoutLink() {
     <div data-profile-motion="logout" style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-2) 0 var(--space-8)' }}>
       <button
         type="button"
-        className="pt-label-s"
+        className="pt-label-s pt-pressable"
         onClick={handleLogout}
         disabled={pending}
+        onPointerDown={pending ? undefined : markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
         style={{
           border: 0,
           background: 'transparent',

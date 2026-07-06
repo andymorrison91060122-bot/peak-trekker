@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import type { ChangeEvent, CSSProperties, ReactNode, RefObject } from 'react'
+import type { ChangeEvent, CSSProperties, FocusEvent, PointerEvent, ReactNode, RefObject } from 'react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
@@ -38,6 +38,15 @@ type ShareFieldKey =
   | 'mountainName'
 
 type ShareActivitySource = 'gps' | 'uploaded'
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 type ExportSnapshot = {
   action: ActiveExportAction
@@ -744,10 +753,15 @@ function IconButton({
   return (
     <button
       type="button"
-      className="share-editor-pressable"
+      className="pt-pressable"
       aria-label={label}
       onClick={onClick}
       disabled={disabled}
+      onPointerDown={disabled ? undefined : markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       style={{
         width: 44,
         height: 44,
@@ -791,7 +805,13 @@ function NavBar({ onBack }: { onBack: () => void }) {
       <button
         type="button"
         aria-label="返回"
+        className="pt-pressable"
         onClick={onBack}
+        onPointerDown={markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
         style={{
           width: 44,
           height: 44,
@@ -1112,8 +1132,14 @@ function UnlockHintBar({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
+      className="pt-pressable-card"
       onClick={onClick}
       data-testid="share-unlock-hint"
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       style={{
         margin: 'var(--space-3) var(--space-5) 0',
         minHeight: 46,
@@ -1998,12 +2024,17 @@ function TemplateThumb({
   return (
     <button
       type="button"
-      className="share-editor-pressable"
+      className="pt-pressable-card"
       aria-label={`选择第 ${SHARE_TEMPLATE_OPTIONS.findIndex((item) => item.template.id === template) + 1} 款分享模板`}
       aria-pressed={selected}
       data-template-thumb={template}
       disabled={disabled}
       onClick={() => onSelect(template)}
+      onPointerDown={disabled ? undefined : markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       style={{
         width: 78,
         height: 139,
@@ -2211,9 +2242,14 @@ function ControlRow({
     >
       <button
         type="button"
-        className="share-editor-pressable"
+        className="pt-pressable"
         onClick={onPickPhoto}
         disabled={disabled}
+        onPointerDown={disabled ? undefined : markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
         style={{
           height: 44,
           borderRadius: 12,
@@ -2241,10 +2277,15 @@ function ControlRow({
       <div style={{ flex: 1 }} />
       <button
         type="button"
-        className="share-editor-pressable"
+        className="pt-pressable"
         data-testid="share-transparent-export-button"
         onClick={onExportTransparent}
         disabled={disabled || transparentExporting}
+        onPointerDown={disabled || transparentExporting ? undefined : markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
         style={{
           height: 44,
           borderRadius: 12,
@@ -2302,11 +2343,16 @@ function FieldChip({
   return (
     <button
       type="button"
-      className="share-editor-pressable"
+      className="pt-pressable-card"
       data-field-key={field.key}
       aria-pressed={on}
       disabled={unavailable}
       onClick={unavailable ? undefined : onToggle}
+      onPointerDown={unavailable ? undefined : markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -2472,9 +2518,14 @@ function ActionBar({
         <button
           type="button"
           data-testid="share-save-button"
-          className="share-editor-pressable"
+          className="pt-pressable"
           onClick={onSave}
           disabled={exporting}
+          onPointerDown={exporting ? undefined : markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             flex: 1,
             height: 44,
@@ -2500,9 +2551,14 @@ function ActionBar({
         <button
           type="button"
           data-testid="share-share-button"
-          className="share-editor-pressable"
+          className="pt-pressable-hero"
           onClick={onShare}
           disabled={exporting}
+          onPointerDown={exporting ? undefined : markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             flex: 1.25,
             height: 44,
@@ -2573,8 +2629,6 @@ function WatermarkPreviewScreen({
       }}
     >
       <style>{`
-        .share-editor-pressable { transition: filter 140ms ease, transform 140ms ease, border-color 180ms ease, background-color 180ms ease, opacity 180ms ease; }
-        .share-editor-pressable:active:not(:disabled) { filter: brightness(.94); transform: scale(.985); }
         .share-export-layer {
           position: absolute;
           pointer-events: none;
@@ -2733,6 +2787,12 @@ function WatermarkPreviewScreen({
             type="button"
             onClick={onDismissError}
             aria-label="关闭透明水印错误提示"
+            className="pt-pressable"
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               flex: '0 0 auto',
               minHeight: 32,
@@ -2775,9 +2835,14 @@ function WatermarkPreviewScreen({
           <button
             type="button"
             data-testid="share-transparent-share-button"
-            className="share-editor-pressable"
+            className="pt-pressable"
             onClick={onShare}
             disabled={exporting}
+            onPointerDown={exporting ? undefined : markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               flex: 1,
               height: 44,
@@ -2801,9 +2866,14 @@ function WatermarkPreviewScreen({
           <button
             type="button"
             data-testid="share-transparent-save-button"
-            className="share-editor-pressable"
+            className="pt-pressable-hero"
             onClick={onSave}
             disabled={exporting}
+            onPointerDown={exporting ? undefined : markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               flex: 1.5,
               height: 44,
@@ -2854,7 +2924,13 @@ function NavBarTitle({ title, onBack }: { title: string; onBack: () => void }) {
       <button
         type="button"
         aria-label="返回"
+        className="pt-pressable"
         onClick={onBack}
+        onPointerDown={markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
         style={{
           width: 44,
           height: 44,
@@ -3527,8 +3603,6 @@ export default function ShareClient({
         }
         .share-editor-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
         .share-editor-scrollbar::-webkit-scrollbar { display: none; }
-        .share-editor-pressable { transition: filter 140ms ease, transform 140ms ease, border-color 180ms ease, background-color 180ms ease, opacity 180ms ease; }
-        .share-editor-pressable:active:not(:disabled) { filter: brightness(.94); transform: scale(.985); }
         .share-export-layer {
           position: absolute;
           pointer-events: none;
@@ -3692,6 +3766,12 @@ export default function ShareClient({
             type="button"
             onClick={dismissPremiumExportHint}
             aria-label="关闭付费提示"
+            className="pt-pressable"
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               flex: '0 0 auto',
               minHeight: 32,

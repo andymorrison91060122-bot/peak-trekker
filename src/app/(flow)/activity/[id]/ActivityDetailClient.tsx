@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type FocusEvent, type PointerEvent, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
@@ -34,6 +34,16 @@ import { formatMotionCountValue, parseMotionTokenSeconds, type MotionCountFormat
 import { trackEvent } from '@/lib/analytics/client'
 
 gsap.registerPlugin(useGSAP)
+
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 export type ActivityPhotoViewModel = {
   id: string
@@ -882,10 +892,15 @@ function PhotoStrip({
             <button
               type="button"
               key={photo.id}
-              className={isHero ? 'act-photo act-photo--hero' : 'act-photo'}
+              className={isHero ? 'act-photo act-photo--hero pt-pressable-card' : 'act-photo pt-pressable-card'}
               data-testid={`activity-photo-tile-${index}`}
               aria-label={`查看第 ${index + 1} 张照片`}
               onClick={() => onOpenPhoto(index)}
+              onPointerDown={markPressFallback}
+              onPointerUp={clearPressFallback}
+              onPointerCancel={clearPressFallback}
+              onPointerLeave={clearPressFallback}
+              onBlur={clearPressFallback}
               style={{ backgroundImage: `url("${photo.thumbnailUrl}")` }}
             >
               <div className="act-photo__scrim" />
@@ -1042,10 +1057,15 @@ function ActivityPhotoLightbox({
 
         <button
           type="button"
-          className="act-lightbox__delete"
+          className="act-lightbox__delete pt-pressable"
           data-testid="activity-photo-delete-button"
           disabled={!deleteValidation.canDelete}
           onClick={() => onDeletePhoto(activePhoto)}
+          onPointerDown={!deleteValidation.canDelete ? undefined : markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
         >
           <span className="act-lightbox__delete-glyph" aria-hidden="true">
             <ActionGlyph name="delete" />
@@ -1060,11 +1080,16 @@ function ActivityPhotoLightbox({
             <button
               key={`${photo.id}-thumb`}
               type="button"
-              className="act-lightbox__thumb"
+              className="act-lightbox__thumb pt-pressable-card"
               data-active={index === safeIndex ? 'true' : 'false'}
               aria-label={`切换到第 ${index + 1} 张照片`}
               onClick={() => onSelectIndex(index)}
               disabled={isDeleting}
+              onPointerDown={isDeleting ? undefined : markPressFallback}
+              onPointerUp={clearPressFallback}
+              onPointerCancel={clearPressFallback}
+              onPointerLeave={clearPressFallback}
+              onBlur={clearPressFallback}
               style={{ backgroundImage: `url("${photo.thumbnailUrl}")` }}
             />
           ))}
@@ -1227,7 +1252,13 @@ function MemoryNote({
             </div>
             <button
               type="button"
+              className="pt-pressable"
               onClick={onStartEdit}
+              onPointerDown={markPressFallback}
+              onPointerUp={clearPressFallback}
+              onPointerCancel={clearPressFallback}
+              onPointerLeave={clearPressFallback}
+              onBlur={clearPressFallback}
               style={{
                 border: 0,
                 padding: 0,
@@ -1270,7 +1301,13 @@ function MemoryNote({
           </div>
           <button
             type="button"
+            className="pt-pressable"
             onClick={onStartEdit}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               marginTop: 12,
               padding: '8px 16px',
@@ -1388,7 +1425,13 @@ function BackToRecords({ activity }: { activity: ActivityDetailViewModel }) {
     <section style={sectionPadding('var(--space-5)')}>
       <button
         type="button"
+        className="pt-pressable-card"
         onClick={() => router.push('/archive')}
+        onPointerDown={markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
         style={{
           width: '100%',
           display: 'flex',
@@ -1454,11 +1497,11 @@ function ActivityInlineActions({ activity }: { activity: ActivityDetailViewModel
       <div className="act-actions__inner">
         <div className="act-actions__grid">
           {canPublishToCommunity ? (
-            <SecondaryButton className="act-actions__button" onClick={() => router.push(`/community/publish/${activity.id}`)}>
+            <SecondaryButton className="act-actions__button pt-pressable" onClick={() => router.push(`/community/publish/${activity.id}`)}>
               发布到山友圈
             </SecondaryButton>
           ) : null}
-          <PrimaryButton as="a" href={`/share?checkinId=${activity.id}`} className="act-actions__button">
+          <PrimaryButton as="a" href={`/share?checkinId=${activity.id}`} className="act-actions__button pt-pressable-hero">
             生成分享
           </PrimaryButton>
         </div>

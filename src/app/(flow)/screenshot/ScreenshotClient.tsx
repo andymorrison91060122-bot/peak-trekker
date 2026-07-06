@@ -1,6 +1,6 @@
 'use client'
 
-import type { ChangeEvent, CSSProperties, ReactNode } from 'react'
+import type { ChangeEvent, CSSProperties, FocusEvent, PointerEvent, ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
@@ -46,6 +46,16 @@ const PROCESSING_MIN_DURATION_MS = 2000
 const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 gsap.registerPlugin(useGSAP)
+
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 type ScreenshotStep = 'upload' | 'processing' | 'confirm' | 'submitting' | 'success'
 type FieldKey = ScreenshotFieldKey
@@ -352,7 +362,13 @@ function SRNavBar({ title, onBack }: { title: string; onBack: () => void }) {
       <button
         type="button"
         aria-label="返回"
+        className="pt-pressable"
         onClick={onBack}
+        onPointerDown={markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
         style={{
           appearance: 'none',
           width: 44,
@@ -510,7 +526,13 @@ function QuotaBar({
       {showQuotaCta ? (
         <button
           type="button"
+          className="pt-pressable"
           onClick={onUpgrade}
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             appearance: 'none',
             border: '1px solid color-mix(in srgb, var(--color-success) 32%, transparent)',
@@ -643,7 +665,13 @@ function ErrorNotice({
         {authRequired ? (
           <button
             type="button"
+            className="pt-pressable"
             onClick={onLogin}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               marginTop: 'var(--space-2)',
               appearance: 'none',
@@ -697,7 +725,7 @@ function UploadScreen({
       onUpgrade={onUpgrade}
 	      footer={
 	        <>
-	          <PrimaryButton data-screenshot-upload-motion="footer-primary" onClick={onChoose}>选择照片</PrimaryButton>
+          <PrimaryButton className="pt-pressable-hero" data-screenshot-upload-motion="footer-primary" onClick={onChoose}>选择照片</PrimaryButton>
 	          <SecondaryButton data-screenshot-upload-motion="footer-secondary" onClick={onCamera}>拍照</SecondaryButton>
 	        </>
 	      }
@@ -715,10 +743,16 @@ function UploadScreen({
           minHeight: 0,
         }}
       >
-	        <button
-	          data-screenshot-upload-motion="upload-card"
-	          type="button"
-          onClick={onChoose}
+          <button
+            data-screenshot-upload-motion="upload-card"
+            type="button"
+            className="pt-pressable-hero"
+            onClick={onChoose}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
           style={{
             appearance: 'none',
             width: 'min(280px, 100%)',
@@ -764,10 +798,16 @@ function UploadScreen({
           </span>
         </button>
 
-	        <button
-	          data-screenshot-upload-motion="howto"
-	          type="button"
-          onClick={onHowTo}
+          <button
+            data-screenshot-upload-motion="howto"
+            type="button"
+            className="pt-pressable"
+            onClick={onHowTo}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
           style={{
             appearance: 'none',
             border: 'none',
@@ -1125,9 +1165,15 @@ function Toggle({
   return (
     <button
       type="button"
+      className="pt-pressable"
       aria-pressed={on}
       aria-label={on ? '隐藏字段' : '显示字段'}
       onClick={onClick}
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       style={{
         width: 38,
         height: 22,
@@ -1552,7 +1598,13 @@ function MountainMatchSection({
         </div>
         <button
           type="button"
+          className="pt-pressable"
           onClick={onSearch}
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             appearance: 'none',
             border: '1px solid var(--color-outline)',
@@ -1590,8 +1642,14 @@ function MountainMatchSection({
           <button
             key={option.id}
             type="button"
+            className="pt-pressable-card"
             onClick={() => onSelect(option.id)}
             aria-pressed={selectedMountainId === option.id}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
             style={{
               appearance: 'none',
               width: '100%',
@@ -1626,8 +1684,14 @@ function MountainMatchSection({
 
         <button
           type="button"
+          className="pt-pressable-card"
           onClick={() => onSelect(null)}
           aria-pressed={selectedMountainId === null}
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
           style={{
             appearance: 'none',
             width: '100%',
@@ -1730,12 +1794,12 @@ function ConfirmScreen({
               actions={routeShapeRecoveryOpen ? (
                 <>
                   <SecondaryButton onClick={onClearRouteCalibration}>清空路线</SecondaryButton>
-                  <PrimaryButton onClick={onSaveTextOnly}>仅保存文字数据</PrimaryButton>
+                  <PrimaryButton className="pt-pressable-hero" onClick={onSaveTextOnly}>仅保存文字数据</PrimaryButton>
                 </>
               ) : undefined}
             />
           ) : null}
-          <PrimaryButton className="pt-screenshot-recognition-cta" onClick={onSubmit}>确认并生成活动</PrimaryButton>
+          <PrimaryButton className="pt-screenshot-recognition-cta pt-pressable-hero" onClick={onSubmit}>确认并生成活动</PrimaryButton>
           <div
             style={{
               textAlign: 'center',
@@ -2041,8 +2105,14 @@ function ArchiveMoment({
       </style>
       <button
         type="button"
+        className="pt-pressable"
         onClick={onBack}
         aria-label="返回活动"
+        onPointerDown={markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
         style={{
           position: 'absolute',
           top: 'calc(env(safe-area-inset-top, 0px) + 50px)',
@@ -2217,6 +2287,7 @@ function ArchiveMoment({
         }}
       >
         <PrimaryButton
+          className="pt-pressable-hero"
           onClick={onContinue}
           disabled={!submitResult?.checkinId}
           style={{ width: '100%' }}
@@ -2252,7 +2323,7 @@ function UpgradeSheet({
       closeControl="icon"
       onClose={onClose}
       footer={
-        <PrimaryButton onClick={onEngage} disabled={feedbackVisible}>
+        <PrimaryButton className="pt-pressable-hero" onClick={onEngage} disabled={feedbackVisible}>
           我想要更多额度
         </PrimaryButton>
       }

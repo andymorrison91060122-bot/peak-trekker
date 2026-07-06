@@ -1,8 +1,19 @@
 import Link from 'next/link'
+import type { FocusEvent, PointerEvent } from 'react'
 import { DEFAULT_MOUNTAIN_COVER_URL } from '@/lib/default-media'
 import { getMountainDetailHeroImages, getMountainHeroImage } from '@/lib/mountain-media'
 import DifficultyChip from '@/components/mountain/DifficultyChip'
 import type { Mountain } from '@/types'
+
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 function estimateLength(mountain: Pick<Mountain, 'altitude' | 'length_km'>) {
   return mountain.length_km ?? Number(Math.max(4.2, Math.min(26, mountain.altitude / 260)).toFixed(1))
@@ -51,7 +62,14 @@ export default function ExploreMountainCard({
       data-hero-image-count={heroImageCount}
       style={{ textDecoration: 'none', display: 'block' }}
     >
-      <article className="surface-card explore-card">
+      <article
+        className="surface-card explore-card pt-pressable-card"
+        onPointerDown={markPressFallback}
+        onPointerUp={clearPressFallback}
+        onPointerCancel={clearPressFallback}
+        onPointerLeave={clearPressFallback}
+        onBlur={clearPressFallback}
+      >
         <div
           className="explore-card__cover"
           data-testid="explore-mountain-card-cover"

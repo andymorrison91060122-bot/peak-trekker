@@ -1,6 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FocusEvent,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
@@ -28,6 +38,16 @@ import { trackEvent } from '@/lib/analytics/client'
 import { buildTrekUrl, consumePendingShareTemplateForTrekUrl } from '@/lib/share-template-intent'
 
 gsap.registerPlugin(useGSAP)
+
+type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
+
+function markPressFallback(event: PointerEvent<HTMLElement>) {
+  event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function clearPressFallback(event: PressFallbackEvent) {
+  delete event.currentTarget.dataset.ptPressActive
+}
 
 type RouteWaypoint = Waypoint & {
   latitude?: number
@@ -175,9 +195,15 @@ function HeroIconButton({
   return (
     <button
       type="button"
+      className="pt-pressable"
       aria-label={label}
       title={label}
       onClick={onClick}
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onBlur={clearPressFallback}
       style={{
         width: 44,
         height: 44,
@@ -1390,13 +1416,28 @@ function BottomCTA({
         }}
       >
         <SecondaryButton
-          className="pt-mountain-press-target"
+          className="pt-pressable"
           as="a"
           href={hasWaypoints ? '#waypoints' : '#route'}
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
         >
           查看路线
         </SecondaryButton>
-        <PrimaryButton className="pt-mountain-press-target" as="a" href={primaryHref} onClick={handlePrimaryClick}>
+        <PrimaryButton
+          className="pt-pressable-hero"
+          as="a"
+          href={primaryHref}
+          onClick={handlePrimaryClick}
+          onPointerDown={markPressFallback}
+          onPointerUp={clearPressFallback}
+          onPointerCancel={clearPressFallback}
+          onPointerLeave={clearPressFallback}
+          onBlur={clearPressFallback}
+        >
           {requiresLogin ? '登录后开始记录' : '开始记录'}
         </PrimaryButton>
       </div>
@@ -1795,16 +1836,6 @@ export default function MountainDetailClient({
         progress={licenseProgress}
         onClose={() => setLicenseSheetOpen(false)}
       />
-      <style>{`
-        .pt-mountain-press-target {
-          transition: transform var(--motion-press) var(--ease-out);
-          transform-origin: center;
-        }
-
-        .pt-mountain-press-target:active {
-          transform: scale(.98);
-        }
-      `}</style>
     </div>
   )
 }

@@ -15,6 +15,7 @@ import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
+import EmptyState from '@/components/ui/EmptyState'
 import { PinIcon } from '@/components/ui/Icons'
 import { getLicenseShortLabel } from '@/lib/license-ui'
 import { isFeatureEnabled } from '@/lib/feature-flags'
@@ -868,61 +869,28 @@ function ArchiveEmptyState({
 
   return (
     <>
-      <section data-archive-motion="empty-state" style={{ padding: '28px var(--space-6) 0' }}>
-        <div
-          style={{
-            padding: '26px var(--space-5)',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--color-outline)',
-            background: 'var(--color-surface-variant)',
-            textAlign: 'center',
-          }}
-        >
-          <div
-            style={{
-              ...monoStyle,
-              color: 'var(--color-on-surface-variant)',
-              fontSize: 'var(--font-label-s-size)',
-              lineHeight: 'var(--font-label-s-line)',
-              fontWeight: 600,
-              letterSpacing: '0.22em',
-            }}
-          >
-            0 / 0
-          </div>
-          <div
-            style={{
-              marginTop: 'var(--space-3)',
-              color: 'var(--color-on-surface)',
-              fontSize: 'var(--font-title-l-size)',
-              lineHeight: '24px',
-              fontWeight: 700,
-            }}
-          >
-            档案还没有一次山行
-          </div>
-          <div
-            style={{
-              marginTop: 'var(--space-2)',
-              color: 'var(--color-on-surface-variant)',
-              fontSize: 'var(--font-label-m-size)',
-              lineHeight: 1.6,
-            }}
-          >
+      <EmptyState
+        data-archive-motion="empty-state"
+        className="pt-empty-state--surface pt-empty-state--archive-hero"
+        eyebrow="0 / 0"
+        title="档案还没有一次山行"
+        copy={
+          <>
             去一次真实的山，
             <br />
             回来把它放进这里。
-          </div>
-          <div style={{ display: 'grid', gap: 10, marginTop: 'var(--space-5)' }}>
-            <PrimaryButton onClick={onFindMountain} style={{ width: '100%' }}>
-              去找一座山
-            </PrimaryButton>
-            <SecondaryButton onClick={onBringBack} style={{ width: '100%' }}>
-              把以前的山行带回来
-            </SecondaryButton>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+        actions={[
+          <PrimaryButton key="find-mountain" onClick={onFindMountain} style={{ width: '100%' }}>
+            去找一座山
+          </PrimaryButton>,
+          <SecondaryButton key="bring-back" onClick={onBringBack} style={{ width: '100%' }}>
+            把以前的山行带回来
+          </SecondaryButton>,
+        ]}
+        style={{ margin: '28px var(--space-6) 0', padding: '26px var(--space-5)' }}
+      />
       <section
         data-archive-motion="empty-copy"
         data-archive-motion-mode="fade"

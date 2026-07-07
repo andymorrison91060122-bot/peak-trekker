@@ -973,7 +973,7 @@ export default function IntroCarousel({ currentIndex, reducedMotion, onNext, onS
             height: '100%',
             display: 'flex',
             transform: `translateX(-${activeIndex * 100}%)`,
-            transition: reducedMotion ? 'none' : 'transform 0.4s ease-out',
+            transition: reducedMotion ? 'none' : 'transform var(--motion-enter) var(--ease-out)',
           }}
         >
           {SLIDES.map((slide, index) => (
@@ -1011,7 +1011,9 @@ export default function IntroCarousel({ currentIndex, reducedMotion, onNext, onS
                   background: active
                     ? 'var(--color-on-surface)'
                     : 'color-mix(in oklch, var(--color-outline) 50%, transparent)',
-                  transition: reducedMotion ? 'none' : 'all 0.3s ease',
+                  transition: reducedMotion
+                    ? 'none'
+                    : 'width var(--motion-enter) var(--ease-standard), background-color var(--motion-enter) var(--ease-standard)',
                 }}
               />
             )

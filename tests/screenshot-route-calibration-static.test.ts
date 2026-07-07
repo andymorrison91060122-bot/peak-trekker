@@ -35,7 +35,7 @@ test('route calibration dims only visible inactive markers and leaves hit circle
   const hitCircle = calibrationEditor.match(/data-route-control-point-hit="true"[\s\S]*?onPointerDown=\{\(event\) => onPointerDown\(event, point\.id\)\}/)?.[0] ?? ''
 
   assert.match(visibleMarker, /opacity=\{inactiveDragOpacity\}/)
-  assert.match(visibleMarker, /transition: 'r 140ms ease, opacity 140ms ease, filter 180ms ease'/)
+  assert.match(visibleMarker, /transition: 'r var\(--motion-press\) var\(--ease-standard\), opacity var\(--motion-press\) var\(--ease-standard\), filter var\(--motion-fast\) var\(--ease-standard\)'/)
   assert.match(hitCircle, /r=\{hitRadius\}/)
   assert.match(hitCircle, /pointerEvents="all"/)
   assert.doesNotMatch(hitCircle, /opacity=\{inactiveDragOpacity\}|opacity=/)

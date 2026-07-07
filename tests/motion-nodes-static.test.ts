@@ -113,6 +113,16 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
   const onboardingCarousel = readSource('../src/components/onboarding/IntroCarousel.tsx')
   const toastRegistry = readSource('../src/lib/toast-registry.ts')
   const profileAvatarUploader = readSource('../src/components/profile/ProfileAvatarUploader.tsx')
+  const emptyState = readSource('../src/components/ui/EmptyState.tsx')
+  const spinner = readSource('../src/components/ui/Spinner.tsx')
+  const skeleton = readSource('../src/components/ui/Skeleton.tsx')
+  const componentsCss = readSource('../src/app/components.css')
+  const helpTrigger = readSource('../src/components/help/HelpTrigger.tsx')
+  const helpSheet = readSource('../src/components/help/HelpSheet.tsx')
+  const weatherSection = readSource('../src/components/mountain/WeatherSection.tsx')
+  const profileNicknameSheet = readSource('../src/components/profile/ProfileNicknameSheet.tsx')
+  const screenshotCalibration = readSource('../src/app/(flow)/screenshot/ScreenshotRouteCalibrationSection.tsx')
+  const mountainHeroCarousel = readSource('../src/components/ui/MountainDetailHeroCarousel.tsx')
 
 	  test('import ceremony uses scoped GSAP timeline with reduced-motion terminal state', () => {
     assert.match(importClient, /import gsap from 'gsap'/)
@@ -644,7 +654,7 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.doesNotMatch(trekClient, /function BottomActionBar[\s\S]{0,520}pt-pressable/)
   })
 
-  test('FU-112 community entries are withdrawn through a reversible feature flag', () => {
+	  test('FU-112 community entries are withdrawn through a reversible feature flag', () => {
     assert.match(featureFlags, /COMMUNITY_ENABLED: false/)
     assert.match(featureFlags, /仅隐藏用户可见入口，保留 routes \/ code \/ data/)
     assert.match(tabBar, /\{ href: '\/community', label: '山友圈', icon: TabIcons\.community \}/)
@@ -664,6 +674,105 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(archiveClient, /isFeatureEnabled\('COMMUNITY_ENABLED'\)[\s\S]*\? '想发到山友圈时再发 · Peak Trekker 不会替你声张。'[\s\S]*: '想分享时再分享 · Peak Trekker 不会替你声张。'/)
     assert.match(toastRegistry, /communityEnabled \? '头像已更新，个人主页和山友圈会同步展示。' : '头像已更新，个人主页会同步展示。'/)
     assert.match(profileAvatarUploader, /isFeatureEnabled\('COMMUNITY_ENABLED'\)[\s\S]*\? '头像更新成功，个人主页和山友圈会同步刷新。'[\s\S]*: '头像更新成功，个人主页会同步刷新。'/)
+	  })
+
+  test('FU-76 Phase 3 consolidates reachable EmptyState structures without dropping hooks or copy', () => {
+    assert.match(emptyState, /export type EmptyStateProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & \{/)
+    assert.match(emptyState, /icon\?: ReactNode/)
+    assert.match(emptyState, /eyebrow\?: ReactNode/)
+    assert.match(emptyState, /actions\?: ReactNode \| ReactNode\[\]/)
+    assert.match(emptyState, /footnote\?: ReactNode/)
+    assert.match(emptyState, /<div\s*\{\.\.\.rest\}/)
+    assert.match(emptyState, /className=\{joinClassNames\('pt-empty-state', `pt-empty-state--\$\{size\}`, className\)\}/)
+    assert.match(globalsCss, /\.pt-empty-state \{[\s\S]*display: grid;[\s\S]*justify-items: center;[\s\S]*text-align: center/)
+    assert.match(globalsCss, /\.pt-empty-state__icon \{[\s\S]*width: var\(--pt-empty-state-icon-size\);[\s\S]*border-radius: var\(--pt-empty-state-icon-radius\)/)
+    assert.match(globalsCss, /\.pt-empty-state--surface \{[\s\S]*border: 1px solid var\(--color-outline\);[\s\S]*background: var\(--color-surface-variant\)/)
+
+    assert.match(mountainDetailClient, /import EmptyState from '@\/components\/ui\/EmptyState'/)
+    assert.doesNotMatch(mountainDetailClient, /function EmptyModuleCard/)
+    assert.match(mountainDetailClient, /<EmptyState[\s\S]*data-mountain-route-card[\s\S]*title="路线参考图暂时不可用"[\s\S]*copy="地图服务没有响应，你仍可以查看关键点位与海拔信息。"/)
+
+    assert.match(faqClient, /import EmptyState from '@\/components\/ui\/EmptyState'/)
+    assert.match(faqClient, /<EmptyState[\s\S]{0,120}data-testid="faq-search-empty"[\s\S]{0,120}icon=\{<SearchIcon size=\{22\} \/>\}[\s\S]*title="没有找到"[\s\S]*提交反馈/)
+    assert.match(faqClient, /试试别的说法。[\s\S]*或者直接告诉我们,这个问题应该写进来。/)
+
+    assert.match(exploreClient, /import EmptyState from '@\/components\/ui\/EmptyState'/)
+    assert.doesNotMatch(exploreClient, /import Card from '@\/components\/ui\/Card'/)
+    assert.match(exploreClient, /<EmptyState[\s\S]{0,160}data-explore-list-empty[\s\S]*title="没有找到匹配的山峰"[\s\S]*copy="试试切换标签或清空高级筛选条件。"/)
+
+    assert.match(profileClient, /import EmptyState from '@\/components\/ui\/EmptyState'/)
+    assert.match(profileClient, /<EmptyState[\s\S]{0,180}title="还没有一次山行"[\s\S]*copy=\{null\}[\s\S]*href="\/explore"[\s\S]*从找一座山开始 →/)
+
+    assert.match(archiveClient, /import EmptyState from '@\/components\/ui\/EmptyState'/)
+    assert.match(archiveClient, /<EmptyState[\s\S]{0,120}data-archive-motion="empty-state"[\s\S]{0,140}eyebrow="0 \/ 0"[\s\S]*title="档案还没有一次山行"/)
+    assert.match(archiveClient, /去一次真实的山，[\s\S]*回来把它放进这里。/)
+    assert.match(archiveClient, /<PrimaryButton key="find-mountain"[\s\S]*去找一座山[\s\S]*<SecondaryButton key="bring-back"[\s\S]*把以前的山行带回来/)
+    assert.match(archiveClient, /data-archive-motion="empty-copy"[\s\S]*档案只保存[\s\S]*privacyCopy/)
+    assert.match(archiveClient, /isFeatureEnabled\('COMMUNITY_ENABLED'\)[\s\S]*\? '想发到山友圈时再发 · Peak Trekker 不会替你声张。'[\s\S]*: '想分享时再分享 · Peak Trekker 不会替你声张。'/)
+  })
+
+  test('FU-76 Phase 3 consolidates spinners and skeletons with reduced-motion static states', () => {
+    assert.match(spinner, /export type SpinnerProps = \{[\s\S]*size: number \| string[\s\S]*color\?: string/)
+    assert.match(spinner, /className="pt-spinner"/)
+    assert.match(skeleton, /export type SkeletonProps = \{[\s\S]*width\?: number \| string[\s\S]*height: number \| string[\s\S]*radius\?: number \| string/)
+    assert.match(skeleton, /className=\{joinClassNames\('pt-skeleton', className\)\}/)
+    assert.match(globalsCss, /\.pt-spinner \{[\s\S]*animation: pt-spin 900ms linear infinite/)
+    assert.match(globalsCss, /@keyframes pt-spin/)
+    assert.match(globalsCss, /\.pt-skeleton \{[\s\S]*animation: pt-shimmer 1\.4s ease-in-out infinite/)
+    assert.match(globalsCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.pt-spinner \{[\s\S]*animation: none !important;[\s\S]*\.pt-skeleton \{[\s\S]*animation: none !important;[\s\S]*background: color-mix/)
+
+    assert.match(importClient, /import Spinner from '@\/components\/ui\/Spinner'/)
+    assert.match(importClient, /<Spinner size=\{44\} \/>/)
+    assert.doesNotMatch(importClient, /import-spin|className="import-spinner"|@keyframes import-spin/)
+
+    assert.match(screenshotClient, /import Spinner from '@\/components\/ui\/Spinner'/)
+    assert.match(screenshotClient, /<Spinner size=\{34\} \/>/)
+    assert.doesNotMatch(screenshotClient, /function Spinner\(\)|data-sr-submit-spinner|@keyframes sr-spin/)
+    assert.match(screenshotClient, /sr-pulse 1\.4s ease-in-out infinite/)
+
+    assert.match(trekClient, /import Skeleton from '@\/components\/ui\/Skeleton'/)
+    assert.match(trekClient, /<Skeleton height=\{60\} radius=\{10\} \/>/)
+    assert.match(trekClient, /<Skeleton height=\{160\} radius=\{14\} \/>/)
+    assert.doesNotMatch(trekClient, /function SkeletonRow|className="pt-shimmer"|@keyframes pt-shimmer/)
+
+    assert.match(weatherSection, /import Skeleton from '@\/components\/ui\/Skeleton'/)
+    assert.match(weatherSection, /<Skeleton width=\{44\} height=\{44\} radius="var\(--radius-md\)" \/>/)
+    assert.doesNotMatch(weatherSection, /mountain-weather__skeleton/)
+    assert.doesNotMatch(componentsCss, /mountain-weather-pulse|mountain-weather__skeleton/)
+
+    assert.match(profileNicknameSheet, /import PrimaryButton from '@\/components\/ui\/PrimaryButton'/)
+    assert.match(profileNicknameSheet, /<PrimaryButton[\s\S]*data-testid="profile-nickname-save"[\s\S]*loading=\{saving\}[\s\S]*\{saving \? '保存中' : serverError \? '重试' : '保存'\}/)
+    assert.doesNotMatch(profileNicknameSheet, /function Spinner\(\)|pt-nickname-spinner|pt-nickname-spin/)
+  })
+
+  test('FU-76 Phase 3 token cleanup keeps allowed exceptions explicit', () => {
+    assert.match(helpTrigger, /filter var\(--motion-press\) var\(--ease-standard\), background var\(--motion-press\) var\(--ease-standard\)/)
+    assert.match(helpSheet, /transition: 'opacity var\(--motion-fast\) var\(--ease-standard\)'/)
+    assert.match(shareClient, /transition: 'opacity var\(--motion-fast\) var\(--ease-standard\)'/)
+    assert.match(importClient, /transition: 'width var\(--motion-fast\) var\(--ease-standard\)'/)
+    assert.match(mountainDetailClient, /transition: 'width var\(--motion-fast\) var\(--ease-standard\), background var\(--motion-fast\) var\(--ease-standard\)'/)
+    assert.match(faqClient, /transition: 'transform var\(--motion-fast\) var\(--ease-standard\)'/)
+    assert.match(faqClient, /Deliberate exception: deep-link highlight needs a slow fade/)
+    assert.match(faqClient, /transition: 'background-color 1500ms ease-out'/)
+    assert.match(screenshotClient, /transition: 'background var\(--motion-fast\) var\(--ease-standard\)'/)
+    assert.match(screenshotCalibration, /transition: 'opacity var\(--motion-status\) var\(--ease-standard\)'/)
+    assert.match(screenshotCalibration, /transition: 'opacity var\(--motion-status\) var\(--ease-standard\), filter var\(--motion-status\) var\(--ease-standard\)'/)
+    assert.match(screenshotCalibration, /transition: 'r var\(--motion-press\) var\(--ease-standard\), opacity var\(--motion-press\) var\(--ease-standard\), filter var\(--motion-fast\) var\(--ease-standard\)'/)
+    assert.match(onboardingCarousel, /transition: reducedMotion \? 'none' : 'transform var\(--motion-enter\) var\(--ease-out\)'/)
+    assert.match(onboardingCarousel, /width var\(--motion-enter\) var\(--ease-standard\), background-color var\(--motion-enter\) var\(--ease-standard\)/)
+    assert.doesNotMatch([
+      helpTrigger,
+      helpSheet,
+      importClient,
+      mountainDetailClient,
+      faqClient,
+      screenshotClient,
+      screenshotCalibration,
+      onboardingCarousel,
+      profileNicknameSheet,
+      globalsCss,
+    ].join('\n'), /transition:\s*['"`]?all/)
+    assert.match(mountainHeroCarousel, /transition: 'width 0\.18s ease, background-color 0\.18s ease'/)
   })
 
   test('Phase 2-II motion helpers do not animate layout properties', () => {

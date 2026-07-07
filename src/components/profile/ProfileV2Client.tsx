@@ -13,6 +13,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { trackEventNow } from '@/lib/analytics/client'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import { MountainIcon } from '@/components/ui/Icons'
+import EmptyState from '@/components/ui/EmptyState'
 import type { CheckinSource } from '@/types'
 import type { CheckinDisplayTitleSource } from '@/lib/checkin-display-title'
 import ProfileAvatarUploader from '@/components/profile/ProfileAvatarUploader'
@@ -306,35 +307,30 @@ function ArchivePreviewSection({ trips }: { trips: ProfileV2TripPreview[] }) {
     <section style={{ marginBottom: 'var(--space-6)' }} data-testid="profile-archive-preview" data-profile-motion="archive-preview">
       <SectionHeading title="我的山行档案" copy="你完成的真实山行,都在这里" />
       {trips.length === 0 ? (
-        <div
-          style={{
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--color-outline)',
-            background: 'var(--color-surface-variant)',
-            padding: 'var(--space-4)',
-          }}
-        >
-          <div className="pt-title-m" style={{ color: 'var(--color-on-surface)' }}>
-            还没有一次山行
-          </div>
-          <Link
-            href="/explore"
-            className="pt-body-m pt-pressable"
-            onPointerDown={markPressFallback}
-            onPointerUp={clearPressFallback}
-            onPointerCancel={clearPressFallback}
-            onPointerLeave={clearPressFallback}
-            onBlur={clearPressFallback}
-            style={{
-              display: 'inline-flex',
-              marginTop: 'var(--space-2)',
-              color: 'var(--color-success)',
-              textDecoration: 'none',
-            }}
-          >
-            从找一座山开始 →
-          </Link>
-        </div>
+        <EmptyState
+          className="pt-empty-state--surface"
+          title="还没有一次山行"
+          copy={null}
+          actions={
+            <Link
+              href="/explore"
+              className="pt-body-m pt-pressable"
+              onPointerDown={markPressFallback}
+              onPointerUp={clearPressFallback}
+              onPointerCancel={clearPressFallback}
+              onPointerLeave={clearPressFallback}
+              onBlur={clearPressFallback}
+              style={{
+                display: 'inline-flex',
+                color: 'var(--color-success)',
+                textDecoration: 'none',
+              }}
+            >
+              从找一座山开始 →
+            </Link>
+          }
+          style={{ padding: 'var(--space-4)' }}
+        />
       ) : (
         <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
           {trips.map((trip) => (

@@ -405,7 +405,7 @@ function EditorToolButton({
         display: 'grid',
         placeItems: 'center',
         padding: 0,
-        transition: 'background 160ms ease, border-color 160ms ease, color 160ms ease',
+        transition: 'background var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard)',
       }}
     >
       {children}
@@ -516,7 +516,7 @@ function CalibrationLineLayer({
               opacity={unresolved ? 0.82 : 0.96}
               filter="url(#routeGlow)"
               style={{
-                transition: 'opacity 180ms ease, stroke-width 220ms ease',
+                transition: 'opacity var(--motion-fast) var(--ease-standard), stroke-width var(--motion-base) var(--ease-standard)',
               }}
             />
           </g>
@@ -574,7 +574,7 @@ function ControlPointsLayer({
               pointerEvents="none"
               opacity={inactiveDragOpacity}
               style={{
-                transition: 'r 140ms ease, opacity 140ms ease, filter 180ms ease',
+                transition: 'r var(--motion-press) var(--ease-standard), opacity var(--motion-press) var(--ease-standard), filter var(--motion-fast) var(--ease-standard)',
               }}
             />
             {!isEnd ? (
@@ -585,7 +585,7 @@ function ControlPointsLayer({
                 fill={ROUTE_COLOR}
                 pointerEvents="none"
                 opacity={inactiveDragOpacity}
-                style={{ transition: 'opacity 140ms ease' }}
+                style={{ transition: 'opacity var(--motion-press) var(--ease-standard)' }}
               />
             ) : null}
             <circle
@@ -1418,7 +1418,7 @@ export default function ScreenshotRouteCalibrationSection({
               gap: 'var(--space-2)',
               opacity: locked ? 0 : 1,
               pointerEvents: 'none',
-              transition: 'opacity 420ms ease',
+              transition: 'opacity var(--motion-status) var(--ease-standard)',
             }}
           >
             <IconButton icon={<BackIcon size={20} />} ariaLabel="返回确认页" onClick={closeEditor} style={{ pointerEvents: locked ? 'none' : 'auto' }} />
@@ -1479,7 +1479,7 @@ export default function ScreenshotRouteCalibrationSection({
                   width={contentWidth}
                   height={contentHeight}
                   opacity={showBasemap ? (locked ? '0.12' : '0.34') : '0.06'}
-                  style={{ filter: locked ? 'saturate(.35) brightness(.32)' : 'saturate(.42) brightness(.48) contrast(.86)', transition: 'opacity 420ms ease, filter 420ms ease' }}
+                  style={{ filter: locked ? 'saturate(.35) brightness(.32)' : 'saturate(.42) brightness(.48) contrast(.86)', transition: 'opacity var(--motion-status) var(--ease-standard), filter var(--motion-status) var(--ease-standard)' }}
                 />
               ) : null}
               <CalibrationLineLayer

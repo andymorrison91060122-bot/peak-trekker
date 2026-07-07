@@ -198,10 +198,11 @@
 - **Phase 1 路由转场底座**: `(main)` / `(flow)` route template opacity 淡入落地，作为零感知、无副作用底座保留。
 - **Phase 2-I import / screenshot**: `/import`、`/screenshot` 成功节点落地（解析成功 / 识别成功 / 已带回档案 GSAP L3 仪式）；门面入场落地为 entry / upload 逐模块 stagger、额度进度条 `scaleX` grow、ScanGlyph 5-path 描边。P0 修复已收口 footer CTA 卡在 GSAP 起始态的可见 / 可点回归。
 - **Phase 2-II mountain / explore**: `/mountain/[id]` 分组入场落地（hero → description → decision → weather → route → waypoints → featured，并补 stats count-up）；`/explore` 分层入场落地（首屏卡 stagger）。Smoothness Fix 已收口固定 label 绝对 position、视觉可用分阶段达标与 production build 帧率验证。
+- **Phase 3 consolidation**: 共享 `EmptyState` / `Spinner` / `Skeleton` primitives 已落地；Archive / FAQ / Explore / Profile / Mountain 空态迁移时保留原文案与 motion/data hooks；Import / Screenshot spinner、Trek / Weather loading skeleton 收编到统一 primitive；HelpSheet / Share selected overlay 等 200ms opacity transition 统一映射到 `--motion-fast`，截图校准 420ms 状态过渡映射到 `--motion-status`。`MountainDetailHeroCarousel` 仍只登记为后续 cleanup 候选，本轮不删除、不 token 化。
 - **附带导航修复**: `/share` 返回键改为确定性落点：`from=imprint` 走 R4 门面返回；有 `checkinId` 时回 `/activity/<id>`；否则 `back` 兜底，再 fallback `/explore`。
 - **实现 / 证据**: 实现采用 GSAP skills（gsap-core / timeline / react / performance），白名单集中在 `ImportClient.tsx`、`ScreenshotClient.tsx`、`MountainDetailClient.tsx`、`ExploreClient.tsx`、`(main)` / `(flow)` template 与 `tests/motion-nodes-static.test.ts`；证据目录 `output/fu76-motion-a-acceptance/`。
 
-- **边界**: **FU-76 整体仍 active**。剩余范围为 Phase 2-III（archive / profile / faq / prep / rankings / activity 轻扫入场）、Phase 3（空态统一 `EmptyState` / 加载 spinner 收编 / token 收编）、Phase 4（§12.12-A 三候选 demo）与全站文案人文化审查。详见 `docs/fu76-share-editor-anchor.md` 与 `docs/ui-interaction-spec.md` §12。
+- **边界**: **FU-76 整体仍 active**。剩余范围为 Phase 4（§12.12-A 三候选 demo）与 Sprint B 全站文案人文化审查。详见 `docs/fu76-share-editor-anchor.md` 与 `docs/ui-interaction-spec.md` §12。
 
 ---
 

@@ -775,6 +775,151 @@ select {
   background-color: color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 
+.pt-empty-state {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  padding: var(--space-16) var(--space-5);
+}
+
+.pt-empty-state--surface {
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-variant);
+  padding: 22px var(--space-4);
+}
+
+.pt-empty-state--md {
+  --pt-empty-state-icon-size: 56px;
+  --pt-empty-state-icon-radius: 18px;
+  --pt-empty-state-title-margin: 18px;
+}
+
+.pt-empty-state--sm {
+  --pt-empty-state-icon-size: 40px;
+  --pt-empty-state-icon-radius: var(--radius-md);
+  --pt-empty-state-title-margin: 10px;
+  padding: 22px var(--space-4);
+}
+
+.pt-empty-state__icon {
+  width: var(--pt-empty-state-icon-size);
+  height: var(--pt-empty-state-icon-size);
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--pt-empty-state-icon-radius);
+  background: var(--color-surface-variant);
+  color: var(--color-on-surface-variant);
+}
+
+.pt-empty-state--surface .pt-empty-state__icon {
+  background: color-mix(in srgb, var(--color-on-surface) 4%, transparent);
+}
+
+.pt-empty-state__eyebrow {
+  color: var(--color-on-surface-variant);
+  font-family: var(--font-mono);
+  font-size: var(--font-label-s-size);
+  line-height: var(--font-label-s-line);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+}
+
+.pt-empty-state__icon + .pt-empty-state__eyebrow {
+  margin-top: var(--space-3);
+}
+
+.pt-empty-state__title {
+  margin-top: var(--pt-empty-state-title-margin);
+  color: var(--color-on-surface);
+  font-size: var(--font-title-m-size);
+  line-height: var(--font-title-m-line);
+  font-weight: 700;
+}
+
+.pt-empty-state__title:first-child {
+  margin-top: 0;
+}
+
+.pt-empty-state__eyebrow + .pt-empty-state__title {
+  margin-top: var(--space-3);
+}
+
+.pt-empty-state__copy {
+  max-width: 280px;
+  margin-top: var(--space-2);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-m-size);
+  line-height: 1.6;
+  font-weight: var(--font-body-m-weight);
+}
+
+.pt-empty-state__actions {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  margin-top: var(--space-5);
+}
+
+.pt-empty-state__title + .pt-empty-state__actions {
+  margin-top: var(--space-2);
+}
+
+.pt-empty-state__action {
+  min-width: 0;
+}
+
+.pt-empty-state__footnote {
+  max-width: 320px;
+  margin-top: var(--space-5);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-s-size);
+  line-height: 1.7;
+}
+
+.pt-empty-state--archive-hero .pt-empty-state__title {
+  font-size: var(--font-title-l-size);
+  line-height: 24px;
+}
+
+.pt-spinner {
+  width: var(--pt-spinner-size);
+  height: var(--pt-spinner-size);
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  border: 2px solid color-mix(in srgb, var(--pt-spinner-color) 18%, transparent);
+  border-top-color: var(--pt-spinner-color);
+  animation: pt-spin 900ms linear infinite;
+}
+
+.pt-skeleton {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-on-surface) 5%, transparent) 0%,
+    color-mix(in srgb, var(--color-on-surface) 10%, transparent) 50%,
+    color-mix(in srgb, var(--color-on-surface) 5%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: pt-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes pt-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pt-shimmer {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  100% {
+    background-position: -200% 0%;
+  }
+}
+
 .ui-error-example {
   border: 1px dashed var(--color-error);
   background: color-mix(in srgb, var(--color-error) 10%, transparent);
@@ -848,8 +993,17 @@ select {
   }
 
   .pt-pressable-hero:active:not(:disabled, [aria-disabled='true']) .pt-pressable-hero__icon,
-  .pt-pressable-hero[data-pt-press-active='true']:not(:disabled, [aria-disabled='true']) .pt-pressable-hero__icon {
-    transform: none;
+	  .pt-pressable-hero[data-pt-press-active='true']:not(:disabled, [aria-disabled='true']) .pt-pressable-hero__icon {
+	    transform: none;
+	  }
+
+  .pt-spinner {
+    animation: none !important;
+  }
+
+  .pt-skeleton {
+    animation: none !important;
+    background: color-mix(in srgb, var(--color-on-surface) 8%, transparent);
   }
 }
 

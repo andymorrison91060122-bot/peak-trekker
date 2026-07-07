@@ -16,6 +16,7 @@ import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import IconButton from '@/components/ui/IconButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
+import EmptyState from '@/components/ui/EmptyState'
 import { BackIcon, SearchIcon } from '@/components/ui/Icons'
 import { parseMotionTokenSeconds } from '@/lib/motion-count-format'
 import { useAppToast } from '@/components/ui/AppToastProvider'
@@ -57,7 +58,7 @@ function ChevronIcon({ open = false }: { open?: boolean }) {
       style={{
         flexShrink: 0,
         transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
-        transition: 'transform 160ms ease',
+        transition: 'transform var(--motion-fast) var(--ease-standard)',
       }}
     >
       <path
@@ -228,7 +229,7 @@ function FAQSearchField({
           border: '1px solid var(--color-outline)',
           background: 'var(--color-surface-variant)',
           color: 'var(--color-on-surface-variant)',
-          transition: 'border-color 160ms ease',
+          transition: 'border-color var(--motion-fast) var(--ease-standard)',
         }}
       >
         <SearchIcon size={18} />
@@ -505,6 +506,7 @@ function FAQGroupCard({
                   backgroundColor: highlighted
                     ? 'color-mix(in srgb, var(--color-success) 6%, transparent)'
                     : 'transparent',
+                  // Deliberate exception: deep-link highlight needs a slow fade so users can orient after scroll.
                   transition: 'background-color 1500ms ease-out',
                 }}
               >
@@ -665,55 +667,22 @@ function FAQSearchResults({
 
 function FAQEmptySearch({ onFeedback }: { onFeedback: () => void }) {
   return (
-    <div
+    <EmptyState
       data-testid="faq-search-empty"
+      icon={<SearchIcon size={22} />}
+      title="没有找到"
+      copy={
+        <>
+          试试别的说法。
+          <br />
+          或者直接告诉我们,这个问题应该写进来。
+        </>
+      }
+      actions={<SecondaryButton onClick={onFeedback}>提交反馈</SecondaryButton>}
       style={{
         padding: 'var(--space-16) var(--space-8) 0',
-        textAlign: 'center',
       }}
-    >
-      <div
-        style={{
-          width: 48,
-          height: 48,
-          display: 'grid',
-          placeItems: 'center',
-          margin: '0 auto',
-          borderRadius: 14,
-          border: '1px solid var(--color-outline)',
-          background: 'var(--color-surface-variant)',
-          color: 'var(--color-on-surface-variant)',
-        }}
-      >
-        <SearchIcon size={22} />
-      </div>
-      <div
-        style={{
-          marginTop: 18,
-          color: 'var(--color-on-surface)',
-          fontSize: 'var(--font-title-m-size)',
-          lineHeight: 'var(--font-title-l-line)',
-          fontWeight: 700,
-        }}
-      >
-        没有找到
-      </div>
-      <p
-        style={{
-          margin: 'var(--space-2) 0 0',
-          color: 'var(--color-on-surface-variant)',
-          fontSize: 'var(--font-label-m-size)',
-          lineHeight: 'calc(var(--font-label-m-line) * 1.18)',
-        }}
-      >
-        试试别的说法。
-        <br />
-        或者直接告诉我们,这个问题应该写进来。
-      </p>
-      <div style={{ marginTop: 'var(--space-5)', display: 'flex', justifyContent: 'center' }}>
-        <SecondaryButton onClick={onFeedback}>提交反馈</SecondaryButton>
-      </div>
-    </div>
+    />
   )
 }
 

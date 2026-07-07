@@ -2099,7 +2099,7 @@ function TemplateThumb({
           border: '1.5px solid #6ee7a1',
           opacity: selected ? 1 : 0,
           pointerEvents: 'none',
-          transition: 'opacity 200ms ease',
+          transition: 'opacity var(--motion-fast) var(--ease-standard)',
           zIndex: 4,
         }}
       />

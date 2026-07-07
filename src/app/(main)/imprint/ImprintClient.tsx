@@ -718,12 +718,18 @@ export default function ImprintClient({
         ease: 'power3.out',
       }, 0.16)
       if (name === 'method') {
-        tl.from(to.querySelectorAll('.imprint-source-option'), {
+        const sourceOptions = to.querySelectorAll('.imprint-source-option')
+        tl.fromTo(sourceOptions, {
           y: 16,
           autoAlpha: 0,
+        }, {
+          y: 0,
+          autoAlpha: 1,
           duration: 0.45,
           stagger: 0.07,
           ease: 'power3.out',
+          onComplete: () => gsap.set(sourceOptions, { autoAlpha: 1, y: 0, clearProps: 'transform' }),
+          onInterrupt: () => gsap.set(sourceOptions, { autoAlpha: 1, y: 0 }),
         }, '>-0.18')
       }
     })()

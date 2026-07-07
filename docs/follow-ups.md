@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-06 · 最新版本记录: v0.100
+> Last Updated: 2026-07-08 · 最新版本记录: v0.101
 
 ---
 
@@ -1710,6 +1710,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.101 — 2026-07-08**: Hotfix · imprint 方法屏「选择数据来源」source-option 揭显修复上线。`goToScreen('method')` 中 `.imprint-source-option` 从 `gsap.from` 改为 interrupt-safe `fromTo` + terminal `{ autoAlpha: 1, y: 0 }`，修复鉴权 CTA 路径进入方法屏时 3 个数据来源入口停留在 hidden from-start（`opacity:0` / `visibility:hidden` / `translateY(16px)`）导致空白的线上 P0。问题潜伏于 FU-85，FU-112 迁入 `(main)` route group 后暴露。用户 2026-07-08 真机验收 PASS。FU 状态 / 计数不变。
 
 **v0.100 — 2026-07-06**: FU-112 closeout · 导航一致性规则 + v1 社区入口撤除上线。新增 `COMMUNITY_ENABLED` feature flag，仅撤用户可见入口，不删除 `/community*` routes / code / data；TabBar 收敛到 4 tab，Profile / Activity / Mountain / FAQ / onboarding / archive / avatar toast 等 community copy 与入口按 flag 收起，并跳过关闭态下的 community fetch；`/archive` 与 `/imprint` 从 `(flow)` 迁入 `(main)` route group，统一 shared TabBar / AppHeader，移除 archive page-level back / double header 与 imprint manual TabBar。`docs/ui-interaction-spec.md` 新增 Tier-1 / Tier-2 与 entry-withdrawal-not-route-takedown 导航规则。用户 2026-07-06 真机视觉验收 PASS。PR #41 / merge `811de79e87007065b22ee50dd6ee4fc196cba394`。Active 16 → 15 · Closed 94 → 95 · Deferred 4 → 4。
 

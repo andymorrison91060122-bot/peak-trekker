@@ -91,6 +91,14 @@ test('imprint facade uses imperative deck motion without full entrance replay on
   assert.doesNotMatch(imprintClient, /dependencies: \[activeIndex/)
 })
 
+test('imprint method source options use interrupt-safe fromTo terminal reveal', () => {
+  assert.match(imprintClient, /const sourceOptions = to\.querySelectorAll\('\.imprint-source-option'\)/)
+  assert.match(imprintClient, /tl\.fromTo\(sourceOptions, \{\s*y: 16,\s*autoAlpha: 0,\s*\}, \{\s*y: 0,\s*autoAlpha: 1,/)
+  assert.match(imprintClient, /onComplete: \(\) => gsap\.set\(sourceOptions, \{ autoAlpha: 1, y: 0, clearProps: 'transform' \}\)/)
+  assert.match(imprintClient, /onInterrupt: \(\) => gsap\.set\(sourceOptions, \{ autoAlpha: 1, y: 0 \}\)/)
+  assert.doesNotMatch(imprintClient, /tl\.from\(to\.querySelectorAll\('\.imprint-source-option'\)/)
+})
+
 test('imprint facade has login gate before every method-screen advance', () => {
   assert.match(imprintClient, /function ensureCanAdvance\(\)/)
   assert.match(imprintClient, /router\.push\(`\/auth\/login\?from=\$\{encodeURIComponent\(buildImprintUrl\(template\)\)\}`\)/)

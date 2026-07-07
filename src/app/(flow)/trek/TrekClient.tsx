@@ -59,6 +59,7 @@ import AltitudeBar from '@/components/ui/AltitudeBar'
 import IconButton from '@/components/ui/IconButton'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
+import Skeleton from '@/components/ui/Skeleton'
 import DifficultyAdvisory from '@/components/mountain/DifficultyAdvisory'
 import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
 import type { LicenseProgressSummary } from '@/lib/license-progress'
@@ -2823,10 +2824,6 @@ function TrekShell({ children }: { children: ReactNode }) {
           60% { opacity: 1; transform: scale(1.15); }
           100% { opacity: 1; transform: scale(1); }
         }
-        @keyframes pt-shimmer {
-          0% { background-position: 0% 0%; }
-          100% { background-position: -200% 0%; }
-        }
         .pt-summit-honor-gsap .pt-summit-honor-reveal,
         .pt-summit-honor-gsap .pt-summit-honor-ambient {
           opacity: 0;
@@ -2844,7 +2841,6 @@ function TrekShell({ children }: { children: ReactNode }) {
           .pt-gps-weak-dot { animation: none !important; }
           .pt-near-summit-dot { animation: none !important; }
           .pt-summit-check-enter { animation: none !important; opacity: 1 !important; transform: scale(1) !important; }
-          .pt-shimmer { animation: none !important; }
         }
       `}</style>
     </div>
@@ -4346,14 +4342,20 @@ function LoadingView() {
   return (
     <div>
       <div style={{ padding: '10px var(--space-4) 0' }}>
-        <SkeletonRow height={60} />
+        <Skeleton height={60} radius={10} />
       </div>
       <div style={{ padding: 'var(--space-5) var(--space-5) var(--space-2)', textAlign: 'center' }}>
-        <SkeletonRow height={10} width={70} style={{ margin: '0 auto' }} />
+        <div style={{ width: 70, margin: '0 auto' }}>
+          <Skeleton height={10} radius={10} />
+        </div>
         <div style={{ height: 12 }} />
-        <SkeletonRow height={44} width={180} style={{ margin: '0 auto' }} />
+        <div style={{ width: 180, margin: '0 auto' }}>
+          <Skeleton height={44} radius={10} />
+        </div>
         <div style={{ height: 12 }} />
-        <SkeletonRow height={8} width={240} style={{ margin: '0 auto', borderRadius: 'var(--radius-pill)' }} />
+        <div style={{ width: 240, margin: '0 auto' }}>
+          <Skeleton height={8} radius="var(--radius-pill)" />
+        </div>
       </div>
       <div
         style={{
@@ -4363,40 +4365,14 @@ function LoadingView() {
           gap: 'var(--space-2)',
         }}
       >
-        <SkeletonRow height={64} />
-        <SkeletonRow height={64} />
-        <SkeletonRow height={64} />
+        <Skeleton height={64} radius={10} />
+        <Skeleton height={64} radius={10} />
+        <Skeleton height={64} radius={10} />
       </div>
       <div style={{ padding: 'var(--space-4) var(--space-4) 0' }}>
-        <SkeletonRow height={160} style={{ borderRadius: 14 }} />
+        <Skeleton height={160} radius={14} />
       </div>
     </div>
-  )
-}
-
-function SkeletonRow({
-  height,
-  width = '100%',
-  style,
-}: {
-  height: number
-  width?: number | string
-  style?: CSSProperties
-}) {
-  return (
-    <div
-      className="pt-shimmer"
-      style={{
-        height,
-        width,
-        borderRadius: 10,
-        background:
-          'linear-gradient(90deg, color-mix(in srgb, var(--color-on-surface) 3%, transparent) 0%, color-mix(in srgb, var(--color-on-surface) 7%, transparent) 50%, color-mix(in srgb, var(--color-on-surface) 3%, transparent) 100%)',
-        backgroundSize: '200% 100%',
-        animation: 'pt-shimmer 1.4s ease-in-out infinite',
-        ...style,
-      }}
-    />
   )
 }
 

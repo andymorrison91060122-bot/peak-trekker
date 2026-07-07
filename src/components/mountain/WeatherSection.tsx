@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { HelpTrigger } from '@/components/help/HelpTrigger'
 import SecondaryButton from '@/components/ui/SecondaryButton'
+import Skeleton from '@/components/ui/Skeleton'
 import {
   toDailyWeatherViewModel,
   type DailyWeatherViewModel,
@@ -65,16 +66,16 @@ export default function WeatherSection({
         <WeatherHeader right={<span className="mountain-weather__header-meta">加载中</span>} />
         <div className="mountain-weather__card mountain-weather__card--loading" aria-busy="true">
           <div className="mountain-weather__current-row">
-            <div className="mountain-weather__skeleton mountain-weather__skeleton--icon" />
-            <div className="mountain-weather__skeleton-stack">
-              <div className="mountain-weather__skeleton mountain-weather__skeleton--title" />
-              <div className="mountain-weather__skeleton mountain-weather__skeleton--line" />
+            <Skeleton width={44} height={44} radius="var(--radius-md)" />
+            <div style={{ display: 'grid', gap: 'var(--space-2)' }}>
+              <Skeleton width="min(142px, 100%)" height={24} />
+              <Skeleton width="min(190px, 100%)" height={14} />
             </div>
-            <div className="mountain-weather__skeleton mountain-weather__skeleton--chip" />
+            <Skeleton width={58} height={30} />
           </div>
           <div className="mountain-weather__forecast-row">
-            <div className="mountain-weather__skeleton mountain-weather__skeleton--forecast" />
-            <div className="mountain-weather__skeleton mountain-weather__skeleton--forecast" />
+            <Skeleton height={74} />
+            <Skeleton height={74} />
           </div>
         </div>
       </section>

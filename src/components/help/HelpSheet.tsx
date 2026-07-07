@@ -48,7 +48,7 @@ export function HelpSheet({ anchor, closing, onClose }: HelpSheetProps) {
           background: 'rgba(0,0,0,0.55)',
           opacity: active ? 1 : 0,
           backdropFilter: 'blur(2px)',
-          transition: 'opacity 200ms ease',
+          transition: 'opacity var(--motion-fast) var(--ease-standard)',
           cursor: 'pointer',
         }}
       />
@@ -71,7 +71,9 @@ export function HelpSheet({ anchor, closing, onClose }: HelpSheetProps) {
           borderTop: '1px solid var(--color-outline)',
           boxShadow: '0 -18px 36px rgba(0,0,0,0.28)',
           transform: active ? 'translateY(0)' : 'translateY(100%)',
-          transition: active ? 'transform 280ms ease-out' : 'transform 200ms ease',
+          transition: active
+            ? 'transform var(--motion-enter) var(--ease-out)'
+            : 'transform var(--motion-base) var(--ease-standard)',
           overflow: 'hidden',
         }}
       >

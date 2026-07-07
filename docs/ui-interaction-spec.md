@@ -1288,6 +1288,13 @@ Banner 用于：
 * reduced-motion 下 press 降级为即时颜色 / 边框变化，不保留 scale / glow / transform residue。
 * 本项是 FU-111 的 L1 系统化收编，独立于 §12.12 Phase C backlog。
 
+### FU-76 Phase 3 primitive note
+
+* `EmptyState` 是空结果 / 不可用模块的统一结构 primitive：组件只负责 icon / eyebrow / title / copy / actions / footnote 与 root props 透传，不拥有 GSAP 或 CSS entrance；页面原有 `data-*` / `data-*-motion` hook 必须保留在调用处。
+* `Spinner` 是同步 / 提交中的统一状态 primitive：正常态使用 `pt-spin` 900ms ring；reduced-motion 下移除旋转，只保留静态 ring。
+* `Skeleton` 是加载占位 primitive：正常态使用全局 `pt-shimmer`，reduced-motion 下移除 shimmer，只保留静态 tint。
+* Phase 3 只做结构与 token 收编，不改文案、不重设计空态、不把 loop / export timeline / screenshot recognizer 重新编排。
+
 ## 12.5 性能红线
 
 * **只动 `transform`（x/y/scale/rotation）和 `opacity`**；禁止动画 `width/height/top/left/margin/padding`（触发 layout，掉帧）。FU-76 C1 已把扫描线 `top→translateY`、两个 toggle slider `left→translateX`；进度条 / 分页点 `width→scaleX` 经复核决定不做（见 §12.12）。
@@ -1334,7 +1341,7 @@ Banner 用于：
 * lint + build 通过；
 * **不自称视觉 PASS，停给用户验收**。
 
-## 12.11 逐面分级图（现状 audit，41 个 keyframe / 8 面）
+## 12.11 逐面分级图（现状 audit，41 个 keyframe / 7 面）
 
 | 面 | 工具性 | 现有层级 | 判定 |
 |---|---|---|---|
@@ -1348,7 +1355,7 @@ Banner 用于：
 
 > 框架被验证：工具性越高的面（校准 / 全局）动效越克制、几乎无仪式；情感峰值（登顶 / 归档 / onboarding）才有 L3。约 85% 已对齐 C+。
 
-> **Sprint A 收编标注（2026-07-05）**：FU-76 Sprint A 已补充 route template 淡入底座、`/import` / `/screenshot` 成功节点与门面入场、`/mountain/[id]` 分组入场、`/explore` 分层入场。§12.11 的逐面表仍保留 C1 audit 结构；逐动效点完整回写作为 **docs debt**，待 FU-76 Sprint A Phase 2-III / Phase 3 / Phase 4 全部完成后统一同步 §12 / §12.4 / §12.11。
+> **Sprint A 收编标注（2026-07-05）**：FU-76 Sprint A 已补充 route template 淡入底座、`/import` / `/screenshot` 成功节点与门面入场、`/mountain/[id]` 分组入场、`/explore` 分层入场；Phase 2-III 4-page client subset 与 FU-110 / FU-111 / FU-112 相关收口另见 tracker；Phase 3 已完成 EmptyState / Spinner / Skeleton / token 收编。§12.11 的逐面表仍保留 C1 audit 结构；逐动效点完整回写作为 **docs debt**，待 FU-76 Sprint A Phase 4 demo 完成后统一同步 §12 / §12.4 / §12.11。
 
 ## 12.12 收编 backlog（FU-76，全 CSS）
 
@@ -1366,7 +1373,7 @@ Banner 用于：
 1. **路由转场底座**：`(main)` / `(flow)` template opacity 淡入已落地，保留为零感知底座。
 2. **Import / Screenshot**：解析成功、识别成功、已带回档案节点采用 GSAP L3 仪式；entry / upload 门面采用逐模块 stagger、进度条 `scaleX` grow 与 ScanGlyph 一次性描边。
 3. **Mountain / Explore**：`/mountain/[id]` 采用 hero / stats / description / decision / weather / route / waypoints / featured 分组入场与 stats count-up；`/explore` 采用首屏分层入场与首屏卡 stagger。Smoothness Fix 已将首屏关键内容时序收紧到 production build 可验范围。
-4. **待最终回写**：§12 逐动效点完整表、Phase 2-III 轻扫页、Phase 3 EmptyState / spinner / token 收编、Phase 4 demo 包，统一留到 FU-76 Sprint A 最终收尾。
+4. **待最终回写**：Phase 2-III 轻扫页已作为 4-page client subset 阶段性交付，Phase 3 EmptyState / Spinner / Skeleton / token 收编已完成；剩余 §12 逐动效点完整表与 Phase 4 demo 包留到 FU-76 Sprint A 最终收尾。
 
 **🔴 A 候选视觉复核项——装饰性 loop（demo 后定，非判定降级）**
 
@@ -1384,7 +1391,7 @@ Banner 用于：
 
 **✅ D a11y——补 reduced-motion（C1 完成）**：全局按钮 loading dots、Mountain weather skeleton、截图 processing scan / dots、截图 submitting spinner、Import spinner、昵称 sheet spinner / scrim / sheet-up、昵称 success fade 均已补降级。infinite loop → `animation: none` + 静态可见态；一次性入场 → `animation: none` 落终态。
 
-**独立 cleanup 候选（C1 不做）**：`src/components/ui/MountainDetailHeroCarousel.tsx` 全仓零引用，留作非动效独立 cleanup。
+**独立 cleanup 候选（C1 / Phase 3 均不做）**：`src/components/ui/MountainDetailHeroCarousel.tsx` 全仓零引用，留作非动效独立 cleanup。
 
 **保留（勿动）**：SummitHonorMedallion 的勋章视觉与 crest swap seam、`screenshotArchive{BadgeIn/Seal/FadeUp}` 归档礼成、onboarding 首屏揭示、校准 `routeCapBloom`，及全部 L2 状态脉冲（`pt-rec-pulse`/`pt-gps-weak-pulse`/`pt-near-summit-pulse`/`pt-shimmer`/`sr-spin`/`ui-btn-pulse`/`mountain-weather-pulse` 的正常态语义）。登顶 staged reveal 由 GSAP timeline 接管，不再保留旧 CSS keyframe。
 

@@ -9,6 +9,7 @@ import type { OcrResult, ParsedScreenshotFields, ScreenshotOcrSource, Screenshot
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import ModalShell from '@/components/ui/ModalShell'
+import Spinner from '@/components/ui/Spinner'
 import { BackIcon, CheckIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
 import { trackEvent } from '@/lib/analytics/client'
 import ScreenshotRouteCalibrationSection from './ScreenshotRouteCalibrationSection'
@@ -1184,7 +1185,7 @@ function Toggle({
         flexShrink: 0,
         padding: 0,
         cursor: 'pointer',
-        transition: 'background 160ms ease',
+        transition: 'background var(--motion-fast) var(--ease-standard)',
       }}
     >
       <span
@@ -1199,7 +1200,7 @@ function Toggle({
           background: 'var(--color-on-surface)',
           boxShadow: '0 1px 3px color-mix(in srgb, var(--color-surface) 45%, transparent)',
           transform: on ? 'translateX(16px)' : 'translateX(0)',
-          transition: 'transform 160ms ease',
+          transition: 'transform var(--motion-fast) var(--ease-standard)',
         }}
       />
     </button>
@@ -1897,23 +1898,6 @@ function ConfirmScreen({
   )
 }
 
-function Spinner() {
-  return (
-    <span
-      aria-hidden="true"
-      data-sr-submit-spinner
-      style={{
-        width: 34,
-        height: 34,
-        borderRadius: '50%',
-        border: '3px solid color-mix(in srgb, var(--color-success) 18%, transparent)',
-        borderTopColor: 'var(--color-success)',
-        animation: 'sr-spin 900ms linear infinite',
-      }}
-    />
-  )
-}
-
 function SubmittingScreen() {
   return (
     <div
@@ -1930,18 +1914,8 @@ function SubmittingScreen() {
         textAlign: 'center',
       }}
     >
-      <style>{`
-        @keyframes sr-spin {
-          to { transform: rotate(360deg); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          [data-sr-submit-spinner] {
-            animation: none !important;
-          }
-        }
-      `}</style>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-4)' }}>
-        <Spinner />
+        <Spinner size={34} />
         <div
           style={{
             color: 'var(--color-on-surface-variant)',

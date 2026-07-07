@@ -24,6 +24,7 @@ import { BackIcon, CheckIcon, MoreIcon, PinIcon, ShareIcon, WarnIcon } from '@/c
 import { HelpTrigger } from '@/components/help/HelpTrigger'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
+import EmptyState from '@/components/ui/EmptyState'
 import WeatherSection from '@/components/mountain/WeatherSection'
 import DifficultyAdvisory from '@/components/mountain/DifficultyAdvisory'
 import DifficultyChip from '@/components/mountain/DifficultyChip'
@@ -505,7 +506,7 @@ function HeroSection({
                   index === activeIndex
                     ? 'var(--color-on-surface)'
                     : 'color-mix(in srgb, var(--color-on-surface) 38%, transparent)',
-                transition: 'width 160ms ease, background 160ms ease',
+                transition: 'width var(--motion-fast) var(--ease-standard), background var(--motion-fast) var(--ease-standard)',
               }}
             />
           ))}
@@ -794,69 +795,6 @@ function WaypointSection({
   )
 }
 
-function EmptyModuleCard({
-  icon,
-  title,
-  description,
-  action,
-}: {
-  icon: ReactNode
-  title: string
-  description: string
-  action?: ReactNode
-}) {
-  return (
-    <div
-      style={{
-        background: 'var(--color-surface-variant)',
-        border: '1px solid var(--color-outline)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '22px 16px',
-        textAlign: 'center',
-      }}
-    >
-      <div
-        aria-hidden
-        style={{
-          width: 40,
-          height: 40,
-          margin: '0 auto 10px',
-          borderRadius: 'var(--radius-md)',
-          background: 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
-          border: '1px solid var(--color-outline)',
-          color: 'var(--color-on-surface-variant)',
-          display: 'grid',
-          placeItems: 'center',
-        }}
-      >
-        {icon}
-      </div>
-      <div
-        style={{
-          color: 'var(--color-on-surface)',
-          fontSize: 'var(--font-title-m-size)',
-          lineHeight: 'var(--font-title-m-line)',
-          fontWeight: 600,
-        }}
-      >
-        {title}
-      </div>
-      <div
-        style={{
-          maxWidth: 260,
-          margin: '6px auto 0',
-          color: 'var(--color-on-surface-variant)',
-          fontSize: 'var(--font-label-m-size)',
-          lineHeight: '20px',
-        }}
-      >
-        {description}
-      </div>
-      {action ? <div style={{ marginTop: 'var(--space-4)' }}>{action}</div> : null}
-    </div>
-  )
-}
-
 function RouteFootnote({ children }: { children: ReactNode }) {
   return (
     <div
@@ -974,17 +912,18 @@ function RouteUnavailable() {
     <section id="route" data-testid="mountain-route-section">
       <SectionHeader title="路线参考" right="暂无 · 不可用" />
       <div style={{ padding: '0 var(--space-4)' }}>
-        <div data-mountain-route-card>
-        <EmptyModuleCard
+        <EmptyState
+          data-mountain-route-card
+          className="pt-empty-state--surface"
+          size="sm"
           icon={
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <path d="M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2V6zM9 4v14M15 6v14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           }
           title="路线参考图暂时不可用"
-          description="地图服务没有响应，你仍可以查看关键点位与海拔信息。"
+          copy="地图服务没有响应，你仍可以查看关键点位与海拔信息。"
         />
-        </div>
       </div>
     </section>
   )

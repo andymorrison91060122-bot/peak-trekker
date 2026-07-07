@@ -14,6 +14,7 @@ import type { ImportedTrackData, MountainMatch } from '@/lib/import/types'
 import type { MountainRequestInput } from '@/lib/mountain-requests'
 import Card from '@/components/ui/Card'
 import PrimaryButton from '@/components/ui/PrimaryButton'
+import Spinner from '@/components/ui/Spinner'
 import { useHelpSheet } from '@/components/help/useHelpSheet'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import { buildImprintSourceUrl, buildShareUrlForCheckin } from '@/lib/share-template-intent'
@@ -1031,7 +1032,7 @@ function ProgressBlock({ progress }: { progress: number }) {
             height: '100%',
             borderRadius: 'inherit',
             background: 'var(--color-success)',
-            transition: 'width 180ms ease',
+            transition: 'width var(--motion-fast) var(--ease-standard)',
           }}
         />
       </div>
@@ -3156,18 +3157,9 @@ function ConfirmingScreen() {
         }}
       >
         <div>
-          <div
-            className="import-spinner"
-            aria-hidden="true"
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 'var(--radius-pill)',
-              border: '2px solid color-mix(in srgb, var(--color-on-surface) 8%, transparent)',
-              borderTopColor: 'var(--color-success)',
-              margin: '0 auto',
-            }}
-          />
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <Spinner size={44} />
+          </div>
           <div
             style={{
               marginTop: 'var(--space-4)',
@@ -4282,16 +4274,8 @@ export default function ImportClient({
           .import-common-issues {
             margin-top: 14px;
           }
-          .import-spinner {
-            animation: import-spin 880ms linear infinite;
-          }
           .pt-import-step-enter {
             animation: pt-import-step-enter var(--motion-enter) var(--ease-out) both;
-          }
-          @keyframes import-spin {
-            to {
-              transform: rotate(360deg);
-            }
           }
           @keyframes pt-import-step-enter {
             from {
@@ -4304,8 +4288,7 @@ export default function ImportClient({
             }
           }
           @media (prefers-reduced-motion: reduce) {
-            .pt-import-step-enter,
-            .import-spinner {
+            .pt-import-step-enter {
               animation: none !important;
               opacity: 1 !important;
               transform: none !important;

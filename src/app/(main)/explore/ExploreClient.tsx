@@ -18,8 +18,8 @@ import ProvinceBannerStrip, { type ProvinceBannerData } from '@/components/explo
 import { ONBOARDING_EVENT, getProvinceDraft } from '@/lib/onboarding'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import ExploreMountainCard from '@/components/ui/ExploreMountainCard'
-import Card from '@/components/ui/Card'
 import Chip from '@/components/ui/Chip'
+import EmptyState from '@/components/ui/EmptyState'
 import SectionHeader from '@/components/ui/SectionHeader'
 import { CameraIcon, FilterIcon, SearchIcon, ShareIcon } from '@/components/ui/Icons'
 import { getDifficultyLevelLabel } from '@/lib/license-ui'
@@ -940,32 +940,14 @@ export default function ExploreClient({
           </div>
 
           {filtered.length === 0 ? (
-            <div data-explore-list-empty>
-              <Card>
-                <div style={{ display: 'grid', gap: 'var(--space-2)', textAlign: 'center' }}>
-                  <div
-                    style={{
-                      color: 'var(--color-on-surface)',
-                      fontSize: 'var(--font-title-m-size)',
-                      lineHeight: 'var(--font-title-m-line)',
-                      fontWeight: 600,
-                    }}
-                  >
-                    没有找到匹配的山峰
-                  </div>
-                  <div
-                    style={{
-                      color: 'var(--color-on-surface-variant)',
-                      fontSize: 'var(--font-body-m-size)',
-                      lineHeight: 'var(--font-body-m-line)',
-                      fontWeight: 'var(--font-body-m-weight)',
-                    }}
-                  >
-                    试试切换标签或清空高级筛选条件。
-                  </div>
-                </div>
-              </Card>
-            </div>
+            <EmptyState
+              data-explore-list-empty
+              className="pt-empty-state--surface"
+              icon={<SearchIcon size={22} />}
+              title="没有找到匹配的山峰"
+              copy="试试切换标签或清空高级筛选条件。"
+              style={{ padding: 'var(--space-4)' }}
+            />
           ) : (
             <div
               style={{

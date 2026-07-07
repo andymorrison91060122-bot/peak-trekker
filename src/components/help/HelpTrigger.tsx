@@ -34,7 +34,7 @@ export function HelpTrigger({ anchor, size = 16, className, style }: HelpTrigger
         background: 'transparent',
         color: 'var(--color-on-surface-variant)',
         cursor: 'pointer',
-        transition: 'filter 120ms ease, background 120ms ease',
+        transition: 'filter var(--motion-press) var(--ease-standard), background var(--motion-press) var(--ease-standard)',
         ...style,
       }}
       onMouseDown={(event) => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react'
 import { validateNickname } from '@/lib/profile-nickname'
+import PrimaryButton from '@/components/ui/PrimaryButton'
 
 function countCharacters(value: string) {
   return Array.from(value).length
@@ -35,24 +36,6 @@ function ErrorGlyph({ tone = 'error' }: { tone?: 'error' | 'warning' }) {
       <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.8" />
       <path d="M12 7.5v5.5M12 16.2v.2" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
     </svg>
-  )
-}
-
-function Spinner() {
-  return (
-    <span
-      aria-hidden="true"
-      className="pt-nickname-spinner"
-      style={{
-        width: 16,
-        height: 16,
-        borderRadius: 'var(--radius-pill)',
-        display: 'inline-block',
-        border: '2px solid var(--color-on-primary)',
-        borderTopColor: 'transparent',
-        animation: 'pt-nickname-spin 0.7s linear infinite',
-      }}
-    />
   )
 }
 
@@ -114,7 +97,7 @@ export function EditNicknameButton({
           color: pressed ? 'var(--color-success)' : 'var(--color-on-surface)',
           background: pressed ? 'color-mix(in srgb, var(--color-success) 14%, transparent)' : 'var(--color-surface)',
           border: `1px solid ${pressed ? 'color-mix(in srgb, var(--color-success) 26%, transparent)' : 'var(--color-outline)'}`,
-          transition: 'background 140ms ease, border-color 140ms ease, color 140ms ease, filter 140ms ease',
+          transition: 'background var(--motion-press) var(--ease-standard), border-color var(--motion-press) var(--ease-standard), color var(--motion-press) var(--ease-standard), filter var(--motion-press) var(--ease-standard)',
         }}
       >
         <PencilGlyph />
@@ -305,7 +288,7 @@ export default function ProfileNicknameSheet({
               borderRadius: 'var(--radius-md)',
               border: `1px solid ${fieldBorderColor}`,
               boxShadow: fieldShadow,
-              transition: 'border-color 140ms ease, box-shadow 140ms ease',
+              transition: 'border-color var(--motion-press) var(--ease-standard), box-shadow var(--motion-press) var(--ease-standard)',
             }}
           >
             <input
@@ -377,7 +360,7 @@ export default function ProfileNicknameSheet({
                 lineHeight: '16px',
                 fontWeight: 500,
                 color: counterColor,
-                transition: 'color 140ms ease',
+                transition: 'color var(--motion-press) var(--ease-standard)',
               }}
             >
               {count} / 12
@@ -433,49 +416,19 @@ export default function ProfileNicknameSheet({
           </div>
         ) : null}
         <div style={{ padding: '14px 20px calc(20px + env(safe-area-inset-bottom))' }}>
-          <button
+          <PrimaryButton
             type="button"
             data-testid="profile-nickname-save"
             disabled={!canSave}
+            loading={saving}
             onClick={canSave ? onSave : undefined}
-            style={{
-              width: '100%',
-              height: 48,
-              borderRadius: 'var(--radius-md)',
-              border: 0,
-              background: 'var(--color-primary)',
-              color: 'var(--color-on-primary)',
-              font: 'inherit',
-              fontSize: 15,
-              fontWeight: 700,
-              cursor: canSave ? 'pointer' : 'not-allowed',
-              opacity: canSave ? 1 : 0.4,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              transition: 'opacity 140ms ease, filter 120ms ease',
-            }}
+            style={{ width: '100%', height: 48 }}
           >
-            {saving ? (
-              <>
-                <Spinner />
-                保存中
-              </>
-            ) : serverError ? (
-              '重试'
-            ) : (
-              '保存'
-            )}
-          </button>
+            {saving ? '保存中' : serverError ? '重试' : '保存'}
+          </PrimaryButton>
         </div>
       </div>
       <style jsx global>{`
-        @keyframes pt-nickname-spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
         @keyframes pt-nickname-fade-in {
           from {
             opacity: 0;
@@ -493,7 +446,6 @@ export default function ProfileNicknameSheet({
           }
         }
         @media (prefers-reduced-motion: reduce) {
-          .pt-nickname-spinner,
           .pt-nickname-scrim,
           .pt-nickname-sheet-panel {
             animation: none !important;

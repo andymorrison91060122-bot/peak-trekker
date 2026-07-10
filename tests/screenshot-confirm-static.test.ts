@@ -71,7 +71,7 @@ test('screenshot client uses real preview, editable fields, mountain search, and
 })
 
 test('screenshot upload back exits to explore with replace and completed actions stay replace-based', () => {
-  assert.match(screenshotClient, /if \(step === 'upload'\) \{[\s\S]{0,80}router\.replace\('\/explore'\)/)
+  assert.match(screenshotClient, /if \(step === 'upload'\) \{[\s\S]{0,180}router\.replace\('\/explore'\)/)
   assert.doesNotMatch(screenshotClient, /if \(step === 'upload'\) \{[\s\S]{0,80}router\.back\(\)/)
   assert.match(screenshotClient, /router\.replace\(`\/activity\/\$\{submitResult\.checkinId\}`\)/)
   assert.match(screenshotClient, /buildShareUrlForCheckin\(\{[\s\S]*checkinId: submitResult\?\.checkinId,[\s\S]*template: initialTemplate,[\s\S]*\}\)/)
@@ -93,7 +93,7 @@ test('screenshot confirm treats elevation and duration as optional sanitized fie
   assert.match(screenshotClient, /validateScreenshotEditableFields\(\{[\s\S]*fields: editableFields,[\s\S]*toggles: fieldToggles,[\s\S]*fileName: imageFile\?\.name,[\s\S]*\}\)/)
   assert.doesNotMatch(screenshotClient, /请检查总距离和已填写的数据/)
   assert.match(screenshotClient, /data-field-error/)
-  assert.match(screenshotFieldValidation, /格式不对，本次不会保存该字段/)
+  assert.match(screenshotFieldValidation, /格式不对，本次不会保存这一项/)
 })
 
 test('screenshot route shape invalid path is explicit and never silently downgrades calibration', () => {

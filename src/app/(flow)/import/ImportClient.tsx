@@ -230,8 +230,8 @@ function getMountainDistanceValidation(result: ImportedTrackData, mountain: Sele
 
 function getOutOfRangeNotice(distanceMeters: number | null) {
   const distanceLabel = typeof distanceMeters === 'number' && Number.isFinite(distanceMeters)
-    ? `${formatMountainDistanceValidation(distanceMeters)} > 20 公里，无法匹配此山峰。`
-    : '无法确认这座山与轨迹的距离，暂时不能匹配。'
+    ? `${formatMountainDistanceValidation(distanceMeters)} > 20 公里。`
+    : '无法确认这座山与轨迹的距离。'
 
   return `${distanceLabel}${IMPORT_MOUNTAIN_OUT_OF_RANGE_MESSAGE}`
 }
@@ -419,11 +419,36 @@ function getResponseErrorKind(status: number): ParseErrorKind {
 }
 
 function getErrorBadge(kind: ParseErrorKind | null) {
-  if (kind === 'unsupported') return 'UNSUPPORTED'
-  if (kind === 'too_large') return 'TOO LARGE'
-  if (kind === 'auth') return 'LOGIN'
-  if (kind === 'network') return 'NETWORK'
-  return 'CHECK FILE'
+  if (kind === 'unsupported') return '格式不支持'
+  if (kind === 'too_large') return '文件过大'
+  if (kind === 'auth') return '请先登录'
+  if (kind === 'network') return '网络异常'
+  return '检查文件'
+}
+
+function readImportPayloadError(payload: { error?: unknown } | null | undefined) {
+  const raw = payload?.['error']
+  return typeof raw === 'string' ? raw : undefined
+}
+
+function formatImportParseDisplayError(rawMessage: string | undefined, fileName: string, status: number) {
+  if (rawMessage) console.warn('[import] parse failed', rawMessage)
+  if (status === 415) return '仅支持 GPX、KML 或 FIT 轨迹文件。'
+  if (status === 413) return '轨迹文件不能超过 20MB。'
+  if (status === 401) return '登录后即可解析并保存这条轨迹。'
+  if (status === 422) {
+    return getFileExtension(fileName) === 'kml'
+      ? '解析失败：这个 KML 文件中没有找到坐标数据。建议从原平台导出 GPX 格式重试。'
+      : '这个文件中没有找到可用轨迹点，请换一个文件重试。'
+  }
+  return '轨迹文件解析失败，请换一个文件重试。'
+}
+
+function formatImportConfirmDisplayError(rawMessage: string | undefined, code: string | undefined) {
+  if (rawMessage) console.warn('[import] confirm failed', { code, rawMessage })
+  if (code === 'mountain_out_of_range') return IMPORT_MOUNTAIN_OUT_OF_RANGE_MESSAGE
+  if (code === 'track_duplicate') return '这份轨迹已经上传过。'
+  return '活动记录暂时没有生成成功，请再试一次。'
 }
 
 function formatStep(step: number) {
@@ -1995,7 +2020,7 @@ function TimeFallbackEditor({
 
   return (
     <ImportWarningCard title="这个文件没有完整时间记录">
-      <div>想给这次山行补上时间吗？留空也可以，时长字段会保持空白。</div>
+      <div>想给这次山行补上时间吗？留空也可以，时长会保持空白。</div>
       <div style={{ display: 'grid', gap: 'var(--space-3)', marginTop: 'var(--space-3)' }}>
         <TimeInputGroup
           label="出发时间"
@@ -3079,7 +3104,7 @@ function ImportNoMatch({
       >
         你的轨迹完整保存好了。
         <br />
-        附近 20 公里内没有收录的山峰，可以选择不关联山峰先生成记录。
+        暂未匹配到山峰，可以选择不关联山峰先生成记录。
       </div>
 
       <div style={{ padding: '18px var(--space-3) var(--space-1)', textAlign: 'center' }}>
@@ -3092,7 +3117,7 @@ function ImportNoMatch({
         <NoMatchOption
           green
           icon={<ArchiveIcon size={18} />}
-          title="作为未收录山行保存"
+          title="保存为未关联山行"
           sub="进入档案 · 之后可以补充关联"
           onClick={onStash}
         />
@@ -3869,12 +3894,7 @@ export default function ImportClient({
       }
 
       if (!response.ok || !payload?.ok || !payload.parsedData) {
-        const errorMessage = payload?.error ?? '轨迹文件解析失败，请换一个文件重试。'
-        setParseError(
-          getFileExtension(file.name) === 'kml' && /KML 文件中没有可用轨迹点|没有可用轨迹点/.test(errorMessage)
-            ? '解析失败：这个 KML 文件中没有找到坐标数据。建议从原平台导出 GPX 格式重试。'
-            : errorMessage
-        )
+        setParseError(formatImportParseDisplayError(readImportPayloadError(payload), file.name, response.status))
         setParseErrorKind(getResponseErrorKind(response.status))
         setStep('upload_error')
         return
@@ -3931,7 +3951,7 @@ export default function ImportClient({
       }
 
       if (!response.ok || !payload?.ok || !payload.checkinId) {
-        setConfirmError(payload?.error ?? '活动记录暂时没有生成成功，请再试一次。')
+        setConfirmError(formatImportConfirmDisplayError(readImportPayloadError(payload), payload?.code))
         setStep(returnStep)
         return
       }

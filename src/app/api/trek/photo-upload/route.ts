@@ -17,6 +17,10 @@ function isRequestedTrekTestMode(value: FormDataEntryValue | null) {
   return value === '1' || value === 'true'
 }
 
+function logTrekPhotoUploadFailure(stage: string, error: unknown) {
+  console.error(`[trek-photo-upload] ${stage}`, error)
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient()
@@ -35,7 +39,8 @@ export async function POST(request: Request) {
     })
 
     if ((authError || !user) && !allowDevBypassUpload) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+      if (authError) logTrekPhotoUploadFailure('auth failed', authError)
+      return NextResponse.json({ error: '登录后即可上传登顶照片。' }, { status: 401 })
     }
 
     const file = formData?.get('file')
@@ -61,6 +66,7 @@ export async function POST(request: Request) {
     })
 
     if (uploadError) {
+      logTrekPhotoUploadFailure('upload failed', uploadError)
       const message = normalizeStorageUploadError(
         describeStorageError(uploadError),
         '照片上传失败，请稍后重试。'
@@ -75,6 +81,7 @@ export async function POST(request: Request) {
       photoUrl: data.publicUrl,
     })
   } catch (error) {
+    logTrekPhotoUploadFailure('request failed', error)
     const message = normalizeStorageUploadError(
       describeStorageError(error),
       '照片上传失败，请稍后重试。'

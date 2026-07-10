@@ -28,6 +28,13 @@ function importParseStatus(error: unknown) {
   return 500
 }
 
+function importParseDisplayError(error: unknown) {
+  const status = importParseStatus(error)
+  if (status === 415) return '仅支持 GPX、KML 或 FIT 轨迹文件。'
+  if (status === 422) return '这个文件中没有找到可用轨迹点，请换一个文件重试。'
+  return '轨迹文件解析失败，请换一个文件重试。'
+}
+
 export async function POST(request: Request) {
   const supabase = await createSupabaseServerClient()
   const {
@@ -36,7 +43,8 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    if (authError) console.error('[import-parse] auth failed', authError)
+    return NextResponse.json({ error: '登录后即可解析并保存这条轨迹。' }, { status: 401 })
   }
 
   const formData = await request.formData().catch(() => null)
@@ -68,7 +76,8 @@ export async function POST(request: Request) {
       : null
 
     if (duplicateTrack?.error) {
-      return NextResponse.json({ error: duplicateTrack.error.message }, { status: 500 })
+      console.error('[import-parse] duplicate lookup failed', duplicateTrack.error)
+      return NextResponse.json({ error: '轨迹文件解析失败，请换一个文件重试。' }, { status: 500 })
     }
 
     const suggestedCandidates = await matchNearestMountainCandidatesForTrack(parsedData.trackPoints, {
@@ -93,8 +102,9 @@ export async function POST(request: Request) {
       } : {}),
     })
   } catch (error) {
+    console.error('[import-parse] track parse failed', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : '轨迹文件解析失败，请换一个文件重试。' },
+      { error: importParseDisplayError(error) },
       { status: importParseStatus(error) }
     )
   }

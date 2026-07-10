@@ -12,7 +12,7 @@ import {
   isLocalFallbackSessionId,
   isLocalTrekSessionId,
 } from '@/lib/trek-server-utils'
-import { rankingWeightByDifficulty, resolveCheckinSource, safeTrackPoints, type TrackPoint } from '@/lib/trek-utils'
+import { rankingWeightByDifficulty, resolveCheckinSource, safeTrackPoints } from '@/lib/trek-utils'
 import { normalizeAppendTrackPoint, summarizeTrekTrackPoints, TREK_APPEND_BATCH_LIMIT } from '@/lib/trek-track-metrics'
 import {
   TREK_VERIFY_SESSION_SELECT,
@@ -48,6 +48,18 @@ const MIN_INCOMPLETE_TREK_SECONDS = 60
 const TREK_RESTORE_WINDOW_MS = 24 * 60 * 60 * 1000
 const MAX_TREK_PAUSE_ELAPSED_SECONDS = Math.floor(TREK_RESTORE_WINDOW_MS / 1000)
 const SERVER_SUMMIT_VERIFY_RADIUS_M = 300
+const TREK_ACTION_GENERIC_ERROR = '操作暂时没有完成，请稍后重试。'
+const TREK_SESSION_GENERIC_ERROR = '记录会话暂时无法同步，请稍后重试。'
+const TREK_CHECKIN_SAVE_ERROR = '山行记录暂时没有保存成功，请稍后重试。'
+
+function logTrekActionFailure(stage: string, error: unknown) {
+  console.error(`[trek-actions] ${stage}`, error)
+}
+
+function trekActionErrorResponse(stage: string, error: unknown, status = 500, message = TREK_ACTION_GENERIC_ERROR) {
+  logTrekActionFailure(stage, error)
+  return NextResponse.json({ error: message }, { status })
+}
 
 function isRequestedTrekTestMode(value: unknown) {
   return value === true || value === '1'
@@ -96,8 +108,9 @@ async function persistSummitPhotoUrl({
   })()
 
   if (result.error || !result.data) {
+    logTrekActionFailure('persist summit photo failed', result.error)
     return {
-      error: result.error instanceof Error ? result.error.message : '登顶照保存失败',
+      error: '登顶照保存失败，请稍后重试。',
     }
   }
 
@@ -208,7 +221,7 @@ export async function POST(request: NextRequest) {
   const action = body?.action as ActionName | undefined
 
   if (!action) {
-    return NextResponse.json({ error: 'action required' }, { status: 400 })
+    return NextResponse.json({ error: '操作类型不完整，请重新打开页面后再试。' }, { status: 400 })
   }
 
   const supabase = await createSupabaseServerClient()
@@ -218,7 +231,8 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    if (authError) logTrekActionFailure('auth failed', authError)
+    return NextResponse.json({ error: '登录后即可记录山行。' }, { status: 401 })
   }
 
   if (action === 'list_active_mountains') {
@@ -229,7 +243,7 @@ export async function POST(request: NextRequest) {
       .order('checkin_count', { ascending: false })
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return trekActionErrorResponse('list active mountains failed', error, 500, '山峰列表暂时不可用，请稍后重试。')
     }
 
     return NextResponse.json({
@@ -249,7 +263,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return trekActionErrorResponse('load in-progress session failed', error, 500, TREK_SESSION_GENERIC_ERROR)
     }
 
     if (!session) {
@@ -312,7 +326,8 @@ export async function POST(request: NextRequest) {
         .eq('is_active', true)
         .single()
       if (error || !mountain) {
-        return NextResponse.json({ error: 'invalid mountainId' }, { status: 400 })
+        if (error) logTrekActionFailure('validate start mountain failed', error)
+        return NextResponse.json({ error: '请选择有效的山峰。' }, { status: 400 })
       }
     }
 
@@ -326,7 +341,7 @@ export async function POST(request: NextRequest) {
       .eq('status', 'tracking')
 
     if (finishActiveSessions.error && !isSchemaCompatibilityErrorMessage(finishActiveSessions.error.message)) {
-      return NextResponse.json({ error: finishActiveSessions.error.message }, { status: 500 })
+      return trekActionErrorResponse('finish active sessions before start failed', finishActiveSessions.error, 500, TREK_SESSION_GENERIC_ERROR)
     }
 
     const { data: session, error } = await supabase
@@ -368,7 +383,7 @@ export async function POST(request: NextRequest) {
           fallback: 'client',
         })
       }
-      return NextResponse.json({ error: error?.message ?? 'start session failed' }, { status: 500 })
+      return trekActionErrorResponse('start session failed', error, 500, TREK_SESSION_GENERIC_ERROR)
     }
 
     return NextResponse.json({
@@ -426,7 +441,17 @@ export async function POST(request: NextRequest) {
             : message.includes('invalid point')
               ? 400
               : 500
-      return NextResponse.json({ error: message }, { status })
+      logTrekActionFailure('append trek points failed', appendError ?? message)
+      const displayMessage = message.includes('not found') || message.includes('forbidden')
+        ? 'session not found'
+        : message.includes('not tracking')
+          ? 'session is not tracking'
+          : message.includes('cap exceeded') || message.includes('batch too large')
+            ? 'batch too large'
+            : message.includes('invalid point')
+              ? 'invalid point payload'
+              : TREK_SESSION_GENERIC_ERROR
+      return NextResponse.json({ error: displayMessage }, { status })
     }
 
     const row = appendResult as AppendTrekPointsRpcRow
@@ -515,7 +540,7 @@ export async function POST(request: NextRequest) {
       .eq('status', 'tracking')
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+      return trekActionErrorResponse('pause session failed', updateError, 500, TREK_SESSION_GENERIC_ERROR)
     }
 
     return NextResponse.json({
@@ -595,7 +620,7 @@ export async function POST(request: NextRequest) {
       .eq('status', 'paused')
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+      return trekActionErrorResponse('resume session failed', updateError, 500, TREK_SESSION_GENERIC_ERROR)
     }
 
     return NextResponse.json({
@@ -652,7 +677,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+      return trekActionErrorResponse('finish session failed', updateError, 500, TREK_SESSION_GENERIC_ERROR)
     }
 
     return NextResponse.json({
@@ -845,7 +870,7 @@ export async function POST(request: NextRequest) {
 
           const rpcRow = recordedCheckin as TrekVerifyRecordRpcRow | null
           if (recordError || !rpcRow?.checkin_id) {
-            return NextResponse.json({ error: recordError?.message ?? 'record checkin failed' }, { status: 500 })
+            return trekActionErrorResponse('record auto verified checkin failed', recordError, 500, TREK_CHECKIN_SAVE_ERROR)
           }
 
           verifiedCheckin = {
@@ -882,7 +907,7 @@ export async function POST(request: NextRequest) {
           )
 
           if (createError || !createdCheckin) {
-            return NextResponse.json({ error: createError?.message ?? 'create checkin failed' }, { status: 500 })
+            return trekActionErrorResponse('create auto verified checkin failed', createError, 500, TREK_CHECKIN_SAVE_ERROR)
           }
 
           verifiedCheckin = {
@@ -961,7 +986,7 @@ export async function POST(request: NextRequest) {
           return buildAlreadyFinishedResponse(existingCheckin)
         }
       }
-      return NextResponse.json({ error: createError?.message ?? 'save incomplete trek failed' }, { status: 500 })
+      return trekActionErrorResponse('save incomplete trek failed', createError, 500, TREK_CHECKIN_SAVE_ERROR)
     }
 
     await markServerSessionFinished()
@@ -1201,7 +1226,7 @@ export async function POST(request: NextRequest) {
       const rpcRow = recordedCheckin as TrekVerifyRecordRpcRow | null
 
       if (recordError || !rpcRow?.checkin_id) {
-        return NextResponse.json({ error: recordError?.message ?? 'record checkin failed' }, { status: 500 })
+        return trekActionErrorResponse('record summit checkin failed', recordError, 500, TREK_CHECKIN_SAVE_ERROR)
       }
 
       verifiedCheckin = {
@@ -1230,7 +1255,7 @@ export async function POST(request: NextRequest) {
       )
 
       if (createError || !createdCheckin) {
-        return NextResponse.json({ error: createError?.message ?? 'create checkin failed' }, { status: 500 })
+        return trekActionErrorResponse('create summit checkin failed', createError, 500, TREK_CHECKIN_SAVE_ERROR)
       }
 
       verifiedCheckin = {
@@ -1299,7 +1324,8 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (mountainError || !mountain) {
-      return NextResponse.json({ error: 'invalid mountainId' }, { status: 400 })
+      if (mountainError) logTrekActionFailure('validate historical mountain failed', mountainError)
+      return NextResponse.json({ error: '请选择有效的山峰。' }, { status: 400 })
     }
 
     const { data: checkin, error } = await insertCheckinWithFallback(
@@ -1317,7 +1343,7 @@ export async function POST(request: NextRequest) {
     )
 
     if (error || !checkin) {
-      return NextResponse.json({ error: error?.message ?? 'submit historical checkin failed' }, { status: 500 })
+      return trekActionErrorResponse('submit historical checkin failed', error, 500, TREK_CHECKIN_SAVE_ERROR)
     }
 
     const historicalCheckin = checkin as unknown as { id: string }

@@ -51,6 +51,12 @@ const CLIENT_METRIC_KEYS = [
   'minElevation',
 ] as const
 
+const IMPORT_CONFIRM_GENERIC_ERROR = '活动记录暂时没有生成成功，请再试一次。'
+
+function logImportConfirmFailure(context: string, error: unknown) {
+  console.error(`[import-confirm] ${context}`, error)
+}
+
 type NormalizeImportedTrackResult =
   | { ok: true; data: NormalizedImportedTrackData }
   | { ok: false; reason: 'invalid' | 'trackPointsRequired' }
@@ -107,8 +113,8 @@ function toPersistedTrackPoints(trackPoints: TrackPoint[]): PersistedTrackPoint[
 
 function trackPointsRequiredResponse() {
   return NextResponse.json({
-    error: 'trackPoints required',
-    hint: 'Import confirm must include parsed track points for server-side metric calculation.',
+    error: '活动数据不完整，请重新导入后再试。',
+    hint: '导入确认需要完整轨迹点。',
   }, { status: 400 })
 }
 
@@ -147,9 +153,10 @@ async function findDuplicateTrackImport(
     .maybeSingle()
 
   if (error) {
+    logImportConfirmFailure('duplicate lookup failed', error)
     return {
       duplicateTrack: null as DuplicateTrackRow | null,
-      response: NextResponse.json({ error: error.message }, { status: 500 }),
+      response: NextResponse.json({ error: IMPORT_CONFIRM_GENERIC_ERROR }, { status: 500 }),
     }
   }
 
@@ -226,11 +233,12 @@ async function fetchImportMountain(
     .maybeSingle()
 
   if (error) {
-    return { mountain: null, response: NextResponse.json({ error: error.message }, { status: 500 }) }
+    logImportConfirmFailure('mountain lookup failed', error)
+    return { mountain: null, response: NextResponse.json({ error: '这座山暂时无法关联，请重新选择。' }, { status: 500 }) }
   }
 
   if (!data) {
-    return { mountain: null, response: NextResponse.json({ error: 'invalid mountainId' }, { status: 400 }) }
+    return { mountain: null, response: NextResponse.json({ error: '这座山暂时无法关联，请重新选择。' }, { status: 400 }) }
   }
 
   return { mountain: data as ImportMountainRow, response: null }
@@ -257,7 +265,7 @@ async function handleScreenshotRecognitionConfirm({
 }) {
   const parsedDataResult = normalizeScreenshotData(body.parsedData)
   if (!parsedDataResult.ok) {
-    return NextResponse.json({ error: 'parsedData invalid' }, { status: 400 })
+    return NextResponse.json({ error: '截图数据不完整，请重新识别后再试。' }, { status: 400 })
   }
   const routeShapeResult = validateScreenshotRouteShape(body.routeShape)
   if (!routeShapeResult.ok) {
@@ -335,12 +343,13 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    if (authError) logImportConfirmFailure('auth failed', authError)
+    return NextResponse.json({ error: '登录后即可生成活动记录。' }, { status: 401 })
   }
 
   const body = await request.json().catch(() => null)
   if (!body || typeof body !== 'object') {
-    return NextResponse.json({ error: 'parsedData invalid' }, { status: 400 })
+    return NextResponse.json({ error: '活动数据不完整，请重新导入后再试。' }, { status: 400 })
   }
 
   const source = normalizeImportConfirmSource((body as { source?: unknown }).source)
@@ -360,7 +369,7 @@ export async function POST(request: Request) {
     if (parsedDataResult.reason === 'trackPointsRequired') {
       return trackPointsRequiredResponse()
     }
-    return NextResponse.json({ error: 'parsedData invalid' }, { status: 400 })
+    return NextResponse.json({ error: '活动数据不完整，请重新导入后再试。' }, { status: 400 })
   }
 
   warnIgnoredClientMetrics(rawParsedData)
@@ -397,11 +406,12 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      logImportConfirmFailure('selected mountain lookup failed', error)
+      return NextResponse.json({ error: '这座山暂时无法关联，请重新选择。' }, { status: 500 })
     }
 
     if (!data) {
-      return NextResponse.json({ error: 'invalid mountainId' }, { status: 400 })
+      return NextResponse.json({ error: '这座山暂时无法关联，请重新选择。' }, { status: 400 })
     }
 
     mountain = data as ImportMountainRow
@@ -452,7 +462,8 @@ export async function POST(request: Request) {
       if (response) return response
       return trackDuplicateResponse(duplicateTrack)
     }
-    return NextResponse.json({ error: error?.message ?? 'create imported checkin failed' }, { status: 500 })
+    logImportConfirmFailure('checkin insert failed', error ?? 'missing inserted checkin')
+    return NextResponse.json({ error: IMPORT_CONFIRM_GENERIC_ERROR }, { status: 500 })
   }
 
   return NextResponse.json({

@@ -32,7 +32,7 @@ export function normalizeStorageUploadError(
     return '当前环境未配置图片存储，请联系管理员补齐存储配置。'
   }
 
-  return normalized
+  return fallback
 }
 
 export function isMissingStorageError(message: string | null | undefined) {

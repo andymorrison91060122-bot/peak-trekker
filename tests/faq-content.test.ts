@@ -20,13 +20,17 @@ test('FAQ explains summit verification as GPS range based and photo optional', (
 
   const summitProof = FAQ_BY_ANCHOR['review.what-is-review']
   assert.ok(summitProof)
-  assert.match(summitProof.a, /照片.*不是.*必要|无需.*现场照片/)
+  assert.match(summitProof.a, /登顶留证|补登记/)
+  assert.match(summitProof.a, /事后补充|不判定真伪/)
 })
 
-test('FAQ source label says GPS VERIFIED can come from GPS track reaching summit range', () => {
+test('FAQ source label explains page Chinese labels and poster English labels', () => {
   const sourceLabel = FAQ_BY_ANCHOR['record.source-label']
   assert.ok(sourceLabel)
+  assert.match(sourceLabel.a, /GPS 实测/)
+  assert.match(sourceLabel.a, /上传记录/)
   assert.match(sourceLabel.a, /GPS VERIFIED/)
+  assert.match(sourceLabel.a, /UPLOADED/)
   assert.match(sourceLabel.a, /轨迹.*到达峰顶范围/)
   assert.match(sourceLabel.a, /照片不是必要条件|不要求现场照片/)
 })

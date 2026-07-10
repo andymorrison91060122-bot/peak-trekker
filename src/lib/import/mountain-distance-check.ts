@@ -2,7 +2,7 @@ import { findHighestTrackPoint, haversineMeters } from './track-stats.ts'
 import type { TrackPoint } from './types.ts'
 
 export const IMPORT_MOUNTAIN_DISTANCE_THRESHOLD_METERS = 20_000
-export const IMPORT_MOUNTAIN_OUT_OF_RANGE_MESSAGE = '附近 20 公里内没有收录的山峰，可以选择不关联山峰先生成记录。'
+export const IMPORT_MOUNTAIN_OUT_OF_RANGE_MESSAGE = '你选的这座山离轨迹超过 20 公里，可能不是这一座。可以换一座，或先保存为未关联山行。'
 
 export type ImportTrackReferencePointSource = 'median' | 'highest' | 'center'
 

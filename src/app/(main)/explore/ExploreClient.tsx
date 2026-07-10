@@ -31,8 +31,8 @@ gsap.registerPlugin(useGSAP)
 
 const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 const QUICK_TAGS = provinceRankingEnabled
-  ? (['附近', '本省热门', '无执照可进', '高海拔', '长线'] as const)
-  : (['附近', '无执照可进', '高海拔', '长线'] as const)
+  ? (['附近', '本省热门', '无需执照', '高海拔', '长线'] as const)
+  : (['附近', '无需执照', '高海拔', '长线'] as const)
 
 type ExploreReplayReason = 'geo' | 'tag' | 'province' | 'advancedFilter'
 type ExploreReplayReasonLayer = 'queuedReasons' | 'firedReplayReasons'
@@ -233,7 +233,7 @@ export default function ExploreClient({
           ? true
           : provinceRankingEnabled && tag === '本省热门'
             ? effectiveProvince ? mountain.province === effectiveProvince : true
-            : tag === '无执照可进'
+            : tag === '无需执照'
               ? mountain.difficulty === 'beginner'
               : tag === '高海拔'
                 ? mountain.altitude >= 3500

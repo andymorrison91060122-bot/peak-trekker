@@ -1,4 +1,4 @@
-import { isFeatureEnabled } from '@/lib/feature-flags'
+import { isFeatureEnabled } from './feature-flags.ts'
 
 export type FaqQuestion = {
   id: string
@@ -87,8 +87,8 @@ export const BASE_FAQ_GROUPS: FaqGroup[] = [
       {
         id: 'source-label',
         anchor: 'record.source-label',
-        q: 'GPS VERIFIED 和 UPLOADED 是什么意思',
-        a: '这是 Peak Trekker 的来源标签,标在每条山行上,看的人能一眼判断这条记录的数据来源。\n\n· GPS VERIFIED —— 通过 Peak Trekker 实时记录,且 GPS 轨迹到达峰顶范围的山行;照片不是必要条件\n· UPLOADED —— 从其他工具导入轨迹文件、或从其他 App 截图识别得来的山行\n\n两种都是真实记录,标签只是说明数据来源不同。',
+        q: 'GPS 实测和上传记录是什么意思',
+        a: '这是 Peak Trekker 的来源标签,标在每条山行上,看的人能一眼判断这条记录的数据来源。\n\n· GPS 实测 —— 通过 Peak Trekker 实时记录,且 GPS 轨迹到达峰顶范围的山行;照片不是必要条件\n· 上传记录 —— 从其他工具导入轨迹文件、或从其他 App 截图识别得来的山行\n\n分享海报会保留 GPS VERIFIED / UPLOADED 的英文视觉标签。两种都是真实记录,标签只是说明数据来源不同。',
       },
     ],
   },
@@ -107,7 +107,7 @@ export const BASE_FAQ_GROUPS: FaqGroup[] = [
         id: 'community-eligibility',
         anchor: 'review.community-eligibility',
         q: '什么样的山行能发到山友圈',
-        a: '需要满足两个条件：\n\n· 这次山行已经有可发布的活动记录，并且关联到山峰\n· 在活动详情页点了「发布到山友圈」\n\nGPS 实录会标记为 GPS VERIFIED；轨迹导入和截图识别会标记为 UPLOADED —— 看的人能区分。',
+        a: '需要满足两个条件：\n\n· 这次山行已经有可发布的活动记录，并且关联到山峰\n· 在活动详情页点了「发布到山友圈」\n\nGPS 实录会标记为 GPS 实测；轨迹导入和截图识别会标记为上传记录。分享海报里会继续使用 GPS VERIFIED / UPLOADED —— 看的人能区分。',
       },
       {
         id: 'community-scope',

@@ -17,7 +17,8 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    if (authError) console.error('[mountain-requests] auth failed', authError)
+    return NextResponse.json({ error: '登录后即可提交山峰反馈。' }, { status: 401 })
   }
 
   const body = await request.json().catch(() => null)
@@ -54,7 +55,8 @@ export async function POST(request: Request) {
     if (isUniqueViolation(error)) {
       return NextResponse.json({ ok: true, deduped: true })
     }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('[mountain-requests] insert failed', error)
+    return NextResponse.json({ error: '山峰反馈暂时没有提交成功，请稍后重试。' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true, deduped: false })

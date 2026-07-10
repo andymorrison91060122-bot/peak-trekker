@@ -7,6 +7,11 @@ import Link from 'next/link'
 import { clearClientAuthReturnPath, resolveClientAuthReturnPath } from '@/lib/auth-redirect'
 import { trackEvent, trackEventNow } from '@/lib/analytics/client'
 
+function normalizeLoginError(message: string) {
+  if (message === 'Invalid login credentials') return '邮箱或密码错误'
+  return '登录失败，请检查邮箱和密码后重试。'
+}
+
 function LoginPageContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,7 +32,8 @@ function LoginPageContent() {
     })
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      setError(error.message === 'Invalid login credentials' ? '邮箱或密码错误' : error.message)
+      console.warn('[auth-login] login failed', error)
+      setError(normalizeLoginError(error.message))
     } else {
       await trackEventNow({
         event_type: 'auth',
@@ -156,7 +162,7 @@ function LoginPageContent() {
           lineHeight: 2,
         }}>
           <div>▲ 已收录 20 座国内山峰</div>
-          <div>⛺ 攀登执照系统保障安全</div>
+          <div>⛺ 记录你的真实攀登经验</div>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-08 · 最新版本记录: v0.101
+> Last Updated: 2026-07-08 · 最新版本记录: v0.102
 
 ---
 
@@ -13,7 +13,7 @@
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-待启动
+FU-76 Sprint B · Copy Humanization（执行中，待用户文案验收）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（15 条）
+## Active Follow-ups（16 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -202,7 +202,7 @@
 - **附带导航修复**: `/share` 返回键改为确定性落点：`from=imprint` 走 R4 门面返回；有 `checkinId` 时回 `/activity/<id>`；否则 `back` 兜底，再 fallback `/explore`。
 - **实现 / 证据**: 实现采用 GSAP skills（gsap-core / timeline / react / performance），白名单集中在 `ImportClient.tsx`、`ScreenshotClient.tsx`、`MountainDetailClient.tsx`、`ExploreClient.tsx`、`(main)` / `(flow)` template 与 `tests/motion-nodes-static.test.ts`；证据目录 `output/fu76-motion-a-acceptance/`。
 
-- **边界**: **FU-76 整体仍 active**。剩余范围为 Phase 4（§12.12-A 三候选 demo）与 Sprint B 全站文案人文化审查。详见 `docs/fu76-share-editor-anchor.md` 与 `docs/ui-interaction-spec.md` §12。
+- **边界**: **FU-76 整体仍 active**。Sprint B 全站文案人文化审查已进入用户验收阶段，不在本记录中自宣 PASS / close；剩余范围为 Phase 4（§12.12-A 三候选 demo）与 Sprint B 验收反馈修正。详见 `docs/fu76-share-editor-anchor.md` 与 `docs/ui-interaction-spec.md` §12。
 
 ---
 
@@ -406,6 +406,23 @@
 
 ---
 
+### FU-113 · PROVINCE_RANKING off 时注册籍贯省份 required 规则复核
+
+- **优先级**: P2 / P3（表单一致性 hardening，非当前 Sprint 阻塞项）
+- **归属阶段**: 注册 / Onboarding 规则收口
+- **状态**: 🟢 active
+
+**背景**: Sprint B 将注册页省份 helper 在 `PROVINCE_RANKING=false` 时改为中性「籍贯省份」，避免继续暗示省域积分。但当前注册 `<select>` 的 required / 业务含义仍需在省域榜关闭态下做一次产品规则复核：它现在仍承担 onboarding / profile 归属地预填作用，不应被误解为排名必填。
+
+**后续方向**:
+- 明确省域榜关闭时，注册省份是否仍 required。
+- 如仍 required，文案与校验原因应指向「个人资料 / 归属地」而非省域积分。
+- 如可选，需同步 profile / onboarding fallback、测试与数据口径。
+
+**边界**: 本项只登记为后续规则收口；Sprint B 不改变注册响应形状、不改变 profile / onboarding 数据合约。
+
+---
+
 ## Deferred Registration
 
 ### Deferred · FU-88 · 商业化专项
@@ -469,6 +486,23 @@
 **重启条件**: 识别量大到 MiMo 账单变明显（月几十万次级），或 MiMo 出可达性/涨价问题。
 
 **保留资产（重启不从零）**: 接入点 = `src/lib/screenshot/recognition-service.ts`（腾讯回落路）+ `src/lib/screenshot/field-parser.ts`（规则层）；评测口径已摸清 —— 如重启，先复用 `tests/fixtures/screenshots/raw-ocr/` 做离线字段准确率 + 端侧耗时复测，再决定是否进产品。
+
+---
+
+### Deferred · FU-114 · 稳定错误码 route contract + client normalizer 重构
+
+- **状态**: ⏸ deferred（P3 架构清理，当前 Sprint 不实施）
+- **归属阶段**: 错误边界 / API contract / 客户端 normalizer
+
+**背景**: Sprint B 只做 presentation-only 的 error de-raw：用户可见 display sink 不再显示 raw / 英文错误，raw message 改为模块前缀日志；但刻意不新增错误码 contract、不重写 response shape，也不把 Trek 等客户端 normalizer 从 message-branch 改成稳定 code-branch。少量行为分支仍依赖既有字符串语义（例如距离 / 登顶判断相关分支），本轮按约束保留。
+
+**后续方向**:
+- 为导入、截图、Trek、Activity、Profile 等 route 统一稳定 `code` contract。
+- 客户端 normalizer 从 message 包含判断迁移到 code 分支。
+- 服务端 raw message 只进结构化日志，不进入用户可见 payload。
+- 覆盖关键错误态 e2e 与静态 guard。
+
+**边界**: 不属于 FU-76 Sprint B；只有在产品 / QA 确认后单独启动。
 
 ---
 
@@ -1711,6 +1745,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.102 — 2026-07-08**: FU-76 Sprint B · Copy Humanization 进入用户验收阶段（不自宣 copy PASS，不关闭 FU-76）。页面侧来源标签改为「GPS 实测」/「上传记录」，分享海报 / share-render 资产保留 `GPS VERIFIED` / `UPLOADED`；导入 / 截图 / Trek / Activity / Profile / Auth / Weather 等用户可见错误展示收敛为中文 fallback + 模块前缀 raw log，不新增响应 shape / error-code contract；注册 / onboarding / import no-match / selected-peak out-of-range / 字段提示等文案按锁定决策人话化。验收轮 F1 将 KML 无坐标解析提示从已失效的 raw message 正则改为 HTTP 422 分支，移除死文案耦合。新增 FU-113（`PROVINCE_RANKING=false` 时注册省份 required 规则复核）与 Deferred FU-114（稳定错误码 route contract + client normalizer 重构）。FU-76 保持 active。Active 15 → 16 · Closed 95 → 95 · Deferred 4 → 5。
 
 **v0.101 — 2026-07-08**: Hotfix · imprint 方法屏「选择数据来源」source-option 揭显修复上线。`goToScreen('method')` 中 `.imprint-source-option` 从 `gsap.from` 改为 interrupt-safe `fromTo` + terminal `{ autoAlpha: 1, y: 0 }`，修复鉴权 CTA 路径进入方法屏时 3 个数据来源入口停留在 hidden from-start（`opacity:0` / `visibility:hidden` / `translateY(16px)`）导致空白的线上 P0。问题潜伏于 FU-85，FU-112 迁入 `(main)` route group 后暴露。用户 2026-07-08 真机验收 PASS。FU 状态 / 计数不变。
 

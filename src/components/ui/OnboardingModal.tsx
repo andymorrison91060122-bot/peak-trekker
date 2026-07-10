@@ -288,7 +288,7 @@ export default function OnboardingModal({
           {provinceStage === 'license' ? (
             <div style={{ display: 'grid', gap: 18 }}>
               <div className="font-mono" style={{ fontSize: 12, color: 'var(--green-bright)' }}>
-                Blank License Issued
+                登山执照已准备好
               </div>
               <div
                 className="surface-card"
@@ -301,7 +301,7 @@ export default function OnboardingModal({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
                   <div>
                     <div className="font-pixel" style={{ fontSize: 24, marginBottom: 6 }}>Peak Trekker</div>
-                    <div className="section-subtitle">登山执照已下发，先从第一座山开始。</div>
+                    <div className="section-subtitle">你的登山执照已准备好，先从第一座山开始。</div>
                   </div>
                   <div
                     style={{
@@ -317,8 +317,8 @@ export default function OnboardingModal({
                   </div>
                 </div>
                 <div style={{ display: 'grid', gap: 10 }}>
-                  <LicenseRow label="战区归属" value={selectedProvince} />
-                  <LicenseRow label="当前任务" value="找到第一座山，开启第一次真实记录" />
+                  <LicenseRow label="归属地" value={selectedProvince} />
+                  <LicenseRow label="接下来" value="找到第一座山，开启第一次真实记录" />
                   <LicenseRow label="升级条件" value="完成 3 座低海拔山峰的真实登顶" />
                 </div>
               </div>
@@ -326,10 +326,10 @@ export default function OnboardingModal({
           ) : (
             <>
               <div className="font-mono" style={{ fontSize: 12, color: '#f6d28d' /* illustration-gold */, marginBottom: 10 }}>
-                Identity Anchor
+                选择归属地
               </div>
               <div className="font-pixel" style={{ fontSize: 28, lineHeight: 1.1, marginBottom: 10 }}>
-                告诉我，你将为哪片土地而战？
+                先选一个与你有连接的地方。
               </div>
               <div className="section-subtitle" style={{ fontSize: 14, marginBottom: 18 }}>
                 {provinceRankingEnabled

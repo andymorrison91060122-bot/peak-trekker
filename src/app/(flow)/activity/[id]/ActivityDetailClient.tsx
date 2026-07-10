@@ -46,6 +46,18 @@ function clearPressFallback(event: PressFallbackEvent) {
   delete event.currentTarget.dataset.ptPressActive
 }
 
+function readActivityActionError(payload: unknown) {
+  return typeof (payload as { error?: unknown } | null)?.error === 'string'
+    ? String((payload as { error: string }).error)
+    : ''
+}
+
+function activityActionDisplayError(scope: string, payload: unknown, fallback: string) {
+  const rawMessage = readActivityActionError(payload)
+  if (rawMessage) console.warn(`[activity-detail] ${scope}`, rawMessage)
+  return fallback
+}
+
 export type ActivityPhotoViewModel = {
   id: string
   assetId: string | null
@@ -1835,7 +1847,7 @@ export default function ActivityDetailClient({ activity, activityMapError = null
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) {
-        throw new Error(String(payload?.error ?? '攀登日记保存失败，请稍后重试。'))
+        throw new Error(activityActionDisplayError('note save failed', payload, '攀登日记保存失败，请稍后重试。'))
       }
 
       const nextNote = typeof payload?.note === 'string' ? payload.note : validation.normalizedDraft
@@ -1845,7 +1857,8 @@ export default function ActivityDetailClient({ activity, activityMapError = null
       showLocalToast('攀登日记已保存。')
       router.refresh()
     } catch (error) {
-      showLocalToast(error instanceof Error ? error.message : '攀登日记保存失败，请稍后重试。')
+      if (error instanceof Error) console.warn('[activity-detail] note save client failed', error)
+      showLocalToast('攀登日记保存失败，请稍后重试。')
     } finally {
       noteSaveInFlightRef.current = false
       setIsSavingNote(false)
@@ -1893,7 +1906,7 @@ export default function ActivityDetailClient({ activity, activityMapError = null
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) {
-        throw new Error(String(payload?.error ?? '现场照片删除失败，请稍后重试。'))
+        throw new Error(activityActionDisplayError('photo delete failed', payload, '现场照片删除失败，请稍后重试。'))
       }
 
       const deletedPhotoUrl = typeof payload?.deletedPhotoUrl === 'string' ? payload.deletedPhotoUrl : photo.url
@@ -1912,7 +1925,8 @@ export default function ActivityDetailClient({ activity, activityMapError = null
       showLocalToast('现场照片已删除。')
       router.refresh()
     } catch (error) {
-      showLocalToast(error instanceof Error ? error.message : '现场照片删除失败，请稍后重试。')
+      if (error instanceof Error) console.warn('[activity-detail] photo delete client failed', error)
+      showLocalToast('现场照片删除失败，请稍后重试。')
     } finally {
       photoDeleteInFlightRef.current = false
       setIsDeletingPhoto(false)
@@ -1956,7 +1970,7 @@ export default function ActivityDetailClient({ activity, activityMapError = null
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) {
-        throw new Error(String(payload?.error ?? '现场照片上传失败，请稍后重试。'))
+        throw new Error(activityActionDisplayError('photo upload failed', payload, '现场照片上传失败，请稍后重试。'))
       }
 
       const nextPhotos: ActivityPhotoViewModel[] = Array.isArray(payload?.assets)
@@ -1993,7 +2007,8 @@ export default function ActivityDetailClient({ activity, activityMapError = null
       showLocalToast(selectedFiles.length > 1 ? '现场照片已上传。' : '现场照片已添加。')
       router.refresh()
     } catch (error) {
-      showLocalToast(error instanceof Error ? error.message : '现场照片上传失败，请稍后重试。')
+      if (error instanceof Error) console.warn('[activity-detail] photo upload client failed', error)
+      showLocalToast('现场照片上传失败，请稍后重试。')
     } finally {
       photoUploadInFlightRef.current = false
       setIsUploadingPhotos(false)

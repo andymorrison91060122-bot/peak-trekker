@@ -20,7 +20,8 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    if (authError) console.error('[mountains-search] auth failed', authError)
+    return NextResponse.json({ error: '登录后即可搜索山峰。' }, { status: 401 })
   }
 
   const { searchParams } = new URL(request.url)
@@ -39,7 +40,8 @@ export async function GET(request: Request) {
     .limit(10)
 
   if (error) {
-    return NextResponse.json({ error: 'search_failed' }, { status: 500 })
+    console.error('[mountains-search] search failed', error)
+    return NextResponse.json({ error: '山峰匹配暂时不可用，请稍后重试。' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true, mountains: data ?? [] })

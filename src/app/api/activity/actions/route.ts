@@ -34,6 +34,16 @@ type CheckinAssetRow = {
   sort_order: number | null
 }
 
+function logActivityActionFailure(context: string, error: unknown) {
+  console.error(`[activity-actions] ${context}`, error)
+}
+
+function activityPolicyDisplayMessage(error: ActivityFieldPolicyError) {
+  if (error.reason === 'locked_numeric') return '这项记录由系统生成，不能手动改动。'
+  if (error.reason === 'immutable') return '这项记录不能手动改动。'
+  return '这次修改里有暂不支持的内容，请刷新后重试。'
+}
+
 function normalizeNote(value: unknown) {
   if (typeof value !== 'string') return ''
   return value.trim().slice(0, 2000)
@@ -44,7 +54,7 @@ function policyErrorResponse(error: unknown) {
 
   return NextResponse.json(
     {
-      error: error.message,
+      error: activityPolicyDisplayMessage(error),
       field: error.field,
       reason: error.reason,
     },
@@ -93,7 +103,8 @@ async function loadCheckinById(
     .maybeSingle()
 
   if (error) {
-    throw new Error(error.message || '记录读取失败，请稍后重试。')
+    logActivityActionFailure('checkin read failed', error)
+    throw new Error('记录读取失败，请稍后重试。')
   }
 
   return (data ?? null) as CheckinRow | null
@@ -112,7 +123,8 @@ async function loadExistingImageAssets(
     .order('created_at', { ascending: true })
 
   if (error) {
-    throw new Error(error.message || '记录素材读取失败，请稍后重试。')
+    logActivityActionFailure('image assets read failed', error)
+    throw new Error('记录素材读取失败，请稍后重试。')
   }
 
   return (data ?? []) as CheckinAssetRow[]
@@ -139,7 +151,8 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    if (authError) logActivityActionFailure('auth failed', authError)
+    return NextResponse.json({ error: '登录后即可修改活动。' }, { status: 401 })
   }
 
   const contentType = request.headers.get('content-type') || ''
@@ -149,7 +162,7 @@ export async function POST(request: Request) {
     const action = typeof formData?.get('action') === 'string' ? String(formData?.get('action')) : ''
 
     if (action !== 'add_activity_images') {
-      return NextResponse.json({ error: 'unsupported action' }, { status: 400 })
+      return NextResponse.json({ error: '暂不支持这项操作，请刷新后重试。' }, { status: 400 })
     }
 
     try {
@@ -158,14 +171,14 @@ export async function POST(request: Request) {
         allowedFields: [],
       })
     } catch (error) {
-      return policyErrorResponse(error) ?? NextResponse.json({ error: 'invalid update payload' }, { status: 400 })
+      return policyErrorResponse(error) ?? NextResponse.json({ error: '这次修改里有暂不支持的内容，请刷新后重试。' }, { status: 400 })
     }
 
     const checkinId = typeof formData?.get('checkinId') === 'string' ? String(formData?.get('checkinId')) : ''
     const files = (formData?.getAll('files') ?? []).filter((entry): entry is File => entry instanceof File)
 
     if (!checkinId) {
-      return NextResponse.json({ error: 'checkinId required' }, { status: 400 })
+      return NextResponse.json({ error: '这条活动暂时无法识别，请刷新后重试。' }, { status: 400 })
     }
 
     if (!files.length) {
@@ -174,10 +187,10 @@ export async function POST(request: Request) {
 
     const checkin = await loadCheckinById(supabase, checkinId)
     if (!checkin) {
-      return NextResponse.json({ error: 'record not found' }, { status: 404 })
+      return NextResponse.json({ error: '这条活动暂时找不到，请刷新后重试。' }, { status: 404 })
     }
     if (checkin.user_id !== user.id) {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+      return NextResponse.json({ error: '你不能修改这条活动。' }, { status: 403 })
     }
 
     for (const file of files) {
@@ -227,6 +240,7 @@ export async function POST(request: Request) {
           cacheControl: STORAGE_CACHE_CONTROL,
         })
         if (uploadError) {
+          logActivityActionFailure('photo upload failed', uploadError)
           const message = normalizeStorageUploadError(
             describeStorageError(uploadError),
             '现场照片上传失败，请稍后重试。'
@@ -252,8 +266,9 @@ export async function POST(request: Request) {
         .select('id, checkin_id, type, url, thumbnail_url, created_at, sort_order')
 
       if (insertError) {
+        logActivityActionFailure('photo asset insert failed', insertError)
         await bestEffortRemoveCheckinPhotoObjects(supabase, uploadedObjectPaths)
-        return NextResponse.json({ error: insertError.message || '现场照片保存失败，请稍后重试。' }, { status: 500 })
+        return NextResponse.json({ error: '现场照片保存失败，请稍后重试。' }, { status: 500 })
       }
 
       const nextCoverUrl = !checkin.photo_url && uploadedRows[0] ? uploadedRows[0].url : checkin.photo_url
@@ -269,7 +284,8 @@ export async function POST(request: Request) {
           .eq('user_id', user.id)
 
         if (updatePhotoError) {
-          return NextResponse.json({ error: updatePhotoError.message || '现场照片封面更新失败，请稍后重试。' }, { status: 500 })
+          logActivityActionFailure('photo cover update failed', updatePhotoError)
+          return NextResponse.json({ error: '现场照片封面更新失败，请稍后重试。' }, { status: 500 })
         }
       }
 
@@ -279,12 +295,10 @@ export async function POST(request: Request) {
         photoUrl: nextCoverUrl,
       })
     } catch (error) {
+      logActivityActionFailure('photo upload action failed', error)
       return NextResponse.json(
         {
-          error:
-            error instanceof Error && error.message.trim()
-              ? error.message
-              : '现场照片上传失败，请稍后重试。',
+          error: '现场照片上传失败，请稍后重试。',
         },
         { status: 500 }
       )
@@ -301,7 +315,7 @@ export async function POST(request: Request) {
         allowedFields: [],
       })
     } catch (error) {
-      return policyErrorResponse(error) ?? NextResponse.json({ error: 'invalid update payload' }, { status: 400 })
+      return policyErrorResponse(error) ?? NextResponse.json({ error: '这次修改里有暂不支持的内容，请刷新后重试。' }, { status: 400 })
     }
 
     const checkinId = typeof body?.checkinId === 'string' ? body.checkinId : ''
@@ -309,19 +323,19 @@ export async function POST(request: Request) {
     const photoUrl = typeof body?.photoUrl === 'string' ? body.photoUrl : ''
 
     if (!checkinId) {
-      return NextResponse.json({ error: 'checkinId required' }, { status: 400 })
+      return NextResponse.json({ error: '这条活动暂时无法识别，请刷新后重试。' }, { status: 400 })
     }
 
     if (!photoId && !photoUrl) {
-      return NextResponse.json({ error: 'photo target required' }, { status: 400 })
+      return NextResponse.json({ error: '这张照片暂时无法识别，请刷新后重试。' }, { status: 400 })
     }
 
     const checkin = await loadCheckinById(supabase, checkinId)
     if (!checkin) {
-      return NextResponse.json({ error: 'record not found' }, { status: 404 })
+      return NextResponse.json({ error: '这条活动暂时找不到，请刷新后重试。' }, { status: 404 })
     }
     if (checkin.user_id !== user.id) {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+      return NextResponse.json({ error: '你不能修改这条活动。' }, { status: 403 })
     }
 
     try {
@@ -339,7 +353,7 @@ export async function POST(request: Request) {
       const deletesLegacyCover = Boolean(targetUrl && checkin.photo_url === targetUrl)
 
       if (!targetUrl || (!targetAsset && !deletesLegacyCover)) {
-        return NextResponse.json({ error: 'photo not found' }, { status: 404 })
+        return NextResponse.json({ error: '这张照片暂时找不到，请刷新后重试。' }, { status: 404 })
       }
 
       const remainingAssets = targetAsset
@@ -358,7 +372,8 @@ export async function POST(request: Request) {
           .eq('user_id', user.id)
 
         if (updatePhotoError) {
-          return NextResponse.json({ error: updatePhotoError.message || '现场照片封面更新失败，请稍后重试。' }, { status: 500 })
+          logActivityActionFailure('photo cover delete update failed', updatePhotoError)
+          return NextResponse.json({ error: '现场照片封面更新失败，请稍后重试。' }, { status: 500 })
         }
       }
 
@@ -372,11 +387,12 @@ export async function POST(request: Request) {
           .maybeSingle()
 
         if (deleteError) {
-          return NextResponse.json({ error: deleteError.message || '现场照片删除失败，请稍后重试。' }, { status: 500 })
+          logActivityActionFailure('photo asset delete failed', deleteError)
+          return NextResponse.json({ error: '现场照片删除失败，请稍后重试。' }, { status: 500 })
         }
 
         if (!deletedAsset) {
-          return NextResponse.json({ error: 'photo not found' }, { status: 404 })
+          return NextResponse.json({ error: '这张照片暂时找不到，请刷新后重试。' }, { status: 404 })
         }
       }
 
@@ -393,12 +409,10 @@ export async function POST(request: Request) {
         assets: remainingAssets.map(toClientAsset),
       })
     } catch (error) {
+      logActivityActionFailure('photo delete action failed', error)
       return NextResponse.json(
         {
-          error:
-            error instanceof Error && error.message.trim()
-              ? error.message
-              : '现场照片删除失败，请稍后重试。',
+          error: '现场照片删除失败，请稍后重试。',
         },
         { status: 500 }
       )
@@ -406,7 +420,7 @@ export async function POST(request: Request) {
   }
 
   if (action !== 'update_activity_note') {
-    return NextResponse.json({ error: 'unsupported action' }, { status: 400 })
+    return NextResponse.json({ error: '暂不支持这项操作，请刷新后重试。' }, { status: 400 })
   }
 
   try {
@@ -415,20 +429,20 @@ export async function POST(request: Request) {
       allowedFields: ['note'],
     })
   } catch (error) {
-    return policyErrorResponse(error) ?? NextResponse.json({ error: 'invalid update payload' }, { status: 400 })
+    return policyErrorResponse(error) ?? NextResponse.json({ error: '这次修改里有暂不支持的内容，请刷新后重试。' }, { status: 400 })
   }
 
   const checkinId = typeof body?.checkinId === 'string' ? body.checkinId : ''
   if (!checkinId) {
-    return NextResponse.json({ error: 'checkinId required' }, { status: 400 })
+    return NextResponse.json({ error: '这条活动暂时无法识别，请刷新后重试。' }, { status: 400 })
   }
 
   const checkin = await loadCheckinById(supabase, checkinId)
   if (!checkin) {
-    return NextResponse.json({ error: 'record not found' }, { status: 404 })
+    return NextResponse.json({ error: '这条活动暂时找不到，请刷新后重试。' }, { status: 404 })
   }
   if (checkin.user_id !== user.id) {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    return NextResponse.json({ error: '你不能修改这条活动。' }, { status: 403 })
   }
 
   const note = normalizeNote(body?.note)
@@ -443,7 +457,8 @@ export async function POST(request: Request) {
     .eq('user_id', user.id)
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message || '攀登日记保存失败，请稍后重试。' }, { status: 500 })
+    logActivityActionFailure('note update failed', updateError)
+    return NextResponse.json({ error: '攀登日记保存失败，请稍后重试。' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true, note })

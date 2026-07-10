@@ -129,7 +129,7 @@ async function main() {
   await page.getByPlaceholder('your@email.com').fill(email)
   await page.getByPlaceholder('至少6位').fill(password)
   await page.getByRole('button', { name: '下一步 →' }).click()
-  await page.getByPlaceholder('你的登山代号').fill(`debug-${timestamp}`)
+  await page.getByPlaceholder('给自己起个名字').fill(`debug-${timestamp}`)
   await page.locator('select').selectOption('四川')
   await page.getByRole('button', { name: '▶ 创建登山档案' }).click()
   await page.waitForFunction(

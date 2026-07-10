@@ -15,6 +15,9 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { attributionProperties, clearShareAttribution } from '@/lib/analytics/attribution'
 import { trackEvent, trackEventNow } from '@/lib/analytics/client'
+import { isFeatureEnabled } from '@/lib/feature-flags'
+
+const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 
 function RegisterPageContent() {
   const [step, setStep] = useState<1 | 2>(1)
@@ -75,7 +78,8 @@ function RegisterPageContent() {
       },
     })
     if (signUpError) {
-      setError(signUpError.message)
+      console.warn('[auth-register] signup failed', signUpError)
+      setError('注册暂时没有完成，请检查邮箱和密码后重试。')
       setLoading(false)
       return
     }
@@ -198,12 +202,12 @@ function RegisterPageContent() {
               <>
                 <div>
                   <div style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', marginBottom: 6 }}>登山者昵称</div>
-                  <input value={username} onChange={e => setUsername(e.target.value)} required placeholder="你的登山代号"
+                  <input value={username} onChange={e => setUsername(e.target.value)} required placeholder="给自己起个名字"
                     style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderBottom: '2px solid var(--green-primary)', color: 'var(--text-primary)', fontFamily: 'Share Tech Mono', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
                 <div>
                   <div style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', marginBottom: 6 }}>
-                    籍贯省份 <span style={{ color: 'var(--green-primary)' }}>（为家乡省份积分）</span>
+                    籍贯省份 {provinceRankingEnabled ? <span style={{ color: 'var(--green-primary)' }}>（为家乡省份积分）</span> : null}
                   </div>
                   <select value={province} onChange={e => setProvince(e.target.value)} required
                     style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderBottom: '2px solid var(--green-primary)', color: province ? 'var(--text-primary)' : 'var(--text-muted)', fontFamily: 'Share Tech Mono', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}>
@@ -213,7 +217,7 @@ function RegisterPageContent() {
                 </div>
                 <div style={{ padding: '10px 12px', background: 'rgba(45,106,79,0.08)', border: '1px solid rgba(45,106,79,0.2)', borderLeft: '3px solid var(--green-primary)', fontSize: 10, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', lineHeight: 1.8 }}>
                   🪪 初始：无执照<br />
-                  完成3座1000m以下山峰，解锁初级登山证
+                  完成3座1000m以下山峰，解锁初级执照
                 </div>
               </>
             )}

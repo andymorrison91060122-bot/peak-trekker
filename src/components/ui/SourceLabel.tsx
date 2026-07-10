@@ -62,7 +62,7 @@ const labelStyles: Record<
   }
 > = {
   gps_verified: {
-    text: 'GPS VERIFIED',
+    text: 'GPS 实测',
     root: {
       background: 'color-mix(in srgb, var(--color-primary) 18%, transparent)',
       borderColor: 'var(--color-success)',
@@ -74,7 +74,7 @@ const labelStyles: Record<
     },
   },
   uploaded: {
-    text: 'UPLOADED',
+    text: '上传记录',
     root: {
       background: 'color-mix(in srgb, var(--color-surface-variant) 72%, transparent)',
       borderColor: 'var(--color-outline)',

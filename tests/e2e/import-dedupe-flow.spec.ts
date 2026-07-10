@@ -67,7 +67,7 @@ function waitForImportConfirm(page: Page) {
 
 async function saveParsedTrack(page: Page) {
   await page.getByRole('button', { name: '继续' }).click()
-  await expect(page.locator('body')).toContainText(/确认是这一座|选择关联的山|作为未收录山行保存/, { timeout: 20_000 })
+  await expect(page.locator('body')).toContainText(/确认是这一座|选择关联的山|保存为未关联山行/, { timeout: 20_000 })
 
   const matchButton = page.getByRole('button', { name: '确认是这一座' })
   if (await matchButton.isVisible().catch(() => false)) {
@@ -76,7 +76,7 @@ async function saveParsedTrack(page: Page) {
     return responsePromise
   }
 
-  const noMatchButton = page.getByRole('button', { name: '作为未收录山行保存' })
+  const noMatchButton = page.getByRole('button', { name: '保存为未关联山行' })
   if (await noMatchButton.isVisible().catch(() => false)) {
     const responsePromise = waitForImportConfirm(page)
     await noMatchButton.click()

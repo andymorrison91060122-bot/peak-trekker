@@ -20,7 +20,7 @@ const TEMPORARY_RECOGNITION_ERROR_MESSAGE = SCREENSHOT_RECOGNITION_TEMPORARY_MES
 const TEMPORARY_QUOTA_ERROR_MESSAGE = SCREENSHOT_QUOTA_RETRY_MESSAGE
 
 function unauthorizedResponse() {
-  return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  return NextResponse.json({ error: '登录后才能识别截图。' }, { status: 401 })
 }
 
 function authUnavailableResponse(error: unknown) {

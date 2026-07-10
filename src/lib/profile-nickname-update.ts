@@ -35,7 +35,7 @@ export async function handleProfileNicknameRequest({
   body: unknown
 }): Promise<ProfileNicknameHandlerResult> {
   if (!userId) {
-    return { status: 401, body: { error: 'unauthorized' } }
+    return { status: 401, body: { error: '登录后即可修改昵称。' } }
   }
 
   const nickname = body && typeof body === 'object' && 'nickname' in body
@@ -53,6 +53,7 @@ export async function handleProfileNicknameRequest({
     .eq('id', userId)
 
   if (error) {
+    console.error('[profile-nickname] update failed', error)
     return { status: 500, body: { error: '昵称保存失败，请稍后重试。' } }
   }
 

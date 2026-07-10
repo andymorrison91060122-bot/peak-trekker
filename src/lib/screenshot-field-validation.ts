@@ -153,50 +153,50 @@ export function validateScreenshotEditableFields({
   const elevation = toggles.elevation && elevationInput ? parseScreenshotNumberInput(fields.elevation) : undefined
   const normalizedElevation = integerInRange(elevation, 0, SCREENSHOT_FIELD_LIMITS.elevationMeters.max)
   if (toggles.elevation && elevationInput && typeof normalizedElevation !== 'number') {
-    errors.elevation = '格式不对，本次不会保存该字段。海拔需为 0–8849 m。'
+    errors.elevation = '格式不对，本次不会保存这一项。海拔需为 0–8849 m。'
   }
 
   const durationInput = fields.duration.trim()
   const durationSeconds = toggles.duration && durationInput ? parseScreenshotDurationInput(fields.duration) : undefined
   if (toggles.duration && durationInput && typeof durationSeconds !== 'number') {
-    errors.duration = '格式不对，本次不会保存该字段。时长格式为 HH:MM:SS 或 MM:SS。'
+    errors.duration = '格式不对，本次不会保存这一项。时长格式为 HH:MM:SS 或 MM:SS。'
   }
 
   const elevationGainInput = fields.elevationGain.trim()
   const elevationGain = toggles.elevationGain && elevationGainInput ? parseScreenshotNumberInput(fields.elevationGain) : undefined
   const normalizedElevationGain = integerInRange(elevationGain, 0, SCREENSHOT_FIELD_LIMITS.elevationGainMeters.max)
   if (toggles.elevationGain && elevationGainInput && typeof normalizedElevationGain !== 'number') {
-    errors.elevationGain = '格式不对，本次不会保存该字段。爬升需为 0–10000 m。'
+    errors.elevationGain = '格式不对，本次不会保存这一项。爬升需为 0–10000 m。'
   }
 
   const elevationLossInput = fields.elevationLoss.trim()
   const elevationLoss = toggles.elevationLoss && elevationLossInput ? parseScreenshotNumberInput(fields.elevationLoss) : undefined
   const normalizedElevationLoss = integerInRange(elevationLoss, 0, SCREENSHOT_FIELD_LIMITS.elevationLossMeters.max)
   if (toggles.elevationLoss && elevationLossInput && typeof normalizedElevationLoss !== 'number') {
-    errors.elevationLoss = '格式不对，本次不会保存该字段。下降需为 0–10000 m。'
+    errors.elevationLoss = '格式不对，本次不会保存这一项。下降需为 0–10000 m。'
   }
 
   const speedInput = fields.speed.trim()
   const speed = toggles.speed && speedInput ? parseScreenshotNumberInput(fields.speed) : undefined
   const normalizedSpeed = numberInRange(speed, 0, SCREENSHOT_FIELD_LIMITS.speedKmh.max)
   if (toggles.speed && speedInput && typeof normalizedSpeed !== 'number') {
-    errors.speed = '格式不对，本次不会保存该字段。速度需为 0–30 km/h。'
+    errors.speed = '格式不对，本次不会保存这一项。速度需为 0–30 km/h。'
   }
 
   const paceInput = fields.pace.trim()
   const pace = toggles.pace && paceInput ? parseScreenshotPaceInput(fields.pace) : undefined
   if (toggles.pace && paceInput && typeof pace !== 'number') {
-    errors.pace = "格式不对，本次不会保存该字段。配速格式应为 7'09\"。"
+    errors.pace = "格式不对，本次不会保存这一项。配速格式应为 7'09\"。"
   }
 
   const date = toggles.date ? isoDateOnOrBeforeToday(fields.date) : undefined
   if (toggles.date && fields.date.trim() && !date) {
-    errors.date = '格式不对，本次不会保存该字段。日期不能晚于今天。'
+    errors.date = '格式不对，本次不会保存这一项。日期不能晚于今天。'
   }
 
   const location = toggles.location ? safeShortText(fields.location, SCREENSHOT_FIELD_LIMITS.locationChars.max) : undefined
   if (toggles.location && fields.location.trim() && !location) {
-    errors.location = '格式不对，本次不会保存该字段。地点不能超过 30 个字。'
+    errors.location = '格式不对，本次不会保存这一项。地点不能超过 30 个字。'
   }
 
   if (typeof distanceKm !== 'number' || errors.distance) {

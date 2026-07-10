@@ -19,7 +19,8 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    if (authError) console.error('[profile-avatar] auth failed', authError)
+    return NextResponse.json({ error: '登录后即可更新头像。' }, { status: 401 })
   }
 
   const formData = await request.formData().catch(() => null)
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
   })
 
   if (uploadError) {
+    console.error('[profile-avatar] upload failed', uploadError)
     const message = normalizeStorageUploadError(
       describeStorageError(uploadError),
       '头像上传失败，请稍后重试。'
@@ -61,8 +63,9 @@ export async function POST(request: Request) {
     .eq('id', user.id)
 
   if (updateError) {
+    console.error('[profile-avatar] profile update failed', updateError)
     await supabase.storage.from(AVATARS_BUCKET).remove([objectPath]).catch(() => undefined)
-    return NextResponse.json({ error: updateError.message || '头像保存失败，请稍后重试。' }, { status: 500 })
+    return NextResponse.json({ error: '头像保存失败，请稍后重试。' }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true, avatarUrl })

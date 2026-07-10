@@ -85,7 +85,7 @@ export default function WeatherSection({
   if (state.status === 'unavailable') {
     return (
       <section id="weather-guidance" className="mountain-weather" data-testid="mountain-weather-section" data-weather-state="unavailable">
-        <WeatherHeader right={<span className="mountain-weather__header-meta">数据源 · 不可用</span>} />
+        <WeatherHeader right={<span className="mountain-weather__header-meta">天气暂不可用</span>} />
         <div className="mountain-weather__card mountain-weather__card--unavailable">
           <div className="mountain-weather__empty-icon">
             <WeatherIcon kind="cloud" />

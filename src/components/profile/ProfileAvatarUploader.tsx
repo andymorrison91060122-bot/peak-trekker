@@ -16,6 +16,19 @@ const AVATAR_INLINE_SUCCESS_MESSAGE = isFeatureEnabled('COMMUNITY_ENABLED')
   ? '头像更新成功，个人主页和山友圈会同步刷新。'
   : '头像更新成功，个人主页会同步刷新。'
 
+function readProfileRouteError(payload: unknown) {
+  return typeof (payload as { error?: unknown } | null)?.error === 'string'
+    ? String((payload as { error: string }).error)
+    : ''
+}
+
+function profileRouteDisplayError(scope: string, payload: unknown, fallback: string) {
+  const rawMessage = readProfileRouteError(payload)
+  if (rawMessage) console.warn(`[profile] ${scope}`, rawMessage)
+  if (isMissingStorageError(rawMessage)) return rawMessage
+  return fallback
+}
+
 export default function ProfileAvatarUploader({
   username,
   province,
@@ -122,7 +135,7 @@ export default function ProfileAvatarUploader({
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok || typeof data?.avatarUrl !== 'string') {
-      throw new Error(String(data?.error ?? '头像上传失败，请稍后重试。'))
+      throw new Error(profileRouteDisplayError('avatar upload failed', data, '头像上传失败，请稍后重试。'))
     }
     return data.avatarUrl as string
   }
@@ -135,7 +148,7 @@ export default function ProfileAvatarUploader({
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok || data?.ok !== true || typeof data?.username !== 'string') {
-      throw new Error(String(data?.error ?? '昵称保存失败，请稍后重试。'))
+      throw new Error(profileRouteDisplayError('nickname save failed', data, '昵称保存失败，请稍后重试。'))
     }
     return data.username as string
   }
@@ -161,8 +174,8 @@ export default function ProfileAvatarUploader({
         setNicknameToastVisible(false)
       }, 2400)
     } catch (error) {
-      const message = error instanceof Error ? error.message : '昵称保存失败，请稍后重试。'
-      setNicknameServerError(message)
+      if (error instanceof Error) console.warn('[profile] nickname save client failed', error)
+      setNicknameServerError('昵称保存失败，请稍后重试。')
     } finally {
       setIsSavingNickname(false)
     }
@@ -194,7 +207,10 @@ export default function ProfileAvatarUploader({
       try {
         await uploadAvatar(file)
       } catch (error) {
-        const message = error instanceof Error ? error.message : '头像上传失败，请稍后重试。'
+        if (error instanceof Error) console.warn('[profile] avatar upload client failed', error)
+        const message = error instanceof Error && isMissingStorageError(error.message)
+          ? error.message
+          : '头像上传失败，请稍后重试。'
         setStatusTone('error')
         setStatusMessage(message)
         showToast({

@@ -19,7 +19,7 @@ export async function GET(
   const { mountainId } = await context.params
 
   if (!mountainId) {
-    return NextResponse.json({ error: 'mountainId required' }, { status: 400 })
+    return NextResponse.json({ error: '天气暂时不可用。' }, { status: 400 })
   }
 
   try {
@@ -31,22 +31,23 @@ export async function GET(
       .maybeSingle()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('[weather] mountain lookup failed', error)
+      return NextResponse.json({ error: '天气暂时不可用。' }, { status: 500 })
     }
 
     if (!data) {
-      return NextResponse.json({ error: 'mountain not found' }, { status: 404 })
+      return NextResponse.json({ error: '天气暂时不可用。' }, { status: 404 })
     }
 
     const mountain = data as MountainWeatherRow
     if (mountain.weather_enabled === false) {
-      return NextResponse.json({ error: 'weather disabled' }, { status: 404 })
+      return NextResponse.json({ error: '天气暂时不可用。' }, { status: 404 })
     }
 
     const latitude = Number(mountain.latitude)
     const longitude = Number(mountain.longitude)
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-      return NextResponse.json({ error: 'mountain coordinates missing' }, { status: 422 })
+      return NextResponse.json({ error: '天气暂时不可用。' }, { status: 422 })
     }
 
     const weather = await getWeatherForMountain(
@@ -58,8 +59,9 @@ export async function GET(
 
     return NextResponse.json(weather)
   } catch (error) {
+    console.error('[weather] weather lookup failed', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'weather unavailable' },
+      { error: '天气暂时不可用。' },
       { status: 500 }
     )
   }

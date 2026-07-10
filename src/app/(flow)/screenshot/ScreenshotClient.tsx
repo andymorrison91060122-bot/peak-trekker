@@ -84,6 +84,18 @@ type SubmitResult = {
   routeShape?: PersistedScreenshotRouteShape | null
 }
 
+function readPayloadError(payload: unknown) {
+  return typeof (payload as { error?: unknown } | null)?.error === 'string'
+    ? String((payload as { error: string }).error)
+    : ''
+}
+
+function screenshotDisplayError(scope: string, payload: unknown, fallback: string) {
+  const rawMessage = readPayloadError(payload)
+  if (rawMessage) console.warn(`[screenshot] ${scope}`, rawMessage)
+  return fallback
+}
+
 type FieldToggles = ScreenshotFieldToggles
 type EditableFields = ScreenshotEditableFields
 type FieldErrors = Partial<Record<FieldKey, string>>
@@ -2694,16 +2706,17 @@ export default function ScreenshotClient({
     try {
       const response = await fetch(`/api/mountains/search?q=${encodeURIComponent(trimmed)}`)
       const payload = (await response.json().catch(() => ({}))) as { mountains?: MountainOption[]; error?: string }
-      if (!response.ok) throw new Error(payload.error ?? '山峰匹配暂时不可用')
+      if (!response.ok) throw new Error(screenshotDisplayError('mountain search failed', payload, '山峰匹配暂时不可用，请稍后重试。'))
       const options = Array.isArray(payload.mountains) ? payload.mountains.slice(0, 5) : []
       setMountainOptions(options)
       setSelectedMountainId(options[0]?.id ?? null)
       setMountainSearchStatus(options.length > 0 ? 'ready' : 'empty')
     } catch (error) {
+      if (error instanceof Error) console.warn('[screenshot] mountain search client failed', error)
       setMountainOptions([])
       setSelectedMountainId(null)
       setMountainSearchStatus('error')
-      setMountainSearchError(error instanceof Error ? error.message : '山峰匹配暂时不可用')
+      setMountainSearchError('山峰匹配暂时不可用，请稍后重试。')
     }
   }
 
@@ -2747,7 +2760,9 @@ export default function ScreenshotClient({
         if (kind === 'quota') {
           setUpgradeSheetOpen(true)
         }
-        throw Object.assign(new Error(readableError(payload.error ?? '', kind)), { kind })
+        const rawMessage = readPayloadError(payload)
+        if (rawMessage) console.warn('[screenshot] recognize failed', { kind, rawMessage })
+        throw Object.assign(new Error(readableError('', kind)), { kind })
       }
 
       if (!payload.ok || !payload.ocrResult || !payload.parsedFields) {
@@ -2787,7 +2802,8 @@ export default function ScreenshotClient({
     } catch (error) {
       if (controller.signal.aborted) return
       const kind = (error instanceof Error && 'kind' in error ? error.kind : 'network') as RecognizeErrorKind
-      const message = error instanceof Error ? error.message : '这张截图暂时无法识别，请换一张再试。'
+      if (error instanceof Error) console.warn('[screenshot] recognize client failed', error)
+      const message = '这张截图暂时无法识别，请换一张再试。'
       trackEvent({
         event_type: 'business',
         event_name: 'business.screenshot_recognize_error',
@@ -2860,8 +2876,9 @@ export default function ScreenshotClient({
     try {
       nextPreview = await readImagePreview(file)
     } catch (error) {
+      if (error instanceof Error) console.warn('[screenshot] preview read failed', error)
       resetPreview()
-      setRecognizeError(error instanceof Error ? error.message : '这张截图暂时无法预览，请换一张再试。')
+      setRecognizeError('这张截图暂时无法预览，请换一张再试。')
       setAuthRequired(false)
       setStep('upload')
       return
@@ -3062,11 +3079,11 @@ export default function ScreenshotClient({
       if (!response.ok || !payload.ok || !payload.checkinId) {
         if (payload.code === 'route_shape_invalid' || payload.code === 'route_shape_persist_failed') {
           setRouteShapeRecoveryOpen(true)
-          setSubmitError(payload.error ?? '校准路线保存失败。请清空路线后少点重描，或明确选择仅保存文字数据。')
+          setSubmitError(screenshotDisplayError('route shape save failed', payload, '校准路线保存失败。请清空路线后少点重描，或明确选择仅保存文字数据。'))
           setStep('confirm')
           return
         }
-        throw new Error(payload.error ?? '活动生成失败，请稍后再试。')
+        throw new Error(screenshotDisplayError('confirm failed', payload, '活动生成失败，请稍后再试。'))
       }
       trackEvent({
         event_type: 'business',
@@ -3081,8 +3098,9 @@ export default function ScreenshotClient({
       setSubmitResult({ ok: true, checkinId: payload.checkinId, routeShape: routeShapeValidation.shape })
       setStep('success')
     } catch (error) {
+      if (error instanceof Error) console.warn('[screenshot] submit client failed', error)
       setRouteShapeRecoveryOpen(false)
-      setSubmitError(error instanceof Error ? error.message : '活动生成失败，请稍后再试。')
+      setSubmitError('活动生成失败，请稍后再试。')
       setStep('confirm')
     }
   }

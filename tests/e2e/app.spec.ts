@@ -117,7 +117,7 @@ async function completeProvinceOnboarding(page: Page, province = '四川') {
     await skipButton.click()
   }
 
-  await expect(page.getByText('告诉我，你将为哪片土地而战？')).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('先选一个与你有连接的地方。')).toBeVisible({ timeout: 15000 })
   await page.getByRole('button', { name: province }).click()
   await page.getByRole('button', { name: '生成空白执照' }).click()
   await expect(page.getByRole('heading', { name: '探索' })).toBeVisible({ timeout: 15000 })
@@ -142,7 +142,7 @@ async function dismissActivationChecklistIfPresent(page: Page) {
     await introSkipButton.click()
   }
 
-  const provincePrompt = page.getByText('告诉我，你将为哪片土地而战？')
+  const provincePrompt = page.getByText('先选一个与你有连接的地方。')
   await provincePrompt.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {})
   if (await provincePrompt.isVisible().catch(() => false)) {
     await page.getByRole('button', { name: '四川' }).click()
@@ -176,7 +176,7 @@ test('guest can register from protected trek redirect and return to the targeted
   await page.getByPlaceholder('至少6位').fill(password)
   await page.getByRole('button', { name: '下一步 →' }).click()
 
-  await page.getByPlaceholder('你的登山代号').fill(`qa-${Date.now()}`)
+  await page.getByPlaceholder('给自己起个名字').fill(`qa-${Date.now()}`)
   await page.locator('select').selectOption('四川')
   await page.getByRole('button', { name: '▶ 创建登山档案' }).click()
   await page.waitForLoadState('domcontentloaded')

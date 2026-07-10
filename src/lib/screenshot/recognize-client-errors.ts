@@ -21,5 +21,5 @@ export function readableError(message: string, kind: RecognizeErrorKind) {
     return isSafeScreenshotRetryMessage(message) ? message : SCREENSHOT_RECOGNITION_RETRY_MESSAGE
   }
   if (/unauthorized/i.test(message)) return '登录后才能识别截图。'
-  return message || '这张截图暂时无法识别，请换一张再试。'
+  return '这张截图暂时无法识别，请换一张再试。'
 }

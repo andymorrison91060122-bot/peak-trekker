@@ -214,7 +214,8 @@ function normalizeTrekActionError(error: unknown) {
   if (message.includes('session not found')) return '本次记录会话已失效，请重新开始记录。'
   if (message.includes('cap exceeded') || message.includes('batch too large')) return '轨迹点数量已达到安全上限，未同步部分仍保留在本机，请联系支持后再处理。'
   if (message.includes('session is not tracking')) return '这次记录会话已结束，未同步轨迹仍保留在本机，无法自动补传。'
-  return message
+  console.warn('[trek] action failed with unknown message', message)
+  return '操作暂时没有完成，请稍后重试。'
 }
 
 function classifyTrekDrainFailure(error: unknown): TrekOutboxDrainResult {
@@ -783,9 +784,7 @@ export default function TrekClient({
                 ? '定位超时，请重试。'
                 : error instanceof Error && error.message === 'geolocation_unsupported'
                   ? '当前设备不支持定位。'
-                  : error instanceof Error && error.message
-                    ? error.message
-                    : '定位暂时异常，请稍后重试。'
+                  : '定位暂时异常，请稍后重试。'
 
         setGpsError(message)
         setGpsErrorCode(code)
@@ -939,9 +938,7 @@ export default function TrekClient({
                 ? '定位超时，请重试。'
                 : error instanceof Error && error.message === 'geolocation_unsupported'
                   ? '当前设备不支持定位。'
-                  : error instanceof Error && error.message
-                    ? error.message
-                    : '定位暂时异常，请稍后重试。'
+                  : '定位暂时异常，请稍后重试。'
 
         setGpsError(message)
         setGpsErrorCode(code)
@@ -1359,7 +1356,7 @@ export default function TrekClient({
         if (!options.silent) {
           showToast({
             key: 'trek_pause_persist_failed',
-            message: error instanceof Error ? error.message : '暂停状态保存失败，请稍后重试。',
+            message: normalizeTrekActionError(error),
             durationMs: 3200,
           })
         }
@@ -1446,7 +1443,7 @@ export default function TrekClient({
             2: '定位失败，请移动到更开阔的位置。',
             3: '定位超时，请重试。',
           }
-          const message = messages[error.code] ?? error.message
+          const message = messages[error.code] ?? '定位暂时异常，请稍后重试。'
           clearTrackingRuntime()
           elapsedBeforePauseRef.current = elapsedSecondsRef.current
           trackingTickStartedAtRef.current = null
@@ -1639,9 +1636,7 @@ export default function TrekClient({
       const message =
         code === 1
           ? '请先允许浏览器访问位置信息。'
-          : error instanceof Error && error.message
-            ? error.message
-            : '定位暂时异常，请稍后重试。'
+          : '定位暂时异常，请稍后重试。'
       setGpsError(message)
       setGpsErrorCode(code)
       showToast({ key: code === 1 ? 'action_blocked' : 'location_error', message })
@@ -2115,7 +2110,7 @@ export default function TrekClient({
     } catch (error) {
       showToast({
         key: 'image_upload_failure',
-        message: error instanceof Error ? error.message : '确认登顶失败，请稍后重试。',
+        message: normalizeTrekActionError(error),
       })
     } finally {
       setPhotoLoading(false)
@@ -2197,9 +2192,7 @@ export default function TrekClient({
               ? '定位超时，请重试。'
               : error instanceof Error && error.message === 'geolocation_unsupported'
                 ? '当前设备不支持定位。'
-                : error instanceof Error && error.message
-                  ? error.message
-                  : '定位暂时异常，请稍后重试。'
+                : '定位暂时异常，请稍后重试。'
       setGpsError(message)
       setGpsErrorCode(code)
       if (code === 1) {
@@ -2506,9 +2499,7 @@ export default function TrekClient({
       const message =
         code === 1
           ? '请先允许浏览器访问位置信息。'
-          : error instanceof Error && error.message
-            ? error.message
-            : '定位暂时异常，请稍后重试。'
+          : '定位暂时异常，请稍后重试。'
       setGpsError(message)
       setGpsErrorCode(code)
       showToast({ key: code === 1 ? 'action_blocked' : 'location_error', message })
@@ -2560,7 +2551,7 @@ export default function TrekClient({
     } catch (error) {
       showToast({
         key: 'trek_resume_failed',
-        message: error instanceof Error ? error.message : '继续记录失败，请稍后重试。',
+        message: normalizeTrekActionError(error),
         durationMs: 3200,
       })
       return

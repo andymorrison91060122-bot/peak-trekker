@@ -951,7 +951,7 @@ async function bypassIntroOverlayForExploreEvidence(page: Page) {
     await skipButton.click({ force: true, timeout: 15_000 })
     await expect(skipButton).not.toBeVisible({ timeout: 10_000 })
   }
-  const provincePrompt = page.getByText('告诉我，你将为哪片土地而战？')
+  const provincePrompt = page.getByText('先选一个与你有连接的地方。')
   await provincePrompt.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {})
   if (await provincePrompt.isVisible().catch(() => false)) {
     await page.getByRole('button', { name: '四川' }).click()
@@ -2112,7 +2112,7 @@ test('FU-110 Explore entrance and async source replay evidence', async ({ browse
   await attachCapture(collisionPage, collisionConsole, collisionErrors)
   await collisionPage.goto('/explore', { waitUntil: 'domcontentloaded' })
   await collisionPage.locator('.explore-filter-chip').first().waitFor({ state: 'visible', timeout: 20_000 })
-  for (const label of ['高海拔', '长线', '附近', '无执照可进', '附近']) {
+  for (const label of ['高海拔', '长线', '附近', '无需执照', '附近']) {
     const chip = collisionPage.getByRole('button', { name: label, exact: true })
     if (await chip.isVisible().catch(() => false)) await chip.click()
   }

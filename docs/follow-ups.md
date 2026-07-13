@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-11 · 最新版本记录: v0.103
+> Last Updated: 2026-07-13 · 最新版本记录: v0.104
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`6129e02c8aa697cabe7f699762d6fd1fc6a0c04c`（Merge FU-76 Sprint B Copy Humanization + F1 · 2026-07-11）
+`34fea88d605649ff8d210a100d7be0f66a527dd6`（Merge FU-76 motion gaps auth entrance + route loading · 2026-07-13）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-FU-76 motion gaps · Auth entrance + route-level loading（执行中，待用户视觉验收）
+待启动
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -93,7 +93,7 @@ FU-76 motion gaps · Auth entrance + route-level loading（执行中，待用户
 
 ---
 
-## Active Follow-ups（16 条）
+## Active Follow-ups（15 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -172,47 +172,6 @@ FU-76 motion gaps · Auth entrance + route-level loading（执行中，待用户
 - 品牌绿 hex 统一
 
 **互引**: `docs/color-debt.md`
-
----
-
-### FU-76 · 动效系统 + 人文化文案
-
-- **优先级**: P2
-- **归属阶段**: 上线前产品品质
-- **状态**: 🟢 active
-
-**动效半边**: 建立动效 token（时长 / 缓动）与原则，并对关键节点分批落地：登顶确认、分享生成、转场、空态、加载。起点为 `docs/ui-interaction-spec.md` §12 微动效规范 + §4.9。
-
-**文案半边（2026-06-12 用户确认并入）**:
-- 人话化审查：从用户视角过全界面，把技术性 / 非面向用户的描述改为用户常规能听懂的语言（不必大白话，取度）。
-- 人文温度：梳理需要人文化表达的节点，给精神激励，弱化纯工具感。
-- 原 FU-70「轨迹达峰」中性标签并入此处，作为文案审查的一个具体节点。
-
-**分享生成节点 + `/share` 编辑器重设计已落地（2026-07-04）**:
-- **Phase 1 布局重排**: `/share` 编辑器从约 1.7 屏收敛到约 1.2 屏；字段区把海拔 / 距离降为被动「始终展示」条，6 个可选字段改为 2×3 芯片，缺值禁用并显示「未记录」；模板条改为真实模板缩略图 + `NN / 10` 计数 + 进度条 + scroll-snap；底部按钮统一 44px；Screen D 透明水印层级对齐，填充绿为主操作。
-- **Phase 2 动效**: 显式命名 stage 入场 timeline（header → poster → templateStrip → toolsRow → fieldPanel → bottomActionBar）；海报内容重亮覆盖文字 stagger、海拔 count-up、路线自绘，并用于初载与模板切换；字段联动以 `visibleFields` 真实增删为真相源，GSAP 只做出 / 入过渡；SSR 首帧门禁采用 `data-motion-pending`，并保留 reduced-motion / noscript / JS 异常三兜底；`gsap.matchMedia` no-preference / reduce 双分支，reduced-motion 直接终态。
-- **Phase 3 动效**: promise-gated 显影绑定真实 `renderPosterBlob`，竖向柔光光带 1.6s 循环 + 数据逐项点亮 + count-up，最短 720ms（`--motion-ceremony`），失败 kill 回 idle；保存成功仪式包括海报成型 `scale 1.012 → 1`、边缘辉光升峰后落定到 55%、缩影收纳飞入保存键、按钮 `✓ 已保存到相册` 与 toast 上滑；三路语义已区分 save / share 降级下载 / native share / AbortError / transparent 保存，导出期间做 payload 快照、交互冻结与页面降噪。
-- **设计 / 实现 / 证据**: 设计稿为 Claude Design `Share Editor Redesign FU-76.dc.html`；实现集中在 `src/app/(flow)/share/ShareClient.tsx`；采用 GSAP skills（gsap-core / timeline / react / performance）；证据目录 `output/fu76-acceptance/`。
-
-**Sprint A 重点页动效落地（2026-07-05，用户真机验收通过）**:
-- **Phase 1 路由转场底座**: `(main)` / `(flow)` route template opacity 淡入落地，作为零感知、无副作用底座保留。
-- **Phase 2-I import / screenshot**: `/import`、`/screenshot` 成功节点落地（解析成功 / 识别成功 / 已带回档案 GSAP L3 仪式）；门面入场落地为 entry / upload 逐模块 stagger、额度进度条 `scaleX` grow、ScanGlyph 5-path 描边。P0 修复已收口 footer CTA 卡在 GSAP 起始态的可见 / 可点回归。
-- **Phase 2-II mountain / explore**: `/mountain/[id]` 分组入场落地（hero → description → decision → weather → route → waypoints → featured，并补 stats count-up）；`/explore` 分层入场落地（首屏卡 stagger）。Smoothness Fix 已收口固定 label 绝对 position、视觉可用分阶段达标与 production build 帧率验证。
-- **Phase 3 consolidation**: 共享 `EmptyState` / `Spinner` / `Skeleton` primitives 已落地；Archive / FAQ / Explore / Profile / Mountain 空态迁移时保留原文案与 motion/data hooks；Import / Screenshot spinner、Trek / Weather loading skeleton 收编到统一 primitive；HelpSheet / Share selected overlay 等 200ms opacity transition 统一映射到 `--motion-fast`，截图校准 420ms 状态过渡映射到 `--motion-status`。`MountainDetailHeroCarousel` 仍只登记为后续 cleanup 候选，本轮不删除、不 token 化。
-- **附带导航修复**: `/share` 返回键改为确定性落点：`from=imprint` 走 R4 门面返回；有 `checkinId` 时回 `/activity/<id>`；否则 `back` 兜底，再 fallback `/explore`。
-- **实现 / 证据**: 实现采用 GSAP skills（gsap-core / timeline / react / performance），白名单集中在 `ImportClient.tsx`、`ScreenshotClient.tsx`、`MountainDetailClient.tsx`、`ExploreClient.tsx`、`(main)` / `(flow)` template 与 `tests/motion-nodes-static.test.ts`；证据目录 `output/fu76-motion-a-acceptance/`。
-
-**Sprint B 文案收口（2026-07-11）**:
-- Copy Humanization + acceptance F1 已由 PR #44 合入 main；F1 将 KML 无坐标提示改由 HTTP 422 选择，移除失效 raw-message regex。FU-76 未因此关闭。
-
-**Motion gaps 补齐（2026-07-11，本轮待用户验收）**:
-- 新覆盖仅 `/auth/login` / `/auth/register`：共享 CSS `pt-page-enter`，不接第二套 GSAP timeline。
-- `(main)` / `(flow)` 新增 route-level `loading.tsx`，复用 `Skeleton`；route template 继续 quiet opacity-only，不做 12px wrapper upgrade。
-- Protected 页面原有 timeline / 组件 / 时序不动；仅随 route group 共享新增 loading boundary（导航等待段），无第二套 entrance。community / rankings / prep / admin / debug / QA 按产品现实写入 coverage matrix，不在本轮实施。
-- Phase 4 demo 结论：scan glow / archive ring / onboarding float+pulse 三项原样保留，零代码改动。
-- RouteProgress deferred，待 route skeleton 真机评估后再决定；本轮不增加新 FU、不改变计数。
-
-- **边界**: **FU-76 整体仍 active**。本轮仅到 `visual ready for user review`，不自宣 visual PASS / close。详见 `docs/fu76-share-editor-anchor.md` 与 `docs/ui-interaction-spec.md` §12。
 
 ---
 
@@ -540,7 +499,18 @@ FU-76 motion gaps · Auth entrance + route-level loading（执行中，待用户
 
 ---
 
-## Closed Follow-ups（95 条）
+## Closed Follow-ups（96 条）
+
+### FU-76 ✅ 动效系统 + 人文化文案
+
+- **关闭原因**: FU-76 作为伞形 sprint 已完成并合入生产主线。范围覆盖 Sprint A Phase 1 / 2-I / 2-II / 2-III / 3、下游 FU-110 / FU-111 / FU-112、Sprint B copy + F1（PR #44 / merge `6129e02c8aa697cabe7f699762d6fd1fc6a0c04c`）、Phase 4 keep decision（三个装饰 loop 原样保留，demo-only，零代码）以及最终 motion gaps 补齐（PR #45 / branch `codex/fu76-route-transition-loading` / commit `ef77dbc97258129d3416d8554fb71879d0ee98ee` / merge `34fea88d605649ff8d210a100d7be0f66a527dd6`）。无 DB / migration / backend 改动。
+- **最终补齐内容**: `/auth/login` / `/auth/register` 共享 CSS `pt-page-enter` 轻量入场（12px + 320ms + 60/120ms stagger，reduced-motion 显式终态，不阻塞输入）；`(main)` / `(flow)` 新增 route-level `loading.tsx`，复用 `Skeleton`，`(main)` 保留 AppHeader / TabBar；两份 route template 保持零改动；Protected 页面原有 timeline / 组件 / 时序不动，仅随 route group 共享新增 loading boundary（导航等待段），无第二套 entrance。
+- **验收 / 证据**: 用户 2026-07-12 真机验收 PASS，advisor 结论无 blocker。门禁：`node --test --experimental-strip-types tests/motion-nodes-static.test.ts` 27/27 pass。生产部署 for merge `34fea88d605649ff8d210a100d7be0f66a527dd6` READY（deployment `dpl_HZ9s9KE8QU5m8Q2oPCUvLChmPGjX`，production alias `peak-trekker.vercel.app`）；`/auth/login` browser DOM smoke 显示 `.pt-page-enter` count = 4、console error = 0。
+- **遗留 / 边界**: RouteProgress deferred，待 route skeleton 真机评估后再决定；auth 入场 `fill-mode: both` 是 delay 防闪所必需，裁定 wontfix（如未来清理需 `animationend` 摘类，低收益）；e2e console warning 白名单改按已知文本分类，未来碰测试时顺手。Scan glow / archive ring / onboarding float+pulse 三项装饰 loop 已裁定原样保留。
+- **关闭 commit**: 本次 docs 收尾 commit
+- **关闭时间**: 2026-07-13
+
+---
 
 ### FU-112 ✅ 导航一致性规则 / bottom-tab presence
 
@@ -1755,6 +1725,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.104 — 2026-07-13**: FU-76 closeout · 动效系统 + 人文化文案伞形 sprint 收口。Sprint A Phase 1 / 2-I / 2-II / 2-III / 3、下游 FU-110 / FU-111 / FU-112、Sprint B copy + F1、Phase 4 keep decision 与最终 motion gaps（auth 共享入场 + route-group loading skeleton）均已合入生产；RouteProgress deferred 待 skeleton 真机评估后另议。用户 2026-07-12 真机验收 PASS；PR #45 / merge `34fea88d605649ff8d210a100d7be0f66a527dd6`。Active 16 → 15 · Closed 95 → 96 · Deferred 5 → 5。
 
 **v0.103 — 2026-07-11**: FU-76 motion gaps 启动（本轮待用户视觉验收，不关闭 FU-76）。新增 `/auth/login` / `/auth/register` 共享 CSS 轻量入场，以及 `(main)` / `(flow)` route-level Skeleton loading；既有 protected 页面和两份 route template 保持不动。Phase 4 demo 结论为 scan glow / archive ring / onboarding float+pulse 三项原样保留。RouteProgress deferred，待 skeleton 真机评估后另议。Active 16 / Closed 95 / Deferred 5 均不变。
 

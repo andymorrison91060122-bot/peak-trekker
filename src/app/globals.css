@@ -306,6 +306,30 @@ select {
   border: 0;
 }
 
+@keyframes pt-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pt-page-enter {
+  animation: pt-page-enter var(--motion-enter) var(--ease-out) both;
+}
+
+.pt-enter-d1 {
+  animation-delay: 60ms;
+}
+
+.pt-enter-d2 {
+  animation-delay: 120ms;
+}
+
 .page-title {
   font-size: clamp(28px, 8vw, 34px);
   line-height: 1.08;
@@ -946,6 +970,12 @@ select {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .pt-page-enter {
+    animation: none;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   .ui-btn-loading-indicator::before,
   .ui-btn-loading-indicator::after {
     animation: none !important;

@@ -1295,6 +1295,22 @@ Banner 用于：
 * `Skeleton` 是加载占位 primitive：正常态使用全局 `pt-shimmer`，reduced-motion 下移除 shimmer，只保留静态 tint。
 * Phase 3 只做结构与 token 收编，不改文案、不重设计空态、不把 loop / export timeline / screenshot recognizer 重新编排。
 
+### FU-76 auth entrance + route-level loading note（2026-07-11）
+
+* `/auth/login`、`/auth/register` 使用共享 CSS `pt-page-enter`：页面与最多 3 个主要内容块按 `--motion-enter` / `--ease-out` 做轻量 `opacity + translateY(12px)` 入场；不接 GSAP、不阻塞输入与提交。
+* `(main)` / `(flow)` 新增 route-group `loading.tsx`，统一复用 `Skeleton`：`(main)` 只占 layout 的内容区，保留 AppHeader / TabBar；`(flow)` 使用全视口流程骨架。
+* `(main)` / `(flow)` route template 继续保留 quiet opacity-only 底座，不升级 12px transform（用户 2026-07-11 复核确认）。
+* RouteProgress 本轮 deferred：先用真机观察 route-group skeleton 的实际感知，再决定是否增加顶部导航进度条，避免在缺少全局 App Router pending API 时扩大 Link / router callsite 改造。
+
+| 覆盖分类 | 页面 / 路径 | 本轮结论 |
+|---|---|---|
+| **Protected（原有动效不动）** | Explore、Archive、Profile、Imprint、Import、Screenshot、Mountain、Activity、FAQ、Share、Trek、Onboarding / IntroCarousel | 原有 timeline / 组件 / 时序未修改；仅随 route group 共享新增 loading boundary（导航等待段），无第二套 entrance |
+| **New this round** | `/auth/login`、`/auth/register`、`(main)` / `(flow)` route loading | 轻量 CSS auth entrance + 通用 Skeleton loading |
+| **Excluded · 产品边界** | `/community*` | v1 no-community standing decision |
+| **Excluded · 不可达** | `/rankings/province` | feature flag 关闭后 redirect |
+| **Excluded · 孤儿页** | `/prep` | 无 UI inbound link，仅在 middleware 清单 |
+| **Excluded · 工具面** | admin / debug / QA / root redirect | 非普通用户主流程，本轮不做通用 entrance |
+
 ## 12.5 性能红线
 
 * **只动 `transform`（x/y/scale/rotation）和 `opacity`**；禁止动画 `width/height/top/left/margin/padding`（触发 layout，掉帧）。FU-76 C1 已把扫描线 `top→translateY`、两个 toggle slider `left→translateX`；进度条 / 分页点 `width→scaleX` 经复核决定不做（见 §12.12）。
@@ -1306,6 +1322,8 @@ Banner 用于：
 * 必须尊重 `prefers-reduced-motion: reduce`。
 * **CSS token 层（FU-76 Phase B0）**：全局 motion token 在 `prefers-reduced-motion: reduce` 下 remap 为近 0ms，作为后续 CSS 动效的架构接缝。
 * **GSAP pilot（FU-76 Summit L3）**：用 `gsap.matchMedia()` 的 `reduceMotion` 条件直接设置终态（无位移 / 无漂移 / 数字直接最终值），随媒体查询自动 revert；CSS token 兜底保留。
+* **Auth entrance**：`prefers-reduced-motion: reduce` 下显式 `animation:none`，保持 `opacity:1 / translateY(0)`，首帧即可输入。
+* **Route loading**：`Skeleton` 关闭 shimmer 并使用静态 tint；导航与页面可见性不依赖动画完成。
 * reduced-motion 不是「关掉一切」，而是「去掉位移 / 缩放 / 闪烁，保留必要的状态可见性」。
 
 ## 12.7 每个动效点的方案格式（6 字段）
@@ -1341,7 +1359,7 @@ Banner 用于：
 * lint + build 通过；
 * **不自称视觉 PASS，停给用户验收**。
 
-## 12.11 逐面分级图（现状 audit，41 个 keyframe / 7 面）
+## 12.11 逐面分级图（现状 audit，42 个 keyframe / 7 面）
 
 | 面 | 工具性 | 现有层级 | 判定 |
 |---|---|---|---|
@@ -1351,11 +1369,11 @@ Banner 用于：
 | **校准编辑器**（ScreenshotRouteCalibrationSection.tsx，3 个） | **高** | L1 微 + 1 个 L3 success | **范本**——工具面只 1 个成功仪式（`routeCapBloom`）；`routePulse` 死代码**删** |
 | **昵称 sheet**（ProfileNicknameSheet.tsx，4 个） | 低 | L2 sheet/spinner + L1 表单微 | 干净无仪式（对）；`pt-nickname-success-fade` = reduced-motion 缺口，已补降级（ProfileAvatarUploader.tsx 有运行时引用，非死代码） |
 | **Import**（ImportClient.tsx，1 个） | 低 | L2 状态 only | 健康；`import-spin` 进度若动 `width`→`scaleX`；**缺 reduced-motion** |
-| **全局 CSS**（globals.css / components.css，2 个） | **高** | L1 按钮微 + L2 loader | 干净无仪式（对）；**缺全局 reduced-motion（最大 a11y 缺口）** |
+| **全局 CSS**（globals.css / components.css，3 个） | **高** | L1 按钮微 + L2 loader / auth enter | `pt-page-enter` 仅覆盖 auth；route-group loading 复用 `pt-shimmer`；均有显式 reduced-motion 终态 |
 
 > 框架被验证：工具性越高的面（校准 / 全局）动效越克制、几乎无仪式；情感峰值（登顶 / 归档 / onboarding）才有 L3。约 85% 已对齐 C+。
 
-> **Sprint A 收编标注（2026-07-05）**：FU-76 Sprint A 已补充 route template 淡入底座、`/import` / `/screenshot` 成功节点与门面入场、`/mountain/[id]` 分组入场、`/explore` 分层入场；Phase 2-III 4-page client subset 与 FU-110 / FU-111 / FU-112 相关收口另见 tracker；Phase 3 已完成 EmptyState / Spinner / Skeleton / token 收编。§12.11 的逐面表仍保留 C1 audit 结构；逐动效点完整回写作为 **docs debt**，待 FU-76 Sprint A Phase 4 demo 完成后统一同步 §12 / §12.4 / §12.11。
+> **现状同步（2026-07-11）**：Sprint A Phase 1–3、Phase 2-III client subset、Sprint B copy + F1 均已落地；Phase 4 demo 结论为三个装饰 loop 原样保留、零代码改动。本轮补齐 auth entrance 与 route-group loading。逐动效点历史表已按当前现实收口，不再把 Phase 4 写为待定。
 
 ## 12.12 收编 backlog（FU-76，全 CSS）
 
@@ -1370,16 +1388,16 @@ Banner 用于：
 
 **✅ Sprint A 已收编重点页（2026-07-05）**
 
-1. **路由转场底座**：`(main)` / `(flow)` template opacity 淡入已落地，保留为零感知底座。
+1. **路由转场底座**：`(main)` / `(flow)` template opacity 淡入已落地；2026-07-11 用户复核后继续保留 quiet opacity-only，不升级 12px route-wrapper transform。
 2. **Import / Screenshot**：解析成功、识别成功、已带回档案节点采用 GSAP L3 仪式；entry / upload 门面采用逐模块 stagger、进度条 `scaleX` grow 与 ScanGlyph 一次性描边。
 3. **Mountain / Explore**：`/mountain/[id]` 采用 hero / stats / description / decision / weather / route / waypoints / featured 分组入场与 stats count-up；`/explore` 采用首屏分层入场与首屏卡 stagger。Smoothness Fix 已将首屏关键内容时序收紧到 production build 可验范围。
-4. **待最终回写**：Phase 2-III 轻扫页已作为 4-page client subset 阶段性交付，Phase 3 EmptyState / Spinner / Skeleton / token 收编已完成；剩余 §12 逐动效点完整表与 Phase 4 demo 包留到 FU-76 Sprint A 最终收尾。
+4. **后续通用补齐**：Phase 2-III 4-page client subset、Phase 3 EmptyState / Spinner / Skeleton / token、Sprint B copy + F1 已完成；2026-07-11 新增 auth shared entrance 与 `(main)` / `(flow)` route loading。RouteProgress 延后到 skeleton 真机评估之后。
 
-**🔴 A 候选视觉复核项——装饰性 loop（demo 后定，非判定降级）**
+**✅ A Phase 4 demo 结论——装饰性 loop 原样保留（用户 2026-07-11 确认）**
 
-1. 截图扫描光晕 `sr-scan-glow` → 候选：并进扫描线 boxShadow；C1 仅补 reduced-motion 静态化，正常态保留。
-2. 归档转环 `screenshotArchiveRot`(26s) → 候选：静态 / 仅入场；C1 不改正常态，既有 reduced-motion 覆盖保留。
-3. onboarding 漂浮 `pt-share-stack-float` + 记录脉冲环 `pt-intro-record-pulse` → 候选：一次性 / 砍；C1 不改正常态，既有 reduced-motion 覆盖保留。
+1. 截图扫描光晕 `sr-scan-glow`：保持现状；已有 reduced-motion 静态化。
+2. 归档转环 `screenshotArchiveRot`(26s)：保持现状；已有 reduced-motion 覆盖。
+3. onboarding 漂浮 `pt-share-stack-float` + 记录脉冲环 `pt-intro-record-pulse`：保持现状；本轮零代码改动。
 
 **✅ B 删——死代码（C1 完成）**：`routePulse`、globals/components 里的 `.glow-pulse` / `.scanlines` stub。`pt-nickname-success-fade` 经 C1 复核不是死代码，已移入 reduced-motion 补全项。
 
@@ -1718,6 +1736,7 @@ Banner 用于：
 
 ### 版本记录
 
+* v0.8 — 2026-07-11：FU-76 motion gaps 补齐 auth shared entrance 与 `(main)` / `(flow)` route-level Skeleton loading；route template 维持 quiet opacity-only；RouteProgress deferred；Phase 4 三个装饰 loop 经 demo 后确认原样保留。新增 protected / new / excluded coverage matrix 与 reduced-motion 口径。
 * v0.7 — 2026-06-29：FU-76 Phase C1 动效收编。完成 CSS 死动画清理（`routePulse`、`.glow-pulse`、`.scanlines` stub）、reduced-motion 缺口补齐（全局 loading dots / weather skeleton / screenshot scan+dots+submit spinner / import spinner / nickname sheet+success fade）、两个 toggle `left→translateX`，以及截图扫描线 `top→translateY`（before/after 375px sampled equivalence 最大偏差约 1.24px）。纠正 `pt-nickname-success-fade` 归类：它在 ProfileAvatarUploader 有运行时引用，非死代码。`width→scaleX` 类进度条 / 分页点（含 CommunityMediaGallery）决策不做，MountainDetailHeroCarousel 零引用组件登记为独立 cleanup 候选。
 * v0.6 — 2026-06-29：FU-76 Summit L3 GSAP pilot 落库。登顶礼成采用用户选定 V2：保留现有 SummitHonorMedallion 视觉，GSAP 接管 / 重编排已有官方海拔 count-up，双环由快速 CSS loop 改为入场 settle + 极慢漂移，辉光改为一次 settle，reduced-motion 直接终态。其它装饰 loop（截图 / 归档 / onboarding）改为候选视觉复核项，demo 后定，非本轮判定降级。
 * v0.5 — 2026-06-28：§12 微动效规范定稿（动效工作流 Phase A）。确立 **C+ 质感分层 L0–L3** + Motion Token（8 时长 / 4 缓动）+ CSS/GSAP 分工（GSAP 推迟到 FU-87 真需 timeline 时作 pilot，FU-76 全程 CSS）+ reduced-motion 架构（CSS 现行、`gsap.matchMedia()` 接缝）+ 每点 6 字段格式 + §12.11 逐面分级图 + §12.12 收编 backlog。**L3 仪式时长上限由旧版 360ms 上调到 1200ms（用户签字）**。

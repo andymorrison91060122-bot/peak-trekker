@@ -48,13 +48,13 @@ function LoginPageContent() {
   }
 
   return (
-    <div style={{
+    <div className="pt-page-enter" style={{
       minHeight: '100vh', background: 'var(--bg-primary)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '0 24px',
     }}>
       {/* Logo区 */}
-      <div style={{ textAlign: 'center', marginBottom: 40 }}>
+      <div className="pt-page-enter" style={{ textAlign: 'center', marginBottom: 40 }}>
         <div style={{ fontSize: 40, marginBottom: 12 }}>⛰</div>
         <div className="font-pixel" style={{ fontSize: 12, color: 'var(--green-neon)', textShadow: '0 0 10px var(--green-neon)', letterSpacing: 3 }}>
           PEAK TREKKER
@@ -66,7 +66,7 @@ function LoginPageContent() {
 
       {/* 登录表单 */}
       <div style={{ width: '100%', maxWidth: 360 }}>
-        <div className="mountain-card" style={{ padding: 24 }}>
+        <div className="mountain-card pt-page-enter pt-enter-d1" style={{ padding: 24 }}>
           <div className="font-pixel" style={{ fontSize: 9, color: 'var(--green-bright)', marginBottom: 20, letterSpacing: 1 }}>
             {'// LOGIN'}
           </div>
@@ -156,7 +156,7 @@ function LoginPageContent() {
         </div>
 
         {/* 底部装饰 */}
-        <div style={{
+        <div className="pt-page-enter pt-enter-d2" style={{
           marginTop: 24, textAlign: 'center',
           fontSize: 9, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono',
           lineHeight: 2,

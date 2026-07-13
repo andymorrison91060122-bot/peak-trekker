@@ -1,9 +1,14 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 function readSource(path: string) {
   return readFileSync(new URL(path, import.meta.url), 'utf8')
+}
+
+function readOptionalSource(path: string) {
+  const url = new URL(path, import.meta.url)
+  return existsSync(url) ? readFileSync(url, 'utf8') : ''
 }
 
 function assertRouteTemplate({
@@ -86,6 +91,68 @@ describe('FU-76 motion nodes Phase 1 route transitions', () => {
     for (const property of ['width', 'height', 'top', 'left', 'right', 'bottom', 'margin', 'padding']) {
       assert.doesNotMatch(combined, new RegExp(`${property}\\s*:`), `route template should not animate or set ${property}`)
     }
+  })
+})
+
+describe('FU-76 universal motion gaps: auth entrance and route loading', () => {
+  const loginPage = readSource('../src/app/auth/login/page.tsx')
+  const registerPage = readSource('../src/app/auth/register/page.tsx')
+  const globalsCss = readSource('../src/app/globals.css')
+  const mainLoading = readOptionalSource('../src/app/(main)/loading.tsx')
+  const flowLoading = readOptionalSource('../src/app/(flow)/loading.tsx')
+
+  test('shared page entrance is CSS-only, terminal-safe, and scoped to auth pages', () => {
+    assert.match(globalsCss, /@keyframes pt-page-enter\s*\{[\s\S]*from\s*\{[\s\S]*opacity:\s*0;[\s\S]*transform:\s*translateY\(12px\);?[\s\S]*to\s*\{[\s\S]*opacity:\s*1;[\s\S]*transform:\s*translateY\(0\)/)
+    assert.match(globalsCss, /\.pt-page-enter\s*\{[\s\S]*animation:\s*pt-page-enter var\(--motion-enter\) var\(--ease-out\) both/)
+    assert.match(globalsCss, /\.pt-enter-d1\s*\{[\s\S]*animation-delay:\s*60ms/)
+    assert.match(globalsCss, /\.pt-enter-d2\s*\{[\s\S]*animation-delay:\s*120ms/)
+    assert.match(globalsCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.pt-page-enter\s*\{[\s\S]*animation:\s*none[\s\S]*opacity:\s*1[\s\S]*transform:\s*translateY\(0\)/)
+
+    for (const [name, source] of [['login', loginPage], ['register', registerPage]] as const) {
+      assert.match(source, /className="pt-page-enter"/, `${name} page root should use the shared entrance`)
+      assert.match(source, /className="[^"]*\bpt-page-enter pt-enter-d1\b[^"]*"/, `${name} should include the first stagger block`)
+      assert.match(source, /className="[^"]*\bpt-page-enter pt-enter-d2\b[^"]*"/, `${name} should include the second stagger block`)
+      assert.doesNotMatch(source, /\bgsap\b|@gsap\/react/, `${name} auth entrance must stay CSS-only`)
+    }
+
+    const protectedSources = [
+      '../src/app/(main)/explore/ExploreClient.tsx',
+      '../src/app/(main)/archive/ArchiveClient.tsx',
+      '../src/components/profile/ProfileV2Client.tsx',
+      '../src/app/(main)/imprint/ImprintClient.tsx',
+      '../src/app/(flow)/import/ImportClient.tsx',
+      '../src/app/(flow)/screenshot/ScreenshotClient.tsx',
+      '../src/app/(flow)/mountain/[id]/MountainDetailClient.tsx',
+      '../src/app/(flow)/activity/[id]/ActivityDetailClient.tsx',
+      '../src/app/(flow)/faq/FAQClient.tsx',
+      '../src/app/(flow)/share/ShareClient.tsx',
+      '../src/app/(flow)/trek/TrekClient.tsx',
+      '../src/components/onboarding/IntroCarousel.tsx',
+    ].map(readSource).join('\n')
+    assert.doesNotMatch(protectedSources, /\bpt-page-enter\b/, 'protected motion-complete surfaces must not gain a second entrance')
+  })
+
+  test('route-group loading files reuse the canonical Skeleton primitive', () => {
+    assert.notEqual(mainLoading, '', '(main)/loading.tsx should exist')
+    assert.notEqual(flowLoading, '', '(flow)/loading.tsx should exist')
+
+    assert.match(mainLoading, /import Skeleton from '@\/components\/ui\/Skeleton'/)
+    assert.match(mainLoading, /aria-busy="true"/)
+    assert.match(mainLoading, /data-route-loading="main"/)
+    assert.match(mainLoading, /data-route-loading-region="hero"/)
+    assert.match(mainLoading, /data-route-loading-region="chips"/)
+    assert.match(mainLoading, /data-route-loading-region="list"/)
+    assert.ok((mainLoading.match(/<Skeleton\b/g) ?? []).length >= 10, '(main) loading should contain the approved page silhouette')
+
+    assert.match(flowLoading, /import Skeleton from '@\/components\/ui\/Skeleton'/)
+    assert.match(flowLoading, /aria-busy="true"/)
+    assert.match(flowLoading, /data-route-loading="flow"/)
+    assert.match(flowLoading, /data-route-loading-region="topbar"/)
+    assert.match(flowLoading, /data-route-loading-region="hero"/)
+    assert.match(flowLoading, /data-route-loading-region="body"/)
+    assert.match(flowLoading, /data-route-loading-region="cta"/)
+    assert.match(flowLoading, /\[0, 1, 2\]\.map\(\(row\) =>/)
+    assert.ok((flowLoading.match(/<Skeleton\b/g) ?? []).length >= 7, '(flow) loading should contain the approved full-viewport silhouette')
   })
 })
 

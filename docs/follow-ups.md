@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-08 · 最新版本记录: v0.102
+> Last Updated: 2026-07-11 · 最新版本记录: v0.103
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`811de79e87007065b22ee50dd6ee4fc196cba394`（Merge FU-112 navigation consistency + v1 community entry withdrawal · 2026-07-06）
+`6129e02c8aa697cabe7f699762d6fd1fc6a0c04c`（Merge FU-76 Sprint B Copy Humanization + F1 · 2026-07-11）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-FU-76 Sprint B · Copy Humanization（执行中，待用户文案验收）
+FU-76 motion gaps · Auth entrance + route-level loading（执行中，待用户视觉验收）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -202,7 +202,17 @@ FU-76 Sprint B · Copy Humanization（执行中，待用户文案验收）
 - **附带导航修复**: `/share` 返回键改为确定性落点：`from=imprint` 走 R4 门面返回；有 `checkinId` 时回 `/activity/<id>`；否则 `back` 兜底，再 fallback `/explore`。
 - **实现 / 证据**: 实现采用 GSAP skills（gsap-core / timeline / react / performance），白名单集中在 `ImportClient.tsx`、`ScreenshotClient.tsx`、`MountainDetailClient.tsx`、`ExploreClient.tsx`、`(main)` / `(flow)` template 与 `tests/motion-nodes-static.test.ts`；证据目录 `output/fu76-motion-a-acceptance/`。
 
-- **边界**: **FU-76 整体仍 active**。Sprint B 全站文案人文化审查已进入用户验收阶段，不在本记录中自宣 PASS / close；剩余范围为 Phase 4（§12.12-A 三候选 demo）与 Sprint B 验收反馈修正。详见 `docs/fu76-share-editor-anchor.md` 与 `docs/ui-interaction-spec.md` §12。
+**Sprint B 文案收口（2026-07-11）**:
+- Copy Humanization + acceptance F1 已由 PR #44 合入 main；F1 将 KML 无坐标提示改由 HTTP 422 选择，移除失效 raw-message regex。FU-76 未因此关闭。
+
+**Motion gaps 补齐（2026-07-11，本轮待用户验收）**:
+- 新覆盖仅 `/auth/login` / `/auth/register`：共享 CSS `pt-page-enter`，不接第二套 GSAP timeline。
+- `(main)` / `(flow)` 新增 route-level `loading.tsx`，复用 `Skeleton`；route template 继续 quiet opacity-only，不做 12px wrapper upgrade。
+- Protected 页面原有 timeline / 组件 / 时序不动；仅随 route group 共享新增 loading boundary（导航等待段），无第二套 entrance。community / rankings / prep / admin / debug / QA 按产品现实写入 coverage matrix，不在本轮实施。
+- Phase 4 demo 结论：scan glow / archive ring / onboarding float+pulse 三项原样保留，零代码改动。
+- RouteProgress deferred，待 route skeleton 真机评估后再决定；本轮不增加新 FU、不改变计数。
+
+- **边界**: **FU-76 整体仍 active**。本轮仅到 `visual ready for user review`，不自宣 visual PASS / close。详见 `docs/fu76-share-editor-anchor.md` 与 `docs/ui-interaction-spec.md` §12。
 
 ---
 
@@ -1745,6 +1755,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.103 — 2026-07-11**: FU-76 motion gaps 启动（本轮待用户视觉验收，不关闭 FU-76）。新增 `/auth/login` / `/auth/register` 共享 CSS 轻量入场，以及 `(main)` / `(flow)` route-level Skeleton loading；既有 protected 页面和两份 route template 保持不动。Phase 4 demo 结论为 scan glow / archive ring / onboarding float+pulse 三项原样保留。RouteProgress deferred，待 skeleton 真机评估后另议。Active 16 / Closed 95 / Deferred 5 均不变。
 
 **v0.102 — 2026-07-08**: FU-76 Sprint B · Copy Humanization 进入用户验收阶段（不自宣 copy PASS，不关闭 FU-76）。页面侧来源标签改为「GPS 实测」/「上传记录」，分享海报 / share-render 资产保留 `GPS VERIFIED` / `UPLOADED`；导入 / 截图 / Trek / Activity / Profile / Auth / Weather 等用户可见错误展示收敛为中文 fallback + 模块前缀 raw log，不新增响应 shape / error-code contract；注册 / onboarding / import no-match / selected-peak out-of-range / 字段提示等文案按锁定决策人话化。验收轮 F1 将 KML 无坐标解析提示从已失效的 raw message 正则改为 HTTP 422 分支，移除死文案耦合。新增 FU-113（`PROVINCE_RANKING=false` 时注册省份 required 规则复核）与 Deferred FU-114（稳定错误码 route contract + client normalizer 重构）。FU-76 保持 active。Active 15 → 16 · Closed 95 → 95 · Deferred 4 → 5。
 

@@ -146,12 +146,12 @@ function RegisterPageContent() {
   }
 
   return (
-    <div style={{
+    <div className="pt-page-enter" style={{
       minHeight: '100vh', background: 'var(--bg-primary)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '0 24px',
     }}>
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+      <div className="pt-page-enter" style={{ textAlign: 'center', marginBottom: 32 }}>
         <div style={{ fontSize: 36, marginBottom: 10 }}>⛰</div>
         <div className="font-pixel" style={{ fontSize: 11, color: 'var(--green-neon)', textShadow: '0 0 10px var(--green-neon)', letterSpacing: 3 }}>
           PEAK TREKKER
@@ -159,7 +159,7 @@ function RegisterPageContent() {
       </div>
 
       <div style={{ width: '100%', maxWidth: 360 }}>
-        <div className="mountain-card" style={{ padding: 24 }}>
+        <div className="mountain-card pt-page-enter pt-enter-d1" style={{ padding: 24 }}>
           {/* 步骤指示 */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, alignItems: 'center' }}>
             {[1, 2].map(s => (
@@ -234,7 +234,7 @@ function RegisterPageContent() {
             </button>
           </form>
 
-          <div style={{ textAlign: 'center', marginTop: 20, fontSize: 11, fontFamily: 'Share Tech Mono', color: 'var(--text-muted)' }}>
+          <div className="pt-page-enter pt-enter-d2" style={{ textAlign: 'center', marginTop: 20, fontSize: 11, fontFamily: 'Share Tech Mono', color: 'var(--text-muted)' }}>
             已有账号？{' '}
             <Link
               href={returnTo === '/explore' ? '/auth/login' : `/auth/login?from=${encodeURIComponent(returnTo)}`}

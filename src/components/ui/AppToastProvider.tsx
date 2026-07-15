@@ -32,8 +32,8 @@ const FALLBACK_TOAST_CONTEXT: ToastContextValue = {
 function toneStyles(tone: ToastTone) {
   if (tone === 'success') {
     return {
-      borderColor: 'rgba(34,197,94,0.22)',
-      background: 'rgba(34,197,94,0.12)',
+      borderColor: 'rgba(34,197,94,0.35)',
+      background: 'color-mix(in srgb, var(--color-surface-elevated) 86%, var(--color-success))',
       color: 'var(--color-success)',
     }
   }

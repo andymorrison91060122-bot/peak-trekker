@@ -120,7 +120,7 @@ async function completeProvinceOnboarding(page: Page, province = '四川') {
   await expect(page.getByText('先选一个与你有连接的地方。')).toBeVisible({ timeout: 15000 })
   await page.getByRole('button', { name: province }).click()
   await page.getByRole('button', { name: '生成空白执照' }).click()
-  await expect(page.getByRole('heading', { name: '探索' })).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('已经走过？把结果带回来')).toBeVisible({ timeout: 15000 })
 }
 
 async function registerFreshUser(page: Page, province = '四川') {
@@ -218,7 +218,7 @@ test('first-time visitors can skip the intro, anchor a province, and continue to
   await completeProvinceOnboarding(page)
 
   await expect(page.getByText('Activation Checklist')).toHaveCount(0)
-  await expect(page.getByRole('heading', { name: '探索' })).toBeVisible()
+  await expect(page.getByText('已经走过？把结果带回来')).toBeVisible()
   await expect(page.getByText('山峰列表')).toBeVisible()
 })
 
@@ -234,14 +234,17 @@ test('province draft from onboarding prefills the register profile step', async 
 
 test('explore search supports an empty-state recovery path for real users', async ({ page }) => {
   await page.goto('/explore')
-  await expect(page.getByRole('heading', { name: '探索' })).toBeVisible()
+  await expect(page.getByText('已经走过？把结果带回来')).toBeVisible()
 
   const searchInput = page.getByPlaceholder('搜山名、地区、海拔')
   await searchInput.fill('this-mountain-should-not-exist')
-  await expect(page.getByText('没有找到匹配的山峰')).toBeVisible()
+  await expect(page.getByText('没找到这座山', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '继续搜索', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '导入轨迹记录', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '识别成绩截图', exact: true })).toBeVisible()
 
   await searchInput.fill('')
-  await expect(page.getByText('没有找到匹配的山峰')).not.toBeVisible()
+  await expect(page.getByText('没找到这座山', { exact: true })).not.toBeVisible()
   await expect(page.getByTestId('explore-mountain-card').first()).toBeVisible()
 })
 
@@ -256,7 +259,7 @@ test('explore advanced filters combine correctly for real mountain results', asy
   const searchInput = page.getByPlaceholder('搜山名、地区、海拔')
   await searchInput.fill(candidate.province)
   await page.getByRole('button', { name: '展开高级筛选' }).click({ force: true })
-  await page.getByRole('button', { name: DIFFICULTY_FILTER_LABEL[candidate.difficulty], exact: true }).click()
+  await page.getByRole('button', { name: DIFFICULTY_FILTER_LABEL[candidate.difficulty], exact: true }).last().click()
   await page.getByRole('button', { name: altitudeFilterFor(candidate.altitude).label }).click()
   await page.getByRole('button', { name: lengthFilterFor(candidate.lengthKm).label }).click()
 
@@ -529,7 +532,7 @@ test('activity detail keeps record-first actions and embedded photo previews con
 
 test('explore keeps the first screen focused on search filters and mountain cards', async ({ page }) => {
   await page.goto('/explore')
-  await expect(page.getByRole('heading', { name: '探索' })).toBeVisible()
+  await expect(page.getByText('已经走过？把结果带回来')).toBeVisible()
   await expect(page.getByText('找山出发')).toBeVisible()
   await expect(page.getByText('精选路线')).toHaveCount(0)
   await expect(page.getByText('待补素材山峰清单')).toHaveCount(0)
@@ -540,7 +543,7 @@ test('explore keeps the first screen focused on search filters and mountain card
 test('explore cards stay image-first on 375 instead of using a tiny thumbnail layout', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 })
   await page.goto('/explore')
-  await expect(page.getByRole('heading', { name: '探索' })).toBeVisible()
+  await expect(page.getByText('已经走过？把结果带回来')).toBeVisible()
 
   const firstCard = page.getByTestId('explore-mountain-card').first()
   const cover = firstCard.getByTestId('explore-mountain-card-cover')
@@ -557,16 +560,17 @@ test('explore cards stay image-first on 375 instead of using a tiny thumbnail la
   await expect(firstCard.getByTestId('explore-mountain-card-subline')).toBeVisible()
   await expect(firstCard.getByTestId('explore-mountain-card-location')).toBeVisible()
   await expect(firstCard.getByTestId('explore-mountain-card-difficulty')).toBeVisible()
-  await expect(firstCard.getByTestId('explore-mountain-card-metrics')).toBeVisible()
-  await expect(firstCard.getByTestId('difficulty-chip')).toBeVisible()
-  await expect(firstCard.getByTestId('explore-mountain-card-metrics').locator('.metric-label')).toHaveCount(3)
+  await expect(firstCard.getByTestId('explore-mountain-card-altitude')).toBeVisible()
+  await expect(firstCard.getByTestId('explore-mountain-card-difficulty')).toContainText(/入门线|进阶线/)
 
   const bodyBox = await body.boundingBox()
   const cardBox = await firstCard.boundingBox()
   expect(bodyBox).toBeTruthy()
   expect(cardBox).toBeTruthy()
-  expect(bodyBox!.height).toBeLessThan(175)
-  expect(cardBox!.height).toBeLessThan(360)
+  expect(cardBox!.height).toBeGreaterThanOrEqual(184)
+  expect(cardBox!.height).toBeLessThanOrEqual(188)
+  expect(Math.abs(bodyBox!.height - box!.height)).toBeLessThanOrEqual(1)
+  expect(Math.abs(cardBox!.height - box!.height)).toBeLessThanOrEqual(2)
 })
 
 test('poster preview supports classic card, photo composite, and transparent overlay modes', async ({ request }) => {

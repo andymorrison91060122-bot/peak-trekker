@@ -8,7 +8,7 @@ import {
   normalizeMountainRequestInput,
 } from '../src/lib/mountain-requests.ts'
 
-const migration = readFileSync('supabase/migrations/20260530093000_create_mountain_requests_table.sql', 'utf8')
+const migration = readFileSync('supabase/migrations/20260530063134_20260530093000_create_mountain_requests_table.sql', 'utf8')
 const importClient = readFileSync('src/app/(flow)/import/ImportClient.tsx', 'utf8')
 const apiRoute = readFileSync('src/app/api/mountain-requests/route.ts', 'utf8')
 const adminClient = readFileSync('src/app/admin/mountains/requests/AdminMountainRequestsClient.tsx', 'utf8')

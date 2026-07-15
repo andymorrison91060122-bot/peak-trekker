@@ -12,7 +12,7 @@ import {
 } from './community.helpers'
 
 const OUTPUT_DIR = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu76-p2iii-acceptance'
-const FU110_OUTPUT_DIR = join(OUTPUT_DIR, 'fu110-explore')
+const FU110_OUTPUT_DIR = join(process.cwd(), 'output/fu86-explore-acceptance/fu110-strong-coupling')
 const FU111_OUTPUT_DIR = '/Users/liuhongyuan/Desktop/peak-trekker/output/fu111-acceptance'
 const STORAGE_STATE = join(OUTPUT_DIR, 'fu76-p2iii-storage-state.json')
 
@@ -30,7 +30,7 @@ type ExploreMountainEvidenceRow = {
   length_km?: number | null
 }
 
-type ExploreReplayReason = 'geo' | 'tag' | 'province' | 'advancedFilter'
+type ExploreReplayReason = 'geo' | 'tag' | 'advancedFilter'
 type ExploreReplayReasonLog = {
   queuedReasons: ExploreReplayReason[]
   firedReplayReasons: ExploreReplayReason[]
@@ -1466,13 +1466,14 @@ test('FU-111 global L1 press feedback evidence', async ({ browser, page, baseURL
   await addPress('explore-import-hero', '[data-explore-pathway-button="导入记录"]')
   await addPress('explore-screenshot-hero', '[data-explore-pathway-button="识别截图"]')
   const pathwayTransformSeparation = await pressPage.evaluate(() => {
-    const wrapper = document.querySelector<HTMLElement>('[data-explore-pathway-card="导入记录"]')
+    const scenePanel = document.querySelector<HTMLElement>('[data-explore-motion="pathways"]')
+    const pathwayTarget = document.querySelector<HTMLElement>('[data-explore-pathway-card="导入记录"]')
     const button = document.querySelector<HTMLElement>('[data-explore-pathway-button="导入记录"]')
     return {
-      sameNode: wrapper === button,
-      wrapperHasPressClass: Boolean(wrapper?.className?.includes('pt-pathway-press')),
+      sameNode: pathwayTarget === button,
+      scenePanelHasPressClass: Boolean(scenePanel?.className?.includes('pt-pathway-press')),
       buttonHasPressClass: Boolean(button?.className?.includes('pt-pathway-press')),
-      wrapperTransform: wrapper ? window.getComputedStyle(wrapper).transform : null,
+      scenePanelTransform: scenePanel ? window.getComputedStyle(scenePanel).transform : null,
       buttonTransform: button ? window.getComputedStyle(button).transform : null,
     }
   })
@@ -1620,8 +1621,8 @@ test('FU-111 global L1 press feedback evidence', async ({ browser, page, baseURL
   expect(exploreImportClickNavigates).toBe(true)
   expect(exploreScreenshotClickNavigates).toBe(true)
   expect(exploreCardClickNavigates).toBe(true)
-  expect(pathwayTransformSeparation.sameNode).toBe(false)
-  expect(pathwayTransformSeparation.wrapperHasPressClass).toBe(false)
+  expect(pathwayTransformSeparation.sameNode).toBe(true)
+  expect(pathwayTransformSeparation.scenePanelHasPressClass).toBe(false)
   expect(pathwayTransformSeparation.buttonHasPressClass).toBe(true)
   expect(exploreTransformSeparation.outerHasPressClass).toBe(false)
   expect(exploreTransformSeparation.innerHasPressClass).toBe(true)
@@ -2052,7 +2053,7 @@ test('FU-110 Explore entrance and async source replay evidence', async ({ browse
   const emptyActions = [
     {
       label: `difficulty:${emptyCombo.difficulty}`,
-      locator: geoPage.getByRole('button', { name: EXPLORE_DIFFICULTY_LABEL[emptyCombo.difficulty], exact: true }),
+      locator: geoPage.getByRole('button', { name: EXPLORE_DIFFICULTY_LABEL[emptyCombo.difficulty], exact: true }).last(),
     },
     {
       label: `altitude:${emptyCombo.altitude}`,
@@ -2112,7 +2113,7 @@ test('FU-110 Explore entrance and async source replay evidence', async ({ browse
   await attachCapture(collisionPage, collisionConsole, collisionErrors)
   await collisionPage.goto('/explore', { waitUntil: 'domcontentloaded' })
   await collisionPage.locator('.explore-filter-chip').first().waitFor({ state: 'visible', timeout: 20_000 })
-  for (const label of ['高海拔', '长线', '附近', '无需执照', '附近']) {
+  for (const label of ['5000m+', '进阶线', '附近', '入门线', '附近']) {
     const chip = collisionPage.getByRole('button', { name: label, exact: true })
     if (await chip.isVisible().catch(() => false)) await chip.click()
   }

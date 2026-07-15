@@ -760,7 +760,7 @@ select {
 .pt-pathway-press:active:not(:disabled, [aria-disabled='true']),
 .pt-pathway-press[data-pt-press-active='true']:not(:disabled, [aria-disabled='true']) {
   transform: scale(.975);
-  filter: brightness(1.01);
+  filter: brightness(1.06);
   border-color: color-mix(in srgb, var(--color-primary) 34%, transparent);
   transition:
     transform var(--motion-press) var(--ease-out),
@@ -771,6 +771,28 @@ select {
 .pt-pathway-press:active:not(:disabled, [aria-disabled='true'])::after,
 .pt-pathway-press[data-pt-press-active='true']:not(:disabled, [aria-disabled='true'])::after {
   opacity: 1;
+}
+
+.pt-pathway-press:active:not(:disabled, [aria-disabled='true']) .explore-scene-panel__title,
+.pt-pathway-press[data-pt-press-active='true']:not(:disabled, [aria-disabled='true']) .explore-scene-panel__title {
+  opacity: 0;
+  transform: translateY(-3px);
+}
+
+.pt-pathway-press:active:not(:disabled, [aria-disabled='true']) .explore-scene-panel__prompt,
+.pt-pathway-press[data-pt-press-active='true']:not(:disabled, [aria-disabled='true']) .explore-scene-panel__prompt {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pt-pathway-press:active:not(:disabled, [aria-disabled='true']) .explore-scene-panel__icon--import,
+.pt-pathway-press[data-pt-press-active='true']:not(:disabled, [aria-disabled='true']) .explore-scene-panel__icon--import {
+  transform: translateY(-2px);
+}
+
+.pt-pathway-press:active:not(:disabled, [aria-disabled='true']) .explore-scene-panel__icon--screenshot,
+.pt-pathway-press[data-pt-press-active='true']:not(:disabled, [aria-disabled='true']) .explore-scene-panel__icon--screenshot {
+  transform: scale(.92);
 }
 
 .pt-tab-link.pt-pressable:active,
@@ -1006,7 +1028,10 @@ select {
   }
 
   .pt-pathway-press,
-  .pt-pathway-press::after {
+  .pt-pathway-press::after,
+  .explore-scene-panel__title,
+  .explore-scene-panel__prompt,
+  .explore-scene-panel__icon {
     transition: none !important;
   }
 
@@ -1026,6 +1051,18 @@ select {
 	  .pt-pressable-hero[data-pt-press-active='true']:not(:disabled, [aria-disabled='true']) .pt-pressable-hero__icon {
 	    transform: none;
 	  }
+
+  .pt-pathway-press:active:not(:disabled, [aria-disabled='true']) .explore-scene-panel__icon,
+  .pt-pathway-press[data-pt-press-active='true']:not(:disabled, [aria-disabled='true']) .explore-scene-panel__icon {
+    transform: none;
+  }
+
+  .pt-pathway-press:active:not(:disabled, [aria-disabled='true']) .explore-scene-panel__title,
+  .pt-pathway-press[data-pt-press-active='true']:not(:disabled, [aria-disabled='true']) .explore-scene-panel__title,
+  .pt-pathway-press:active:not(:disabled, [aria-disabled='true']) .explore-scene-panel__prompt,
+  .pt-pathway-press[data-pt-press-active='true']:not(:disabled, [aria-disabled='true']) .explore-scene-panel__prompt {
+    transform: none;
+  }
 
   .pt-spinner {
     animation: none !important;

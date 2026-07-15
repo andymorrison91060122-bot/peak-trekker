@@ -8,20 +8,21 @@ import {
   useRef,
   useState,
   type FocusEvent,
+  type KeyboardEvent,
+  type MouseEvent,
   type PointerEvent,
-  type ReactNode,
 } from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import ProvinceBannerStrip, { type ProvinceBannerData } from '@/components/explore/ProvinceBannerStrip'
-import { ONBOARDING_EVENT, getProvinceDraft } from '@/lib/onboarding'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import ExploreMountainCard from '@/components/ui/ExploreMountainCard'
+import { useAppToast } from '@/components/ui/AppToastProvider'
 import Chip from '@/components/ui/Chip'
 import EmptyState from '@/components/ui/EmptyState'
 import SectionHeader from '@/components/ui/SectionHeader'
-import { CameraIcon, FilterIcon, SearchIcon, ShareIcon } from '@/components/ui/Icons'
+import { FilterIcon, SearchIcon } from '@/components/ui/Icons'
 import { getDifficultyLevelLabel } from '@/lib/license-ui'
 import { storePendingShareTemplate } from '@/lib/share-template-intent'
 import type { Mountain } from '@/types'
@@ -30,20 +31,29 @@ import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 gsap.registerPlugin(useGSAP)
 
 const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
-const QUICK_TAGS = provinceRankingEnabled
-  ? (['附近', '本省热门', '无需执照', '高海拔', '长线'] as const)
-  : (['附近', '无需执照', '高海拔', '长线'] as const)
+const QUICK_TAGS = ['附近', '入门线', '进阶线', '5000m+'] as const
 
-type ExploreReplayReason = 'geo' | 'tag' | 'province' | 'advancedFilter'
+type ExploreReplayReason = 'geo' | 'tag' | 'advancedFilter' | 'search'
 type ExploreReplayReasonLayer = 'queuedReasons' | 'firedReplayReasons'
 type ExploreReplayReasonState = Record<ExploreReplayReasonLayer, ExploreReplayReason[]>
 type ExplorePosition = { lat: number; lng: number }
-type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
+type ExploreResultKind = 'results' | 'rich-empty' | 'filter-empty'
+type PressFallbackEvent =
+  | PointerEvent<HTMLElement>
+  | FocusEvent<HTMLElement>
+  | KeyboardEvent<HTMLElement>
+  | MouseEvent<HTMLElement>
 
 let cachedExplorePosition: ExplorePosition | null = null
 
 function markPressFallback(event: PointerEvent<HTMLElement>) {
   event.currentTarget.dataset.ptPressActive = 'true'
+}
+
+function markKeyboardPressFallback(event: KeyboardEvent<HTMLElement>) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.currentTarget.dataset.ptPressActive = 'true'
+  }
 }
 
 function clearPressFallback(event: PressFallbackEvent) {
@@ -73,6 +83,26 @@ function estimateLength(mountain: Mountain) {
   return mountain.length_km ?? Number(Math.max(4.2, Math.min(26, mountain.altitude / 260)).toFixed(1))
 }
 
+function normalizeExploreSearchText(value: string) {
+  return value.trim().toLowerCase().replace(/[\s,，]/g, '')
+}
+
+function mountainMatchesExploreSearch(mountain: Mountain, rawQuery: string) {
+  const query = normalizeExploreSearchText(rawQuery)
+  if (!query) return true
+
+  const altitude = String(mountain.altitude)
+  return [
+    mountain.name,
+    mountain.province,
+    altitude,
+    `${altitude}m`,
+    `${altitude}米`,
+    `海拔${altitude}m`,
+    `海拔${altitude}米`,
+  ].some((value) => normalizeExploreSearchText(value).includes(query))
+}
+
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371
   const dLat = ((lat2 - lat1) * Math.PI) / 180
@@ -99,7 +129,6 @@ function parseMotionTokenSeconds(root: HTMLElement, tokenName: string, fallbackM
 
 export default function ExploreClient({
   list,
-  hometownProvince,
   provinceBanner,
   shareTemplateIntent,
 }: {
@@ -109,14 +138,14 @@ export default function ExploreClient({
   shareTemplateIntent?: ShareRenderTemplate | null
 }) {
   const router = useRouter()
+  const { showToast } = useAppToast()
   const motionScopeRef = useRef<HTMLDivElement | null>(null)
+  const sceneVideoRef = useRef<HTMLVideoElement | null>(null)
   const replayExploreListRef = useRef<((reasons: ExploreReplayReason[]) => void) | null>(null)
   const terminalizeExploreListRef = useRef<(() => void) | null>(null)
   const pendingExploreReplayRef = useRef(false)
   const pendingExploreReplayReasonsRef = useRef<Set<ExploreReplayReason>>(new Set())
   const mountSettledRef = useRef(false)
-  const draftProvinceInitialSyncDoneRef = useRef(false)
-  const draftProvinceRef = useRef<string | null>(hometownProvince)
   const positionRef = useRef<ExplorePosition | null>(cachedExplorePosition)
   const lastVisibleFirst4IdsRef = useRef<string[]>([])
   const mountTimelineRef = useRef<gsap.core.Timeline | null>(null)
@@ -127,7 +156,6 @@ export default function ExploreClient({
   const [altitudeBand, setAltitudeBand] = useState<'all' | 'low' | 'mid' | 'high'>('all')
   const [lengthBand, setLengthBand] = useState<'all' | 'short' | 'mid' | 'long'>('all')
   const [position, setPosition] = useState<ExplorePosition | null>(() => cachedExplorePosition)
-  const [draftProvince, setDraftProvince] = useState<string | null>(hometownProvince)
 
   useEffect(() => {
     if (!shareTemplateIntent) return
@@ -181,27 +209,6 @@ export default function ExploreClient({
     )
   }, [queueExploreListReplay])
 
-  useEffect(() => {
-    const syncDraftProvince = () => {
-      const nextProvince = getProvinceDraft()
-      const previousProvince = draftProvinceRef.current
-      const isInitialSync = !draftProvinceInitialSyncDoneRef.current
-      draftProvinceInitialSyncDoneRef.current = true
-      if (previousProvince === nextProvince) return
-      draftProvinceRef.current = nextProvince
-      if (!isInitialSync && hometownProvince === null) queueExploreListReplay('province')
-      setDraftProvince(nextProvince)
-    }
-    syncDraftProvince()
-    window.addEventListener(ONBOARDING_EVENT, syncDraftProvince)
-    window.addEventListener('storage', syncDraftProvince)
-    return () => {
-      window.removeEventListener(ONBOARDING_EVENT, syncDraftProvince)
-      window.removeEventListener('storage', syncDraftProvince)
-    }
-  }, [hometownProvince, queueExploreListReplay])
-
-  const effectiveProvince = hometownProvince ?? draftProvince
   const sorted = useMemo(() => {
     const withDistance = list.map((mountain) => ({
       mountain,
@@ -211,33 +218,25 @@ export default function ExploreClient({
 
     return withDistance.sort((a, b) => {
       if (tag === '附近' && a.distance !== null && b.distance !== null) return a.distance - b.distance
-      if (provinceRankingEnabled && tag === '本省热门') {
-        const aMatch = effectiveProvince ? a.mountain.province === effectiveProvince : false
-        const bMatch = effectiveProvince ? b.mountain.province === effectiveProvince : false
-        if (aMatch !== bMatch) return aMatch ? -1 : 1
-      }
       return b.mountain.checkin_count - a.mountain.checkin_count
     })
-  }, [effectiveProvince, list, position, tag])
+  }, [list, position, tag])
+
+  const rawSearchMatches = useMemo(
+    () => sorted.filter(({ mountain }) => mountainMatchesExploreSearch(mountain, search)),
+    [search, sorted],
+  )
 
   const filtered = useMemo(() => {
-    return sorted.filter(({ mountain, length }) => {
-      const query = search.trim().toLowerCase()
-      const matchesSearch =
-        !query ||
-        mountain.name.toLowerCase().includes(query) ||
-        mountain.province.toLowerCase().includes(query)
-
+    return rawSearchMatches.filter(({ mountain, length }) => {
       const matchesTag =
         tag === '附近'
           ? true
-          : provinceRankingEnabled && tag === '本省热门'
-            ? effectiveProvince ? mountain.province === effectiveProvince : true
-            : tag === '无需执照'
-              ? mountain.difficulty === 'beginner'
-              : tag === '高海拔'
-                ? mountain.altitude >= 3500
-                : length >= 12
+          : tag === '入门线'
+            ? mountain.difficulty === 'beginner'
+            : tag === '进阶线'
+              ? mountain.difficulty !== 'beginner'
+              : mountain.altitude >= 5000
 
       const matchesDifficulty = difficulty === 'all' || mountain.difficulty === difficulty
       const matchesAltitude =
@@ -252,23 +251,117 @@ export default function ExploreClient({
         (lengthBand === 'mid' && length >= 8 && length < 16) ||
         (lengthBand === 'long' && length >= 16)
 
-      return matchesSearch && matchesTag && matchesDifficulty && matchesAltitude && matchesLength
+      return matchesTag && matchesDifficulty && matchesAltitude && matchesLength
     })
-  }, [sorted, search, tag, difficulty, altitudeBand, lengthBand, effectiveProvince])
+  }, [rawSearchMatches, tag, difficulty, altitudeBand, lengthBand])
 
   const filteredMountainSignature = useMemo(
     () => filtered.map(({ mountain }) => mountain.id).join('|'),
     [filtered],
   )
   const activeFilterCount = [difficulty, altitudeBand, lengthBand].filter((value) => value !== 'all').length
+  const hasSearchQuery = search.trim() !== ''
+  const searchHasNoRawMatches = hasSearchQuery && rawSearchMatches.length === 0
+  const exploreResultKind: ExploreResultKind = searchHasNoRawMatches
+    ? 'rich-empty'
+    : filtered.length === 0
+      ? 'filter-empty'
+      : 'results'
+  const previousExploreResultKindRef = useRef<ExploreResultKind>(exploreResultKind)
+  const previousSearchRef = useRef(search)
+  const previousFilteredMountainSignatureRef = useRef(filteredMountainSignature)
+
+  useEffect(() => {
+    const video = sceneVideoRef.current
+    if (!video) return
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    let disposed = false
+    let retryArmed = false
+    let retryUsed = false
+
+    const showPoster = () => {
+      video.pause()
+      try {
+        video.currentTime = 0
+      } catch {
+        // Metadata may not be available yet; the poster still remains visible.
+      }
+      video.dataset.exploreVideoState = 'poster'
+    }
+
+    const pauseHiddenVideo = () => {
+      video.pause()
+      video.dataset.exploreVideoState = 'hidden'
+    }
+
+    const removeRetryListeners = () => {
+      if (!retryArmed) return
+      retryArmed = false
+      window.removeEventListener('pointerdown', retryPlayback)
+      window.removeEventListener('keydown', retryPlayback)
+    }
+
+    const retryPlayback = () => {
+      removeRetryListeners()
+      if (disposed || retryUsed || reducedMotion.matches) return
+      retryUsed = true
+      void attemptPlayback(false)
+    }
+
+    const armPlaybackRetry = () => {
+      if (retryArmed || retryUsed || reducedMotion.matches) return
+      retryArmed = true
+      window.addEventListener('pointerdown', retryPlayback, { once: true })
+      window.addEventListener('keydown', retryPlayback, { once: true })
+    }
+
+    const attemptPlayback = async (allowRetry: boolean) => {
+      try {
+        await video.play()
+        if (disposed || reducedMotion.matches || exploreResultKind === 'rich-empty') {
+          if (exploreResultKind === 'rich-empty' && !reducedMotion.matches) pauseHiddenVideo()
+          else showPoster()
+          return
+        }
+        video.dataset.exploreVideoState = 'playing'
+        removeRetryListeners()
+      } catch {
+        if (disposed) return
+        showPoster()
+        if (allowRetry) armPlaybackRetry()
+      }
+    }
+
+    const syncPlaybackPreference = () => {
+      removeRetryListeners()
+      if (reducedMotion.matches) {
+        showPoster()
+        return
+      }
+      if (exploreResultKind === 'rich-empty') {
+        pauseHiddenVideo()
+        return
+      }
+      void attemptPlayback(true)
+    }
+
+    syncPlaybackPreference()
+    reducedMotion.addEventListener('change', syncPlaybackPreference)
+    return () => {
+      disposed = true
+      removeRetryListeners()
+      reducedMotion.removeEventListener('change', syncPlaybackPreference)
+      video.pause()
+    }
+  }, [exploreResultKind])
+
   const goImport = () => router.push('/import')
   const goScreenshot = () => router.push('/screenshot')
   const mountainListDescription =
     tag === '附近' && position
       ? '已按你当前位置由近到远排序'
-      : provinceRankingEnabled && tag === '本省热门' && effectiveProvince
-        ? `已优先展示 ${effectiveProvince} 的热门路线`
-        : `当前找到 ${filtered.length} 座可选山峰`
+      : `当前找到 ${filtered.length} 座可选山峰`
 
   function handleTagChange(nextTag: (typeof QUICK_TAGS)[number]) {
     if (nextTag === tag) return
@@ -294,6 +387,13 @@ export default function ExploreClient({
     setLengthBand(nextLengthBand)
   }
 
+  function showExploreMountainRequestPlaceholder() {
+    showToast({
+      tone: 'success',
+      message: '已收到您的山峰收录申请，后续我们审核过后会逐步对山峰进行开放',
+    })
+  }
+
   useGSAP((_context, contextSafe) => {
     const root = motionScopeRef.current
     if (!root) return
@@ -315,6 +415,12 @@ export default function ExploreClient({
     const getScopedTargets = (selector: string, scope: ParentNode = root) =>
       uniqueConnectedTargets(gsap.utils.toArray<HTMLElement>(scope.querySelectorAll(selector)))
     const getFirstScreenMountainCards = () => getScopedTargets('[data-testid="explore-mountain-card"]').slice(0, 4)
+    const getPathwayIconPaths = () => getScopedTargets('[data-explore-pathway-icon-path]')
+    const settleMountGates = (targets: HTMLElement[]) => {
+      uniqueConnectedTargets(targets).forEach((target) => {
+        if (target.dataset.exploreMountState) target.dataset.exploreMountState = 'settled'
+      })
+    }
     const getMountainCardId = (card: HTMLElement) =>
       (card.getAttribute('href') ?? '').split('/').filter(Boolean).at(-1) ?? ''
     const updateLastVisibleFirst4Ids = () => {
@@ -352,6 +458,25 @@ export default function ExploreClient({
       if (updateLastVisible) updateLastVisibleFirst4Ids()
     }
 
+    const terminalizePathwayIcons = () => {
+      const pathwayIconPaths = getPathwayIconPaths()
+      if (pathwayIconPaths.length === 0) return
+      setOutsideContext(pathwayIconPaths, {
+        strokeDasharray: 24,
+        strokeDashoffset: 0,
+        clearProps: 'strokeDasharray,strokeDashoffset,willChange,transform',
+      })
+    }
+
+    const terminalizePathwayIconsForCleanup = () => {
+      getPathwayIconPaths().forEach((path) => {
+        path.style.strokeDasharray = ''
+        path.style.strokeDashoffset = ''
+        path.style.willChange = ''
+        path.style.transform = ''
+      })
+    }
+
     const terminalizeExploreMotion = (updateLastVisible = true) => {
       if (!root.isConnected) return
       const targets = getExploreMotionTargets()
@@ -362,12 +487,17 @@ export default function ExploreClient({
         scale: 1,
         clearProps: 'willChange,transform',
       })
+      terminalizePathwayIcons()
+      settleMountGates(targets)
       if (updateLastVisible) updateLastVisibleFirst4Ids()
     }
 
     const terminalizeExploreMotionForCleanup = (updateLastVisible = true) => {
       if (!root.isConnected) return
-      applyTerminalDomStyles(getExploreMotionTargets(), updateLastVisible)
+      const targets = getExploreMotionTargets()
+      applyTerminalDomStyles(targets, updateLastVisible)
+      terminalizePathwayIconsForCleanup()
+      settleMountGates(targets)
     }
 
     let exploreListReplayTimeline: gsap.core.Timeline | null = null
@@ -382,6 +512,7 @@ export default function ExploreClient({
         scale: 1,
         clearProps: 'willChange,transform',
       })
+      settleMountGates(terminalTargets)
       if (updateLastVisible) updateLastVisibleFirst4Ids()
     }
 
@@ -390,6 +521,7 @@ export default function ExploreClient({
       const { terminalTargets } = getLiveExploreListTargets()
       if (terminalTargets.length === 0) return
       applyTerminalDomStyles(terminalTargets, updateLastVisible)
+      settleMountGates(terminalTargets)
     }
 
     const stopExploreListReplay = () => {
@@ -517,7 +649,6 @@ export default function ExploreClient({
           const cardDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.16)
           const schedule = {
             shell: 0,
-            header: 0.04,
             search: 0.12,
             pathways: 0.22,
             pathwayCards: 0.26,
@@ -528,11 +659,14 @@ export default function ExploreClient({
           } as const
           const motionMap = new Map(getScopedTargets('[data-explore-motion]').map((target) => [target.dataset.exploreMotion, target]))
           const pathwayCards = getScopedTargets('[data-explore-pathway-card]')
+          const pathwayIconPaths = getPathwayIconPaths()
           const quickTagChips = getScopedTargets('.explore-filter-chip')
           const firstScreenCards = getFirstScreenMountainCards()
           const animatedTargets = getExploreMotionTargets()
 
           if (animatedTargets.length > 0) setOutsideContext(animatedTargets, { willChange: 'transform, opacity' })
+          const scenePanel = motionMap.get('pathways')
+          if (scenePanel) scenePanel.dataset.exploreMountState = 'running'
           firstScreenCards.forEach((card, index) => {
             card.dataset.exploreMotionParticipation = 'first-screen'
             card.dataset.exploreMotionIndex = String(index)
@@ -565,7 +699,6 @@ export default function ExploreClient({
             timeline.fromTo(target, fromVars, toVars, label)
           }
 
-          addMotion('header', 'header', schedule.header, 14, 0.98)
           addMotion('search', 'search', schedule.search, 18, 0.96)
           addMotion('pathways', 'pathways', schedule.pathways, 18, 0.96)
           if (pathwayCards.length > 0) {
@@ -577,6 +710,15 @@ export default function ExploreClient({
               ease: 'back.out(1.3)',
               stagger: { each: 0.035, from: 'start' },
             }, schedule.pathwayCards)
+          }
+          if (pathwayIconPaths.length > 0) {
+            timeline.fromTo(pathwayIconPaths, { strokeDasharray: 24, strokeDashoffset: 24 }, {
+              strokeDasharray: 24,
+              strokeDashoffset: 0,
+              duration: fastDuration,
+              ease: 'power3.out',
+              stagger: { each: 0.035, from: 'start' },
+            }, schedule.pathwayCards + 0.04)
           }
           addMotion('list-heading', 'listHeading', schedule.listHeading, 14, 0.98)
           if (quickTagChips.length > 0) {
@@ -637,8 +779,24 @@ export default function ExploreClient({
   }, { scope: motionScopeRef, dependencies: [] })
 
   useLayoutEffect(() => {
+    const previousResultKind = previousExploreResultKindRef.current
+    const previousSignature = previousFilteredMountainSignatureRef.current
+    const searchChanged = previousSearchRef.current !== search
+    const signatureChanged = previousSignature !== filteredMountainSignature
+
+    previousExploreResultKindRef.current = exploreResultKind
+    previousFilteredMountainSignatureRef.current = filteredMountainSignature
+    previousSearchRef.current = search
+
+    if (searchChanged && previousResultKind !== 'results' && exploreResultKind === 'results') {
+      queueExploreListReplay('search')
+    } else if (searchChanged && previousResultKind === 'results' && exploreResultKind === 'results' && signatureChanged) {
+      terminalizeExploreListRef.current?.()
+    } else if (searchChanged && (signatureChanged || previousResultKind !== exploreResultKind)) {
+      terminalizeExploreListRef.current?.()
+    }
     flushPendingExploreListReplay()
-  }, [tag, effectiveProvince, difficulty, altitudeBand, lengthBand, position, filteredMountainSignature])
+  }, [tag, difficulty, altitudeBand, lengthBand, position, filteredMountainSignature, search, exploreResultKind, queueExploreListReplay])
 
   return (
     <>
@@ -658,20 +816,6 @@ export default function ExploreClient({
           minWidth: 0,
         }}
       >
-        <header data-explore-motion="header" style={{ textAlign: 'center' }}>
-          <h1
-            style={{
-              margin: 0,
-              color: 'var(--color-on-surface)',
-              fontSize: 'var(--font-headline-m-size)',
-              lineHeight: 'var(--font-headline-m-line)',
-              fontWeight: 'var(--font-headline-m-weight)',
-            }}
-          >
-            探索
-          </h1>
-        </header>
-
         <section
           aria-label="探索搜索"
           data-explore-motion="search"
@@ -765,38 +909,61 @@ export default function ExploreClient({
 
         <section
           aria-label="山行入口"
+          className="explore-scene-panel"
           data-explore-motion="pathways"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-            gap: 'var(--space-3)',
-            minWidth: 0,
-          }}
+          data-explore-mount-state="pending"
+          hidden={exploreResultKind === 'rich-empty'}
         >
-          <PathwayCard
-            icon={<ShareIcon size={24} />}
-            title="导入记录"
-            description="导入轨迹文件，分享你的登顶记录"
-            onClick={goImport}
+          <video
+            ref={sceneVideoRef}
+            className="explore-scene-panel__video"
+            src="/explore/explore-hero.mp4"
+            poster="/explore/explore-hero-poster.jpg"
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-hidden="true"
+            data-explore-video-state="poster"
           />
-          <PathwayCard
-            icon={<CameraIcon size={24} />}
-            title="识别截图"
-            description="上传其他 APP 轨迹截图，分享你的登顶记录"
-            onClick={goScreenshot}
-          />
+          <div className="explore-scene-panel__scrim" aria-hidden="true" />
+          <div className="explore-scene-panel__copy">
+            <p className="explore-scene-panel__eyebrow">已经走过？把结果带回来</p>
+            <p className="explore-scene-panel__subtitle">走过的路，值得留下来</p>
+          </div>
+          <div className="explore-scene-panel__actions">
+            <ScenePathwayButton
+              kind="import"
+              title="导入记录"
+              prompt="选择记录文件 →"
+              onClick={goImport}
+            />
+            <ScenePathwayButton
+              kind="screenshot"
+              title="识别截图"
+              prompt="挑一张截图 →"
+              onClick={goScreenshot}
+            />
+          </div>
         </section>
 
-        <section
-          aria-labelledby="mountain-list-heading"
-          style={{
-            marginTop: 'var(--space-2)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-4)',
-            minWidth: 0,
-          }}
-        >
+        {exploreResultKind === 'rich-empty' ? (
+          <ExploreSearchEmptyState
+            goImport={goImport}
+            goScreenshot={goScreenshot}
+            onSubmitMountainRequest={showExploreMountainRequestPlaceholder}
+          />
+        ) : (
+          <section
+            aria-labelledby="mountain-list-heading"
+            style={{
+              marginTop: 'var(--space-2)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-4)',
+              minWidth: 0,
+            }}
+          >
           <p
             id="mountain-list-heading"
             data-explore-motion="list-heading"
@@ -942,6 +1109,7 @@ export default function ExploreClient({
           {filtered.length === 0 ? (
             <EmptyState
               data-explore-list-empty
+              data-explore-empty-kind="filter"
               className="pt-empty-state--surface"
               icon={<SearchIcon size={22} />}
               title="没有找到匹配的山峰"
@@ -956,99 +1124,351 @@ export default function ExploreClient({
                 minWidth: 0,
               }}
             >
-              {filtered.map(({ mountain }) => (
-                <ExploreMountainCard key={mountain.id} mountain={mountain} />
+              {filtered.map(({ mountain, length }, index) => (
+                <ExploreMountainCard
+                  key={mountain.id}
+                  mountain={mountain}
+                  filterLengthKm={length}
+                  mountPending={index < 4 && !mountSettledRef.current}
+                />
               ))}
             </div>
           )}
-        </section>
+          </section>
+        )}
       </div>
     </>
   )
 }
 
-function PathwayCard({
-  icon,
+function ExploreSearchEmptyState({
+  goImport,
+  goScreenshot,
+  onSubmitMountainRequest,
+}: {
+  goImport: () => void
+  goScreenshot: () => void
+  onSubmitMountainRequest: () => void
+}) {
+  const actionVideoRefs = useRef<Array<HTMLVideoElement | null>>([])
+
+  useEffect(() => {
+    const videos = actionVideoRefs.current.filter((video): video is HTMLVideoElement => video !== null)
+    if (videos.length === 0) return
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const retryTargets = new Set<HTMLVideoElement>()
+    let disposed = false
+    let retryArmed = false
+    let retryUsed = false
+
+    const showPoster = (video: HTMLVideoElement) => {
+      video.pause()
+      try {
+        video.currentTime = 0
+      } catch {
+        // The poster remains visible even when metadata is unavailable.
+      }
+      video.dataset.exploreEmptyVideoState = 'poster'
+    }
+
+    const removeRetryListeners = () => {
+      if (!retryArmed) return
+      retryArmed = false
+      window.removeEventListener('pointerdown', retryPlayback)
+      window.removeEventListener('keydown', retryPlayback)
+    }
+
+    const attemptPlayback = async (video: HTMLVideoElement, allowRetry: boolean) => {
+      try {
+        await video.play()
+        if (disposed || reducedMotion.matches) {
+          showPoster(video)
+          return
+        }
+        retryTargets.delete(video)
+        video.dataset.exploreEmptyVideoState = 'playing'
+        if (retryTargets.size === 0) removeRetryListeners()
+      } catch {
+        if (disposed) return
+        showPoster(video)
+        if (allowRetry) {
+          retryTargets.add(video)
+          armPlaybackRetry()
+        }
+      }
+    }
+
+    const retryPlayback = () => {
+      removeRetryListeners()
+      if (disposed || retryUsed || reducedMotion.matches) return
+      retryUsed = true
+      const targets = [...retryTargets]
+      retryTargets.clear()
+      targets.forEach((video) => { void attemptPlayback(video, false) })
+    }
+
+    const armPlaybackRetry = () => {
+      if (retryArmed || retryUsed || reducedMotion.matches) return
+      retryArmed = true
+      window.addEventListener('pointerdown', retryPlayback, { once: true })
+      window.addEventListener('keydown', retryPlayback, { once: true })
+    }
+
+    const syncPlaybackPreference = () => {
+      removeRetryListeners()
+      retryTargets.clear()
+      if (reducedMotion.matches) {
+        videos.forEach(showPoster)
+        return
+      }
+      videos.forEach((video) => { void attemptPlayback(video, true) })
+    }
+
+    syncPlaybackPreference()
+    reducedMotion.addEventListener('change', syncPlaybackPreference)
+    return () => {
+      disposed = true
+      removeRetryListeners()
+      retryTargets.clear()
+      reducedMotion.removeEventListener('change', syncPlaybackPreference)
+      videos.forEach((video) => video.pause())
+    }
+  }, [])
+
+  return (
+    <section
+      data-explore-list-empty
+      data-explore-empty-kind="search"
+      className="explore-search-empty"
+      aria-labelledby="explore-search-empty-title"
+    >
+      <svg
+        className="explore-search-empty__ridge"
+        width="150"
+        height="70"
+        viewBox="0 0 150 70"
+        fill="none"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          <linearGradient id="explore-empty-ridge-fade" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="var(--color-outline)" stopOpacity="0" />
+            <stop offset="42%" stopColor="var(--color-outline)" />
+            <stop offset="58%" stopColor="var(--color-outline)" />
+            <stop offset="100%" stopColor="var(--color-outline)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M4 58 28 32l16 12 22-28 20 22 18-12 42 26"
+          stroke="url(#explore-empty-ridge-fade)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="66" cy="16" r="3" fill="var(--color-on-surface-variant)" />
+        <path d="m62 12 8 8m0-8-8 8" stroke="var(--color-on-surface-variant)" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+
+      <div className="explore-search-empty__heading">
+        <h2 id="explore-search-empty-title">没找到这座山</h2>
+        <p>Peak Trekker 收录的山有限。如果你已经走过它，可以直接把结果带回来。</p>
+      </div>
+
+      <div className="explore-search-empty__actions">
+        <ExploreSearchEmptyAction
+          kind="import"
+          title="导入轨迹记录"
+          description="GPX / FIT · 自动匹配最近的山"
+          onClick={goImport}
+          videoRef={(video) => { actionVideoRefs.current[0] = video }}
+          src="/explore/explore-empty-import.mp4"
+          poster="/explore/explore-empty-import-poster.jpg"
+          primary
+        />
+        <ExploreSearchEmptyAction
+          kind="screenshot"
+          title="识别成绩截图"
+          description="把别家 App 的记录变成一次山行"
+          onClick={goScreenshot}
+          videoRef={(video) => { actionVideoRefs.current[1] = video }}
+          src="/explore/explore-empty-shot.mp4"
+          poster="/explore/explore-empty-shot-poster.jpg"
+        />
+      </div>
+
+      <p className="explore-search-empty__footnote">
+        山峰暂未收录？{' '}
+        <button
+          type="button"
+          className="pt-pressable explore-search-empty__submit"
+          onClick={onSubmitMountainRequest}
+        >
+          提交一座山的资料
+        </button>
+      </p>
+    </section>
+  )
+}
+
+function ExploreSearchEmptyAction({
+  kind,
   title,
   description,
   onClick,
+  videoRef,
+  src,
+  poster,
+  primary = false,
 }: {
-  icon: ReactNode
+  kind: 'import' | 'screenshot'
   title: string
   description: string
   onClick: () => void
+  videoRef: (video: HTMLVideoElement | null) => void
+  src: string
+  poster: string
+  primary?: boolean
 }) {
   return (
-    <div data-explore-pathway-card={title} style={{ minWidth: 0 }}>
-      <button
-        type="button"
-        data-explore-pathway-button={title}
-        className="pt-pathway-press"
-        onClick={onClick}
-        onPointerDown={markPressFallback}
-        onPointerUp={clearPressFallback}
-        onPointerCancel={clearPressFallback}
-        onPointerLeave={clearPressFallback}
-        onBlur={clearPressFallback}
-        style={{
-          appearance: 'none',
-          width: 'calc(100% - (var(--space-4) * 2) - 2px)',
-          boxSizing: 'content-box',
-          minWidth: 0,
-          minHeight: 100,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          gap: 'var(--space-3)',
-          padding: 'var(--space-4)',
-          background: 'var(--color-surface-variant)',
-          color: 'var(--color-on-surface)',
-          border: '1px solid var(--color-outline)',
-          borderRadius: 'var(--radius-lg)',
-          textAlign: 'left',
-          cursor: 'pointer',
-          font: 'inherit',
-        }}
-      >
-        <span
-          aria-hidden
-          style={{
-            width: 32,
-            height: 32,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--color-success)',
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </span>
-        <span style={{ display: 'grid', gap: 'var(--space-1)', minWidth: 0 }}>
-          <span
-            style={{
-              color: 'var(--color-on-surface)',
-              fontSize: 'var(--font-title-m-size)',
-              lineHeight: 'var(--font-title-m-line)',
-              fontWeight: 700,
-            }}
-          >
-            {title}
-          </span>
-          <span
-            style={{
-              color: 'var(--color-on-surface-variant)',
-              fontSize: 'var(--font-label-s-size)',
-              lineHeight: 'var(--font-label-s-line)',
-              fontWeight: 500,
-              overflowWrap: 'anywhere',
-            }}
-          >
-            {description}
-          </span>
-        </span>
-      </button>
-    </div>
+    <button
+      type="button"
+      className={`pt-pressable-card explore-search-empty__action${primary ? ' explore-search-empty__action--primary' : ''}`}
+      aria-label={title}
+      onClick={(event) => {
+        clearPressFallback(event)
+        onClick()
+      }}
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onKeyDown={markKeyboardPressFallback}
+      onKeyUp={clearPressFallback}
+      onBlur={clearPressFallback}
+    >
+      <video
+        ref={videoRef}
+        className="explore-search-empty__action-video"
+        src={src}
+        poster={poster}
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        aria-hidden="true"
+        data-explore-empty-video-state="poster"
+      />
+      <span className="explore-search-empty__action-scrim" aria-hidden="true" />
+      <span className="explore-search-empty__action-icon" aria-hidden="true">
+        <ExploreSearchEmptyActionIcon kind={kind} />
+      </span>
+      <span className="explore-search-empty__action-copy">
+        <span className="explore-search-empty__action-title">{title}</span>
+        <span className="explore-search-empty__action-description">{description}</span>
+      </span>
+      <svg className="explore-search-empty__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+        <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  )
+}
+
+function ExploreSearchEmptyActionIcon({ kind }: { kind: 'import' | 'screenshot' }) {
+  if (kind === 'import') {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+        <path d="M12 15V4.5m0 0-4 4m4-4 4 4M5 13.5v4A2 2 0 0 0 7 19.5h10a2 2 0 0 0 2-2v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (kind === 'screenshot') {
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+        <path d="M4 8.5v-2A2.5 2.5 0 0 1 6.5 4H8m8 0h1.5A2.5 2.5 0 0 1 20 6.5v2m0 7v2a2.5 2.5 0 0 1-2.5 2.5H16M8 20H6.5A2.5 2.5 0 0 1 4 17.5v-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="8" y="9.5" width="8" height="5" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      </svg>
+    )
+  }
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path d="M4 8.5v-2A2.5 2.5 0 0 1 6.5 4H8m8 0h1.5A2.5 2.5 0 0 1 20 6.5v2m0 7v2a2.5 2.5 0 0 1-2.5 2.5H16M8 20H6.5A2.5 2.5 0 0 1 4 17.5v-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="8" y="9.5" width="8" height="5" rx="1" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  )
+}
+
+function ScenePathwayButton({
+  kind,
+  title,
+  prompt,
+  onClick,
+}: {
+  kind: 'import' | 'screenshot'
+  title: string
+  prompt: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      data-explore-pathway-card={title}
+      data-explore-pathway-button={title}
+      className="pt-pathway-press explore-scene-panel__action"
+      aria-label={title}
+      onClick={(event) => {
+        clearPressFallback(event)
+        onClick()
+      }}
+      onPointerDown={markPressFallback}
+      onPointerUp={clearPressFallback}
+      onPointerCancel={clearPressFallback}
+      onPointerLeave={clearPressFallback}
+      onKeyDown={markKeyboardPressFallback}
+      onKeyUp={clearPressFallback}
+      onBlur={clearPressFallback}
+    >
+      <ScenePathwayIcon kind={kind} />
+      <span className="explore-scene-panel__action-copy">
+        <span className="explore-scene-panel__title">{title}</span>
+        <span className="explore-scene-panel__prompt" aria-hidden="true">{prompt}</span>
+      </span>
+    </button>
+  )
+}
+
+function ScenePathwayIcon({ kind }: { kind: 'import' | 'screenshot' }) {
+  return (
+    <svg
+      className={`explore-scene-panel__icon explore-scene-panel__icon--${kind}`}
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {kind === 'import' ? (
+        <path
+          data-explore-pathway-icon-path
+          d="M12 3.5v10m0 0 3.5-3.5M12 13.5 8.5 10M5 15.5v3h14v-3"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : (
+        <path
+          data-explore-pathway-icon-path
+          d="M8 4.5H4.5V8M16 4.5h3.5V8M8 19.5H4.5V16M16 19.5h3.5V16m-10-4 2 2 4-4"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+    </svg>
   )
 }
 

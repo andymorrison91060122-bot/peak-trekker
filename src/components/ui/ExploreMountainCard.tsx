@@ -2,7 +2,6 @@ import Link from 'next/link'
 import type { FocusEvent, PointerEvent } from 'react'
 import { DEFAULT_MOUNTAIN_COVER_URL } from '@/lib/default-media'
 import { getMountainDetailHeroImages, getMountainHeroImage } from '@/lib/mountain-media'
-import DifficultyChip from '@/components/mountain/DifficultyChip'
 import type { Mountain } from '@/types'
 
 type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
@@ -15,16 +14,10 @@ function clearPressFallback(event: PressFallbackEvent) {
   delete event.currentTarget.dataset.ptPressActive
 }
 
-function estimateLength(mountain: Pick<Mountain, 'altitude' | 'length_km'>) {
-  return mountain.length_km ?? Number(Math.max(4.2, Math.min(26, mountain.altitude / 260)).toFixed(1))
-}
-
-function estimateDuration(mountain: Pick<Mountain, 'altitude' | 'estimated_duration'>) {
-  return mountain.estimated_duration ?? `${Math.max(2, Math.min(12, Math.round(mountain.altitude / 650)))}h`
-}
-
 export default function ExploreMountainCard({
   mountain,
+  filterLengthKm,
+  mountPending,
 }: {
   mountain: Pick<
     Mountain,
@@ -40,15 +33,23 @@ export default function ExploreMountainCard({
     | 'length_km'
     | 'estimated_duration'
   >
+  filterLengthKm: number
+  mountPending: boolean
 }) {
   const heroImage = getMountainHeroImage(mountain)
+  const coverBackgroundImage = heroImage
+    ? `url(${JSON.stringify(heroImage)}), url(${JSON.stringify(DEFAULT_MOUNTAIN_COVER_URL)})`
+    : `url(${JSON.stringify(DEFAULT_MOUNTAIN_COVER_URL)})`
   const heroImageCount = getMountainDetailHeroImages(mountain, 3).length
-  const distanceKm = estimateLength(mountain)
-  const duration = estimateDuration(mountain)
   const normalizedDifficulty =
     mountain.difficulty === 'intermediate' || mountain.difficulty === 'advanced' || mountain.difficulty === 'expert'
       ? mountain.difficulty
       : 'beginner'
+  const difficultyLabel = normalizedDifficulty === 'beginner' ? '入门线' : '进阶线'
+  const realMeta = [
+    mountain.length_km != null && mountain.length_km > 0 ? `${mountain.length_km}km` : null,
+    mountain.estimated_duration?.trim() || null,
+  ].filter((value): value is string => Boolean(value))
 
   return (
     <Link
@@ -57,9 +58,10 @@ export default function ExploreMountainCard({
       data-province={mountain.province}
       data-difficulty={mountain.difficulty}
       data-altitude={mountain.altitude}
-      data-length-km={distanceKm}
+      data-length-km={filterLengthKm}
       data-license-level={mountain.min_license}
       data-hero-image-count={heroImageCount}
+      data-explore-mount-state={mountPending ? 'pending' : undefined}
       style={{ textDecoration: 'none', display: 'block' }}
     >
       <article
@@ -73,52 +75,29 @@ export default function ExploreMountainCard({
         <div
           className="explore-card__cover"
           data-testid="explore-mountain-card-cover"
+          style={{ backgroundImage: coverBackgroundImage }}
         >
-          {heroImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={heroImage}
-              alt={mountain.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={DEFAULT_MOUNTAIN_COVER_URL}
-              alt={mountain.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-          )}
+          <div className="explore-card__scrim" aria-hidden="true" />
         </div>
 
         <div className="explore-card__body" data-testid="explore-mountain-card-body">
+          <div className="explore-card__altitude" data-testid="explore-mountain-card-altitude">
+            <span aria-hidden="true">▲</span> {mountain.altitude.toLocaleString()}m
+          </div>
           <div className="explore-card__topline" data-testid="explore-mountain-card-topline">
             <div className="explore-card__title">{mountain.name}</div>
+            <span className="explore-card__difficulty" data-testid="explore-mountain-card-difficulty">
+              {difficultyLabel}
+            </span>
           </div>
 
           <div className="explore-card__subline" data-testid="explore-mountain-card-subline">
             <span className="explore-card__location" data-testid="explore-mountain-card-location">{mountain.province}</span>
-            {normalizedDifficulty === 'beginner' ? null : (
-              <span className="explore-card__subline-separator" aria-hidden="true">·</span>
-            )}
-            <span data-testid="explore-mountain-card-difficulty" style={{ minWidth: 0 }}>
-              <DifficultyChip difficulty={normalizedDifficulty} withSuggestion />
-            </span>
-          </div>
-
-          <div className="explore-card__metrics" data-testid="explore-mountain-card-metrics">
-            {[
-              { label: '海拔', value: `${mountain.altitude.toLocaleString()}m` },
-              { label: '距离', value: `${distanceKm}km` },
-              { label: '时长', value: duration },
-            ].map((item) => (
-              <div key={item.label} style={{ minWidth: 0 }}>
-                <div className="metric-label" style={{ marginTop: 0 }}>{item.label}</div>
-                <div className="explore-card__metric-value">
-                  {item.value}
-                </div>
-              </div>
-            ))}
+            {realMeta.length > 0 ? (
+              <span className="explore-card__metrics" data-testid="explore-mountain-card-metrics">
+                {realMeta.map((item) => <span key={item}>{item}</span>)}
+              </span>
+            ) : null}
           </div>
         </div>
       </article>

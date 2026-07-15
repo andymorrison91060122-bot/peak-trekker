@@ -30,9 +30,9 @@ const uiSpec = read('docs/ui-interaction-spec.md')
 const releaseMatrix = read('docs/release-priority-matrix.md')
 
 test('license quick tag is presentation copy only and logic follows the new literal', () => {
-  assert.match(exploreClient, /'无需执照'/)
+  assert.match(exploreClient, /'入门线'/)
   assert.doesNotMatch(exploreClient, /无执照可进/)
-  assert.match(exploreClient, /tag === '无需执照'/)
+  assert.match(exploreClient, /tag === '入门线'/)
 })
 
 test('SourceLabel uses Chinese on pages while poster and share assets keep English labels', () => {

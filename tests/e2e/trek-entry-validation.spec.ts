@@ -26,7 +26,7 @@ test('entry validation blocks far-away target before preStart or live UI', async
     timeout: 20_000,
   })
   await expect(page).toHaveURL(/\/explore/, { timeout: 10_000 })
-  await expect(page.getByRole('heading', { name: '探索' })).toBeVisible()
+  await expect(page.getByText('已经走过？把结果带回来')).toBeVisible()
   await expect(page.getByRole('button', { name: '从这里开始' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '暂停' })).toHaveCount(0)
   await expectNoRuntimeIssueBadge(page)

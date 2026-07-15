@@ -87,7 +87,7 @@ export default async function ExplorePage({
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-surface)', paddingBottom: 104 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-surface)' }}>
       <ExploreClient
         list={mountains}
         hometownProvince={hometownProvince}

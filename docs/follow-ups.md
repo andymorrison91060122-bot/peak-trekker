@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-13 · 最新版本记录: v0.104
+> Last Updated: 2026-07-16 · 最新版本记录: v0.105
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`34fea88d605649ff8d210a100d7be0f66a527dd6`（Merge FU-76 motion gaps auth entrance + route loading · 2026-07-13）
+`f306f618863775b8fea5f66eadb14c3e2c102310`（Merge FU-86 /explore 整页重设计 · 2026-07-16）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（15 条）
+## Active Follow-ups（14 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -269,18 +269,6 @@
 
 **DATA RESIDUE 记录**:
 - FU-83 evidence run leftover `bf333b44-9931-4971-97e8-ada79af158a5` 已按用户授权删除。删除前五项验证通过：`source='screenshot_recognition'` / `verified_at=null` / `ranking_weight=0` / `track_points=[]` / posts refs `0`；计数对账 total `966 → 965`，`screenshot_recognition 1 → 0`，other-source `965 → 965`。
-
----
-
-### FU-86 · 首页样式探索
-
-- **优先级**: P2
-- **归属阶段**: 设计先行，可保留现状
-- **状态**: 🟢 active
-
-**背景**: 现首页已做一部分但样式刻板。Claude Design 再出一套可能性作探索；无更好方案则保留现有 + 小修。
-
-**Quick win 子项**: 探索页顶部「探索」二字标题移除。
 
 ---
 
@@ -499,7 +487,26 @@
 
 ---
 
-## Closed Follow-ups（96 条）
+## Closed Follow-ups（97 条）
+
+### FU-86 · 首页样式探索（/explore 整页重设计）
+
+- **优先级**: P2
+- **状态**: ✅ closed（2026-07-16 上线 · PR #46 / merge f306f618 / feature 1dbb1919 / base b9ffa54 / prod 一手核）
+
+**关闭原因**: /explore 整页重设计上线。V2 视频「场景面板」（全宽 hero 视频 + 眉标/副文 + 双玻璃操作条「导入记录 / 识别截图」+ 按压辉光承接 .pt-pathway-press）替换旧双 pathway 卡；去顶部「探索」h1；quick chip 简化为 4（附近 / 入门线 / 进阶线 / 5000m+）；山峰卡 full-bleed restyle（海拔角标 + 难度线 chip + 距离/时长「有则显示无则隐藏」、停止估算）；新增搜索无结果**丰富恢复空态**（两条视频卡「导入轨迹记录 / 识别成绩截图」+ footer「提交一座山的资料」= toast-only 占位、无 DB 写），筛选无结果保留简版空态。FU-110 mount 入场时间轴 + geo/tag/advancedFilter replay 全继承（新模块接 pathways 入场槽、去 header 档、卡片/chip 锚点保留）。
+
+**动效/性能**: 视频乒乓无缝循环 + poster 兜底 + reduced-motion/低电量静止 + autoplay 拒不白屏；进丰富空态暂停隐藏的 hero 视频（三支同解码降为两支）。视频资产 public/explore/（explore-hero + explore-empty-import + explore-empty-shot，H.264 720 级）。
+
+**边界/不做**: 无推荐 Feed / 意图分层 Home；不上社区；未动 PROVINCE_RANKING flag / ProvinceBannerStrip（休眠）；本轮无任何 DB 变更 / migration。
+
+**验证**: 双盲（Claude 契约 → Codex Plan → 实施 → Claude 多轮一手核 + 用户真机 4 轮验收 + 顾问审）；prod peak-trekker.vercel.app 一手 smoke = 三视频资产 200 逐字节相等 + /explore 200 含 explore-scene-panel。
+
+**尾巴（登记不遗漏）**: (1) 山峰卡距离/时长在生产 mountains 表无 length_km/estimated_duration 列，现数据下永不显示该行——要展示需单独补数据；(2) 详情页「路走不通」经查为环境/未登录态、非 FU-86 引入，线上复现再另起独立排查；(3) 提交山峰真流程（写库 + 后台来源标签）未来单开正式功能。
+
+**教训**: 写设计契约应对照设计系统**全屏清单**逐屏登记（搜索空态本属 explore 设计整体，首版契约只顾主模块把它漏了，验收阶段才补）。
+
+---
 
 ### FU-76 ✅ 动效系统 + 人文化文案
 
@@ -1725,6 +1732,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.105 — 2026-07-16**: FU-86 closeout · `/explore` 整页重设计上线。V2 视频场景面板、4 quick chips、full-bleed 山峰卡与丰富搜索空态已由 PR #46 / merge `f306f618863775b8fea5f66eadb14c3e2c102310` 合入生产；三视频资产与 `/explore` 生产 smoke 通过。本轮无 DB / migration。Active 15 → 14 · Closed 96 → 97 · Deferred 5 → 5。
 
 **v0.104 — 2026-07-13**: FU-76 closeout · 动效系统 + 人文化文案伞形 sprint 收口。Sprint A Phase 1 / 2-I / 2-II / 2-III / 3、下游 FU-110 / FU-111 / FU-112、Sprint B copy + F1、Phase 4 keep decision 与最终 motion gaps（auth 共享入场 + route-group loading skeleton）均已合入生产；RouteProgress deferred 待 skeleton 真机评估后另议。用户 2026-07-12 真机验收 PASS；PR #45 / merge `34fea88d605649ff8d210a100d7be0f66a527dd6`。Active 16 → 15 · Closed 95 → 96 · Deferred 5 → 5。
 

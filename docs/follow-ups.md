@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-17 · 最新版本记录: v0.106
+> Last Updated: 2026-07-17 · 最新版本记录: v0.107
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（14 条）
+## Active Follow-ups（15 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -283,6 +283,18 @@
 **Scope**: 排查这是产品 history 行为缺陷（FU-102 replace 链未覆盖 screenshot 完成路径）还是测试契约过时，并二者择一修复。
 
 **边界**: 不得在无结论前改 spec 断言；先复现真实 screenshot 补签完成流与 browser/page goBack 行为，再决定代码修复或测试契约修订。
+
+---
+
+### FU-116 · 活动详情记忆锚点(代表图 / 关键时刻 / 一句话)
+
+- **优先级**: P2
+- **归属阶段**: 档案馆方向第二轮（承接 FU-87）
+- **状态**: 🟢 active
+
+**背景**: FU-87 已完成 `/archive` 档案馆化；原方向的另一半——活动详情页（`/activity/[id]`）记忆锚点表达——按约定留本 FU 承载。产品意图见 `docs/product-mainline-alignment.md`「保留少而精的记忆锚点」与 `docs/ui-interaction-spec.md` 808-814。
+
+**Scope**: 代表图（用户可从照片中指定，现为首图默认）/ 关键时刻（登顶 / 最高点时刻，数据已在算）/ 一句话（手记 note 提为情感中心）；沿 FU-87 设计语言；升级版锚点（手选代表图、标注关键时刻）需 `cover_asset_id` 类新列，设计定稿后再评估 DB 改动。
 
 ---
 
@@ -1745,6 +1757,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.107 — 2026-07-17**: docs registration · 新增 FU-116 活动详情记忆锚点（代表图 / 关键时刻 / 一句话），承接 FU-87 档案馆方向未做的另一半。Scope 锁定 `/activity/[id]` 的记忆锚点表达：代表图、登顶 / 最高点关键时刻、一句话手记情感中心；升级版锚点如手选代表图 / 标注关键时刻需设计定稿后再评估 `cover_asset_id` 类 DB 改动。Active 14 → 15 · Closed 98 → 98 · Deferred 5 → 5。
 
 **v0.106 — 2026-07-17**: FU-87 closeout · `/archive` 档案馆化「记忆优先·时间比例轴」整页重构上线。PR #47 / merge `980066993ae2d45057d6ae46d32f32055f18d8a4` / feature `e69943ac82a7d6107dcdc9be7a6ac4c7d18f4416`；上线内容包含 `activityAt` 真实山行时间链、实测/资料海拔拆分、时间比例竖轴、记忆优先记录卡、GSAP 开卷/滚动/Flip/筛选动效与 reduced-motion 终态矩阵，并顺带修复 `resolveCheckinDisplayTitle` CDATA 解包与设备默认名回退。新增 FU-115 跟踪 screenshot 补签流 goBack 返回 `/screenshot` 过程页的 history 残留；活动详情记忆锚点留下一轮。Active 14 → 14 · Closed 97 → 98 · Deferred 5 → 5。
 

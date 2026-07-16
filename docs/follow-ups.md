@@ -2,14 +2,14 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-16 · 最新版本记录: v0.105
+> Last Updated: 2026-07-17 · 最新版本记录: v0.106
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`f306f618863775b8fea5f66eadb14c3e2c102310`（Merge FU-86 /explore 整页重设计 · 2026-07-16）
+`980066993ae2d45057d6ae46d32f32055f18d8a4`（Merge FU-87 /archive 档案馆化 · 2026-07-17）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
@@ -272,15 +272,17 @@
 
 ---
 
-### FU-87 · 档案馆化 + 记忆锚点
+### FU-114 · screenshot 补签流 goBack 返回 /screenshot 过程页(history 残留)
 
 - **优先级**: P2
-- **归属阶段**: 设计 gate
+- **归属阶段**: 截图识别 / 导航债
 - **状态**: 🟢 active
 
-**方向**: 我的记录档案馆化表达（一层记忆 / 二层事实 / 三层传播）+ 活动详情记忆锚点（代表图 / 关键时刻 / 一句话）。
+**背景**: `screenshot-recognition-flow.spec.ts:359` 的 history 断言在冻结基线 `21ce5ed9` 上同点位失败。该问题由 FU-87 A1 首次全量跑该 spec 暴露，历史上从未全量执行；FU-87 已按门禁例外放行，证据见 `gate-exception.json` 结论。
 
-**硬 gate（2026-06-12 用户拍板）**: 设计稿先行，达到「灵动 + 承载功能 + 人文 + 可用」才进实施；达不到则保留现状不做。
+**Scope**: 排查这是产品 history 行为缺陷（FU-102 replace 链未覆盖 screenshot 完成路径）还是测试契约过时，并二者择一修复。
+
+**边界**: 不得在无结论前改 spec 断言；先复现真实 screenshot 补签完成流与 browser/page goBack 行为，再决定代码修复或测试契约修订。
 
 ---
 
@@ -487,7 +489,18 @@
 
 ---
 
-## Closed Follow-ups（97 条）
+## Closed Follow-ups（98 条）
+
+### FU-87 ✅ 档案馆化 + 记忆锚点
+
+- **优先级**: P2
+- **状态**: ✅ closed（2026-07-17 上线 · PR #47 / merge `980066993ae2d45057d6ae46d32f32055f18d8a4` / feature `e69943ac82a7d6107dcdc9be7a6ac4c7d18f4416` / prod 一手核）
+
+**关闭原因**: /archive 档案馆化「记忆优先·时间比例轴」整页重构上线（2026-07-17 merge `9800669` / PR #47）：`activityAt` 真实山行时间链 + 实测/资料海拔拆分（未登顶无实测=`--`）+ 时间比例竖轴（状态编码节点 / 年份章节 / 虚线折叠 vs 实线静默）+ 记忆优先记录卡（手记领衔 / 无图纯内容块 / 已留证正标）+ GSAP 开卷仪式 / 滚动点亮 + 登顶 halo / rim 点按回声（按压拆层）/ Flip 展开 / 筛选重播 / 筛选空态 + 空态动效 / reduced-motion 终态矩阵；顺带修复 `resolveCheckinDisplayTitle` CDATA 解包与设备默认名回退（共享链）。
+
+**尾巴**: 活动详情记忆锚点（代表图 / 关键时刻 / 一句话）未做，留伞形下一轮。
+
+---
 
 ### FU-86 · 首页样式探索（/explore 整页重设计）
 
@@ -1732,6 +1745,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.106 — 2026-07-17**: FU-87 closeout · `/archive` 档案馆化「记忆优先·时间比例轴」整页重构上线。PR #47 / merge `980066993ae2d45057d6ae46d32f32055f18d8a4` / feature `e69943ac82a7d6107dcdc9be7a6ac4c7d18f4416`；上线内容包含 `activityAt` 真实山行时间链、实测/资料海拔拆分、时间比例竖轴、记忆优先记录卡、GSAP 开卷/滚动/Flip/筛选动效与 reduced-motion 终态矩阵，并顺带修复 `resolveCheckinDisplayTitle` CDATA 解包与设备默认名回退。新增 FU-114 跟踪 screenshot 补签流 goBack 返回 `/screenshot` 过程页的 history 残留；活动详情记忆锚点留下一轮。Active 14 → 14 · Closed 97 → 98 · Deferred 5 → 5。
 
 **v0.105 — 2026-07-16**: FU-86 closeout · `/explore` 整页重设计上线。V2 视频场景面板、4 quick chips、full-bleed 山峰卡与丰富搜索空态已由 PR #46 / merge `f306f618863775b8fea5f66eadb14c3e2c102310` 合入生产；三视频资产与 `/explore` 生产 smoke 通过。本轮无 DB / migration。Active 15 → 14 · Closed 96 → 97 · Deferred 5 → 5。
 

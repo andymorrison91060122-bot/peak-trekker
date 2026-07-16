@@ -272,7 +272,7 @@
 
 ---
 
-### FU-114 · screenshot 补签流 goBack 返回 /screenshot 过程页(history 残留)
+### FU-115 · screenshot 补签流 goBack 返回 /screenshot 过程页(history 残留)
 
 - **优先级**: P2
 - **归属阶段**: 截图识别 / 导航债
@@ -1746,7 +1746,7 @@ Codex 在视觉验证通过、merge 前必须执行：
 
 ## 版本记录
 
-**v0.106 — 2026-07-17**: FU-87 closeout · `/archive` 档案馆化「记忆优先·时间比例轴」整页重构上线。PR #47 / merge `980066993ae2d45057d6ae46d32f32055f18d8a4` / feature `e69943ac82a7d6107dcdc9be7a6ac4c7d18f4416`；上线内容包含 `activityAt` 真实山行时间链、实测/资料海拔拆分、时间比例竖轴、记忆优先记录卡、GSAP 开卷/滚动/Flip/筛选动效与 reduced-motion 终态矩阵，并顺带修复 `resolveCheckinDisplayTitle` CDATA 解包与设备默认名回退。新增 FU-114 跟踪 screenshot 补签流 goBack 返回 `/screenshot` 过程页的 history 残留；活动详情记忆锚点留下一轮。Active 14 → 14 · Closed 97 → 98 · Deferred 5 → 5。
+**v0.106 — 2026-07-17**: FU-87 closeout · `/archive` 档案馆化「记忆优先·时间比例轴」整页重构上线。PR #47 / merge `980066993ae2d45057d6ae46d32f32055f18d8a4` / feature `e69943ac82a7d6107dcdc9be7a6ac4c7d18f4416`；上线内容包含 `activityAt` 真实山行时间链、实测/资料海拔拆分、时间比例竖轴、记忆优先记录卡、GSAP 开卷/滚动/Flip/筛选动效与 reduced-motion 终态矩阵，并顺带修复 `resolveCheckinDisplayTitle` CDATA 解包与设备默认名回退。新增 FU-115 跟踪 screenshot 补签流 goBack 返回 `/screenshot` 过程页的 history 残留；活动详情记忆锚点留下一轮。Active 14 → 14 · Closed 97 → 98 · Deferred 5 → 5。
 
 **v0.105 — 2026-07-16**: FU-86 closeout · `/explore` 整页重设计上线。V2 视频场景面板、4 quick chips、full-bleed 山峰卡与丰富搜索空态已由 PR #46 / merge `f306f618863775b8fea5f66eadb14c3e2c102310` 合入生产；三视频资产与 `/explore` 生产 smoke 通过。本轮无 DB / migration。Active 15 → 14 · Closed 96 → 97 · Deferred 5 → 5。
 

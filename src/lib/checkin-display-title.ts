@@ -24,9 +24,23 @@ const GENERIC_TRACK_NAMES = new Set([
 ])
 
 const FILE_NAME_RE = /^[^\\/]+\.(png|jpe?g|webp|gpx|fit|kml|tcx)$/i
+const FULL_CDATA_RE = /^<!\[CDATA\[([\s\S]*)\]\]>$/
+const DEVICE_DEFAULT_SUFFIX = '(?:其它|其他|未命名)'
+const UNIX_TIMESTAMP_RE = /^\d{10}(?:\d{3})?$/
+const COMPACT_DATE_TIME_RE = new RegExp(`^\\d{8}[_ -]?\\d{6}(?:\\s*${DEVICE_DEFAULT_SUFFIX})?$`)
+const DATE_TIME_RE = new RegExp(
+  `^\\d{4}(?:[-/.]\\d{1,2}[-/.]\\d{1,2}|年\\d{1,2}月\\d{1,2}日)(?:[T\\s]\\d{1,2}:\\d{2}(?::\\d{2})?)?(?:\\s*${DEVICE_DEFAULT_SUFFIX})?$`,
+)
 
 function cleanLabel(value: string | null | undefined) {
-  return typeof value === 'string' ? value.trim() : ''
+  if (typeof value !== 'string') return ''
+  const trimmed = value.trim()
+  const cdataMatch = trimmed.match(FULL_CDATA_RE)
+  return (cdataMatch?.[1] ?? trimmed).trim()
+}
+
+function isDeviceDefaultTrackName(value: string) {
+  return UNIX_TIMESTAMP_RE.test(value) || COMPACT_DATE_TIME_RE.test(value) || DATE_TIME_RE.test(value)
 }
 
 export function isDisplayableTrackName(value: string | null | undefined) {
@@ -35,6 +49,7 @@ export function isDisplayableTrackName(value: string | null | undefined) {
   if (GENERIC_TRACK_NAMES.has(cleaned)) return false
   if (FILE_NAME_RE.test(cleaned)) return false
   if (/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(cleaned)) return false
+  if (isDeviceDefaultTrackName(cleaned)) return false
   return true
 }
 

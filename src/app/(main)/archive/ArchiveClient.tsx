@@ -7,22 +7,27 @@ import {
   useState,
   type CSSProperties,
   type FocusEvent,
+  type KeyboardEvent,
   type PointerEvent,
   type ReactNode,
 } from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
+import { Flip } from 'gsap/Flip'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
+import TertiaryButton from '@/components/ui/TertiaryButton'
 import EmptyState from '@/components/ui/EmptyState'
 import { PinIcon } from '@/components/ui/Icons'
 import { getLicenseShortLabel } from '@/lib/license-ui'
 import { isFeatureEnabled } from '@/lib/feature-flags'
-import { formatMotionCountValue, parseMotionTokenSeconds, type MotionCountFormat } from '@/lib/motion-count-format'
+import { formatMotionCountValue, parseMotionTokenSeconds } from '@/lib/motion-count-format'
 import type { CheckinDisplayTitleSource } from '@/lib/checkin-display-title'
 
-gsap.registerPlugin(useGSAP)
+gsap.registerPlugin(useGSAP, Flip, ScrollTrigger)
+const flipFrom = Flip.from
 
 export type ArchiveUserViewModel = {
   displayName: string
@@ -32,15 +37,25 @@ export type ArchiveUserViewModel = {
   licenseLevel: string | null
 }
 
+export type ArchiveHighestPointViewModel = {
+  tripId: string
+  mountainName: string
+  activityAt: string
+  maxAltitudeM: number | null
+}
+
 export type ArchiveSummaryViewModel = {
   totalTrips: number
   summitCount: number
-  maxAltitudeM: number
+  maxAltitudeM: number | null
+  recordedAscentM: number
+  highestPoint: ArchiveHighestPointViewModel | null
 }
 
 export type ArchiveTripViewModel = {
   id: string
-  createdAt: string
+  activityAt: string
+  note: string | null
   mountain: {
     id: string | null
     name: string
@@ -52,7 +67,7 @@ export type ArchiveTripViewModel = {
     coverImage: string | null
   }
   metrics: {
-    maxAltitudeM: number
+    maxAltitudeM: number | null
     distanceKm: number
     ascentM: number
     durationSeconds: number
@@ -64,18 +79,43 @@ export type ArchiveTripViewModel = {
 
 type FilterId = 'all' | 'summit' | 'proof' | 'unproof'
 type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
+type CommitReason = 'mount' | 'filter' | 'expand'
+type RimTargetHandler = (target: HTMLElement) => void
 
 type YearGroup = {
   year: string
   trips: ArchiveTripViewModel[]
 }
 
-const monoStyle: CSSProperties = {
-  fontFamily: 'var(--font-mono)',
-  fontVariantNumeric: 'tabular-nums',
-}
+const RECENT_YEAR_COUNT = 2
+const DEFAULT_VISIBLE_PER_RECENT_YEAR = 3
+const SILENCE_THRESHOLD_DAYS = 61
+const APP_HEADER_HEIGHT_PX = 69
 
 const numberFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+const FILTER_LABELS: Record<FilterId, string> = {
+  all: '全部',
+  summit: '登顶',
+  proof: '已留证',
+  unproof: '未留证',
+}
+
+function getExpandedYearKey(filterId: FilterId, year: string) {
+  return `${filterId}:${year}`
+}
+
+function getYearSummaryCopy(filterLabel: string, count: number, visibleCount: number, isAll: boolean) {
+  const prefix = isAll ? '' : `${filterLabel} `
+  return `${prefix}${count} 次 · ${visibleCount > 0 ? `显示 ${visibleCount} 次` : '已折叠'}`
+}
+
+function getArchiveFooterCopy(filterLabel: string, count: number, oldestYear: string, isAll: boolean) {
+  return `${isAll ? '' : `筛选 ${filterLabel} · `}已收录 ${count} 次 · 始于 ${oldestYear}`
+}
+
+function getYearFoldCopy(filterLabel: string, hiddenCount: number, isExpanded: boolean) {
+  return isExpanded ? '收起这一年' : `${hiddenCount} 次折叠 · ${filterLabel} · 展开`
+}
 
 function markPressFallback(event: PointerEvent<HTMLElement>) {
   event.currentTarget.dataset.ptPressActive = 'true'
@@ -89,17 +129,16 @@ function formatNumber(value: number) {
   return numberFormatter.format(Math.round(value))
 }
 
-function formatPositiveAltitude(value: number) {
-  return value > 0 ? formatNumber(value) : '--'
+function formatPositiveAltitude(value: number | null) {
+  return value !== null && value > 0 ? formatNumber(value) : '--'
 }
 
 function formatDuration(totalSeconds: number) {
   const safeSeconds = Math.max(0, Math.round(totalSeconds))
-  if (!safeSeconds) return '--'
-
+  if (!safeSeconds) return null
   const hours = Math.floor(safeSeconds / 3600)
   const minutes = Math.floor((safeSeconds % 3600) / 60)
-  if (hours > 0) return `${hours}h ${String(minutes).padStart(2, '0')}m`
+  if (hours > 0) return `${hours}h ${minutes ? `${String(minutes).padStart(2, '0')}m` : ''}`.trim()
   return `${Math.max(1, minutes)}m`
 }
 
@@ -107,6 +146,12 @@ function formatDate(value: string) {
   const date = new Date(value)
   if (!Number.isFinite(date.getTime())) return '----·--·--'
   return `${date.getFullYear()}·${String(date.getMonth() + 1).padStart(2, '0')}·${String(date.getDate()).padStart(2, '0')}`
+}
+
+function formatYearMonth(value: string) {
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return '时间暂未记录'
+  return `${date.getFullYear()}·${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
 function getYear(value: string) {
@@ -139,89 +184,39 @@ function filterTrips(trips: ArchiveTripViewModel[], active: FilterId) {
 function groupTripsByYear(trips: ArchiveTripViewModel[]): YearGroup[] {
   const groupMap = new Map<string, ArchiveTripViewModel[]>()
   for (const trip of trips) {
-    const year = getYear(trip.createdAt)
+    const year = getYear(trip.activityAt)
     groupMap.set(year, [...(groupMap.get(year) ?? []), trip])
   }
-
   return [...groupMap.entries()]
     .sort(([left], [right]) => right.localeCompare(left))
     .map(([year, yearTrips]) => ({ year, trips: yearTrips }))
 }
 
-function Chip({
-  children,
-  tone = 'neutral',
-}: {
-  children: ReactNode
-  tone?: 'neutral' | 'success' | 'warn' | 'active'
-}) {
-  const color =
-    tone === 'success'
-      ? 'var(--color-success)'
-      : tone === 'warn'
-        ? 'var(--color-warning)'
-        : tone === 'active'
-          ? 'var(--color-success)'
-          : 'var(--color-on-surface-variant)'
-  const background =
-    tone === 'success'
-      ? 'color-mix(in srgb, var(--color-success) 14%, transparent)'
-      : tone === 'warn'
-        ? 'color-mix(in srgb, var(--color-warning) 14%, transparent)'
-        : tone === 'active'
-          ? 'color-mix(in srgb, var(--color-success) 12%, transparent)'
-          : 'color-mix(in srgb, var(--color-on-surface) 5%, transparent)'
-  const borderColor =
-    tone === 'success'
-      ? 'color-mix(in srgb, var(--color-success) 30%, transparent)'
-      : tone === 'warn'
-        ? 'color-mix(in srgb, var(--color-warning) 30%, transparent)'
-        : tone === 'active'
-          ? 'color-mix(in srgb, var(--color-success) 28%, transparent)'
-          : 'var(--color-outline)'
+function getGapDays(laterTrip: ArchiveTripViewModel, earlierTrip: ArchiveTripViewModel) {
+  const later = new Date(laterTrip.activityAt).getTime()
+  const earlier = new Date(earlierTrip.activityAt).getTime()
+  if (!Number.isFinite(later) || !Number.isFinite(earlier)) return 0
+  return Math.abs(later - earlier) / 86_400_000
+}
 
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        minHeight: 24,
-        padding: '4px 10px',
-        borderRadius: 'var(--radius-pill)',
-        border: '1px solid',
-        borderColor,
-        color,
-        background,
-        fontSize: 'var(--font-label-s-size)',
-        lineHeight: 'var(--font-label-s-line)',
-        fontWeight: 600,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {children}
-    </span>
-  )
+function getTimelineGapPx(days: number) {
+  return Math.round(Math.min(110, Math.max(18, 18 + 42 * Math.log1p(Math.max(0, days - 14) / 30.4375))))
+}
+
+function getSilenceCopy(days: number) {
+  if (days < SILENCE_THRESHOLD_DAYS) return null
+  const months = Math.max(2, Math.round(days / 30.4375))
+  return `· ${months} 个月 ·`
+}
+
+function Chip({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'success' | 'warn' | 'active' }) {
+  return <span className={`archive-chip archive-chip--${tone}`}>{children}</span>
 }
 
 function ArchiveContentHeading() {
   return (
-    <section
-      data-archive-motion="header"
-      style={{
-        padding: 'var(--space-2) var(--space-4) var(--space-1)',
-      }}
-    >
-      <h1
-        style={{
-          margin: 0,
-          color: 'var(--color-on-surface)',
-          fontSize: 'var(--font-title-l-size)',
-          lineHeight: 'var(--font-title-l-line)',
-          fontWeight: 700,
-        }}
-      >
-        我的山行档案
-      </h1>
+    <section data-archive-motion="header" className="archive-heading">
+      <h1>山行档案</h1>
     </section>
   )
 }
@@ -231,79 +226,22 @@ function Avatar({ user }: { user: ArchiveUserViewModel }) {
     <div
       aria-label={`${user.displayName} 的头像`}
       role="img"
-      style={{
-        display: 'grid',
-        placeItems: 'center',
-        width: 46,
-        height: 46,
-        flexShrink: 0,
-        overflow: 'hidden',
-        borderRadius: 'var(--radius-pill)',
-        border: '1px solid var(--color-outline)',
-        color: 'var(--color-on-surface)',
-        background: user.avatarUrl
-          ? `url("${user.avatarUrl}") center / cover no-repeat`
-          : 'var(--color-surface-elevated)',
-        fontSize: 16,
-        lineHeight: 1,
-        fontWeight: 700,
-      }}
+      className="archive-hero__avatar"
+      style={{ backgroundImage: user.avatarUrl ? `url("${user.avatarUrl}")` : undefined }}
     >
       {user.avatarUrl ? null : getInitial(user.displayName)}
     </div>
   )
 }
 
-function UserIdentityRow({
-  user,
-  chip,
-}: {
-  user: ArchiveUserViewModel
-  chip: ReactNode
-}) {
-  const locationLine = buildLocationLine(user)
-
+function UserIdentityRow({ user, chip }: { user: ArchiveUserViewModel; chip: ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+    <div className="archive-hero__identity-row">
       <Avatar user={user} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            overflow: 'hidden',
-            color: 'var(--color-on-surface)',
-            fontSize: 'var(--font-title-l-size)',
-            lineHeight: '22px',
-            fontWeight: 700,
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {user.displayName}
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--space-2)',
-            minWidth: 0,
-            marginTop: 3,
-            color: 'var(--color-on-surface-variant)',
-            fontSize: 'var(--font-label-s-size)',
-            lineHeight: 'var(--font-label-s-line)',
-          }}
-        >
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 'var(--space-1)',
-              minWidth: 0,
-            }}
-          >
-            <PinIcon size={14} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{locationLine}</span>
-          </span>
-          <span style={{ color: 'color-mix(in srgb, var(--color-on-surface-variant) 38%, transparent)' }}>·</span>
+      <div className="archive-hero__identity-copy">
+        <div className="archive-hero__name">{user.displayName}</div>
+        <div className="archive-hero__location">
+          <span><PinIcon size={14} />{buildLocationLine(user)}</span>
           {chip}
         </div>
       </div>
@@ -311,162 +249,69 @@ function UserIdentityRow({
   )
 }
 
-function SummaryStat({
-  label,
+function MotionCount({
+  kind,
   value,
-  accent = false,
-  valueTestId,
-  motionKind,
-  countValue,
-  countFormat,
+  finalText,
+  testId,
 }: {
-  label: string
-  value: string
-  accent?: boolean
-  valueTestId?: string
-  motionKind?: string
-  countValue?: number
-  countFormat?: MotionCountFormat
+  kind: string
+  value: number | null
+  finalText: string
+  testId?: string
 }) {
   return (
-    <div data-archive-stat-tile={motionKind} style={{ minWidth: 0, textAlign: 'center' }}>
-      <div
-        data-testid={valueTestId}
-        data-archive-stat-value={motionKind}
-        data-count-value={typeof countValue === 'number' ? String(countValue) : undefined}
-        data-count-format={countFormat}
-        data-final-text={value}
-        style={{
-          ...monoStyle,
-          color: accent ? 'var(--color-success)' : 'var(--color-on-surface)',
-          fontSize: 'var(--font-title-l-size)',
-          lineHeight: 1,
-          fontWeight: 700,
-        }}
-      >
-        {value}
-      </div>
-      <div
-        style={{
-          marginTop: 5,
-          color: 'var(--color-on-surface-variant)',
-          fontSize: 10,
-          lineHeight: '14px',
-          letterSpacing: '0.04em',
-        }}
-      >
-        {label}
-      </div>
-    </div>
+    <span
+      data-testid={testId}
+      data-archive-stat-value={kind}
+      data-count-value={value !== null ? String(value) : undefined}
+      data-count-format="integer"
+      data-final-text={finalText}
+    >
+      {finalText}
+    </span>
   )
 }
 
-function IdentityCard({
-  user,
-  summary,
-}: {
-  user: ArchiveUserViewModel
-  summary: ArchiveSummaryViewModel
-}) {
+function ArchiveHero({ user, summary }: { user: ArchiveUserViewModel; summary: ArchiveSummaryViewModel }) {
+  const highestPoint = summary.highestPoint
+  const maxText = formatPositiveAltitude(summary.maxAltitudeM)
   return (
-    <section data-archive-motion="identity" style={{ padding: '14px var(--space-4) 0' }}>
-      <div
-        style={{
-          padding: 'var(--space-4)',
-          borderRadius: 14,
-          border: '1px solid var(--color-outline)',
-          background: 'var(--color-surface-variant)',
-        }}
-      >
-        <UserIdentityRow user={user} chip={<Chip tone="active">{getLicenseShortLabel(user.licenseLevel)}</Chip>} />
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-            gap: 'var(--space-2)',
-            marginTop: 14,
-            paddingTop: 14,
-            borderTop: '1px solid var(--color-outline)',
-          }}
-        >
-          <SummaryStat
-            label="山行"
-            value={formatNumber(summary.totalTrips)}
-            motionKind="total-trips"
-            countValue={summary.totalTrips}
-            countFormat="integer"
+    <section data-archive-motion="identity" className="archive-hero">
+      <UserIdentityRow user={user} chip={<Chip tone="active">{getLicenseShortLabel(user.licenseLevel)}</Chip>} />
+      <div className="archive-hero__peak-block">
+        <div className="archive-hero__eyebrow">走到过的最高处</div>
+        <div className="archive-hero__peak-value" data-archive-stat-tile="max-altitude">
+          <MotionCount
+            kind="max-altitude"
+            value={summary.maxAltitudeM}
+            finalText={maxText}
+            testId="archive-summary-max-altitude-value"
           />
-          <SummaryStat
-            label="登顶"
-            value={formatNumber(summary.summitCount)}
-            motionKind="summit-count"
-            countValue={summary.summitCount}
-            countFormat="integer"
-          />
-          <SummaryStat
-            label="最高 m"
-            value={formatPositiveAltitude(summary.maxAltitudeM)}
-            accent
-            valueTestId="archive-summary-max-altitude-value"
-            motionKind="max-altitude"
-            countValue={summary.maxAltitudeM > 0 ? summary.maxAltitudeM : undefined}
-            countFormat="integer"
-          />
+          {summary.maxAltitudeM !== null ? <small>m</small> : null}
+        </div>
+        <div className="archive-hero__peak-source">
+          {highestPoint ? `${highestPoint.mountainName} · ${formatYearMonth(highestPoint.activityAt)}` : '还没有可确认的最高处'}
         </div>
       </div>
+      <div className="archive-hero__summary" data-archive-stat-tile="summary-line">
+        <span><MotionCount kind="total-trips" value={summary.totalTrips} finalText={formatNumber(summary.totalTrips)} /> 次山行</span>
+        <span>·</span>
+        <span><MotionCount kind="summit-count" value={summary.summitCount} finalText={formatNumber(summary.summitCount)} /> 次登顶</span>
+        <span>·</span>
+        <span>已记录爬升 <MotionCount kind="recorded-ascent" value={summary.recordedAscentM} finalText={formatNumber(summary.recordedAscentM)} />m</span>
+      </div>
+      <p className="archive-hero__closing"><span>走过的山，</span><span>都在这里。</span></p>
     </section>
   )
 }
 
 function IdentityCardEmpty({ user }: { user: ArchiveUserViewModel }) {
   return (
-    <section data-archive-motion="identity" style={{ padding: '14px var(--space-4) 0' }}>
-      <div
-        style={{
-          padding: 'var(--space-4)',
-          borderRadius: 14,
-          border: '1px solid var(--color-outline)',
-          background: 'var(--color-surface-variant)',
-        }}
-      >
-        <UserIdentityRow user={user} chip={<Chip>新人</Chip>} />
-      </div>
+    <section data-archive-motion="identity" className="archive-hero archive-hero--empty">
+      <UserIdentityRow user={user} chip={<Chip>新人</Chip>} />
     </section>
   )
-}
-
-function getArchiveTabStyle(isActive: boolean): CSSProperties {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    flexShrink: 0,
-    minHeight: 32,
-    padding: '7px 12px',
-    borderRadius: 'var(--radius-pill)',
-    border: '1px solid var(--archive-tab-border)',
-    color: isActive ? 'var(--color-surface)' : 'var(--color-on-surface-variant)',
-    backgroundColor: 'var(--archive-tab-bg)',
-    boxShadow: 'var(--archive-tab-shadow)',
-    font: 'inherit',
-    fontSize: 12,
-    lineHeight: '16px',
-    fontWeight: 600,
-    whiteSpace: 'nowrap',
-    cursor: 'pointer',
-    transition:
-      'background-color var(--motion-press) var(--ease-out), border-color var(--motion-press) var(--ease-out), box-shadow var(--motion-press) var(--ease-out)',
-  }
-}
-
-function getArchiveTabCountStyle(isActive: boolean): CSSProperties {
-  return {
-    ...monoStyle,
-    fontSize: 10,
-    lineHeight: '14px',
-    fontWeight: 700,
-    opacity: isActive ? 0.72 : 0.62,
-  }
 }
 
 function FilterTabs({
@@ -478,395 +323,391 @@ function FilterTabs({
   onChange: (value: FilterId) => void
   trips: ArchiveTripViewModel[]
 }) {
-  const counts = {
-    all: trips.length,
-    summit: trips.filter((trip) => trip.isSummit).length,
-    proof: trips.filter((trip) => trip.hasProof).length,
-    unproof: trips.filter((trip) => !trip.hasProof).length,
-  }
   const tabs: Array<{ id: FilterId; label: string; count: number }> = [
-    { id: 'all', label: '全部', count: counts.all },
-    { id: 'summit', label: '登顶', count: counts.summit },
-    { id: 'proof', label: '已留证', count: counts.proof },
-    { id: 'unproof', label: '未留证', count: counts.unproof },
+    { id: 'all', label: '全部', count: trips.length },
+    { id: 'summit', label: '登顶', count: trips.filter((trip) => trip.isSummit).length },
+    { id: 'proof', label: '已留证', count: trips.filter((trip) => trip.hasProof).length },
+    { id: 'unproof', label: '未留证', count: trips.filter((trip) => !trip.hasProof).length },
   ]
-
   return (
-    <section data-archive-motion="filters" style={{ padding: '18px var(--space-4) 0' }}>
-      <style>
-        {`
-          .archive-filter-tab {
-            --archive-tab-bg: transparent;
-            --archive-tab-border: var(--color-outline);
-            --archive-tab-shadow: none;
-          }
-
-          .archive-filter-tab[aria-pressed="true"] {
-            --archive-tab-bg: var(--color-on-surface);
-            --archive-tab-border: transparent;
-            --archive-tab-shadow: none;
-          }
-
-          .archive-filter-tab:active,
-          .archive-filter-tab[data-pt-press-active="true"] {
-            --archive-tab-bg: color-mix(in srgb, var(--color-on-surface) 9%, transparent);
-            --archive-tab-border: color-mix(in srgb, var(--color-on-surface) 30%, transparent);
-            --archive-tab-shadow: inset 0 0 0 999px color-mix(in srgb, var(--color-on-surface) 7%, transparent);
-          }
-
-          .archive-filter-tab[aria-pressed="true"]:active,
-          .archive-filter-tab[aria-pressed="true"][data-pt-press-active="true"] {
-            --archive-tab-bg: color-mix(in srgb, var(--color-on-surface) 88%, var(--color-surface));
-            --archive-tab-border: transparent;
-            --archive-tab-shadow: inset 0 0 0 999px color-mix(in srgb, var(--color-surface) 9%, transparent);
-          }
-        `}
-      </style>
-      <div
-        style={{
-          display: 'flex',
-          gap: 6,
-          overflowX: 'auto',
-          paddingBottom: 2,
-          scrollbarWidth: 'none',
-        }}
-      >
-        {tabs.map((tab) => {
-          const isActive = tab.id === active
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              className="archive-filter-tab pt-pressable"
-              data-archive-filter-tab={tab.id}
-              aria-pressed={isActive}
-              onPointerDown={markPressFallback}
-              onPointerUp={clearPressFallback}
-              onPointerCancel={clearPressFallback}
-              onPointerLeave={clearPressFallback}
-              onBlur={clearPressFallback}
-              onClick={() => onChange(tab.id)}
-              style={getArchiveTabStyle(isActive)}
-            >
-              {tab.label}
-              <span style={getArchiveTabCountStyle(isActive)}>
-                {tab.count}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+    <section
+      data-archive-motion="filters"
+      className="archive-filter-tabs"
+    >
+      {tabs.map((tab) => {
+        const isActive = tab.id === active
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            className="archive-filter-tab pt-pressable"
+            data-archive-filter-tab={tab.id}
+            aria-pressed={isActive}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
+            onClick={() => onChange(tab.id)}
+            style={getArchiveTabStyle(isActive)}
+          >
+            <span>{tab.label}</span><small style={getArchiveTabCountStyle(isActive)}>{tab.count}</small>
+          </button>
+        )
+      })}
     </section>
   )
 }
 
-function YearDivider({ year, count }: { year: string; count: number }) {
-  return (
-    <div
-      data-archive-motion="year-divider"
-      data-archive-motion-mode="fade"
-      style={{
-        position: 'sticky',
-        zIndex: 1,
-        top: 0,
-        display: 'flex',
-        alignItems: 'baseline',
-        justifyContent: 'space-between',
-        gap: 'var(--space-3)',
-        padding: '22px var(--space-5) 10px',
-        background:
-          'linear-gradient(180deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-surface) 88%, transparent) 100%)',
-      }}
-    >
-      <div
-        style={{
-          ...monoStyle,
-          color: 'var(--color-on-surface)',
-          fontSize: 22,
-          lineHeight: '28px',
-          fontWeight: 800,
-        }}
-      >
-        {year}
-      </div>
-      <div
-        style={{
-          ...monoStyle,
-          color: 'var(--color-on-surface-variant)',
-          fontSize: 'var(--font-label-s-size)',
-          lineHeight: 'var(--font-label-s-line)',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {count} 次山行
-      </div>
-    </div>
-  )
+function getArchiveTabStyle(isActive: boolean): CSSProperties {
+  return { '--archive-tab-selected': isActive ? 1 : 0 } as CSSProperties
 }
 
-function ProofChip({ hasProof }: { hasProof: boolean }) {
-  return hasProof ? <Chip tone="success">● 已留证</Chip> : <Chip>● 未留证</Chip>
+function getArchiveTabCountStyle(isActive: boolean): CSSProperties {
+  return { opacity: isActive ? 0.72 : 0.62 }
+}
+
+function YearDivider({ year, count, visibleCount, activeFilter }: { year: string; count: number; visibleCount: number; activeFilter: FilterId }) {
+  return (
+    <div data-archive-motion="year-divider" data-archive-motion-mode="fade" className="archive-year-divider">
+      <span className="archive-year-divider__node" aria-hidden="true" />
+      <strong>{year}</strong>
+      <small>{getYearSummaryCopy(FILTER_LABELS[activeFilter], count, visibleCount, activeFilter === 'all')}</small>
+    </div>
+  )
 }
 
 function UnmatchedTag({ testId }: { testId?: string }) {
+  return <span data-testid={testId} className="archive-trip__unmatched">未关联</span>
+}
+
+function SummitTag({ isSummit }: { isSummit: boolean }) {
+  return <span className={`archive-trip__summit archive-trip__summit--${isSummit ? 'yes' : 'no'}`}>{isSummit ? '登顶' : '未登顶'}</span>
+}
+
+function TripMedia({ trip, isHighestPoint }: { trip: ArchiveTripViewModel; isHighestPoint: boolean }) {
   return (
-    <span
-      data-testid={testId}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        minHeight: 20,
-        padding: '2px 8px',
-        borderRadius: 'var(--radius-pill)',
-        border: '1px solid var(--color-outline)',
-        color: 'var(--color-on-surface-variant)',
-        background: 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
-        fontSize: 10,
-        lineHeight: '14px',
-        fontWeight: 700,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      未关联
-    </span>
+    <div data-testid="archive-trip-media" className="archive-trip__media">
+      <div className="archive-trip__media-frame" style={{ backgroundImage: `url("${trip.photoUrl}")` }}>
+        <span className="archive-trip__media-scrim" aria-hidden="true" />
+        {isHighestPoint ? <span className="archive-trip__highest-chip">· 最高处</span> : null}
+        <span className="archive-trip__media-altitude" data-testid="archive-trip-max-altitude-value">
+          {formatPositiveAltitude(trip.metrics.maxAltitudeM)}
+          {trip.metrics.maxAltitudeM !== null ? <small>m</small> : null}
+        </span>
+      </div>
+      <span className="archive-rim archive-rim--media" data-archive-rim aria-hidden="true" />
+    </div>
   )
 }
 
-function ArchiveMediaChipShell({
-  children,
-  side,
-  testId,
+function TripContentAltitude({ trip, isHighestPoint }: { trip: ArchiveTripViewModel; isHighestPoint: boolean }) {
+  return (
+    <div className="archive-trip__content-altitude-row">
+      <span className="archive-trip__content-altitude" data-testid="archive-trip-max-altitude-value">
+        {formatPositiveAltitude(trip.metrics.maxAltitudeM)}
+        {trip.metrics.maxAltitudeM !== null ? <small>m</small> : null}
+      </span>
+      {isHighestPoint ? <span className="archive-trip__content-highest">· 最高处</span> : null}
+    </div>
+  )
+}
+
+function TripMetrics({ trip }: { trip: ArchiveTripViewModel }) {
+  const metrics = [
+    trip.metrics.maxAltitudeM !== null ? `${formatNumber(trip.metrics.maxAltitudeM)}m` : null,
+    trip.metrics.distanceKm > 0 ? `${trip.metrics.distanceKm.toFixed(1)}km` : null,
+    trip.metrics.ascentM > 0 ? `爬升 ${formatNumber(trip.metrics.ascentM)}m` : null,
+    formatDuration(trip.metrics.durationSeconds),
+  ].filter(Boolean)
+  return metrics.length ? <div className="archive-trip__metrics">{metrics.join(' · ')}</div> : null
+}
+
+function TripCard({
+  trip,
+  isHighestPoint,
+  onOpen,
+  onRimStart,
+  onRimEnd,
 }: {
-  children: ReactNode
-  side: 'left' | 'right'
-  testId: string
+  trip: ArchiveTripViewModel
+  isHighestPoint: boolean
+  onOpen: () => void
+  onRimStart: RimTargetHandler
+  onRimEnd: RimTargetHandler
 }) {
-  const sidePosition: CSSProperties = side === 'left' ? { left: 10 } : { right: 10 }
-
+  const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    markPressFallback(event)
+    onRimStart(event.currentTarget)
+  }
+  const handleRelease = (event: PointerEvent<HTMLButtonElement> | FocusEvent<HTMLButtonElement>) => {
+    clearPressFallback(event)
+    onRimEnd(event.currentTarget)
+  }
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.repeat || (event.key !== 'Enter' && event.key !== ' ')) return
+    event.currentTarget.dataset.ptPressActive = 'true'
+    onRimStart(event.currentTarget)
+  }
+  const handleKeyUp = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    delete event.currentTarget.dataset.ptPressActive
+    onRimEnd(event.currentTarget)
+  }
   return (
-    <div
-      data-testid={testId}
-      style={{
-        position: 'absolute',
-        top: 10,
-        ...sidePosition,
-        display: 'inline-flex',
-        padding: 2,
-        borderRadius: 'var(--radius-pill)',
-        border: '1px solid color-mix(in srgb, var(--color-on-surface) 18%, transparent)',
-        background: 'color-mix(in srgb, var(--color-surface) 74%, transparent)',
-        boxShadow: '0 8px 20px color-mix(in srgb, var(--color-surface) 60%, transparent)',
-        textShadow: '0 1px 2px color-mix(in srgb, var(--color-surface) 88%, transparent)',
-        WebkitBackdropFilter: 'blur(10px) saturate(1.08)',
-        backdropFilter: 'blur(10px) saturate(1.08)',
-      }}
-    >
-      {children}
-    </div>
-  )
-}
-
-function TripMedia({ trip }: { trip: ArchiveTripViewModel }) {
-  const background = trip.photoUrl
-    ? `url("${trip.photoUrl}") center 35% / cover no-repeat`
-    : 'radial-gradient(circle at 30% 18%, color-mix(in srgb, var(--color-surface-elevated) 82%, var(--color-on-surface)) 0, transparent 36%), linear-gradient(145deg, var(--color-surface-elevated), var(--color-surface))'
-
-  return (
-    <div
-      data-testid="archive-trip-media"
-      style={{
-        position: 'relative',
-        height: 140,
-        overflow: 'hidden',
-        background,
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background:
-            'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 78%, transparent) 0%, color-mix(in srgb, var(--color-surface) 58%, transparent) 22%, color-mix(in srgb, var(--color-surface) 18%, transparent) 48%, transparent 62%), linear-gradient(180deg, transparent 42%, color-mix(in srgb, var(--color-surface) 88%, transparent) 100%)',
-        }}
-      />
-      <ArchiveMediaChipShell side="left" testId="archive-trip-chip-summit">
-        {trip.isSummit ? <Chip tone="success">● 已登顶</Chip> : <Chip tone="warn">● 未登顶</Chip>}
-      </ArchiveMediaChipShell>
-      <ArchiveMediaChipShell side="right" testId="archive-trip-chip-proof">
-        <ProofChip hasProof={trip.hasProof} />
-      </ArchiveMediaChipShell>
-      <div
-        style={{
-          position: 'absolute',
-          left: 14,
-          right: 14,
-          bottom: 12,
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'space-between',
-          gap: 10,
-        }}
+    <div data-archive-trip-card={trip.id} className="archive-trip-motion-shell">
+      <button
+        type="button"
+        data-archive-trip-surface={trip.id}
+        data-archive-rim-owner={trip.id}
+        className={`archive-trip pt-pressable-card${trip.photoUrl ? ' archive-trip--photo' : ' archive-trip--text'}`}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handleRelease}
+        onPointerCancel={handleRelease}
+        onPointerLeave={handleRelease}
+        onBlur={handleRelease}
+        onKeyDown={handleKeyDown}
+        onKeyUp={handleKeyUp}
+        onClick={onOpen}
       >
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-              minWidth: 0,
-            }}
-          >
-            <span
-              data-testid="archive-trip-title"
-              style={{
-                overflow: 'hidden',
-                color: 'var(--color-on-surface)',
-                fontSize: 17,
-                lineHeight: '24px',
-                fontWeight: 700,
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {trip.mountain.name}
-            </span>
-            {trip.mountain.unmatchedTag ? <UnmatchedTag testId="archive-trip-unmatched-tag" /> : null}
+        <div className="archive-trip__surface-content">
+          <div className="archive-trip__meta" data-testid="archive-trip-secondary">
+            <span>{formatDate(trip.activityAt)} · {buildTripLocation(trip)}{trip.hasProof ? <em> · 已留证</em> : null}</span>
+            <span aria-hidden="true">›</span>
           </div>
-          <div
-            data-testid="archive-trip-secondary"
-            style={{
-              ...monoStyle,
-              marginTop: 3,
-              color: 'color-mix(in srgb, var(--color-on-surface) 72%, transparent)',
-              fontSize: 'var(--font-label-s-size)',
-              lineHeight: 'var(--font-label-s-line)',
-              letterSpacing: '0.04em',
-            }}
-          >
-            {formatDate(trip.createdAt)} · {buildTripLocation(trip)}
+          <div className="archive-trip__title-row">
+            <span data-testid="archive-trip-title" className="archive-trip__title">{trip.mountain.name}</span>
+            {trip.mountain.unmatchedTag ? <UnmatchedTag testId="archive-trip-unmatched-tag" /> : <SummitTag isSummit={trip.isSummit} />}
           </div>
+          {trip.photoUrl ? <TripMedia trip={trip} isHighestPoint={isHighestPoint} /> : <TripContentAltitude trip={trip} isHighestPoint={isHighestPoint} />}
+          {trip.note ? <p className="archive-trip__note">「{trip.note}」</p> : null}
+          <TripMetrics trip={trip} />
         </div>
-        <div style={{ flexShrink: 0, textAlign: 'right' }}>
-          <div
-            data-testid="archive-trip-max-altitude-value"
-            style={{
-              ...monoStyle,
-              color: 'var(--color-success)',
-              fontSize: 'var(--font-title-l-size)',
-              lineHeight: 1,
-              fontWeight: 800,
-            }}
-          >
-            {trip.metrics.maxAltitudeM > 0 ? (
-              <>
-                {formatNumber(trip.metrics.maxAltitudeM)}
-                <span
-                  style={{
-                    marginLeft: 2,
-                    color: 'color-mix(in srgb, var(--color-success) 70%, transparent)',
-                    fontSize: 'var(--font-label-s-size)',
-                    fontWeight: 700,
-                  }}
-                >
-                  m
-                </span>
-              </>
-            ) : (
-              '--'
-            )}
-          </div>
-        </div>
-      </div>
+        {trip.photoUrl ? null : <span className="archive-rim archive-rim--content" data-archive-rim aria-hidden="true" />}
+      </button>
     </div>
   )
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
+function TimelineGap({ days }: { days: number }) {
+  const silenceCopy = getSilenceCopy(days)
   return (
-    <div style={{ minWidth: 0 }}>
-      <div
-        style={{
-          ...monoStyle,
-          overflow: 'hidden',
-          color: 'var(--color-on-surface)',
-          fontSize: 'var(--font-label-m-size)',
-          lineHeight: 'var(--font-label-m-line)',
-          fontWeight: 700,
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {value}
-      </div>
-      <div
-        style={{
-          marginTop: 2,
-          color: 'var(--color-on-surface-variant)',
-          fontSize: 10,
-          lineHeight: '14px',
-        }}
-      >
-        {label}
+    <div className="archive-timeline__gap" style={{ height: getTimelineGapPx(days) }} aria-hidden="true">
+      {silenceCopy ? <span>{silenceCopy}</span> : null}
+    </div>
+  )
+}
+
+function TimelineTrip({
+  trip,
+  previousTrip,
+  isHighestPoint,
+  onOpen,
+  onRimStart,
+  onRimEnd,
+}: {
+  trip: ArchiveTripViewModel
+  previousTrip: ArchiveTripViewModel | null
+  isHighestPoint: boolean
+  onOpen: () => void
+  onRimStart: RimTargetHandler
+  onRimEnd: RimTargetHandler
+}) {
+  const nodeTone = trip.mountain.unmatchedTag ? 'unmatched' : trip.isSummit ? 'summit' : 'turned'
+  return (
+    <div data-archive-flip-item={trip.id} className="archive-timeline__entry">
+      {previousTrip ? <TimelineGap days={getGapDays(previousTrip, trip)} /> : null}
+      <div className="archive-timeline__entry-grid">
+        <div className="archive-timeline__node-column">
+          <span data-archive-node={trip.id} className={`archive-timeline__node archive-timeline__node--${nodeTone}`} aria-hidden="true">
+            {trip.isSummit ? <span className="archive-node-halo" data-archive-node-halo={trip.id} /> : null}
+          </span>
+        </div>
+        <TripCard trip={trip} isHighestPoint={isHighestPoint} onOpen={onOpen} onRimStart={onRimStart} onRimEnd={onRimEnd} />
       </div>
     </div>
   )
 }
 
-function TripCard({ trip, onOpen }: { trip: ArchiveTripViewModel; onOpen: (trip: ArchiveTripViewModel) => void }) {
+function YearFoldButton({
+  year,
+  hiddenCount,
+  isExpanded,
+  contentId,
+  onToggle,
+  filterLabel,
+}: {
+  year: string
+  hiddenCount: number
+  isExpanded: boolean
+  contentId: string
+  onToggle: () => void
+  filterLabel: string
+}) {
   return (
     <button
       type="button"
-      data-archive-trip-card={trip.id}
-      className="pt-pressable-card"
+      data-archive-year-toggle={year}
+      data-archive-flip-item={`toggle-${year}`}
+      className="archive-year-toggle pt-pressable"
+      aria-expanded={isExpanded}
+      aria-controls={contentId}
       onPointerDown={markPressFallback}
       onPointerUp={clearPressFallback}
       onPointerCancel={clearPressFallback}
       onPointerLeave={clearPressFallback}
       onBlur={clearPressFallback}
-      onClick={() => onOpen(trip)}
-      style={{
-        display: 'block',
-        width: '100%',
-        overflow: 'hidden',
-        padding: 0,
-        borderRadius: 14,
-        border: '1px solid var(--color-outline)',
-        color: 'inherit',
-        background: 'var(--color-surface-variant)',
-        font: 'inherit',
-        textAlign: 'left',
-        cursor: 'pointer',
-      }}
+      onClick={onToggle}
     >
-      <TripMedia trip={trip} />
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-          gap: 'var(--space-2)',
-          padding: '10px 14px',
-          borderTop: '1px solid var(--color-outline)',
-        }}
-      >
-        <MiniStat label="距离" value={trip.metrics.distanceKm > 0 ? `${trip.metrics.distanceKm.toFixed(1)}km` : '--'} />
-        <MiniStat label="爬升" value={trip.metrics.ascentM > 0 ? `${formatNumber(trip.metrics.ascentM)}m` : '--'} />
-        <MiniStat label="用时" value={formatDuration(trip.metrics.durationSeconds)} />
-      </div>
+      <span>{getYearFoldCopy(filterLabel, hiddenCount, isExpanded)}</span>
+      <span aria-hidden="true">{isExpanded ? '⌃' : '⌄'}</span>
     </button>
   )
 }
 
-function ArchiveEmptyState({
-  onFindMountain,
-  onBringBack,
+function ArchiveYearSection({
+  group,
+  groupIndex,
+  isExpanded,
+  highestPointId,
+  onToggle,
+  onOpen,
+  activeFilter,
+  onRimStart,
+  onRimEnd,
 }: {
-  onFindMountain: () => void
-  onBringBack: () => void
+  group: YearGroup
+  groupIndex: number
+  isExpanded: boolean
+  highestPointId: string | null
+  onToggle: () => void
+  onOpen: (trip: ArchiveTripViewModel) => void
+  activeFilter: FilterId
+  onRimStart: RimTargetHandler
+  onRimEnd: RimTargetHandler
 }) {
+  const defaultVisibleCount = groupIndex < RECENT_YEAR_COUNT ? Math.min(DEFAULT_VISIBLE_PER_RECENT_YEAR, group.trips.length) : 0
+  const visibleTrips = isExpanded ? group.trips : group.trips.slice(0, defaultVisibleCount)
+  const hiddenCount = Math.max(0, group.trips.length - visibleTrips.length)
+  const contentId = `archive-year-${group.year}-records`
+  return (
+    <section data-archive-year={group.year} data-archive-flip-item={`year-${group.year}`} className="archive-year-section">
+      <YearDivider year={group.year} count={group.trips.length} visibleCount={visibleTrips.length} activeFilter={activeFilter} />
+      <div id={contentId} className="archive-year-records">
+        {visibleTrips.map((trip, index) => (
+          <TimelineTrip
+            key={trip.id}
+            trip={trip}
+            previousTrip={index > 0 ? visibleTrips[index - 1] : null}
+            isHighestPoint={trip.id === highestPointId}
+            onOpen={() => onOpen(trip)}
+            onRimStart={onRimStart}
+            onRimEnd={onRimEnd}
+          />
+        ))}
+      </div>
+      {hiddenCount > 0 || isExpanded ? (
+        <YearFoldButton
+          year={group.year}
+          hiddenCount={isExpanded ? group.trips.length : hiddenCount}
+          isExpanded={isExpanded}
+          contentId={contentId}
+          onToggle={onToggle}
+          filterLabel={FILTER_LABELS[activeFilter]}
+        />
+      ) : null}
+    </section>
+  )
+}
+
+function ArchiveTimeline({ children }: { children: ReactNode }) {
+  return (
+    <div data-archive-timeline className="archive-timeline">
+      <svg data-archive-timeline-svg className="archive-timeline__rail" aria-hidden="true" preserveAspectRatio="none">
+        <path data-archive-timeline-base d="M 36 0 L 36 1" />
+        <path data-archive-timeline-progress d="M 36 0 L 36 1" />
+      </svg>
+      {children}
+    </div>
+  )
+}
+
+function FilterEmptyState({ onShowAll }: { onShowAll: () => void }) {
+  return (
+    <section data-archive-motion="filter-empty" data-archive-motion-mode="fade" className="archive-filter-empty">
+      <p>当前筛选下没有山行</p>
+      <TertiaryButton onClick={onShowAll}>查看全部</TertiaryButton>
+    </section>
+  )
+}
+
+function ArchiveFooter({ trips, activeFilter }: { trips: ArchiveTripViewModel[]; activeFilter: FilterId }) {
+  const oldestYear = trips.length ? getYear(trips[trips.length - 1].activityAt) : '----'
+  return (
+    <footer data-archive-motion="footer" data-archive-motion-mode="fade" className="archive-footer">
+      <strong>档案至此</strong>
+      <span>{getArchiveFooterCopy(FILTER_LABELS[activeFilter], trips.length, oldestYear, activeFilter === 'all')}</span>
+    </footer>
+  )
+}
+
+function ArchiveEmptyAction({
+  id,
+  children,
+  onRimStart,
+  onRimEnd,
+}: {
+  id: 'find-mountain' | 'bring-back'
+  children: ReactNode
+  onRimStart: RimTargetHandler
+  onRimEnd: RimTargetHandler
+}) {
+  const getActionButton = (target: EventTarget) => target instanceof HTMLElement ? target.closest<HTMLElement>('button') : null
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    const button = getActionButton(event.target)
+    if (button) button.dataset.ptPressActive = 'true'
+    onRimStart(event.currentTarget)
+  }
+  const handleRelease = (event: PointerEvent<HTMLDivElement> | FocusEvent<HTMLDivElement>) => {
+    const button = getActionButton(event.target)
+    if (button) delete button.dataset.ptPressActive
+    onRimEnd(event.currentTarget)
+  }
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.repeat || (event.key !== 'Enter' && event.key !== ' ')) return
+    const button = getActionButton(event.target)
+    if (button) button.dataset.ptPressActive = 'true'
+    onRimStart(event.currentTarget)
+  }
+  const handleKeyUp = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    const button = getActionButton(event.target)
+    if (button) delete button.dataset.ptPressActive
+    onRimEnd(event.currentTarget)
+  }
+  return (
+    <div
+      className="archive-empty-action"
+      data-archive-empty-cta={id}
+      data-archive-rim-owner={id}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handleRelease}
+      onPointerCancel={handleRelease}
+      onPointerLeave={handleRelease}
+      onBlur={handleRelease}
+      onKeyDown={handleKeyDown}
+      onKeyUp={handleKeyUp}
+    >
+      {children}
+      <span className="archive-rim archive-rim--action" data-archive-rim aria-hidden="true" />
+    </div>
+  )
+}
+
+function ArchiveEmptyState({ onFindMountain, onBringBack, onRimStart, onRimEnd }: { onFindMountain: () => void; onBringBack: () => void; onRimStart: RimTargetHandler; onRimEnd: RimTargetHandler }) {
   const privacyCopy = isFeatureEnabled('COMMUNITY_ENABLED')
     ? '想发到山友圈时再发 · Peak Trekker 不会替你声张。'
     : '想分享时再分享 · Peak Trekker 不会替你声张。'
-
   return (
     <>
       <EmptyState
@@ -874,37 +715,19 @@ function ArchiveEmptyState({
         className="pt-empty-state--surface pt-empty-state--archive-hero"
         eyebrow="0 / 0"
         title="档案还没有一次山行"
-        copy={
-          <>
-            去一次真实的山，
-            <br />
-            回来把它放进这里。
-          </>
-        }
+        copy={<><span>去一次真实的山，</span><br /><span>回来把它放进这里。</span></>}
         actions={[
-          <PrimaryButton key="find-mountain" onClick={onFindMountain} style={{ width: '100%' }}>
-            去找一座山
-          </PrimaryButton>,
-          <SecondaryButton key="bring-back" onClick={onBringBack} style={{ width: '100%' }}>
-            把以前的山行带回来
-          </SecondaryButton>,
+          <ArchiveEmptyAction key="find-mountain" id="find-mountain" onRimStart={onRimStart} onRimEnd={onRimEnd}>
+            <PrimaryButton onClick={onFindMountain} style={{ width: '100%' }}>去找一座山</PrimaryButton>
+          </ArchiveEmptyAction>,
+          <ArchiveEmptyAction key="bring-back" id="bring-back" onRimStart={onRimStart} onRimEnd={onRimEnd}>
+            <SecondaryButton onClick={onBringBack} style={{ width: '100%' }}>把以前的山行带回来</SecondaryButton>
+          </ArchiveEmptyAction>,
         ]}
         style={{ margin: '28px var(--space-6) 0', padding: '26px var(--space-5)' }}
       />
-      <section
-        data-archive-motion="empty-copy"
-        data-archive-motion-mode="fade"
-        style={{
-          padding: 'var(--space-5) 28px 0',
-          color: 'var(--color-on-surface-variant)',
-          fontSize: 'var(--font-label-s-size)',
-          lineHeight: 1.7,
-          textAlign: 'center',
-        }}
-      >
-        档案只保存 <span style={{ color: 'var(--color-on-surface)', fontWeight: 600 }}>自己</span> 的山行记录。
-        <br />
-        {privacyCopy}
+      <section data-archive-motion="empty-copy" data-archive-motion-mode="fade" className="archive-empty-copy">
+        档案只保存 <span>自己</span> 的山行记录。<br />{privacyCopy}
       </section>
     </>
   )
@@ -923,19 +746,50 @@ export default function ArchiveClient({
   const motionScopeRef = useRef<HTMLDivElement | null>(null)
   const replayArchiveListRef = useRef<(() => void) | null>(null)
   const terminalizeArchiveListRef = useRef<(() => void) | null>(null)
+  const rebuildArchiveScrollMotionRef = useRef<(() => void) | null>(null)
+  const captureArchiveFlipRef = useRef<(() => void) | null>(null)
+  const runArchiveFlipRef = useRef<(() => void) | null>(null)
+  const pendingArchiveCommitRef = useRef<CommitReason>('mount')
   const pendingFilterReplayRef = useRef(false)
+  const archiveBatchTriggersRef = useRef<ScrollTrigger[]>([])
+  const archiveProgressTriggerRef = useRef<ScrollTrigger | null>(null)
+  const archiveProgressTweenRef = useRef<gsap.core.Tween | null>(null)
+  const archiveFlipTimelineRef = useRef<gsap.core.Timeline | null>(null)
+  const archiveNodePositionMapRef = useRef<Map<string, number>>(new Map())
+  const mountHaloPlayedRef = useRef<Set<string>>(new Set())
+  const scrollHaloPlayedRef = useRef<Set<string>>(new Set())
+  const pendingFlipStateRef = useRef<ReturnType<typeof Flip.getState> | null>(null)
+  const playArchiveRimRef = useRef<RimTargetHandler | null>(null)
+  const releaseArchiveRimRef = useRef<RimTargetHandler | null>(null)
   const [activeFilter, setActiveFilter] = useState<FilterId>('all')
+  const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({})
+
   const filteredTrips = useMemo(() => filterTrips(trips, activeFilter), [trips, activeFilter])
   const filteredTripSignature = useMemo(() => filteredTrips.map((trip) => trip.id).join('|'), [filteredTrips])
   const yearGroups = useMemo(() => groupTripsByYear(filteredTrips), [filteredTrips])
+  const expandedSignature = useMemo(
+    () => Object.entries(expandedYears).filter(([, expanded]) => expanded).map(([year]) => year).sort().join('|'),
+    [expandedYears],
+  )
   const hasTrips = trips.length > 0
 
   function handleFilterChange(nextFilter: FilterId) {
     if (nextFilter === activeFilter) return
     terminalizeArchiveListRef.current?.()
     pendingFilterReplayRef.current = true
+    pendingArchiveCommitRef.current = 'filter'
     setActiveFilter(nextFilter)
   }
+
+  function handleYearToggle(year: string) {
+    captureArchiveFlipRef.current?.()
+    pendingArchiveCommitRef.current = 'expand'
+    const expandedKey = getExpandedYearKey(activeFilter, year)
+    setExpandedYears((current) => ({ ...current, [expandedKey]: !current[expandedKey] }))
+  }
+
+  const handleRimStart: RimTargetHandler = (target) => playArchiveRimRef.current?.(target)
+  const handleRimEnd: RimTargetHandler = (target) => releaseArchiveRimRef.current?.(target)
 
   useGSAP((_context, contextSafe) => {
     const root = motionScopeRef.current
@@ -943,305 +797,555 @@ export default function ArchiveClient({
 
     const getScopedTargets = (selector: string, scope: ParentNode = root) =>
       gsap.utils.toArray<HTMLElement>(scope.querySelectorAll(selector)).filter((target) => root.contains(target))
-
     const getMotionTargets = () => getScopedTargets('[data-archive-motion]')
     const getFirstScreenTripCards = () => getScopedTargets('[data-archive-trip-card]').slice(0, 4)
     const getLiveArchiveListTargets = () => {
       const yearDividers = getScopedTargets('[data-archive-motion="year-divider"]')
       const tripCards = getScopedTargets('[data-archive-trip-card]')
+      const nodes = getScopedTargets('[data-archive-node]')
+      const controls = getScopedTargets('[data-archive-year-toggle]')
+      const filterEmpty = getScopedTargets('[data-archive-motion="filter-empty"]')
       const footer = getScopedTargets('[data-archive-motion="footer"]')
+      const rims = getScopedTargets('[data-archive-rim]')
+      const nodeHalos = getScopedTargets('[data-archive-node-halo]')
+      const tripSurfaces = getScopedTargets('[data-archive-trip-surface]')
       return {
         yearDividers,
         tripCards,
+        nodes,
+        controls,
+        filterEmpty,
+        rims,
+        nodeHalos,
+        tripSurfaces,
         firstScreenTripCards: tripCards.slice(0, 4),
-        terminalTargets: [...yearDividers, ...tripCards, ...footer],
+        terminalTargets: [...yearDividers, ...tripCards, ...nodes, ...controls, ...filterEmpty, ...footer],
       }
     }
     const getAnimatedTargets = () => [
       ...getMotionTargets(),
       ...getFirstScreenTripCards(),
       ...getScopedTargets('[data-archive-stat-tile]'),
+      ...getScopedTargets('[data-archive-node]'),
+      ...getScopedTargets('[data-archive-empty-cta]'),
     ]
 
     const terminalizeArchiveCountValues = () => {
       for (const valueNode of getScopedTargets('[data-archive-stat-value]')) {
         const finalText = valueNode.dataset.finalText
-        if (finalText) valueNode.textContent = finalText
+        if (finalText !== undefined) valueNode.textContent = finalText
       }
+    }
+
+    const hideArchiveDecorations = () => {
+      const decorations = getScopedTargets('[data-archive-rim], [data-archive-node-halo]')
+      if (decorations.length) gsap.set(decorations, { autoAlpha: 0, scale: 1, clearProps: 'willChange,transform' })
+    }
+
+    const setAllArchiveNodesLit = () => {
+      for (const node of getScopedTargets('[data-archive-node]')) node.classList.add('archive-timeline__node--lit')
+    }
+
+    const terminalizeArchiveTrack = () => {
+      const basePath = root.querySelector<SVGPathElement>('[data-archive-timeline-base]')
+      const progressPath = root.querySelector<SVGPathElement>('[data-archive-timeline-progress]')
+      if (basePath) gsap.set(basePath, { strokeDashoffset: 0, clearProps: 'willChange' })
+      if (!progressPath) return
+      const progressTrigger = archiveProgressTriggerRef.current
+      if (!progressTrigger) {
+        gsap.set(progressPath, { strokeDashoffset: 0, clearProps: 'willChange' })
+        setAllArchiveNodesLit()
+        return
+      }
+      const length = progressPath.getTotalLength()
+      const litLength = length * progressTrigger.progress
+      gsap.set(progressPath, { strokeDasharray: length, strokeDashoffset: Math.max(0, length - litLength), clearProps: 'willChange' })
     }
 
     const terminalizeArchiveMotion = () => {
       if (!root.isConnected) return
       const targets = getAnimatedTargets()
-      if (targets.length > 0) {
-        gsap.set(targets, {
-          autoAlpha: 1,
-          y: 0,
-          scale: 1,
-          clearProps: 'willChange,transform',
-        })
+      if (targets.length) {
+        gsap.set(targets, { autoAlpha: 1, x: 0, y: 0, scale: 1, clearProps: 'willChange,transform' })
       }
+      hideArchiveDecorations()
+      terminalizeArchiveTrack()
       terminalizeArchiveCountValues()
     }
 
-    let archiveListReplayTimeline: gsap.core.Timeline | null = null
+    const getRimForTarget = (target: HTMLElement) => {
+      const owner = target.matches('[data-archive-rim-owner]')
+        ? target
+        : target.closest<HTMLElement>('[data-archive-rim-owner]')
+      return owner?.querySelector<HTMLElement>('[data-archive-rim]') ?? null
+    }
 
+    const playArchiveRim = (target: HTMLElement) => {
+      const rim = getRimForTarget(target)
+      if (!rim || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (rim) gsap.set(rim, { autoAlpha: 0, scale: 1, clearProps: 'transform' })
+        return
+      }
+      gsap.killTweensOf(rim)
+      gsap.fromTo(rim, { autoAlpha: 0, scale: 1 }, {
+        autoAlpha: 1,
+        scale: 1.03,
+        duration: Math.min(0.35, Math.max(0.32, parseMotionTokenSeconds(root, '--motion-enter', 320))),
+        ease: 'power2.out',
+        overwrite: true,
+      })
+    }
+
+    const releaseArchiveRim = (target: HTMLElement) => {
+      const rim = getRimForTarget(target)
+      if (!rim) return
+      gsap.killTweensOf(rim)
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        gsap.set(rim, { autoAlpha: 0, scale: 1, clearProps: 'transform' })
+        return
+      }
+      gsap.to(rim, {
+        autoAlpha: 0,
+        scale: 1,
+        duration: Math.min(0.42, Math.max(0.28, parseMotionTokenSeconds(root, '--motion-base', 240))),
+        ease: 'power2.out',
+        overwrite: true,
+        onComplete: () => gsap.set(rim, { autoAlpha: 0, scale: 1, clearProps: 'transform' }),
+        onInterrupt: () => gsap.set(rim, { autoAlpha: 0, scale: 1, clearProps: 'transform' }),
+      })
+    }
+
+    const playArchiveNodeHalo = (node: HTMLElement, domain: 'mount' | 'scroll') => {
+      const id = node.dataset.archiveNode
+      const halo = node.querySelector<HTMLElement>('[data-archive-node-halo]')
+      if (!id || !halo || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      const played = domain === 'mount' ? mountHaloPlayedRef.current : scrollHaloPlayedRef.current
+      if (played.has(id)) return
+      played.add(id)
+      gsap.killTweensOf(halo)
+      gsap.fromTo(halo, { autoAlpha: 1, scale: 0.6 }, {
+        autoAlpha: 0,
+        scale: 1.4,
+        duration: Math.min(0.45, Math.max(0.42, parseMotionTokenSeconds(root, '--motion-status', 420))),
+        ease: 'power2.out',
+        overwrite: true,
+        onComplete: () => gsap.set(halo, { autoAlpha: 0, scale: 1, clearProps: 'transform' }),
+        onInterrupt: () => gsap.set(halo, { autoAlpha: 0, scale: 1, clearProps: 'transform' }),
+      })
+    }
+
+    const updateArchiveNodeLighting = (litLength: number, allowHalo: boolean) => {
+      const liveNodes = new Map(getScopedTargets('[data-archive-node]').map((node) => [node.dataset.archiveNode ?? '', node]))
+      for (const [id, nodeY] of archiveNodePositionMapRef.current.entries()) {
+        const node = liveNodes.get(id)
+        if (!node) continue
+        const wasLit = node.classList.contains('archive-timeline__node--lit')
+        const isLit = nodeY <= litLength
+        node.classList.toggle('archive-timeline__node--lit', isLit)
+        if (allowHalo && isLit && !wasLit && node.classList.contains('archive-timeline__node--summit')) {
+          playArchiveNodeHalo(node, 'scroll')
+        }
+      }
+    }
+
+    const killArchiveScrollMotion = () => {
+      for (const trigger of archiveBatchTriggersRef.current) trigger.kill()
+      archiveBatchTriggersRef.current = []
+      archiveProgressTriggerRef.current?.kill()
+      archiveProgressTriggerRef.current = null
+      archiveProgressTweenRef.current?.kill()
+      archiveProgressTweenRef.current = null
+      gsap.killTweensOf(getScopedTargets('[data-archive-node-halo]'))
+      hideArchiveDecorations()
+      archiveNodePositionMapRef.current.clear()
+    }
+
+    const syncTimelineGeometry = () => {
+      const timeline = root.querySelector<HTMLElement>('[data-archive-timeline]')
+      const svg = root.querySelector<SVGSVGElement>('[data-archive-timeline-svg]')
+      const basePath = root.querySelector<SVGPathElement>('[data-archive-timeline-base]')
+      const progressPath = root.querySelector<SVGPathElement>('[data-archive-timeline-progress]')
+      if (!timeline || !svg || !basePath || !progressPath) return null
+      const height = Math.max(1, timeline.scrollHeight)
+      const pathData = `M 36 0 L 36 ${height}`
+      svg.setAttribute('viewBox', `0 0 72 ${height}`)
+      basePath.setAttribute('d', pathData)
+      progressPath.setAttribute('d', pathData)
+      const timelineTop = timeline.getBoundingClientRect().top
+      archiveNodePositionMapRef.current = new Map(
+        getScopedTargets('[data-archive-node]', timeline).map((node) => [
+          node.dataset.archiveNode ?? '',
+          node.getBoundingClientRect().top - timelineTop + node.offsetHeight / 2,
+        ]),
+      )
+      return { timeline, basePath, progressPath, height }
+    }
+
+    const rebuildArchiveScrollMotion = () => {
+      killArchiveScrollMotion()
+      const geometry = syncTimelineGeometry()
+      if (!geometry) {
+        terminalizeArchiveMotion()
+        ScrollTrigger.refresh()
+        return
+      }
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      if (reducedMotion) {
+        const length = geometry.progressPath.getTotalLength()
+        gsap.set([geometry.basePath, geometry.progressPath], { strokeDasharray: length, strokeDashoffset: 0 })
+        setAllArchiveNodesLit()
+        hideArchiveDecorations()
+        ScrollTrigger.refresh()
+        return
+      }
+      const belowFoldCards = getScopedTargets('[data-archive-trip-card]').slice(4)
+      if (belowFoldCards.length) {
+        archiveBatchTriggersRef.current = ScrollTrigger.batch(belowFoldCards, {
+          start: 'top 92%',
+          once: true,
+          onEnter: (batch) => {
+            gsap.fromTo(batch, { autoAlpha: 0, x: -14 }, {
+              autoAlpha: 1,
+              x: 0,
+              duration: Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.32),
+              ease: 'power3.out',
+              stagger: { each: 0.04, from: 'start' },
+              onComplete: terminalizeArchiveMotion,
+              onInterrupt: terminalizeArchiveMotion,
+            })
+          },
+        })
+      }
+      const length = geometry.progressPath.getTotalLength()
+      updateArchiveNodeLighting(0, false)
+      archiveProgressTweenRef.current = gsap.fromTo(
+        geometry.progressPath,
+        { strokeDasharray: length, strokeDashoffset: length },
+        {
+          strokeDashoffset: 0,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: geometry.timeline,
+            start: 'top 78%',
+            end: 'bottom 72%',
+            scrub: 0.6,
+            onUpdate: (self) => updateArchiveNodeLighting(geometry.height * self.progress, true),
+          },
+        },
+      )
+      archiveProgressTriggerRef.current = archiveProgressTweenRef.current.scrollTrigger ?? null
+      ScrollTrigger.refresh()
+    }
+
+    let archiveListReplayTimeline: gsap.core.Timeline | null = null
     const terminalizeArchiveListMotion = () => {
       if (!root.isConnected) return
       const { terminalTargets } = getLiveArchiveListTargets()
-      if (terminalTargets.length > 0) {
-        gsap.set(terminalTargets, {
-          autoAlpha: 1,
-          y: 0,
-          scale: 1,
-          clearProps: 'willChange,transform',
-        })
+      if (terminalTargets.length) {
+        gsap.set(terminalTargets, { autoAlpha: 1, x: 0, y: 0, scale: 1, clearProps: 'willChange,transform' })
       }
+      hideArchiveDecorations()
+      terminalizeArchiveTrack()
     }
-
     const stopArchiveListReplay = () => {
       archiveListReplayTimeline?.kill()
       archiveListReplayTimeline = null
+      archiveFlipTimelineRef.current?.kill()
+      archiveFlipTimelineRef.current = null
+      gsap.killTweensOf(getScopedTargets('[data-archive-rim], [data-archive-node-halo]'))
       terminalizeArchiveListMotion()
     }
-
     const runArchiveListReplay = () => {
       if (!root.isConnected) return
       stopArchiveListReplay()
-
-      const { yearDividers, firstScreenTripCards, terminalTargets } = getLiveArchiveListTargets()
-      if (terminalTargets.length === 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      killArchiveScrollMotion()
+      const geometry = syncTimelineGeometry()
+      const { yearDividers, nodes, firstScreenTripCards, filterEmpty, terminalTargets } = getLiveArchiveListTargets()
+      const firstScreenNodes = nodes.slice(0, 4)
+      if (!terminalTargets.length || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         terminalizeArchiveListMotion()
+        rebuildArchiveScrollMotion()
         return
       }
-
-      if (yearDividers.length > 0) gsap.set(yearDividers, { willChange: 'opacity' })
-      if (firstScreenTripCards.length > 0) {
-        gsap.set(firstScreenTripCards, {
-          willChange: 'transform, opacity',
-        })
-      }
-
       const fadeDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.2)
-      const replayDuration = Math.min(Math.max(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.42), 0.52)
-
-      archiveListReplayTimeline = gsap.timeline({
-        defaults: { ease: 'power3.out' },
-        onComplete: terminalizeArchiveListMotion,
-        onInterrupt: terminalizeArchiveListMotion,
-      })
+      const replayDuration = Math.min(Math.max(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.32), 0.42)
+      const finishReplay = () => {
+        terminalizeArchiveListMotion()
+        rebuildArchiveScrollMotion()
+      }
+      archiveListReplayTimeline = gsap.timeline({ onComplete: finishReplay, onInterrupt: terminalizeArchiveListMotion })
       archiveListReplayTimeline.addLabel('listReplay', 0)
-
-      if (yearDividers.length > 0) {
-        archiveListReplayTimeline.fromTo(yearDividers, { autoAlpha: 0 }, {
-          autoAlpha: 1,
-          duration: fadeDuration,
+      if (geometry) {
+        const length = geometry.basePath.getTotalLength()
+        archiveListReplayTimeline.fromTo(geometry.basePath, { strokeDasharray: length, strokeDashoffset: length }, {
+          strokeDashoffset: 0,
+          duration: Math.min(0.5, Math.max(0.42, replayDuration)),
+          ease: 'power3.out',
+        }, 'listReplay')
+        archiveListReplayTimeline.fromTo(geometry.progressPath, { strokeDasharray: length, strokeDashoffset: length }, {
+          strokeDashoffset: 0,
+          duration: Math.min(0.5, Math.max(0.42, replayDuration)),
           ease: 'power3.out',
         }, 'listReplay')
       }
-
-      if (firstScreenTripCards.length > 0) {
-        archiveListReplayTimeline.fromTo(firstScreenTripCards, { autoAlpha: 0, y: 16, scale: 0.96 }, {
+      if (yearDividers.length) {
+        archiveListReplayTimeline.fromTo(yearDividers, { autoAlpha: 0 }, { autoAlpha: 1, duration: fadeDuration, ease: 'power3.out' }, 'listReplay')
+      }
+      if (firstScreenTripCards.length) {
+        archiveListReplayTimeline.fromTo(firstScreenTripCards, { autoAlpha: 0, x: -14 }, {
           autoAlpha: 1,
-          y: 0,
+          x: 0,
+          duration: replayDuration,
+          ease: 'power3.out',
+          stagger: { each: 0.03, from: 'start' },
+        }, 'listReplay')
+      }
+      if (firstScreenNodes.length) {
+        archiveListReplayTimeline.fromTo(firstScreenNodes, { autoAlpha: 0, scale: 0.5 }, {
+          autoAlpha: 1,
           scale: 1,
           duration: replayDuration,
           ease: 'back.out(1.3)',
           stagger: { each: 0.03, from: 'start' },
         }, 'listReplay')
       }
+      if (filterEmpty.length) {
+        archiveListReplayTimeline.fromTo(filterEmpty, { autoAlpha: 0, y: 10 }, {
+          autoAlpha: 1,
+          y: 0,
+          duration: replayDuration,
+          ease: 'power3.out',
+        }, 'listReplay')
+      }
+    }
+
+    const captureArchiveFlip = () => {
+      stopArchiveListReplay()
+      killArchiveScrollMotion()
+      const flipTargets = getScopedTargets('[data-archive-flip-item]')
+      pendingFlipStateRef.current = flipTargets.length ? Flip.getState(flipTargets) : null
+    }
+    const runArchiveFlip = () => {
+      archiveFlipTimelineRef.current?.kill()
+      archiveFlipTimelineRef.current = null
+      const state = pendingFlipStateRef.current
+      pendingFlipStateRef.current = null
+      if (!state || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        terminalizeArchiveListMotion()
+        return
+      }
+      archiveFlipTimelineRef.current = flipFrom(state, {
+        duration: Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.28),
+        ease: 'power3.out',
+        simple: true,
+        prune: true,
+        onComplete: terminalizeArchiveListMotion,
+        onInterrupt: terminalizeArchiveListMotion,
+      })
     }
 
     const runMotion = () => {
       const mm = gsap.matchMedia()
       mm.add(
-        {
-          allowMotion: '(prefers-reduced-motion: no-preference)',
-          reduceMotion: '(prefers-reduced-motion: reduce)',
-        },
+        { allowMotion: '(prefers-reduced-motion: no-preference)', reduceMotion: '(prefers-reduced-motion: reduce)' },
         (mediaContext) => {
           if (mediaContext.conditions?.reduceMotion) {
             terminalizeArchiveMotion()
             return () => terminalizeArchiveMotion()
           }
-
-          const baseDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.2)
-          const enterDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.24)
-          const fastDuration = Math.min(parseMotionTokenSeconds(root, '--motion-fast', 180), 0.16)
-          const schedule = {
-            header: 0,
-            identity: 0.08,
-            stats: 0.18,
-            filters: 0.3,
-            trips: 0.38,
-            emptyState: 0.18,
-            emptyCopy: 0.46,
-            footer: 0.68,
-          } as const
+          const baseDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.22)
+          const enterDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.32)
+          const schedule = { header: 0, identity: 0.06, filters: 0.28, timeline: 0.34, trips: 0.38, emptyState: 0.1, emptyActions: 0.3, emptyCopy: 0.48, footer: 0.68 } as const
           const motionMap = new Map(getMotionTargets().map((target) => [target.dataset.archiveMotion, target]))
-          const shiftedTargets = getAnimatedTargets().filter((target) => target.dataset.archiveMotionMode !== 'fade')
-          const fadeOnlyTargets = getAnimatedTargets().filter((target) => target.dataset.archiveMotionMode === 'fade')
-
-          if (shiftedTargets.length > 0) gsap.set(shiftedTargets, { willChange: 'transform, opacity' })
-          if (fadeOnlyTargets.length > 0) gsap.set(fadeOnlyTargets, { willChange: 'opacity' })
-
-          const timeline = gsap.timeline({
-            defaults: { duration: baseDuration, ease: 'power3.out' },
-            onComplete: terminalizeArchiveMotion,
-            onInterrupt: terminalizeArchiveMotion,
-          })
-
-          const addShell = (key: string, label: string, position: number, fromY = 16, scale = 0.98, ease = 'power3.out') => {
+          const geometry = syncTimelineGeometry()
+          const timeline = gsap.timeline({ defaults: { duration: baseDuration, ease: 'power3.out' }, onComplete: terminalizeArchiveMotion, onInterrupt: terminalizeArchiveMotion })
+          const addShell = (key: string, label: string, position: number, fromY = 14, scale = 0.98) => {
             const target = motionMap.get(key)
             if (!target) return
             timeline.addLabel(label, position)
             if (target.dataset.archiveMotionMode === 'fade') {
               timeline.fromTo(target, { autoAlpha: 0 }, { autoAlpha: 1, duration: baseDuration, ease: 'power3.out' }, label)
-              return
+            } else {
+              timeline.fromTo(target, { autoAlpha: 0, y: fromY, scale }, { autoAlpha: 1, y: 0, scale: 1, duration: enterDuration, ease: 'power3.out' }, label)
             }
-            timeline.fromTo(target, { autoAlpha: 0, y: fromY, scale }, {
-              autoAlpha: 1,
-              y: 0,
-              scale: 1,
+          }
+          addShell('header', 'header', schedule.header, 8, 1)
+          const isTrueEmpty = Boolean(motionMap.get('empty-state'))
+          addShell('identity', 'identity', isTrueEmpty ? 0 : schedule.identity, 14, 0.98)
+          addShell('filters', 'filters', schedule.filters, 8, 1)
+          if (geometry) {
+            const length = geometry.basePath.getTotalLength()
+            timeline.addLabel('timeline', schedule.timeline)
+            timeline.fromTo(geometry.basePath, { strokeDasharray: length, strokeDashoffset: length }, {
+              strokeDashoffset: 0,
               duration: enterDuration,
-              ease,
-            }, label)
+              ease: 'power3.out',
+            }, 'timeline')
           }
-
-          addShell('header', 'header', schedule.header, 14, 0.98)
-          addShell('identity', 'identity', schedule.identity, 18, 0.96, 'back.out(1.3)')
-
-          const statTiles = getScopedTargets('[data-archive-stat-tile]')
-          if (statTiles.length > 0) {
-            timeline.addLabel('stats', schedule.stats)
-            timeline.fromTo(statTiles, { autoAlpha: 0, y: 12, scale: 0.96 }, {
-              autoAlpha: 1,
-              y: 0,
-              scale: 1,
-              duration: fastDuration,
-              ease: 'back.out(1.3)',
-              stagger: { each: 0.035, from: 'start' },
-            }, 'stats')
-            for (const valueNode of getScopedTargets('[data-archive-stat-value][data-count-value]')) {
-              const rawTarget = Number(valueNode.dataset.countValue)
-              const finalText = valueNode.dataset.finalText ?? valueNode.textContent ?? ''
-              if (!Number.isFinite(rawTarget)) continue
-              const countState = { value: 0 }
-              timeline.to(countState, {
-                value: rawTarget,
-                duration: Math.min(0.46, enterDuration * 1.9),
-                ease: 'power2.out',
-                onStart: () => {
-                  valueNode.textContent = formatMotionCountValue(0, valueNode.dataset.countFormat, finalText)
-                },
-                onUpdate: () => {
-                  valueNode.textContent = formatMotionCountValue(countState.value, valueNode.dataset.countFormat, finalText)
-                },
-                onComplete: () => {
-                  valueNode.textContent = finalText
-                },
-              }, 'stats')
-            }
+          const nodes = getScopedTargets('[data-archive-node]').slice(0, 4)
+          if (nodes.length) {
+            nodes.forEach((node) => {
+              const nodeId = node.dataset.archiveNode ?? ''
+              const nodeY = archiveNodePositionMapRef.current.get(nodeId) ?? 0
+              const nodePosition = schedule.timeline + (geometry ? Math.min(1, nodeY / geometry.height) * enterDuration : 0)
+              timeline.fromTo(node, { autoAlpha: 0, scale: 0.35 }, {
+                autoAlpha: 1,
+                scale: 1,
+                duration: enterDuration,
+                ease: 'back.out(1.3)',
+              }, nodePosition)
+              const halo = node.querySelector<HTMLElement>('[data-archive-node-halo]')
+              if (nodeId && halo && !mountHaloPlayedRef.current.has(nodeId)) {
+                mountHaloPlayedRef.current.add(nodeId)
+                timeline.fromTo(halo, { autoAlpha: 1, scale: 0.6 }, {
+                  autoAlpha: 0,
+                  scale: 1.4,
+                  duration: Math.min(0.45, Math.max(0.42, parseMotionTokenSeconds(root, '--motion-status', 420))),
+                  ease: 'power2.out',
+                  onComplete: () => gsap.set(halo, { autoAlpha: 0, scale: 1, clearProps: 'transform' }),
+                  onInterrupt: () => gsap.set(halo, { autoAlpha: 0, scale: 1, clearProps: 'transform' }),
+                }, nodePosition)
+              }
+            })
           }
-
-          addShell('filters', 'filters', schedule.filters, 10, 1)
-
           const firstScreenTripCards = getFirstScreenTripCards()
-          if (firstScreenTripCards.length > 0) {
+          if (firstScreenTripCards.length) {
             timeline.addLabel('trips', schedule.trips)
             firstScreenTripCards.forEach((card, index) => {
               card.dataset.archiveMotionParticipation = 'first-screen'
               card.dataset.archiveMotionIndex = String(index)
             })
-            timeline.fromTo(firstScreenTripCards, { autoAlpha: 0, y: 18, scale: 0.96 }, {
+            timeline.fromTo(firstScreenTripCards, { autoAlpha: 0, x: -14 }, {
+              autoAlpha: 1,
+              x: 0,
+              duration: enterDuration,
+              ease: 'power3.out',
+              stagger: { each: 0.03, from: 'start' },
+            }, 'trips')
+          }
+          for (const valueNode of getScopedTargets('[data-archive-stat-value][data-count-value]')) {
+            const rawTarget = Number(valueNode.dataset.countValue)
+            const finalText = valueNode.dataset.finalText ?? valueNode.textContent ?? ''
+            if (!Number.isFinite(rawTarget)) continue
+            const countState = { value: 0 }
+            timeline.to(countState, {
+              value: rawTarget,
+              duration: Math.min(0.46, enterDuration * 1.4),
+              ease: 'power2.out',
+              onStart: () => { valueNode.textContent = formatMotionCountValue(0, valueNode.dataset.countFormat, finalText) },
+              onUpdate: () => { valueNode.textContent = formatMotionCountValue(countState.value, valueNode.dataset.countFormat, finalText) },
+              onComplete: () => { valueNode.textContent = finalText },
+              onInterrupt: () => { valueNode.textContent = finalText },
+            }, 'identity')
+          }
+          const emptyState = motionMap.get('empty-state')
+          if (emptyState) {
+            timeline.addLabel('emptyState', schedule.emptyState)
+            timeline.fromTo(emptyState, { autoAlpha: 0, y: 16, scale: 0.97 }, {
               autoAlpha: 1,
               y: 0,
               scale: 1,
               duration: enterDuration,
               ease: 'back.out(1.3)',
-              stagger: { each: 0.03, from: 'start' },
-            }, 'trips')
+            }, 'emptyState')
+            const emptyActions = getScopedTargets('[data-archive-empty-cta]', emptyState)
+            if (emptyActions.length) {
+              timeline.addLabel('emptyActions', schedule.emptyActions)
+              timeline.fromTo(emptyActions, { autoAlpha: 0, y: 10, scale: 0.985 }, {
+                autoAlpha: 1,
+                y: 0,
+                scale: 1,
+                duration: baseDuration,
+                ease: 'power3.out',
+                stagger: { each: 0.04, from: 'start' },
+              }, 'emptyActions')
+            }
           }
-
-          addShell('empty-state', 'emptyState', schedule.emptyState, 18, 0.96, 'back.out(1.3)')
           addShell('empty-copy', 'emptyCopy', schedule.emptyCopy, 0, 1)
           addShell('footer', 'footer', schedule.footer, 0, 1)
-
-          return () => {
-            timeline.kill()
-            terminalizeArchiveMotion()
-          }
+          return () => { timeline.kill(); terminalizeArchiveMotion() }
         },
         root,
       )
-
-      return () => {
-        mm.revert()
-        terminalizeArchiveMotion()
-      }
+      return () => { mm.revert(); terminalizeArchiveMotion() }
     }
 
     const safeRunMotion = (contextSafe ? contextSafe(runMotion) : runMotion) as () => unknown
-    const safeRunArchiveListReplay = (contextSafe ? contextSafe(runArchiveListReplay) : runArchiveListReplay) as () => void
-    const safeTerminalizeArchiveList = (contextSafe ? contextSafe(stopArchiveListReplay) : stopArchiveListReplay) as () => void
-    replayArchiveListRef.current = safeRunArchiveListReplay
-    terminalizeArchiveListRef.current = safeTerminalizeArchiveList
+    const safeReplay = (contextSafe ? contextSafe(runArchiveListReplay) : runArchiveListReplay) as () => void
+    const safeTerminalize = (contextSafe ? contextSafe(stopArchiveListReplay) : stopArchiveListReplay) as () => void
+    const safeRebuild = (contextSafe ? contextSafe(rebuildArchiveScrollMotion) : rebuildArchiveScrollMotion) as () => void
+    const safeCaptureFlip = (contextSafe ? contextSafe(captureArchiveFlip) : captureArchiveFlip) as () => void
+    const safeRunFlip = (contextSafe ? contextSafe(runArchiveFlip) : runArchiveFlip) as () => void
+    const safePlayRim = (contextSafe ? contextSafe(playArchiveRim) : playArchiveRim) as RimTargetHandler
+    const safeReleaseRim = (contextSafe ? contextSafe(releaseArchiveRim) : releaseArchiveRim) as RimTargetHandler
+    replayArchiveListRef.current = safeReplay
+    terminalizeArchiveListRef.current = safeTerminalize
+    rebuildArchiveScrollMotionRef.current = safeRebuild
+    captureArchiveFlipRef.current = safeCaptureFlip
+    runArchiveFlipRef.current = safeRunFlip
+    playArchiveRimRef.current = safePlayRim
+    releaseArchiveRimRef.current = safeReleaseRim
     const cleanup = safeRunMotion()
     return () => {
       replayArchiveListRef.current = null
       terminalizeArchiveListRef.current = null
+      rebuildArchiveScrollMotionRef.current = null
+      captureArchiveFlipRef.current = null
+      runArchiveFlipRef.current = null
+      playArchiveRimRef.current = null
+      releaseArchiveRimRef.current = null
       stopArchiveListReplay()
+      killArchiveScrollMotion()
       if (typeof cleanup === 'function') cleanup()
       terminalizeArchiveMotion()
     }
   }, { scope: motionScopeRef, dependencies: [] })
 
   useLayoutEffect(() => {
-    if (!pendingFilterReplayRef.current) return
-    pendingFilterReplayRef.current = false
-    replayArchiveListRef.current?.()
-  }, [activeFilter, filteredTripSignature])
+    const reason = pendingArchiveCommitRef.current
+    pendingArchiveCommitRef.current = 'mount'
+    if (reason === 'filter' && pendingFilterReplayRef.current) {
+      pendingFilterReplayRef.current = false
+      replayArchiveListRef.current?.()
+      return
+    }
+    if (reason === 'expand') runArchiveFlipRef.current?.()
+    rebuildArchiveScrollMotionRef.current?.()
+  }, [activeFilter, filteredTripSignature, expandedSignature])
 
   return (
     <div
       ref={motionScopeRef}
       data-archive-motion-root
-      style={{
-        color: 'var(--color-on-surface)',
-        background: 'var(--color-surface)',
-        overflowX: 'hidden',
-      }}
+      className="archive-reinvention"
+      style={{ '--archive-app-header-height': `${APP_HEADER_HEIGHT_PX}px` } as CSSProperties}
     >
       <ArchiveContentHeading />
       {hasTrips ? (
         <>
-          <IdentityCard user={user} summary={summary} />
+          <ArchiveHero user={user} summary={summary} />
           <FilterTabs active={activeFilter} onChange={handleFilterChange} trips={trips} />
-          {yearGroups.map((group) => (
-            <section key={group.year}>
-              <YearDivider year={group.year} count={group.trips.length} />
-              <div style={{ display: 'grid', gap: 'var(--space-3)', padding: '0 var(--space-4)' }}>
-                {group.trips.map((trip) => (
-                  <TripCard key={trip.id} trip={trip} onOpen={() => router.push(`/activity/${trip.id}`)} />
-                ))}
-              </div>
-            </section>
-          ))}
-          <div
-            data-archive-motion="footer"
-            data-archive-motion-mode="fade"
-            style={{
-              ...monoStyle,
-              padding: '28px 0',
-              color: 'var(--color-on-surface-variant)',
-              fontSize: 10,
-              lineHeight: '14px',
-              letterSpacing: '0.2em',
-              textAlign: 'center',
-            }}
-          >
-            · 档案结束 ·
-          </div>
+          {filteredTrips.length ? (
+            <ArchiveTimeline>
+              {yearGroups.map((group, groupIndex) => (
+                <ArchiveYearSection
+                  key={group.year}
+                  group={group}
+                  groupIndex={groupIndex}
+                  isExpanded={Boolean(expandedYears[getExpandedYearKey(activeFilter, group.year)])}
+                  highestPointId={summary.highestPoint?.tripId ?? null}
+                  activeFilter={activeFilter}
+                  onToggle={() => handleYearToggle(group.year)}
+                  onOpen={(trip) => router.push(`/activity/${trip.id}`)}
+                  onRimStart={handleRimStart}
+                  onRimEnd={handleRimEnd}
+                />
+              ))}
+            </ArchiveTimeline>
+          ) : (
+            <FilterEmptyState onShowAll={() => handleFilterChange('all')} />
+          )}
+          {filteredTrips.length ? <ArchiveFooter trips={filteredTrips} activeFilter={activeFilter} /> : null}
         </>
       ) : (
         <>
@@ -1249,6 +1353,8 @@ export default function ArchiveClient({
           <ArchiveEmptyState
             onFindMountain={() => router.push('/explore')}
             onBringBack={() => router.push('/explore')}
+            onRimStart={handleRimStart}
+            onRimEnd={handleRimEnd}
           />
         </>
       )}

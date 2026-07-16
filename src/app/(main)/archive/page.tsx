@@ -38,6 +38,8 @@ type CheckinRow = {
   source?: string | null
   photo_url: string | null
   verified_at?: string | null
+  start_time?: string | null
+  note?: string | null
   created_at: string
   summit_verified?: boolean | null
   altitude?: number | string | null
@@ -78,19 +80,19 @@ const PROFILE_SELECT_VARIANTS = [
 
 const CHECKIN_SELECT_VARIANTS = [
   `
-    id, user_id, mountain_id, type, source, photo_url, verified_at, created_at,
+    id, user_id, mountain_id, type, source, photo_url, verified_at, start_time, note, created_at,
     summit_verified, altitude, distance_km, ascent_m, duration_seconds,
     distance_meters, elevation_gain_meters, max_elevation_meters, session_id, track_name,
     mountains(id, name, altitude, province, region, cover_image, gallery_images)
   `,
   `
-    id, user_id, mountain_id, type, source, photo_url, verified_at, created_at,
+    id, user_id, mountain_id, type, source, photo_url, verified_at, start_time, note, created_at,
     distance_meters, elevation_gain_meters, max_elevation_meters, duration_seconds,
     session_id, track_name,
     mountains(id, name, altitude, province, cover_image, gallery_images)
   `,
   `
-    id, user_id, mountain_id, type, photo_url, verified_at, created_at, session_id,
+    id, user_id, mountain_id, type, photo_url, verified_at, start_time, note, created_at, session_id,
     mountains(id, name, altitude, province, cover_image, gallery_images)
   `,
   `
@@ -105,8 +107,49 @@ function firstRelation<T>(value: T | T[] | null | undefined) {
 }
 
 function toNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
   const numberValue = Number(value)
   return Number.isFinite(numberValue) ? numberValue : null
+}
+
+function toValidIsoDate(value: string | null | undefined): string | null {
+  if (!value?.trim()) return null
+  return Number.isFinite(new Date(value).getTime()) ? value : null
+}
+
+function resolveActivityAt({
+  startTime,
+  sessionStartedAt,
+  createdAt,
+}: {
+  startTime?: string | null
+  sessionStartedAt?: string | null
+  createdAt?: string | null
+}): string | null {
+  return toValidIsoDate(startTime) ?? toValidIsoDate(sessionStartedAt) ?? toValidIsoDate(createdAt)
+}
+
+function resolveArchiveMaxAltitude({
+  maxElevationMeters,
+  altitude,
+  sessionMaxAltitudeM,
+  mountainAltitude,
+  isSummit,
+}: {
+  maxElevationMeters?: unknown
+  altitude?: unknown
+  sessionMaxAltitudeM?: unknown
+  mountainAltitude?: unknown
+  isSummit: boolean
+}): number | null {
+  const measuredMaxAltitudeM =
+    toNumber(maxElevationMeters) ?? toNumber(altitude) ?? toNumber(sessionMaxAltitudeM)
+  const resolvedAltitude = measuredMaxAltitudeM ?? (isSummit ? toNumber(mountainAltitude) : null)
+  return resolvedAltitude !== null && resolvedAltitude > 0 ? Math.round(resolvedAltitude) : null
+}
+
+function normalizeArchiveNote(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
 function durationFromRange(start: string | null | undefined, end: string | null | undefined) {
@@ -212,10 +255,23 @@ function normalizeTrip({
   const mountain = firstRelation(checkin.mountains)
 
   const mountainAltitude = toNumber(mountain?.altitude)
+  const isSummit =
+    checkin.summit_verified === true ||
+    Boolean(checkin.verified_at)
+  const activityAt = resolveActivityAt({
+    startTime: checkin.start_time,
+    sessionStartedAt: session?.started_at,
+    createdAt: checkin.created_at,
+  }) ?? checkin.created_at
   const fallbackAltitude =
     toNumber(checkin.max_elevation_meters) ?? toNumber(checkin.altitude) ?? toNumber(session?.max_altitude_m) ?? 0
-  const maxAltitude =
-    toNumber(checkin.max_elevation_meters) ?? toNumber(checkin.altitude) ?? toNumber(session?.max_altitude_m) ?? mountainAltitude ?? 0
+  const maxAltitude = resolveArchiveMaxAltitude({
+    maxElevationMeters: checkin.max_elevation_meters,
+    altitude: checkin.altitude,
+    sessionMaxAltitudeM: session?.max_altitude_m,
+    mountainAltitude,
+    isSummit,
+  })
   const distanceKm =
     toNumber(checkin.distance_km) ??
     (toNumber(checkin.distance_meters) !== null ? Number(((toNumber(checkin.distance_meters) ?? 0) / 1000).toFixed(1)) : null) ??
@@ -230,19 +286,17 @@ function normalizeTrip({
     toNumber(checkin.duration_seconds) ??
     durationFromRange(session?.started_at, session?.ended_at) ??
     0
-  const isSummit =
-    checkin.summit_verified === true ||
-    Boolean(checkin.verified_at)
   const hasProof = Boolean(checkin.mountain_id)
   const displayTitle = resolveCheckinDisplayTitle({
     mountainName: mountain?.name,
     trackName: checkin.track_name,
   })
-  const photoUrl = checkin.photo_url ?? assets[0]?.thumbnail_url ?? assets[0]?.url ?? mountain?.cover_image ?? null
+  const photoUrl = checkin.photo_url ?? assets[0]?.thumbnail_url ?? assets[0]?.url ?? null
 
   return {
     id: checkin.id,
-    createdAt: checkin.created_at,
+    activityAt,
+    note: normalizeArchiveNote(checkin.note),
     mountain: {
       id: mountain?.id ?? null,
       name: displayTitle.title,
@@ -256,7 +310,7 @@ function normalizeTrip({
       coverImage: mountain?.cover_image ?? null,
     },
     metrics: {
-      maxAltitudeM: Math.round(maxAltitude),
+      maxAltitudeM: maxAltitude,
       distanceKm: Number(distanceKm.toFixed(1)),
       ascentM: Math.round(ascentM),
       durationSeconds: Math.round(durationSeconds),
@@ -268,10 +322,28 @@ function normalizeTrip({
 }
 
 function buildSummary(trips: ArchiveTripViewModel[]): ArchiveSummaryViewModel {
+  const highestPoint = trips
+    .filter((trip) => trip.metrics.maxAltitudeM !== null)
+    .sort((left, right) => {
+      const altitudeDelta = (right.metrics.maxAltitudeM ?? 0) - (left.metrics.maxAltitudeM ?? 0)
+      if (altitudeDelta !== 0) return altitudeDelta
+      const timeDelta = new Date(right.activityAt).getTime() - new Date(left.activityAt).getTime()
+      return timeDelta !== 0 ? timeDelta : left.id.localeCompare(right.id)
+    })[0] ?? null
+
   return {
     totalTrips: trips.length,
     summitCount: trips.filter((trip) => trip.isSummit).length,
-    maxAltitudeM: Math.max(0, ...trips.map((trip) => trip.metrics.maxAltitudeM)),
+    maxAltitudeM: highestPoint?.metrics.maxAltitudeM ?? null,
+    recordedAscentM: trips.reduce((total, trip) => total + Math.max(0, trip.metrics.ascentM), 0),
+    highestPoint: highestPoint
+      ? {
+          tripId: highestPoint.id,
+          mountainName: highestPoint.mountain.name,
+          activityAt: highestPoint.activityAt,
+          maxAltitudeM: highestPoint.metrics.maxAltitudeM,
+        }
+      : null,
   }
 }
 
@@ -296,13 +368,18 @@ export default async function ArchivePage() {
     loadSessionMap(supabase, sessionIds),
     loadAssetMap(supabase, checkinIds),
   ])
-  const trips = checkins.map((checkin) =>
-    normalizeTrip({
-      checkin,
-      session: checkin.session_id ? sessionMap.get(checkin.session_id) ?? null : null,
-      assets: assetMap.get(checkin.id) ?? [],
+  const trips = checkins
+    .map((checkin) =>
+      normalizeTrip({
+        checkin,
+        session: checkin.session_id ? sessionMap.get(checkin.session_id) ?? null : null,
+        assets: assetMap.get(checkin.id) ?? [],
+      })
+    )
+    .sort((left, right) => {
+      const timeDelta = new Date(right.activityAt).getTime() - new Date(left.activityAt).getTime()
+      return timeDelta !== 0 ? timeDelta : left.id.localeCompare(right.id)
     })
-  )
 
   return (
     <ArchiveClient

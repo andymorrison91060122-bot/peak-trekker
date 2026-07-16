@@ -62,3 +62,37 @@ test('whole-string filenames are rejected but dotted location names survive', ()
   assert.equal(resolveCheckinDisplayTitle({ trackName: 'A.B线' }).title, 'A.B线')
   assert.equal(resolveCheckinDisplayTitle({ trackName: '1.5公里入口' }).title, '1.5公里入口')
 })
+
+test('complete CDATA wrappers are unwrapped before display checks', () => {
+  const resolved = resolveCheckinDisplayTitle({
+    mountainName: null,
+    trackName: '<![CDATA[  南峰环线  ]]>',
+  })
+
+  assert.equal(resolved.title, '南峰环线')
+  assert.equal(resolved.titleSource, 'track_name')
+})
+
+test('device-default timestamps inside or outside CDATA use the unmatched fallback', () => {
+  for (const trackName of [
+    '<![CDATA[2026-07-16 08:32:11 其它]]>',
+    '<![CDATA[20260716_083211 未命名]]>',
+    '1721118731000',
+    '2026-07-16T08:32:11',
+  ]) {
+    const resolved = resolveCheckinDisplayTitle({ mountainName: null, trackName })
+    assert.equal(resolved.title, '未关联山行')
+    assert.equal(resolved.titleSource, 'fallback')
+    assert.equal(resolved.secondaryLocation, '未知地点')
+  }
+})
+
+test('empty CDATA uses fallback while partial CDATA text is left untouched', () => {
+  assert.equal(resolveCheckinDisplayTitle({ trackName: '<![CDATA[   ]]>' }).titleSource, 'fallback')
+  assert.equal(resolveCheckinDisplayTitle({ trackName: '前缀 <![CDATA[山径]]>' }).title, '前缀 <![CDATA[山径]]>')
+})
+
+test('meaningful names that contain dates remain displayable', () => {
+  assert.equal(resolveCheckinDisplayTitle({ trackName: '2026-07-16 华山夜爬' }).title, '2026-07-16 华山夜爬')
+  assert.equal(resolveCheckinDisplayTitle({ trackName: '<![CDATA[2026 夏季南峰线]]>' }).title, '2026 夏季南峰线')
+})

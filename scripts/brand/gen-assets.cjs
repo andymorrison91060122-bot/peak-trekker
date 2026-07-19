@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * FU-75 round-A · deterministic brand-asset generation.
  *
@@ -32,15 +33,43 @@
 const sharp = require('sharp');
 const crypto = require('crypto');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
-const SRC = process.argv[2];
-const OUT = process.argv[3];
-if (!SRC || !OUT) { console.error('usage: node gen-brand-assets.cjs <SRC_DIR> <OUT_DIR>'); process.exit(1); }
+const args = process.argv.slice(2);
+const CHECK = args.includes('--check');
+const positional = args.filter((arg) => arg !== '--check');
+const SRC = path.resolve(positional[0] ?? 'brand/source');
+const TARGET_OUT = path.resolve(positional[1] ?? 'public/brand');
+const TEMP_ROOT = CHECK ? fs.mkdtempSync(path.join(os.tmpdir(), 'peak-trekker-brand-')) : null;
+const OUT = TEMP_ROOT ? path.join(TEMP_ROOT, 'brand') : TARGET_OUT;
 fs.mkdirSync(OUT, { recursive: true });
 
 const sha = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
 function assert(cond, msg) { if (!cond) throw new Error('ASSERT FAILED: ' + msg); }
+
+function listFiles(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+    .sort();
+}
+
+function verifyGeneratedAssets() {
+  assert(fs.existsSync(TARGET_OUT), `checked output directory does not exist: ${TARGET_OUT}`);
+  const generatedFiles = listFiles(OUT);
+  const checkedFiles = listFiles(TARGET_OUT);
+  assert(
+    JSON.stringify(generatedFiles) === JSON.stringify(checkedFiles),
+    `generated file set differs: generated=${generatedFiles.join(',')} checked=${checkedFiles.join(',')}`,
+  );
+
+  for (const file of generatedFiles) {
+    const generated = fs.readFileSync(path.join(OUT, file));
+    const checked = fs.readFileSync(path.join(TARGET_OUT, file));
+    assert(generated.equals(checked), `${file} differs from deterministic regeneration`);
+  }
+}
 
 // Frozen signed-off source SHAs. Generation REFUSES to run on any input that does
 // not match — a mismatch (or an unregistered source) throws, so the pipeline can
@@ -84,6 +113,26 @@ async function deriveWhiteMask(srcPath, outName) {
   assert(meta.hasAlpha && meta.channels === 4, `mask ${outName} must carry an alpha channel`);
   record({ output: outName, source: path.relative(SRC, srcPath), sourceSha256: srcSha(srcPath),
     transform: 'alpha=meanSrgbCoverage=(r+g+b)/3 of content-on-black (coverage proxy, NOT CIE luminance); rgb:=white; discard colour fringe', dims: `${W}x${H}` }, buf);
+  return buf;
+}
+
+async function resizeDerivedMask(fullMask, fullMaskName, srcPath, size, outName) {
+  const buf = await sharp(fullMask)
+    .resize(size, size, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+  const meta = await sharp(buf).metadata();
+  assert(meta.width === size && meta.height === size, `${outName} dims ${meta.width}x${meta.height} != ${size}x${size}`);
+  assert(meta.hasAlpha && meta.channels === 4, `${outName} must preserve the full mask alpha channel`);
+  record({
+    output: outName,
+    source: path.relative(SRC, srcPath),
+    sourceSha256: srcSha(srcPath),
+    derivedFrom: fullMaskName,
+    derivedFromSha256: sha(fullMask),
+    transform: `resize ${fullMaskName} contain ${size}x${size} + preserve alpha`,
+    dims: `${size}x${size}`,
+  }, buf);
 }
 
 // --- pure resize. opaque=true for maskable/apple-touch (from opaque square, output MUST be opaque);
@@ -133,8 +182,10 @@ function packIco(pngs /* [{size, buf}] */) {
   assert(squareStats.isOpaque, 'color/square.png must be fully opaque (full-bleed maskable/apple-touch base)');
 
   // 1. mono masks (real alpha, RGB white)
-  await deriveWhiteMask(path.join(monoDir, 'mark2.black.png'), 'derived-mask-mark-white.png');
-  await deriveWhiteMask(path.join(monoDir, 'crest2.black.png'), 'derived-mask-crest-white.png');
+  const markMask = await deriveWhiteMask(path.join(monoDir, 'mark2.black.png'), 'derived-mask-mark-white.png');
+  const crestMask = await deriveWhiteMask(path.join(monoDir, 'crest2.black.png'), 'derived-mask-crest-white.png');
+  await resizeDerivedMask(markMask, 'derived-mask-mark-white.png', path.join(monoDir, 'mark2.black.png'), 128, 'derived-mask-mark-ui-128.png');
+  await resizeDerivedMask(crestMask, 'derived-mask-crest-white.png', path.join(monoDir, 'crest2.black.png'), 384, 'derived-mask-crest-ui-384.png');
 
   // 2. Colour tile ladder (rounded, transparent corners) from tile master.
   //    512/192 feed the PWA "any" icons; 256/128/96 exist so size-aware BrandTile
@@ -177,6 +228,15 @@ function packIco(pngs /* [{size, buf}] */) {
     outputs: manifest,
   };
   fs.writeFileSync(path.join(OUT, 'manifest.json'), JSON.stringify(doc, null, 2));
-  console.log('generated', manifest.length, 'assets ->', OUT);
+  if (CHECK) verifyGeneratedAssets();
+
+  console.log(CHECK ? 'verified' : 'generated', manifest.length, 'assets ->', CHECK ? TARGET_OUT : OUT);
   for (const m of manifest) console.log('  ' + m.output.padEnd(30) + ' ' + m.dims.padEnd(10) + ' ' + m.outputSha256.slice(0, 16) + ' (' + m.bytes + 'B)');
-})();
+})()
+  .catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    if (TEMP_ROOT) fs.rmSync(TEMP_ROOT, { recursive: true, force: true });
+  });

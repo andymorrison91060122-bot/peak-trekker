@@ -61,29 +61,29 @@ const TEMPLATE_ITEMS: FacadeTemplate[] = [
   { key: 'photo', template: 'premium-photo-overlay', photoDataUrl: PHOTO_RIDGE },
 ]
 
-const MOCK_TRACK_POINTS = [
-  { lat: 30.1075, lng: 118.1662, altitude: 720 },
-  { lat: 30.1111, lng: 118.1691, altitude: 842 },
-  { lat: 30.1164, lng: 118.1718, altitude: 1015 },
-  { lat: 30.1217, lng: 118.174, altitude: 1184 },
-  { lat: 30.1244, lng: 118.1788, altitude: 1298 },
-  { lat: 30.1281, lng: 118.1835, altitude: 1432 },
-  { lat: 30.1315, lng: 118.1878, altitude: 1540 },
-  { lat: 30.1362, lng: 118.1902, altitude: 1618 },
-  { lat: 30.1398, lng: 118.1945, altitude: 1684 },
+const IMPRINT_SAMPLE_TRACK_POINTS = [
+  { lat: 38.2794, lng: 75.1152, altitude: 4400 },
+  { lat: 38.2812, lng: 75.1178, altitude: 4800 },
+  { lat: 38.2831, lng: 75.1206, altitude: 5400 },
+  { lat: 38.2853, lng: 75.1239, altitude: 5800 },
+  { lat: 38.2878, lng: 75.1274, altitude: 6200 },
+  { lat: 38.2904, lng: 75.1308, altitude: 6500 },
+  { lat: 38.2932, lng: 75.1339, altitude: 6800 },
+  { lat: 38.296, lng: 75.1365, altitude: 7200 },
+  { lat: 38.2987, lng: 75.1388, altitude: 7546 },
 ]
 
-function buildFacadeShareData(): ShareTemplateData {
+function buildImprintSampleShareData(): ShareTemplateData {
   return {
-    mountainName: '苍岭主峰',
-    location: '浙江',
+    mountainName: '慕士塔格峰',
+    location: '新疆',
     date: '2026.06.30',
-    altitude: 1684,
-    distance: 12.6,
-    duration: '04:38',
-    elevationGain: 932,
+    altitude: 7546,
+    distance: 20.0,
+    duration: '30:00',
+    elevationGain: 3146,
     source: 'uploaded',
-    trackPreview: buildShareTrackPreview(MOCK_TRACK_POINTS),
+    trackPreview: buildShareTrackPreview(IMPRINT_SAMPLE_TRACK_POINTS),
     visibleFields: {
       duration: true,
       elevationGain: true,
@@ -344,7 +344,7 @@ export default function ImprintClient({
   const [activeIndex, setActiveIndex] = useState(initialIndex)
   const [selectedIndex, setSelectedIndex] = useState(initialIndex)
   const [cardHeight, setCardHeight] = useState(MAX_CARD_HEIGHT)
-  const shareData = useMemo(() => buildFacadeShareData(), [])
+  const shareData = useMemo(() => buildImprintSampleShareData(), [])
   const selectedItem = TEMPLATE_ITEMS[selectedIndex] ?? TEMPLATE_ITEMS[0]
 
   useEffect(() => {

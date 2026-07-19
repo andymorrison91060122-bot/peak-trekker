@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
+import { BRAND_MARK_MASK_DATA_URI } from '@/lib/brand-assets.server'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import { resolveMeasuredShareAltitude } from '@/lib/share-data'
 import {
@@ -766,8 +767,14 @@ function buildBrandLockup({ x, y, compact = false }: { x: number; y: number; com
         fill="rgba(22,28,30,0.64)"
         stroke="rgba(126,240,180,0.26)"
       />
-      <path d="M${x + 10} ${y + iconSize - 12} L${x + 22} ${y + 12} C${x + 23} ${y + 10}, ${x + 26} ${y + 10}, ${x + 27} ${y + 12} L${x + 42} ${y + iconSize - 12}" fill="none" stroke="url(#highlightLine)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
-      <path d="M${x + 18} ${y + iconSize - 12} L${x + 27} ${y + 27} C${x + 28} ${y + 24}, ${x + 32} ${y + 24}, ${x + 33} ${y + 27} L${x + 38} ${y + iconSize - 12}" fill="none" stroke="#F5F7F8" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+      <image
+        href="${BRAND_MARK_MASK_DATA_URI}"
+        x="${x}"
+        y="${y}"
+        width="${iconSize}"
+        height="${iconSize}"
+        preserveAspectRatio="xMidYMid meet"
+      />
       <text x="${textX}" y="${baseline}" font-family="Manrope, sans-serif" font-size="${wordmarkSize}" font-weight="800" fill="#F5F7F8">Peak Trekker</text>
     </g>
   `

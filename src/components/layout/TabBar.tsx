@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { FocusEvent, PointerEvent } from 'react'
+import { BrandMask } from '@/components/brand/BrandMask'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 
 type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
@@ -45,10 +46,10 @@ function Icon({
 const TabIcons = {
   explore: (active: boolean) => (
     <Icon active={active}>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M4 17L9.8 8.2a1 1 0 0 1 1.7 0L20 17" stroke={active ? 'var(--color-success)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M7 17h10" stroke={active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)'} strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
+      <BrandMask
+        size={18}
+        style={{ color: active ? 'var(--color-primary)' : 'var(--color-on-surface-variant)' }}
+      />
     </Icon>
   ),
   archive: (active: boolean) => (
@@ -91,8 +92,8 @@ const TabIcons = {
 
 const tabs = [
   { href: '/explore', label: '探索', icon: TabIcons.explore },
-  { href: '/archive', label: '山行', icon: TabIcons.archive },
   { href: '/imprint', label: '印迹', icon: TabIcons.imprint },
+  { href: '/archive', label: '山行', icon: TabIcons.archive },
   { href: '/community', label: '山友圈', icon: TabIcons.community },
   { href: '/profile', label: '我的', icon: TabIcons.profile },
 ]

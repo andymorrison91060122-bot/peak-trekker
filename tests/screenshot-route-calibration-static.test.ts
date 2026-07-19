@@ -40,3 +40,19 @@ test('route calibration dims only visible inactive markers and leaves hit circle
   assert.match(hitCircle, /pointerEvents="all"/)
   assert.doesNotMatch(hitCircle, /opacity=\{inactiveDragOpacity\}|opacity=/)
 })
+
+test('route entry copy follows hasUserLine while first-step coaching follows control point count', () => {
+  const entryCard = calibrationEditor.match(/function RouteEntryCard[\s\S]*?function HonestGapSheet/)?.[0] ?? ''
+  const coachCopy = calibrationEditor.match(/function CoachCopy[\s\S]*?function RouteEntryCard/)?.[0] ?? ''
+
+  assert.match(entryCard, /const hasUserLine = drawableSegments\(calibration\.segments\)\.length > 0/)
+  assert.match(entryCard, /hasUserLine \? '轨迹已补上' : '为这条记录补上轨迹'/)
+  assert.match(entryCard, /hasUserLine[\s\S]*'检查线路，需要时继续补点或调整。'[\s\S]*'沿截图中的路线点出关键位置，系统会辅助贴合线条。'/)
+  assert.match(entryCard, /hasUserLine \? '继续调整' : '开始描绘'/)
+  assert.match(entryCard, /hasUserLine \? '查看并调整已描绘轨迹' : '点开截图，开始描绘轨迹'/)
+  assert.match(coachCopy, /calibration\.controlPoints\.length === 0/)
+  assert.match(coachCopy, /在截图中的路线起点点一下，再点终点。系统会辅助贴合线条，路线由你确认。/)
+  assert.match(calibrationEditor, /aria-label="描绘轨迹"/)
+  assert.match(calibrationEditor, />描绘轨迹<\/div>/)
+  assert.match(calibrationEditor, /轻点起点与终点，系统会辅助贴合线条/)
+})

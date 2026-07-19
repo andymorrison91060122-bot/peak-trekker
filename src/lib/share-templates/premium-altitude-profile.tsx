@@ -14,7 +14,7 @@ import {
   hasShareAltitude,
 } from './shared'
 
-export function PremiumAltitudeProfileTemplate({ data, photoDataUrl }: ShareTemplateProps) {
+export function PremiumAltitudeProfileTemplate({ data, photoDataUrl, brandMarkSrc }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const showAltitude = hasShareAltitude(data)
 
@@ -58,7 +58,7 @@ export function PremiumAltitudeProfileTemplate({ data, photoDataUrl }: ShareTemp
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </PosterShell>
   )

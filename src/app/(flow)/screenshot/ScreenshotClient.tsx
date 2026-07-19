@@ -10,6 +10,7 @@ import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import ModalShell from '@/components/ui/ModalShell'
 import Spinner from '@/components/ui/Spinner'
+import { BrandTile } from '@/components/brand/BrandTile'
 import { BackIcon, CheckIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
 import { trackEvent } from '@/lib/analytics/client'
 import ScreenshotRouteCalibrationSection from './ScreenshotRouteCalibrationSection'
@@ -1821,7 +1822,7 @@ function ConfirmScreen({
               lineHeight: 1.5,
             }}
           >
-            校准路线可选；只确认文字数据也能生成活动。
+            不描绘也可以生成活动，但这条记录不会包含轨迹。
           </div>
         </>
       }
@@ -2007,27 +2008,7 @@ function ArchiveRouteMedallion({ routeShape }: { routeShape?: PersistedScreensho
 }
 
 function ArchiveBrandMountainMark({ size = 118 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={{ display: 'block' }}>
-      <path
-        d="M3 19l5-9 4 6 3-4 6 7"
-        stroke="var(--color-success)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <path
-        d="M8 10l2.8 4.2 1.2-1.9 2.8 4.2"
-        stroke="var(--color-success)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-        opacity=".82"
-      />
-    </svg>
-  )
+  return <BrandTile size={size} sourceSet="large" />
 }
 
 function ArchiveMoment({

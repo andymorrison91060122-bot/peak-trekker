@@ -47,7 +47,7 @@ function MountainTexture() {
   )
 }
 
-export function BaseDataTemplate({ data, photoDataUrl }: ShareTemplateProps) {
+export function BaseDataTemplate({ data, photoDataUrl, brandMarkSrc }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const showAltitude = hasShareAltitude(data)
 
@@ -115,7 +115,7 @@ export function BaseDataTemplate({ data, photoDataUrl }: ShareTemplateProps) {
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 58 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </PosterShell>
   )

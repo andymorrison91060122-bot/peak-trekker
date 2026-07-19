@@ -166,7 +166,7 @@ function BottomClassicBlock({ data, compact = false }: { data: ShareTemplateProp
   )
 }
 
-function WatermarkClassic({ data }: ShareTemplateProps) {
+function WatermarkClassic({ data, brandMarkSrc }: ShareTemplateProps) {
   return (
     <TransparentShell>
       {hasShareTrackPoint(data.trackPreview) ? (
@@ -174,13 +174,13 @@ function WatermarkClassic({ data }: ShareTemplateProps) {
       ) : null}
       <BottomClassicBlock data={data} />
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </TransparentShell>
   )
 }
 
-function WatermarkData({ data }: ShareTemplateProps) {
+function WatermarkData({ data, brandMarkSrc }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const showAltitude = hasShareAltitude(data)
 
@@ -203,13 +203,13 @@ function WatermarkData({ data }: ShareTemplateProps) {
         <TransparentDataRow data={data} />
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 58 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </TransparentShell>
   )
 }
 
-function WatermarkComposite({ data }: ShareTemplateProps) {
+function WatermarkComposite({ data, brandMarkSrc }: ShareTemplateProps) {
   return (
     <TransparentShell>
       {hasShareTrackPoint(data.trackPreview) ? (
@@ -217,13 +217,13 @@ function WatermarkComposite({ data }: ShareTemplateProps) {
       ) : null}
       <BottomClassicBlock data={data} compact />
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </TransparentShell>
   )
 }
 
-function WatermarkOverlay({ data }: ShareTemplateProps) {
+function WatermarkOverlay({ data, brandMarkSrc }: ShareTemplateProps) {
   const mountainName = data.visibleFields.mountainName ? data.mountainName : ''
   const location = data.visibleFields.location ? data.location : ''
   const showAltitude = hasShareAltitude(data)
@@ -268,13 +268,13 @@ function WatermarkOverlay({ data }: ShareTemplateProps) {
         </div>
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </TransparentShell>
   )
 }
 
-function WatermarkBoldNumber({ data }: ShareTemplateProps) {
+function WatermarkBoldNumber({ data, brandMarkSrc }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const showAltitude = hasShareAltitude(data)
 
@@ -299,13 +299,13 @@ function WatermarkBoldNumber({ data }: ShareTemplateProps) {
         {data.visibleFields.duration ? <WatermarkMetric label="TIME" value={data.duration || '--'} align="right" /> : null}
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </TransparentShell>
   )
 }
 
-function WatermarkDataScatter({ data }: ShareTemplateProps) {
+function WatermarkDataScatter({ data, brandMarkSrc }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const showAltitude = hasShareAltitude(data)
 
@@ -330,13 +330,13 @@ function WatermarkDataScatter({ data }: ShareTemplateProps) {
         {data.visibleFields.elevationGain ? <WatermarkMetric label="爬升" value={formatPlainNumber(data.elevationGain)} unit="m" /> : null}
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </TransparentShell>
   )
 }
 
-function WatermarkMonoFilm({ data }: ShareTemplateProps) {
+function WatermarkMonoFilm({ data, brandMarkSrc }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const stats = fourStats(data)
   const showAltitude = hasShareAltitude(data)
@@ -370,13 +370,13 @@ function WatermarkMonoFilm({ data }: ShareTemplateProps) {
         ))}
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </TransparentShell>
   )
 }
 
-function WatermarkAltitudeProfile({ data }: ShareTemplateProps) {
+function WatermarkAltitudeProfile({ data, brandMarkSrc }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const showAltitude = hasShareAltitude(data)
 
@@ -405,13 +405,13 @@ function WatermarkAltitudeProfile({ data }: ShareTemplateProps) {
         {data.visibleFields.date && data.date ? <SmallMetric label="日期" value={data.date} align="right" /> : null}
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </TransparentShell>
   )
 }
 
-function WatermarkCertificate({ data }: ShareTemplateProps) {
+function WatermarkCertificate({ data, brandMarkSrc }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const showAltitude = hasShareAltitude(data)
   const startAltitude = showAltitude ? Math.max(0, Math.round(data.altitude - data.elevationGain)) : null
@@ -437,13 +437,13 @@ function WatermarkCertificate({ data }: ShareTemplateProps) {
         <TransparentDataRow data={data} />
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </TransparentShell>
   )
 }
 
-function WatermarkVerticalStory({ data }: ShareTemplateProps) {
+function WatermarkVerticalStory({ data, brandMarkSrc }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const showAltitude = hasShareAltitude(data)
 
@@ -469,7 +469,7 @@ function WatermarkVerticalStory({ data }: ShareTemplateProps) {
         {data.visibleFields.elevationGain ? <StoryMiniStat value={formatPlainNumber(data.elevationGain)} unit="m" separator /> : null}
       </div>
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </TransparentShell>
   )
@@ -538,15 +538,16 @@ function CertificateElevationChart() {
 export function TransparentWatermarkTemplate({
   data,
   template,
+  brandMarkSrc,
 }: TransparentWatermarkProps) {
-  if (template === 'base-data') return <WatermarkData data={data} />
-  if (template === 'premium-photo-composite') return <WatermarkComposite data={data} />
-  if (template === 'premium-photo-overlay') return <WatermarkOverlay data={data} />
-  if (template === 'premium-bold-number') return <WatermarkBoldNumber data={data} />
-  if (template === 'premium-data-scatter') return <WatermarkDataScatter data={data} />
-  if (template === 'premium-mono-film') return <WatermarkMonoFilm data={data} />
-  if (template === 'premium-altitude-profile') return <WatermarkAltitudeProfile data={data} />
-  if (template === 'premium-summit-certificate') return <WatermarkCertificate data={data} />
-  if (template === 'premium-vertical-story') return <WatermarkVerticalStory data={data} />
-  return <WatermarkClassic data={data} />
+  if (template === 'base-data') return <WatermarkData data={data} brandMarkSrc={brandMarkSrc} />
+  if (template === 'premium-photo-composite') return <WatermarkComposite data={data} brandMarkSrc={brandMarkSrc} />
+  if (template === 'premium-photo-overlay') return <WatermarkOverlay data={data} brandMarkSrc={brandMarkSrc} />
+  if (template === 'premium-bold-number') return <WatermarkBoldNumber data={data} brandMarkSrc={brandMarkSrc} />
+  if (template === 'premium-data-scatter') return <WatermarkDataScatter data={data} brandMarkSrc={brandMarkSrc} />
+  if (template === 'premium-mono-film') return <WatermarkMonoFilm data={data} brandMarkSrc={brandMarkSrc} />
+  if (template === 'premium-altitude-profile') return <WatermarkAltitudeProfile data={data} brandMarkSrc={brandMarkSrc} />
+  if (template === 'premium-summit-certificate') return <WatermarkCertificate data={data} brandMarkSrc={brandMarkSrc} />
+  if (template === 'premium-vertical-story') return <WatermarkVerticalStory data={data} brandMarkSrc={brandMarkSrc} />
+  return <WatermarkClassic data={data} brandMarkSrc={brandMarkSrc} />
 }

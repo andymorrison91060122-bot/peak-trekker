@@ -29,6 +29,28 @@
       "bytes": 396383
     },
     {
+      "output": "derived-mask-mark-ui-128.png",
+      "source": "mono/mark2.black.png",
+      "sourceSha256": "42b5b0cb8ab61a007aa2e44c98d95f8b47f382bedcb078b169a572e815592a55",
+      "derivedFrom": "derived-mask-mark-white.png",
+      "derivedFromSha256": "e45e7e4b4a825a2fb5f52bdccf6642c98527c0c0e7c7f160db8bf2f202d77896",
+      "transform": "resize derived-mask-mark-white.png contain 128x128 + preserve alpha",
+      "dims": "128x128",
+      "outputSha256": "67b8072c0360b90f2bb45019cd13d7737ab5e391d55d8ce5357b4d941fb8101d",
+      "bytes": 3373
+    },
+    {
+      "output": "derived-mask-crest-ui-384.png",
+      "source": "mono/crest2.black.png",
+      "sourceSha256": "df0d97784eb49207ea6af6b0687ed6a93f4fc385d2e0317b61cc8b1bcbd9f2da",
+      "derivedFrom": "derived-mask-crest-white.png",
+      "derivedFromSha256": "4e2fe769c4b4fb3f41b57e4c31e4f14c47d49701ae0150c36f4c50a1a2a4ef5f",
+      "transform": "resize derived-mask-crest-white.png contain 384x384 + preserve alpha",
+      "dims": "384x384",
+      "outputSha256": "36699a0a1f6c7019c0ae6e705541971c253944cbb55f7711c0707a4682a5e58b",
+      "bytes": 45086
+    },
+    {
       "output": "derived-icon-512.png",
       "source": "color/tile.png",
       "sourceSha256": "d8104680ac2da21af949ddf95b0a7029cd9ed7a160a5af01331fe94d454d267c",

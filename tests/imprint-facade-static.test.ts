@@ -23,7 +23,8 @@ const mountainDetailClient = readSource('src/app/(flow)/mountain/[id]/MountainDe
 const checkinButton = readSource('src/components/ui/CheckinButton.tsx')
 const trekClient = readSource('src/app/(flow)/trek/TrekClient.tsx')
 
-test('tab bar routes the third tab to the imprint facade', () => {
+test('tab bar places the imprint facade before the archive among visible product tabs', () => {
+  assert.match(tabBar, /href: '\/explore'[\s\S]*href: '\/imprint'[\s\S]*href: '\/archive'[\s\S]*href: '\/profile'/)
   assert.match(tabBar, /\{ href: '\/imprint', label: '印迹', icon: TabIcons\.imprint \}/)
   assert.match(tabBar, /\{ href: '\/community', label: '山友圈', icon: TabIcons\.community \}/)
   assert.match(tabBar, /tab\.href !== '\/community' \|\| isFeatureEnabled\('COMMUNITY_ENABLED'\)/)
@@ -72,7 +73,14 @@ test('share render route uses the shared registry selector without importing tem
 test('imprint facade renders real template components instead of share editor previews', () => {
   assert.match(imprintClient, /getShareTemplateComponent\(template\)/)
   assert.match(imprintClient, /source: 'uploaded'/)
-  assert.match(imprintClient, /buildShareTrackPreview\(MOCK_TRACK_POINTS\)/)
+  assert.match(imprintClient, /buildShareTrackPreview\(IMPRINT_SAMPLE_TRACK_POINTS\)/)
+  assert.match(imprintClient, /function buildImprintSampleShareData\(\)/)
+  assert.match(imprintClient, /mountainName: '慕士塔格峰'/)
+  assert.match(imprintClient, /location: '新疆'/)
+  assert.match(imprintClient, /altitude: 7546/)
+  assert.match(imprintClient, /distance: 20\.0/)
+  assert.match(imprintClient, /duration: '30:00'/)
+  assert.match(imprintClient, /elevationGain: 3146/)
   assert.match(imprintClient, /PHOTO_ALPINE = '\/fu85-share-facade\/cover-alpine\.png'/)
   assert.match(imprintClient, /PHOTO_RIDGE = '\/fu85-share-facade\/cover-ridge\.png'/)
   assert.match(imprintClient, /minimal[\s\S]*template: 'base-classic'/)

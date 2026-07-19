@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { BrandTile } from '@/components/brand/BrandTile'
 import { clearClientAuthReturnPath, resolveClientAuthReturnPath } from '@/lib/auth-redirect'
 import { trackEvent, trackEventNow } from '@/lib/analytics/client'
 
@@ -55,7 +56,7 @@ function LoginPageContent() {
     }}>
       {/* Logo区 */}
       <div className="pt-page-enter" style={{ textAlign: 'center', marginBottom: 40 }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>⛰</div>
+        <BrandTile size={40} style={{ margin: '0 auto 12px' }} />
         <div className="font-pixel" style={{ fontSize: 12, color: 'var(--green-neon)', textShadow: '0 0 10px var(--green-neon)', letterSpacing: 3 }}>
           PEAK TREKKER
         </div>

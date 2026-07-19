@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { BrandMask } from '@/components/brand/BrandMask'
 
 export interface SourceLabelProps {
   type: 'gps_verified' | 'uploaded'
@@ -87,27 +88,6 @@ function joinClassNames(...values: Array<string | undefined>) {
   return values.filter(Boolean).join(' ')
 }
 
-function MountainGlyph({ size }: { size: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4 18L10.4 7.6a1 1 0 0 1 1.7 0L20 18"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8.8 18l2.8-4.4a.9.9 0 0 1 1.5 0L16 18"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
 function CheckGlyph({ size }: { size: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -173,7 +153,7 @@ export function SourceLabel({ type, size = 'md', className }: SourceLabelProps) 
     >
       {type === 'gps_verified' ? (
         <>
-          <MountainGlyph size={sizing.iconSize} />
+          <BrandMask size={sizing.iconSize} />
           <span
             aria-hidden="true"
             style={{

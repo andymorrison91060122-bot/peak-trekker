@@ -448,16 +448,18 @@ test('A1 full loop persists calibrated screenshot shape and renders it on activi
 
   await page.locator('input[type="file"]').first().setInputFiles(uploadFixture)
   await expect(page.getByText('确认识别结果')).toBeVisible({ timeout: 20_000 })
-  await expect(page.getByText('截图路线 · 可校准')).toBeVisible()
+  await expect(page.getByText('为这条记录补上轨迹')).toBeVisible()
+  await expect(page.getByText('沿截图中的路线点出关键位置，系统会辅助贴合线条。')).toBeVisible()
   await expect(page.getByLabel('总距离 km')).toHaveValue('10.32')
-  await expect(page.getByText('点击查看完整截图轨迹')).toBeVisible()
+  await expect(page.getByText('点开截图，开始描绘轨迹')).toBeVisible()
   await expect(page.getByText('也可只保存文字数据', { exact: true })).toHaveCount(0)
-  await expect(page.getByText('校准路线可选；只确认文字数据也能生成活动。')).toBeVisible()
+  await expect(page.getByText('不描绘也可以生成活动，但这条记录不会包含轨迹。')).toBeVisible()
   const confirmEntry = await capture(page, 'confirm-entry-build.png')
   steps.push({ step: 'upload_to_confirm_entry', passed: true, detail: '确认页显示轨迹校准入口和文字字段' })
 
-  await page.getByRole('button', { name: '校准轨迹' }).click()
+  await page.getByRole('button', { name: '开始描绘' }).click()
   await expect(page.locator('[data-route-calibration-editor="true"]')).toBeVisible()
+  await expect(page.getByRole('dialog', { name: '描绘轨迹' })).toBeVisible()
   const emptyEditor = await capture(page, 'empty-editor-build.png')
   const coach = await capture(page, 'coach-build.png')
 
@@ -584,6 +586,9 @@ test('A1 full loop persists calibrated screenshot shape and renders it on activi
   })
   await expect(page.locator('[data-route-calibration-editor="true"]')).toHaveCount(0, { timeout: 5000 })
   await expect(page.getByText('确认识别结果')).toBeVisible()
+  await expect(page.getByText('轨迹已补上')).toBeVisible()
+  await expect(page.getByRole('button', { name: '继续调整' })).toBeVisible()
+  await expect(page.getByText('查看并调整已描绘轨迹')).toBeVisible()
   const editorVisible = await page.locator('[data-route-calibration-editor="true"]').count()
   const breakSheetVisible = await page.getByText('这段轨迹是断开的').count()
   const confirmMain = page.locator('[data-screenshot-confirm-main="true"]')
@@ -805,7 +810,7 @@ test('A1 full loop persists a dense multi-point calibrated route after route-sha
   await page.locator('input[type="file"]').first().setInputFiles(uploadFixture)
   await expect(page.getByText('确认识别结果')).toBeVisible({ timeout: 20_000 })
   await expect(page.getByLabel('总距离 km')).toHaveValue('10.32')
-  await page.getByRole('button', { name: '校准轨迹' }).click()
+  await page.getByRole('button', { name: '开始描绘' }).click()
   await expect(page.locator('[data-route-calibration-editor="true"]')).toBeVisible()
 
   const densePoints = Array.from({ length: 24 }, (_, index) => {
@@ -910,7 +915,7 @@ test('over-complex calibrated route requires explicit text-only choice before cr
 
   await page.locator('input[type="file"]').first().setInputFiles(uploadFixture)
   await expect(page.getByText('确认识别结果')).toBeVisible({ timeout: 20_000 })
-  await page.getByRole('button', { name: '校准轨迹' }).click()
+  await page.getByRole('button', { name: '开始描绘' }).click()
   await expect(page.locator('[data-route-calibration-editor="true"]')).toBeVisible()
   await clickUnitPoint(page, { x: 0.18, y: 0.32 }, 0)
   await clickUnitPoint(page, { x: 0.52, y: 0.6 }, 1)

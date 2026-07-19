@@ -220,7 +220,12 @@ describe('share render API field policy regression', () => {
     const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
     const sharedTemplateSource = readSource('../src/lib/share-templates/shared.tsx')
 
-    assert.match(clientSource, /trackPreview:\s*buildShareTrackPreview\(MOCK_TRACK_POINTS\)/)
+    assert.match(clientSource, /trackPreview:\s*buildShareTrackPreview\(SHARE_PREVIEW_MOCK_TRACK_POINTS\)/)
+    assert.match(clientSource, /mountainName: '玉山主峰'/)
+    assert.match(clientSource, /location: '台湾'/)
+    assert.match(clientSource, /altitude: 3952/)
+    assert.match(clientSource, /elevationGain: 1350/)
+    assert.match(clientSource, /altitude: 2602[\s\S]*altitude: 3952/)
     assert.match(clientSource, /buildShareTrackRender\(trackPreview/)
     assert.doesNotMatch(clientSource, /buildShareTrackPath/)
     assert.match(clientSource, /data-role="draw" d="M26 222 C 58 190/)

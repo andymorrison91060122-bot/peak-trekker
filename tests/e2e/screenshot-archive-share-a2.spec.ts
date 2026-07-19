@@ -235,7 +235,7 @@ async function clickUnitPoint(page: Page, point: { x: number; y: number }, index
 }
 
 async function calibrateRoute(page: Page, points: Array<{ x: number; y: number }>) {
-  await page.getByRole('button', { name: '校准轨迹' }).click()
+  await page.getByRole('button', { name: '开始描绘' }).click()
   await expect(page.locator('[data-route-calibration-editor="true"]')).toBeVisible()
   for (const [index, point] of points.entries()) {
     await clickUnitPoint(page, point, index)

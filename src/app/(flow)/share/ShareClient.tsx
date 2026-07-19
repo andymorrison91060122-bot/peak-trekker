@@ -13,6 +13,7 @@ import {
   MountainIcon,
   ShareIcon,
 } from '@/components/ui/Icons'
+import { BrandMask } from '@/components/brand/BrandMask'
 import { trackEvent } from '@/lib/analytics/client'
 import { POSTER_HEIGHT, POSTER_WIDTH, formatShareAltitude, hasShareAltitude } from '@/lib/share-templates/shared'
 import { getShareTemplateComponent } from '@/lib/share-templates/registry'
@@ -98,16 +99,16 @@ type AdvancedTemplate = {
     | 'vertical-story'
 }
 
-const MOCK_TRACK_POINTS = [
-  { lat: 30.1075, lng: 118.1662, altitude: 720 },
-  { lat: 30.1111, lng: 118.1691, altitude: 842 },
-  { lat: 30.1164, lng: 118.1718, altitude: 1015 },
-  { lat: 30.1217, lng: 118.174, altitude: 1184 },
-  { lat: 30.1244, lng: 118.1788, altitude: 1298 },
-  { lat: 30.1281, lng: 118.1835, altitude: 1432 },
-  { lat: 30.1315, lng: 118.1878, altitude: 1540 },
-  { lat: 30.1362, lng: 118.1902, altitude: 1618 },
-  { lat: 30.1398, lng: 118.1945, altitude: 1684 },
+const SHARE_PREVIEW_MOCK_TRACK_POINTS = [
+  { lat: 23.4712, lng: 120.9171, altitude: 2602 },
+  { lat: 23.4728, lng: 120.9224, altitude: 2780 },
+  { lat: 23.4746, lng: 120.9282, altitude: 2968 },
+  { lat: 23.4769, lng: 120.9341, altitude: 3156 },
+  { lat: 23.4798, lng: 120.9395, altitude: 3338 },
+  { lat: 23.4826, lng: 120.9448, altitude: 3504 },
+  { lat: 23.4854, lng: 120.9496, altitude: 3650 },
+  { lat: 23.4881, lng: 120.9539, altitude: 3812 },
+  { lat: 23.49, lng: 120.9571, altitude: 3952 },
 ]
 
 const MOCK_DATA: ShareActivityData = {
@@ -119,7 +120,7 @@ const MOCK_DATA: ShareActivityData = {
   date: '2026.04.28',
   location: '台湾',
   source: 'gps',
-  trackPreview: buildShareTrackPreview(MOCK_TRACK_POINTS),
+  trackPreview: buildShareTrackPreview(SHARE_PREVIEW_MOCK_TRACK_POINTS),
 }
 
 const FIELD_CONFIGS: FieldConfig[] = [
@@ -1000,7 +1001,7 @@ function PreviewSourcePill({ source }: { source: ShareActivityData['source'] }) 
     >
       {gps ? (
         <>
-          <MountainIcon size={12} color="currentColor" />
+          <BrandMask size={12} />
           <span
             aria-hidden="true"
             style={{
@@ -1047,7 +1048,7 @@ function BrandFooter({ data }: { data: ShareActivityData }) {
         transformOrigin: 'center',
       }}
     >
-      <MountainIcon size={22} color="var(--color-success)" />
+      <BrandMask size={22} style={{ color: 'var(--color-success)' }} />
       <span
         data-lit="text"
         style={{
@@ -1538,7 +1539,10 @@ function PremiumHeroPreview({
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 10%, transparent), color-mix(in srgb, var(--color-surface) 16%, transparent) 62%, transparent)' }} />
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '28%', background: 'linear-gradient(180deg, rgba(10,12,14,0) 0%, rgba(10,12,14,0.42) 46%, rgba(10,12,14,0.84) 100%)' }} />
         <div style={{ position: 'absolute', left: 16, right: 16, top: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div data-lit="text" style={{ color: 'var(--color-on-surface)', fontSize: 10, fontWeight: 800 }}>Peak Trekker</div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--color-on-surface)' }}>
+            <BrandMask size={10} />
+            <span data-lit="text" style={{ fontSize: 10, fontWeight: 800 }}>Peak Trekker</span>
+          </div>
           {data.date ? <div data-lit="text" style={{ color: 'var(--color-on-surface-variant)', fontSize: 10, fontWeight: 800 }}>{data.date}</div> : null}
         </div>
         <div style={{ position: 'absolute', left: 18, right: 18, bottom: 122, textAlign: 'left' }}>

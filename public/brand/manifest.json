@@ -1,0 +1,162 @@
+{
+  "generatedBy": "gen-brand-assets.cjs",
+  "note": "Derived brand assets. Source-of-record = signed-off black-backed marks + colour masters, which MUST be committed to a NON-PUBLIC, version-controlled repo path (e.g. brand/source/, NOT public/). Mask alpha = mean of sRGB R,G,B (coverage proxy, NOT CIE luminance). Derived masks are transparent masks derived from black composites, NOT lossless reconstructions — recovery is formally under-determined. Clean because black backing is pure #000 and 0% of edge pixels exceed chroma>20 (max observed 11).",
+  "sources": {
+    "mono/mark2.black.png": "42b5b0cb8ab61a007aa2e44c98d95f8b47f382bedcb078b169a572e815592a55",
+    "mono/crest2.black.png": "df0d97784eb49207ea6af6b0687ed6a93f4fc385d2e0317b61cc8b1bcbd9f2da",
+    "mono/green2.black.png (record only, not shipped)": "d6033314749455b5a59c56e37b8f0bbd7a8697ef999549ae58062002163bace7",
+    "color/tile.png": "d8104680ac2da21af949ddf95b0a7029cd9ed7a160a5af01331fe94d454d267c",
+    "color/square.png": "310de3014365d8543bd806d60697bcd8247cde21c0985a2af634bcd482442ae7",
+    "color/flat.png": "6b2c8af99bdac4e460a0faf959c8cd5c0e73787f615b361935bc175f0f33b071"
+  },
+  "outputs": [
+    {
+      "output": "derived-mask-mark-white.png",
+      "source": "mono/mark2.black.png",
+      "sourceSha256": "42b5b0cb8ab61a007aa2e44c98d95f8b47f382bedcb078b169a572e815592a55",
+      "transform": "alpha=meanSrgbCoverage=(r+g+b)/3 of content-on-black (coverage proxy, NOT CIE luminance); rgb:=white; discard colour fringe",
+      "dims": "1254x1254",
+      "outputSha256": "e45e7e4b4a825a2fb5f52bdccf6642c98527c0c0e7c7f160db8bf2f202d77896",
+      "bytes": 228132
+    },
+    {
+      "output": "derived-mask-crest-white.png",
+      "source": "mono/crest2.black.png",
+      "sourceSha256": "df0d97784eb49207ea6af6b0687ed6a93f4fc385d2e0317b61cc8b1bcbd9f2da",
+      "transform": "alpha=meanSrgbCoverage=(r+g+b)/3 of content-on-black (coverage proxy, NOT CIE luminance); rgb:=white; discard colour fringe",
+      "dims": "1254x1254",
+      "outputSha256": "4e2fe769c4b4fb3f41b57e4c31e4f14c47d49701ae0150c36f4c50a1a2a4ef5f",
+      "bytes": 396383
+    },
+    {
+      "output": "derived-mask-mark-ui-128.png",
+      "source": "mono/mark2.black.png",
+      "sourceSha256": "42b5b0cb8ab61a007aa2e44c98d95f8b47f382bedcb078b169a572e815592a55",
+      "derivedFrom": "derived-mask-mark-white.png",
+      "derivedFromSha256": "e45e7e4b4a825a2fb5f52bdccf6642c98527c0c0e7c7f160db8bf2f202d77896",
+      "transform": "resize derived-mask-mark-white.png contain 128x128 + preserve alpha",
+      "dims": "128x128",
+      "outputSha256": "67b8072c0360b90f2bb45019cd13d7737ab5e391d55d8ce5357b4d941fb8101d",
+      "bytes": 3373
+    },
+    {
+      "output": "derived-mask-crest-ui-384.png",
+      "source": "mono/crest2.black.png",
+      "sourceSha256": "df0d97784eb49207ea6af6b0687ed6a93f4fc385d2e0317b61cc8b1bcbd9f2da",
+      "derivedFrom": "derived-mask-crest-white.png",
+      "derivedFromSha256": "4e2fe769c4b4fb3f41b57e4c31e4f14c47d49701ae0150c36f4c50a1a2a4ef5f",
+      "transform": "resize derived-mask-crest-white.png contain 384x384 + preserve alpha",
+      "dims": "384x384",
+      "outputSha256": "36699a0a1f6c7019c0ae6e705541971c253944cbb55f7711c0707a4682a5e58b",
+      "bytes": 45086
+    },
+    {
+      "output": "derived-icon-512.png",
+      "source": "color/tile.png",
+      "sourceSha256": "d8104680ac2da21af949ddf95b0a7029cd9ed7a160a5af01331fe94d454d267c",
+      "transform": "resize contain 512x512 + preserve alpha",
+      "dims": "512x512",
+      "outputSha256": "d50748386949e920d9d491831230ad7455a1506094ef5c23a0649705d87245a7",
+      "bytes": 284061
+    },
+    {
+      "output": "derived-icon-256.png",
+      "source": "color/tile.png",
+      "sourceSha256": "d8104680ac2da21af949ddf95b0a7029cd9ed7a160a5af01331fe94d454d267c",
+      "transform": "resize contain 256x256 + preserve alpha",
+      "dims": "256x256",
+      "outputSha256": "0a365871b8f8246523b38b7310180689823e36e7b789caadaf7e412b9d8cd404",
+      "bytes": 66345
+    },
+    {
+      "output": "derived-icon-192.png",
+      "source": "color/tile.png",
+      "sourceSha256": "d8104680ac2da21af949ddf95b0a7029cd9ed7a160a5af01331fe94d454d267c",
+      "transform": "resize contain 192x192 + preserve alpha",
+      "dims": "192x192",
+      "outputSha256": "fffde9f3597655a9742623eedcc24cab93262faf5a91f1dfe2f164690094c73a",
+      "bytes": 41019
+    },
+    {
+      "output": "derived-icon-128.png",
+      "source": "color/tile.png",
+      "sourceSha256": "d8104680ac2da21af949ddf95b0a7029cd9ed7a160a5af01331fe94d454d267c",
+      "transform": "resize contain 128x128 + preserve alpha",
+      "dims": "128x128",
+      "outputSha256": "dd6507c7a080a9e6eeefd158f70b6bf883286144159231d2060b2f02b55b669f",
+      "bytes": 20220
+    },
+    {
+      "output": "derived-icon-96.png",
+      "source": "color/tile.png",
+      "sourceSha256": "d8104680ac2da21af949ddf95b0a7029cd9ed7a160a5af01331fe94d454d267c",
+      "transform": "resize contain 96x96 + preserve alpha",
+      "dims": "96x96",
+      "outputSha256": "b88d70f94d3cea1256ae4c0aec2355f46f2c5f94211c27c22892b42d7c36cea3",
+      "bytes": 12919
+    },
+    {
+      "output": "derived-maskable-512.png",
+      "source": "color/square.png",
+      "sourceSha256": "310de3014365d8543bd806d60697bcd8247cde21c0985a2af634bcd482442ae7",
+      "transform": "resize contain 512x512 from opaque square (isOpaque=true asserted)",
+      "dims": "512x512",
+      "outputSha256": "043249c3d3f84258be40cf4858ec9a35138fac620e7fdf73812abf84935505f0",
+      "bytes": 259535
+    },
+    {
+      "output": "derived-maskable-192.png",
+      "source": "color/square.png",
+      "sourceSha256": "310de3014365d8543bd806d60697bcd8247cde21c0985a2af634bcd482442ae7",
+      "transform": "resize contain 192x192 from opaque square (isOpaque=true asserted)",
+      "dims": "192x192",
+      "outputSha256": "140b1c72cdb2d2c4e96183c8e19c4fc605d61d84267c384e9abf5b7e15bf0d4e",
+      "bytes": 36830
+    },
+    {
+      "output": "derived-apple-touch-180.png",
+      "source": "color/square.png",
+      "sourceSha256": "310de3014365d8543bd806d60697bcd8247cde21c0985a2af634bcd482442ae7",
+      "transform": "resize contain 180x180 from opaque square (isOpaque=true asserted)",
+      "dims": "180x180",
+      "outputSha256": "54ac6288435f167d9391fdd46e10ea5c327ce351f06fc50f388fb08ed42e0291",
+      "bytes": 33146
+    },
+    {
+      "output": "derived-favicon-16.png",
+      "source": "color/flat.png",
+      "sourceSha256": "6b2c8af99bdac4e460a0faf959c8cd5c0e73787f615b361935bc175f0f33b071",
+      "transform": "resize contain 16x16 + preserve alpha",
+      "dims": "16x16",
+      "outputSha256": "270864220d58b7409074c4faa6a10db94a24c71664ac125ad9ec3400ef5d8b2b",
+      "bytes": 713
+    },
+    {
+      "output": "derived-favicon-32.png",
+      "source": "color/flat.png",
+      "sourceSha256": "6b2c8af99bdac4e460a0faf959c8cd5c0e73787f615b361935bc175f0f33b071",
+      "transform": "resize contain 32x32 + preserve alpha",
+      "dims": "32x32",
+      "outputSha256": "551744de875d4fe2b15af57162b2ea9bb656810bd3ea14e46e3b753bc2803c35",
+      "bytes": 1614
+    },
+    {
+      "output": "derived-favicon-48.png",
+      "source": "color/flat.png",
+      "sourceSha256": "6b2c8af99bdac4e460a0faf959c8cd5c0e73787f615b361935bc175f0f33b071",
+      "transform": "resize contain 48x48 + preserve alpha",
+      "dims": "48x48",
+      "outputSha256": "683f9957cbb94b9bbc3591d80ecccbdb7614995ab9590220c061166c82c2674c",
+      "bytes": 2735
+    },
+    {
+      "output": "derived-favicon.ico",
+      "source": "color/flat.png",
+      "sourceSha256": "6b2c8af99bdac4e460a0faf959c8cd5c0e73787f615b361935bc175f0f33b071",
+      "transform": "ICO pack of derived-favicon-16/32/48 (embedded PNG)",
+      "dims": "16,32,48",
+      "outputSha256": "ede62c7cf08777aae92505ac1845fc774d68f5efb6c838760ef8865b06f780a2",
+      "bytes": 5116
+    }
+  ]
+}

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { BrandMask } from '@/components/brand/BrandMask'
+import { BrandTile } from '@/components/brand/BrandTile'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 
 type IntroCarouselProps = {
@@ -105,16 +107,7 @@ function useCountUpValue({
 }
 
 function LogoMark({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 18" fill="none" aria-hidden="true" focusable="false">
-      <path
-        d="M2 16L8.5 5L12 10L15 6L22 16Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
+  return <BrandMask size={size} />
 }
 
 function MountainSketch({ active = false, compact = false }: { active?: boolean; compact?: boolean }) {
@@ -933,19 +926,14 @@ export default function IntroCarousel({ currentIndex, reducedMotion, onNext, onS
           justifyContent: 'space-between',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--color-on-surface)' }}>
-          <LogoMark />
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 14,
-              fontWeight: 500,
-              letterSpacing: '0.16em',
-              lineHeight: 1,
-            }}
-          >
-            PEAK TREKKER
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--color-on-surface)' }}>
+          <BrandTile size={32} sourceSet="small" />
+          <div style={{ display: 'grid', gap: 3 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1 }}>Peak Trekker</span>
+            <span style={{ color: 'var(--color-on-surface-variant)', fontSize: 11, fontWeight: 500, lineHeight: 1 }}>
+              真实记录与分享
+            </span>
+          </div>
         </div>
         <button
           type="button"

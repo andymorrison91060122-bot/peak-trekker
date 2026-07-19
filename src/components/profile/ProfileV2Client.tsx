@@ -12,7 +12,7 @@ import { formatMotionCountValue, parseMotionTokenSeconds, type MotionCountFormat
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import { trackEventNow } from '@/lib/analytics/client'
 import { useAppToast } from '@/components/ui/AppToastProvider'
-import { MountainIcon } from '@/components/ui/Icons'
+import { BrandMask } from '@/components/brand/BrandMask'
 import EmptyState from '@/components/ui/EmptyState'
 import type { CheckinSource } from '@/types'
 import type { CheckinDisplayTitleSource } from '@/lib/checkin-display-title'
@@ -297,7 +297,7 @@ function TripThumb({ trip }: { trip: ProfileV2TripPreview }) {
           'linear-gradient(180deg, color-mix(in srgb, var(--color-success) 20%, var(--color-surface-variant)), var(--color-surface-elevated))',
       }}
     >
-      <MountainIcon size={26} />
+      <BrandMask size={26} />
     </div>
   )
 }

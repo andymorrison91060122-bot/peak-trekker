@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { attributionProperties, clearShareAttribution } from '@/lib/analytics/attribution'
 import { trackEvent, trackEventNow } from '@/lib/analytics/client'
 import { isFeatureEnabled } from '@/lib/feature-flags'
+import { BrandTile } from '@/components/brand/BrandTile'
 
 const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 
@@ -152,7 +153,7 @@ function RegisterPageContent() {
       padding: '0 24px',
     }}>
       <div className="pt-page-enter" style={{ textAlign: 'center', marginBottom: 32 }}>
-        <div style={{ fontSize: 36, marginBottom: 10 }}>⛰</div>
+        <BrandTile size={40} style={{ margin: '0 auto 10px' }} />
         <div className="font-pixel" style={{ fontSize: 11, color: 'var(--green-neon)', textShadow: '0 0 10px var(--green-neon)', letterSpacing: 3 }}>
           PEAK TREKKER
         </div>

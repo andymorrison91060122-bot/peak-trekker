@@ -433,7 +433,7 @@ function CoachCopy({
   if (calibration.controlPoints.length === 0) {
     return {
       title: '轻点路线起点',
-      body: '在截图里的真实轨迹上点一下起点，再点终点。系统只帮你吸线，你来确认形状。',
+      body: '在截图中的路线起点点一下，再点终点。系统会辅助贴合线条，路线由你确认。',
       action: '从起点开始',
     }
   }
@@ -635,49 +635,53 @@ function RouteEntryCard({
         overflow: 'hidden',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--space-3)' }}>
-        <div style={{ minWidth: 0 }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-3)' }}>
           <h2
             style={{
               margin: 0,
+              minWidth: 0,
               color: 'var(--color-on-surface)',
               fontSize: 'var(--font-title-m-size)',
               lineHeight: 'var(--font-title-m-line)',
               fontWeight: 700,
             }}
           >
-            截图路线 · 可校准
+            {hasUserLine ? '轨迹已补上' : '为这条记录补上轨迹'}
           </h2>
-          <p
+          <button
+            type="button"
+            onClick={onOpen}
             style={{
-              margin: 'var(--space-1) 0 0',
-              color: 'var(--color-on-surface-variant)',
+              appearance: 'none',
+              border: '1px solid color-mix(in srgb, var(--color-success) 42%, transparent)',
+              borderRadius: 'var(--radius-md)',
+              background: 'color-mix(in srgb, var(--color-success) 10%, transparent)',
+              color: 'var(--color-success)',
+              minHeight: 40,
+              padding: '0 14px',
               fontSize: 'var(--font-label-m-size)',
-              lineHeight: 1.45,
+              fontWeight: 800,
+              whiteSpace: 'nowrap',
+              cursor: 'pointer',
+              flexShrink: 0,
             }}
           >
-            调整轨迹线路，符合你的真实徒步轨迹
-          </p>
+            {hasUserLine ? '继续调整' : '开始描绘'}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onOpen}
+        <p
           style={{
-            appearance: 'none',
-            border: '1px solid color-mix(in srgb, var(--color-success) 42%, transparent)',
-            borderRadius: 'var(--radius-md)',
-            background: 'color-mix(in srgb, var(--color-success) 10%, transparent)',
-            color: 'var(--color-success)',
-            minHeight: 40,
-            padding: '0 14px',
+            margin: 'var(--space-2) 0 0',
+            color: 'var(--color-on-surface-variant)',
             fontSize: 'var(--font-label-m-size)',
-            fontWeight: 800,
-            whiteSpace: 'nowrap',
-            cursor: 'pointer',
+            lineHeight: 1.45,
           }}
         >
-          校准轨迹
-        </button>
+          {hasUserLine
+            ? '检查线路，需要时继续补点或调整。'
+            : '沿截图中的路线点出关键位置，系统会辅助贴合线条。'}
+        </p>
       </div>
 
       <button
@@ -749,7 +753,7 @@ function RouteEntryCard({
             }}
           >
             <ZoomGlyph />
-            <span>点击查看完整截图轨迹</span>
+            <span>{hasUserLine ? '查看并调整已描绘轨迹' : '点开截图，开始描绘轨迹'}</span>
           </div>
         </div>
       </button>
@@ -849,7 +853,7 @@ export default function ScreenshotRouteCalibrationSection({
   const coach = CoachCopy({ calibration, solving, locked })
   const showCoachPanel = calibration.controlPoints.length < 2 || Boolean(message)
   const footerHint = calibration.controlPoints.length < 2
-    ? '轻点起点与终点，系统会按你给的点吸线'
+    ? '轻点起点与终点，系统会辅助贴合线条'
     : currentUnresolvedSegment
       ? '可继续补点，也可以确认当前形状'
       : '确认后整理路线，返回文字确认页'
@@ -1374,7 +1378,7 @@ export default function ScreenshotRouteCalibrationSection({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="校准轨迹"
+          aria-label="描绘轨迹"
           data-route-calibration-editor="true"
           style={{
             position: 'fixed',
@@ -1423,7 +1427,7 @@ export default function ScreenshotRouteCalibrationSection({
           >
             <IconButton icon={<BackIcon size={20} />} ariaLabel="返回确认页" onClick={closeEditor} style={{ pointerEvents: locked ? 'none' : 'auto' }} />
             <div style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-              <div style={{ color: 'var(--color-on-surface)', fontSize: 'var(--font-title-m-size)', fontWeight: 800 }}>校准轨迹</div>
+              <div style={{ color: 'var(--color-on-surface)', fontSize: 'var(--font-title-m-size)', fontWeight: 800 }}>描绘轨迹</div>
             </div>
             <button
               type="button"

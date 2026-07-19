@@ -13,7 +13,7 @@ import {
   hasShareAltitude,
 } from './shared'
 
-export function PremiumPhotoOverlayTemplate({ data, photoDataUrl }: ShareTemplateProps) {
+export function PremiumPhotoOverlayTemplate({ data, photoDataUrl, brandMarkSrc }: ShareTemplateProps) {
   const mountainName = data.visibleFields.mountainName ? data.mountainName : ''
   const location = data.visibleFields.location ? data.location : ''
   const showAltitude = hasShareAltitude(data)
@@ -57,7 +57,7 @@ export function PremiumPhotoOverlayTemplate({ data, photoDataUrl }: ShareTemplat
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </PosterShell>
   )

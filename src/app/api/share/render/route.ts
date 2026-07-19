@@ -1,4 +1,5 @@
 import sharp from 'sharp'
+import { BRAND_MARK_MASK_DATA_URI } from '@/lib/brand-assets.server'
 import { RenderRoot } from '@/lib/share-templates/shared'
 import { getShareTemplateComponent } from '@/lib/share-templates/registry'
 import { TransparentWatermarkTemplate } from '@/lib/share-templates/transparent-watermark'
@@ -337,20 +338,29 @@ async function photoDataUrlForTemplate(template: ShareRenderTemplate, photoBase6
   return `data:image/jpeg;base64,${grayBuffer.toString('base64')}`
 }
 
-function renderTemplate({ template, data }: ShareRenderRequest, photoDataUrl: string | null) {
+function renderTemplate(
+  { template, data }: ShareRenderRequest,
+  photoDataUrl: string | null,
+  brandMarkSrc?: string,
+) {
   const Template = getShareTemplateComponent(template)
-  return Template({ data, photoDataUrl })
+  if (!brandMarkSrc) return Template({ data, photoDataUrl })
+  return Template({ data, photoDataUrl, brandMarkSrc })
 }
 
 function renderPayload(payload: ShareRenderRequest, photoDataUrl: string | null) {
   if (payload.transparent) {
-    return TransparentWatermarkTemplate({
-      data: payload.data,
-      template: payload.template,
-    })
+    const brandMarkSrc = BRAND_MARK_MASK_DATA_URI
+    if (!brandMarkSrc) {
+      return TransparentWatermarkTemplate({
+        data: payload.data,
+        template: payload.template,
+      })
+    }
+    return TransparentWatermarkTemplate({ data: payload.data, template: payload.template, brandMarkSrc })
   }
 
-  return renderTemplate(payload, photoDataUrl)
+  return renderTemplate(payload, photoDataUrl, BRAND_MARK_MASK_DATA_URI)
 }
 
 function fontText(data: ShareTemplateData) {

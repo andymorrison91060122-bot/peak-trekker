@@ -68,6 +68,7 @@ test('screenshot client uses real preview, editable fields, mountain search, and
   assert.match(screenshotClient, /router\.replace\(shareUrl\)/)
   assert.match(screenshotClient, /router\.replace\(`\/activity\/\$\{submitResult\.checkinId\}`\)/)
   assert.doesNotMatch(screenshotClient, /router\.push\(`\/activity\/\$\{payload\.checkinId\}`\)/)
+  assert.match(screenshotClient, /不描绘也可以生成活动，但这条记录不会包含轨迹。/)
 })
 
 test('screenshot upload back exits to explore with replace and completed actions stay replace-based', () => {

@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { ReactNode } from 'react'
+import { BRAND_ASSETS } from '@/lib/brand-assets'
 import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, SHARE_TRACK_RENDER_PROFILES, type ShareTrackPreview } from '../share-track-preview'
 import type { ShareTemplateData } from './types'
 
@@ -266,16 +267,21 @@ export function SmallMetric({
   )
 }
 
-export function MountainGlyph({ size = 40, color = C.success }: { size?: number; color?: string }) {
+export function MountainGlyph({ size = 40, src = BRAND_ASSETS.mask.markUi128 }: { size?: number; src?: string }) {
   return (
-    <svg data-role="pop" data-motion-kind="icon" width={size} height={size} viewBox="0 0 24 24" style={{ display: 'block', flexShrink: 0 }}>
-      <path data-role="draw" data-motion-kind="icon" d="M3 19l5-9 4 6 3-4 6 7" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <path data-role="draw" data-motion-kind="icon" d="M8 10l2.8 4.2 1.2-1.9 2.8 4.2" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity=".82" />
-    </svg>
+    <img
+      data-role="pop"
+      data-motion-kind="icon"
+      src={src}
+      alt=""
+      width={size}
+      height={size}
+      style={{ display: 'block', width: size, height: size, flexShrink: 0, objectFit: 'contain' }}
+    />
   )
 }
 
-export function SourcePill({ source }: { source: ShareTemplateData['source'] }) {
+export function SourcePill({ source, brandMarkSrc }: { source: ShareTemplateData['source']; brandMarkSrc?: string }) {
   const gps = source === 'gps'
   return (
     <div
@@ -292,7 +298,7 @@ export function SourcePill({ source }: { source: ShareTemplateData['source'] }) 
     >
       {gps ? (
         <>
-          <MountainGlyph size={20} />
+          <MountainGlyph size={20} src={brandMarkSrc} />
           <div
             data-role="rule"
             data-motion-kind="pill-rule"
@@ -325,7 +331,7 @@ export function SourcePill({ source }: { source: ShareTemplateData['source'] }) 
   )
 }
 
-export function BrandFooter({ source }: { source: ShareTemplateData['source'] }) {
+export function BrandFooter({ source, brandMarkSrc }: { source: ShareTemplateData['source']; brandMarkSrc?: string }) {
   return (
     <div
       style={{
@@ -336,11 +342,11 @@ export function BrandFooter({ source }: { source: ShareTemplateData['source'] })
         width: '100%',
       }}
     >
-      <MountainGlyph size={52} />
+      <MountainGlyph size={52} src={brandMarkSrc} />
       <span data-role="text" data-motion-kind="brand" data-motion-order="10" style={{ color: C.fg, fontSize: 34, lineHeight: 1, fontWeight: 800, letterSpacing: '0.01em' }}>
         Peak Trekker
       </span>
-      <SourcePill source={source} />
+      <SourcePill source={source} brandMarkSrc={brandMarkSrc} />
     </div>
   )
 }

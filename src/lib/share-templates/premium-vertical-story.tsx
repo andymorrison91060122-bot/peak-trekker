@@ -14,7 +14,7 @@ import {
   hasShareAltitude,
 } from './shared'
 
-export function PremiumVerticalStoryTemplate({ data, photoDataUrl }: ShareTemplateProps) {
+export function PremiumVerticalStoryTemplate({ data, photoDataUrl, brandMarkSrc }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
   const showAltitude = hasShareAltitude(data)
 
@@ -37,7 +37,7 @@ export function PremiumVerticalStoryTemplate({ data, photoDataUrl }: ShareTempla
 
       <div style={{ display: 'flex', position: 'absolute', left: 58, right: 58, top: 66, alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <MountainGlyph size={34} />
+          <MountainGlyph size={34} src={brandMarkSrc} />
           <span style={{ color: C.fg, fontSize: 26, lineHeight: 1, fontWeight: 800 }}>Peak Trekker</span>
         </div>
         {data.visibleFields.date && data.date ? <span style={{ color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800 }}>{data.date}</span> : null}
@@ -59,7 +59,7 @@ export function PremiumVerticalStoryTemplate({ data, photoDataUrl }: ShareTempla
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
-        <BrandFooter source={data.source} />
+        <BrandFooter source={data.source} brandMarkSrc={brandMarkSrc} />
       </div>
     </PosterShell>
   )

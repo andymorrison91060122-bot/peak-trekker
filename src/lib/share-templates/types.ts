@@ -57,4 +57,5 @@ export type ShareRenderRequest = {
 export type ShareTemplateProps = {
   data: ShareTemplateData
   photoDataUrl?: string | null
+  brandMarkSrc?: string
 }

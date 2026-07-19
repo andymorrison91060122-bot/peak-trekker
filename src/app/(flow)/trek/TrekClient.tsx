@@ -55,6 +55,7 @@ import {
   type TrekOutboxDrainResult,
 } from '@/lib/trek-outbox'
 import { useAppToast } from '@/components/ui/AppToastProvider'
+import { BrandMask } from '@/components/brand/BrandMask'
 import AltitudeBar from '@/components/ui/AltitudeBar'
 import IconButton from '@/components/ui/IconButton'
 import PrimaryButton from '@/components/ui/PrimaryButton'
@@ -5483,21 +5484,23 @@ function SummitConfirmedView({
 
 function SummitHonorMedallion() {
   return (
-    <svg
-      width={172}
-      height={172}
-      viewBox="0 0 172 172"
+    <div
       aria-hidden="true"
-      focusable="false"
       style={{
         position: 'absolute',
         inset: 0,
         width: 172,
         height: 172,
-        overflow: 'visible',
       }}
     >
-      <defs>
+      <svg
+        width={172}
+        height={172}
+        viewBox="0 0 172 172"
+        focusable="false"
+        style={{ position: 'absolute', inset: 0, width: 172, height: 172, overflow: 'visible' }}
+      >
+        <defs>
         <radialGradient id="pt-summit-honor-medal-disc" cx="50%" cy="36%" r="66%">
           <stop offset="0%" stopColor="#33443a" />
           <stop offset="52%" stopColor="#1d2621" />
@@ -5583,36 +5586,15 @@ function SummitHonorMedallion() {
         strokeWidth="2"
         opacity="0"
       />
-      <g
+      </svg>
+      <BrandMask
+        asset="crest"
+        size={98}
         className="pt-summit-honor-reveal pt-summit-honor-motion-target"
         data-pt-summit-crest=""
-        style={{
-          color: 'var(--accent)',
-        }}
-      >
-        {/* Brand icon swap seam: keep future icons centered at (86,86) inside the 172 viewBox, within the inner frame safe area (approx r=49; box x=37 y=37 w=98 h=98). Replace SummitMedalCrest here with an inline <g> or <image>, and adjust only this wrapper transform for a different icon coordinate space. */}
-        <g transform="translate(0 0) scale(1)">
-          <SummitMedalCrest />
-        </g>
-      </g>
-    </svg>
-  )
-}
-
-function SummitMedalCrest() {
-  return (
-    <>
-      <path
-        d="M58 103 L80 64 a6.5 6.5 0 0 1 11 0 L113 103"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3.1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        style={{ position: 'absolute', left: 37, top: 37, color: 'var(--accent)' }}
       />
-      <path d="M67 103 h38" stroke="currentColor" strokeWidth="3.1" strokeLinecap="round" />
-      <circle cx="85.5" cy="68" r="2.5" fill="currentColor" />
-    </>
+    </div>
   )
 }
 

@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-19 · 最新版本记录: v0.109
+> Last Updated: 2026-07-19 · 最新版本记录: v0.110
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`980066993ae2d45057d6ae46d32f32055f18d8a4`（Merge FU-87 /archive 档案馆化 · 2026-07-17）
+`e2fc2a1bb6c94a19b6b16e3708b8c49c022dd7d2`（Merge FU-75 Round-A 品牌统一替换 · 2026-07-19）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-FU-75 Round-A · 品牌 logo / 资产统一替换（实现待用户视觉验收）
+无进行中 sprint（FU-75 Round-A 已上线关闭；下一 sprint 待用户选定；品牌色 / wordmark 为 FU-117 active）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -93,7 +93,7 @@ FU-75 Round-A · 品牌 logo / 资产统一替换（实现待用户视觉验收�
 
 ---
 
-## Active Follow-ups（15 条）
+## Active Follow-ups（14 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -153,29 +153,6 @@ FU-75 Round-A · 品牌 logo / 资产统一替换（实现待用户视觉验收�
 - 不重写 QWeather adapter
 
 **实施时机**: 不立即启动，作为上线门禁项跟踪。所有功能性 sprint 完成 / 接近上线时启动。
-
----
-
-### FU-75 · 品牌视觉统一体系
-
-- **优先级**: P2
-- **归属阶段**: 上线前产品品质
-- **状态**: 🟢 active
-
-**背景**: 2026-05-29 用户提出 logo 未定稿、品牌元素呈现复杂且无规范；2026-06-10 A2 验收再次指出成功页中央非品牌 logo。现状是 `--green-primary` / `--green-bright` / `--green-neon` 混用，品牌绿存在 `#6ee7a1`（share 模板 / 编辑器）与 `#7ef0b4`（ActivityRouteMap / 验收单）hex 分叉；`BrandFooter` 是唯一系统化品牌组件，logo 形态各处不一。
-
-**实施建议**:
-- logo 定稿（前置）
-- 品牌元素清单 + 使用规范
-- 全 App 盘点替换
-- `docs/color-debt.md` re-audit（P0 层已失真，30+ 新硬编码未入册）
-- 品牌绿 hex 统一
-
-**互引**: `docs/color-debt.md`
-
-**Round-A（2026-07-19）**: 定稿品牌源资产、确定性派生链、App/PWA metadata、关键产品触点与两套海报渲染链已进入实现阶段；当前状态为实现待用户视觉验收，不作部分关闭。品牌颜色角色、硬编码 color debt、审计脚本和 wordmark 字体统一转交 FU-117。
-
-**互引**: FU-117（品牌色与 wordmark 治理）
 
 ---
 
@@ -513,7 +490,38 @@ FU-75 Round-A · 品牌 logo / 资产统一替换（实现待用户视觉验收�
 
 ---
 
-## Closed Follow-ups（99 条）
+## Closed Follow-ups（100 条）
+
+### FU-75 ✅ 品牌视觉统一体系
+
+- **优先级**: P2
+- **归属阶段**: 上线前产品品质
+- **状态**: ✅ Closed
+
+**背景**: 2026-05-29 用户提出 logo 未定稿、品牌元素呈现复杂且无规范；2026-06-10 A2 验收再次指出成功页中央非品牌 logo。现状是 `--green-primary` / `--green-bright` / `--green-neon` 混用，品牌绿存在 `#6ee7a1`（share 模板 / 编辑器）与 `#7ef0b4`（ActivityRouteMap / 验收单）hex 分叉；`BrandFooter` 是唯一系统化品牌组件，logo 形态各处不一。
+
+**实施建议**:
+- logo 定稿（前置）
+- 品牌元素清单 + 使用规范
+- 全 App 盘点替换
+- `docs/color-debt.md` re-audit（P0 层已失真，30+ 新硬编码未入册）
+- 品牌绿 hex 统一
+
+**互引**: `docs/color-debt.md`
+
+**Round-A（2026-07-19）**: 定稿品牌源资产、确定性派生链、App/PWA metadata、关键产品触点与两套海报渲染链已进入实现阶段；当前状态为实现待用户视觉验收，不作部分关闭。品牌颜色角色、硬编码 color debt、审计脚本和 wordmark 字体统一转交 FU-117。
+
+**互引**: FU-117（品牌色与 wordmark 治理）
+
+**上线（2026-07-19）**: PR #48 / merge `e2fc2a1bb6c94a19b6b16e3708b8c49c022dd7d2` / Vercel prod deploy READY · 用户真机验收通过。
+
+Round-A 交付=品牌 logo/源资产定稿 + 确定性派生链(+128px mark/384px crest UI mask 分层,server 保 1254) + favicon/PWA/apple-touch/OG metadata + 关键产品触点品牌标补齐(AppHeader/auth/admin/TabBar explore/SourceLabel/Trek 礼成 crest/onboarding 两行锁定组合/ShareClient GPS pill·BrandFooter·vertical-story masthead/Profile 无图 fallback) + 两套海报渲染链(satori + legacy)base64 内嵌。
+
+顺带 4 项产品调整=印迹默认样例改慕士塔格峰(7546/20.0/30:00/3146)、底部 tab 顺序 探索→印迹→山行→我的、截图轨迹文案 校准→描绘 心智重构(未描绘/已描绘两态)、截图入口卡按钮对齐修复。
+
+品牌色单一来源、三绿角色、color-debt 重审、审计脚本、wordmark 字体统一转 FU-117。
+
+---
 
 ### FU-116 ✅ 活动详情记忆锚点(代表图 / 关键时刻 / 一句话)
 
@@ -1783,6 +1791,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.110 — 2026-07-19**: FU-75 Round-A 上线 + 关闭 · PR #48 / merge `e2fc2a1bb6c94a19b6b16e3708b8c49c022dd7d2` / Vercel prod deploy READY。品牌 logo/资产统一替换 + favicon/PWA/OG + 关键触点品牌标补齐 + 两套海报渲染链 + 4 项顺带产品调整(印迹慕士塔格样例 / tab 顺序 / 截图文案重构 / 入口卡按钮对齐)全上线,用户真机验收通过。品牌色单一来源与 wordmark 治理由 FU-117(P2 active)承接。Active 15→14 · Closed 99→100 · Deferred 5。
 
 **v0.109 — 2026-07-19**: FU-75 Round-A 实施记账 · 品牌 logo / 资产统一替换进入“实现待用户视觉验收”，FU-75 保持 active、不部分关闭；新增 FU-117（P2）承接品牌色单一来源、三绿角色治理、color-debt 重审、审计脚本与 wordmark 字体统一。Active 14 → 15 · Closed 99 → 99 · Deferred 5 → 5。
 

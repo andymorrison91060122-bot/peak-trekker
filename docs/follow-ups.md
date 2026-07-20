@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-19 · 最新版本记录: v0.110
+> Last Updated: 2026-07-20 · 最新版本记录: v0.111
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`e2fc2a1bb6c94a19b6b16e3708b8c49c022dd7d2`（Merge FU-75 Round-A 品牌统一替换 · 2026-07-19）
+`6629e7091b802332ba1124f66077656bcf248c57`（Merge FU-115+FU-113 清债 · 2026-07-20）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-无进行中 sprint（FU-75 Round-A 已上线关闭；下一 sprint 待用户选定；品牌色 / wordmark 为 FU-117 active）
+无进行中（FU-115+FU-113 已上线关闭；下一 sprint 待定）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（14 条）
+## Active Follow-ups（12 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -273,20 +273,6 @@
 
 ---
 
-### FU-115 · screenshot 补签流 goBack 返回 /screenshot 过程页(history 残留)
-
-- **优先级**: P2
-- **归属阶段**: 截图识别 / 导航债
-- **状态**: 🟢 active
-
-**背景**: `screenshot-recognition-flow.spec.ts:359` 的 history 断言在冻结基线 `21ce5ed9` 上同点位失败。该问题由 FU-87 A1 首次全量跑该 spec 暴露，历史上从未全量执行；FU-87 已按门禁例外放行，证据见 `gate-exception.json` 结论。
-
-**Scope**: 排查这是产品 history 行为缺陷（FU-102 replace 链未覆盖 screenshot 完成路径）还是测试契约过时，并二者择一修复。
-
-**边界**: 不得在无结论前改 spec 断言；先复现真实 screenshot 补签完成流与 browser/page goBack 行为，再决定代码修复或测试契约修订。
-
----
-
 ### FU-98 · 省份编辑
 
 - **优先级**: P3
@@ -363,23 +349,6 @@
 - `/mountain/[id]` 地图延迟初始化 / 懒加载，避免 MapLibre / PMTiles 初始化与首屏动效竞争主线程。
 
 **验收口径**: 若启动本 FU，需要分别输出 dev / production frame interval、long task 列表、首屏可交互时间与 375px 真实视频；不得把动画编排问题和加载层 long task 混为一类。
-
----
-
-### FU-113 · PROVINCE_RANKING off 时注册籍贯省份 required 规则复核
-
-- **优先级**: P2 / P3（表单一致性 hardening，非当前 Sprint 阻塞项）
-- **归属阶段**: 注册 / Onboarding 规则收口
-- **状态**: 🟢 active
-
-**背景**: Sprint B 将注册页省份 helper 在 `PROVINCE_RANKING=false` 时改为中性「籍贯省份」，避免继续暗示省域积分。但当前注册 `<select>` 的 required / 业务含义仍需在省域榜关闭态下做一次产品规则复核：它现在仍承担 onboarding / profile 归属地预填作用，不应被误解为排名必填。
-
-**后续方向**:
-- 明确省域榜关闭时，注册省份是否仍 required。
-- 如仍 required，文案与校验原因应指向「个人资料 / 归属地」而非省域积分。
-- 如可选，需同步 profile / onboarding fallback、测试与数据口径。
-
-**边界**: 本项只登记为后续规则收口；Sprint B 不改变注册响应形状、不改变 profile / onboarding 数据合约。
 
 ---
 
@@ -490,7 +459,48 @@
 
 ---
 
-## Closed Follow-ups（100 条）
+## Closed Follow-ups（102 条）
+
+### FU-115 ✅ screenshot 补签流 goBack 返回 /screenshot 过程页(history 残留)
+
+- **优先级**: P2
+- **归属阶段**: 截图识别 / 导航债
+- **状态**: ✅ Closed
+
+**背景**: `screenshot-recognition-flow.spec.ts:359` 的 history 断言在冻结基线 `21ce5ed9` 上同点位失败。该问题由 FU-87 A1 首次全量跑该 spec 暴露，历史上从未全量执行；FU-87 已按门禁例外放行，证据见 `gate-exception.json` 结论。
+
+**Scope**: 排查这是产品 history 行为缺陷（FU-102 replace 链未覆盖 screenshot 完成路径）还是测试契约过时，并二者择一修复。
+
+**边界**: 不得在无结论前改 spec 断言；先复现真实 screenshot 补签完成流与 browser/page goBack 行为，再决定代码修复或测试契约修订。
+
+**上线（2026-07-20）**: PR #49 / merge `6629e7091b802332ba1124f66077656bcf248c57` / Vercel prod deploy READY · 用户人工验收通过。
+
+**关闭原因**: 根因是登录成功用 `window.location.assign` 保留已消费 auth entry，且流程门禁用 `router.push` 保留过程页；后退命中陈旧 auth entry 后，middleware 对已登录用户前向重定向，把用户弹回过程页。修法是登录 / 注册返回改整页 `window.location.replace`，Screenshot `openLogin` 与 Import 四入口改 `router.replace`，保留整页导航语义，未动 middleware。本项不是"FU-102 replace 链缺口"；完成出口早已 replace。真实浏览器匿名全链证明（回滚即 FAIL）；影响半径为全站登录返回链。
+
+**已知残留待办**: Explore 山峰列表仍含早期 e2e 测试数据「测试山峰-1777956654251（8860m / 西藏）」用户可见；后续需单开 FU 做测试数据清理 + seed / cleanup 纪律，本轮仅登记，不处理。
+
+---
+
+### FU-113 ✅ PROVINCE_RANKING off 时注册籍贯省份 required 规则复核
+
+- **优先级**: P2 / P3（表单一致性 hardening，非当前 Sprint 阻塞项）
+- **归属阶段**: 注册 / Onboarding 规则收口
+- **状态**: ✅ Closed
+
+**背景**: Sprint B 将注册页省份 helper 在 `PROVINCE_RANKING=false` 时改为中性「籍贯省份」，避免继续暗示省域积分。但当前注册 `<select>` 的 required / 业务含义仍需在省域榜关闭态下做一次产品规则复核：它现在仍承担 onboarding / profile 归属地预填作用，不应被误解为排名必填。
+
+**后续方向**:
+- 明确省域榜关闭时，注册省份是否仍 required。
+- 如仍 required，文案与校验原因应指向「个人资料 / 归属地」而非省域积分。
+- 如可选，需同步 profile / onboarding fallback、测试与数据口径。
+
+**边界**: 本项只登记为后续规则收口；Sprint B 不改变注册响应形状、不改变 profile / onboarding 数据合约。
+
+**上线（2026-07-20）**: PR #49 / merge `6629e7091b802332ba1124f66077656bcf248c57` / Vercel prod deploy READY · 用户人工验收通过。
+
+**关闭原因**: 省域榜关闭态注册省份保持 `required`，补面向用户的归属地理由文案「选择你的籍贯或常驻省，将作为个人资料中的归属地。」并用 `aria-describedby` 关联；未改 required 规则、未跟随 flag、未改 `profiles` 口径、未改 Onboarding 门禁、未改响应形状。
+
+---
 
 ### FU-75 ✅ 品牌视觉统一体系
 
@@ -1791,6 +1801,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.111 — 2026-07-20**: FU-115 + FU-113 清债轮上线并双关闭。FU-115 修登录返回 / 流程门禁 history 残留：登录 / 注册返回改整页 `window.location.replace`，Screenshot `openLogin` 与 Import 四入口改 `router.replace`，保留整页导航语义、未动 middleware；真实浏览器匿名全链证明回滚即 FAIL。FU-113 在省域榜关闭态保持注册省份 `required`，补归属地理由文案与 `aria-describedby`，未改 required / flag / profiles / Onboarding / 响应形状。PR #49 / merge `6629e7091b802332ba1124f66077656bcf248c57` / Vercel prod deploy READY，用户人工验收通过。已知残留：Explore 山峰列表含早期 e2e 测试数据「测试山峰-1777956654251（8860m / 西藏）」用户可见，需后续单开 FU 做测试数据清理 + seed / cleanup 纪律。Active 14→12 · Closed 100→102 · Deferred 5。
 
 **v0.110 — 2026-07-19**: FU-75 Round-A 上线 + 关闭 · PR #48 / merge `e2fc2a1bb6c94a19b6b16e3708b8c49c022dd7d2` / Vercel prod deploy READY。品牌 logo/资产统一替换 + favicon/PWA/OG + 关键触点品牌标补齐 + 两套海报渲染链 + 4 项顺带产品调整(印迹慕士塔格样例 / tab 顺序 / 截图文案重构 / 入口卡按钮对齐)全上线,用户真机验收通过。品牌色单一来源与 wordmark 治理由 FU-117(P2 active)承接。Active 15→14 · Closed 99→100 · Deferred 5。
 

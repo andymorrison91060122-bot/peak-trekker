@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-20 · 最新版本记录: v0.111
+> Last Updated: 2026-07-21 · 最新版本记录: v0.112
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（12 条）
+## Active Follow-ups（10 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -153,26 +153,6 @@
 - 不重写 QWeather adapter
 
 **实施时机**: 不立即启动，作为上线门禁项跟踪。所有功能性 sprint 完成 / 接近上线时启动。
-
----
-
-### FU-117 · 品牌色单一来源 + wordmark 字体统一治理
-
-- **优先级**: P2
-- **归属阶段**: 品牌系统 / FU-75 后续治理
-- **状态**: 🟢 active
-
-**背景**: FU-75 Round-A 只收口 logo 源资产、派生文件、关键触点和海报品牌图形，不在同一轮扩大到全站颜色与字标重构。当前品牌绿仍承担 primary / success / neon 等不同角色，历史硬编码和 wordmark 字体也尚未统一审计。
-
-**范围**:
-- 建立品牌色单一来源，并明确 primary / success / neon 三种绿色角色及使用边界。
-- 重新审计 `docs/color-debt.md` 与新增硬编码颜色，补自动审计脚本。
-- 统一产品内 wordmark 字体与字重规则；内容文案和第三方品牌名不在替换范围。
-- 以页面、分享模板、poster 和 PWA 资产为矩阵做回归验证。
-
-**边界**: 不回滚 FU-75 Round-A 已定稿 logo 资产；不在 FU-75 视觉验收前捆绑实施。
-
-**互引**: FU-75（品牌 logo / 资产统一替换）
 
 ---
 
@@ -273,20 +253,6 @@
 
 ---
 
-### FU-98 · 省份编辑
-
-- **优先级**: P3
-- **归属阶段**: Profile 轻量资料编辑
-- **状态**: 🟢 active
-
-**背景**: 昵称已被 FU-90 修好可编辑；省份仍只读、无 picker / API（`profiles.province` 只展示）。
-
-**Scope（后续迭代）**: 复用 FU-90 昵称 sheet 模式 + 省份 picker + 写 `profiles.province` + 同步改 FAQ。
-
-**边界**: **MVP 初期不做**。
-
----
-
 ### FU-106 · 照片模板 facade 预览与 Satori 出图亮度 / 裁切差异
 
 - **优先级**: P3
@@ -353,6 +319,28 @@
 ---
 
 ## Deferred Registration
+
+### Deferred · FU-117 · 品牌色单一来源 + wordmark 字体统一治理
+
+- **优先级**: P2
+- **归属阶段**: 品牌系统 / FU-75 后续治理
+- **状态**: ⏸ deferred
+
+**背景**: FU-75 Round-A 只收口 logo 源资产、派生文件、关键触点和海报品牌图形，不在同一轮扩大到全站颜色与字标重构。当前品牌绿仍承担 primary / success / neon 等不同角色，历史硬编码和 wordmark 字体也尚未统一审计。
+
+**范围**:
+- 建立品牌色单一来源，并明确 primary / success / neon 三种绿色角色及使用边界。
+- 重新审计 `docs/color-debt.md` 与新增硬编码颜色，补自动审计脚本。
+- 统一产品内 wordmark 字体与字重规则；内容文案和第三方品牌名不在替换范围。
+- 以页面、分享模板、poster 和 PWA 资产为矩阵做回归验证。
+
+**边界**: 不回滚 FU-75 Round-A 已定稿 logo 资产；不在 FU-75 视觉验收前捆绑实施。
+
+**互引**: FU-75（品牌 logo / 资产统一替换）
+
+**Deferred（2026-07-21）**: 用户判定不影响上线，先搁置；纯内部技术债（三绿混用收进单一色源 + 字标字体统一，非视觉改版），价值在将来品牌色 / 字体变更的安全与防漂，无即时可见收益。将来碰品牌色时再启。
+
+---
 
 ### Deferred · FU-88 · 商业化专项
 
@@ -459,7 +447,23 @@
 
 ---
 
-## Closed Follow-ups（102 条）
+## Closed Follow-ups（103 条）
+
+### FU-98 ✅ 省份编辑
+
+- **优先级**: P3
+- **归属阶段**: Profile 轻量资料编辑
+- **状态**: ✅ closed（won't do · 2026-07-21）
+
+**背景**: 昵称已被 FU-90 修好可编辑；省份仍只读、无 picker / API（`profiles.province` 只展示）。
+
+**Scope（后续迭代）**: 复用 FU-90 昵称 sheet 模式 + 省份 picker + 写 `profiles.province` + 同步改 FAQ。
+
+**边界**: **MVP 初期不做**。
+
+**关闭原因**: 产品决策（2026-07-21）：省份编辑不做。省份保持只读展示即可，由注册 / onboarding 写入，`profiles.province` 无 post-hoc 编辑需求；读侧已全 null-tolerant。仅 docs，无实施。
+
+---
 
 ### FU-115 ✅ screenshot 补签流 goBack 返回 /screenshot 过程页(history 残留)
 
@@ -1801,6 +1805,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.112 — 2026-07-21**: tracker 收口 · FU-98 省份编辑按产品决策关闭 won't-do；FU-117 品牌色 / wordmark 治理转 Deferred（不挡上线，将来候选）。均仅 docs、无代码 / DB。Active 12→10 · Closed 102→103 · Deferred 5→6。
 
 **v0.111 — 2026-07-20**: FU-115 + FU-113 清债轮上线并双关闭。FU-115 修登录返回 / 流程门禁 history 残留：登录 / 注册返回改整页 `window.location.replace`，Screenshot `openLogin` 与 Import 四入口改 `router.replace`，保留整页导航语义、未动 middleware；真实浏览器匿名全链证明回滚即 FAIL。FU-113 在省域榜关闭态保持注册省份 `required`，补归属地理由文案与 `aria-describedby`，未改 required / flag / profiles / Onboarding / 响应形状。PR #49 / merge `6629e7091b802332ba1124f66077656bcf248c57` / Vercel prod deploy READY，用户人工验收通过。已知残留：Explore 山峰列表含早期 e2e 测试数据「测试山峰-1777956654251（8860m / 西藏）」用户可见，需后续单开 FU 做测试数据清理 + seed / cleanup 纪律。Active 14→12 · Closed 100→102 · Deferred 5。
 

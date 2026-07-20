@@ -42,7 +42,7 @@ function LoginPageContent() {
         properties: { return_to: returnTo },
       })
       clearClientAuthReturnPath()
-      window.location.assign(returnTo)
+      window.location.replace(returnTo)
       return
     }
     setLoading(false)
@@ -149,6 +149,7 @@ function LoginPageContent() {
             还没有账号？{' '}
             <Link
               href={returnTo === '/explore' ? '/auth/register' : `/auth/register?from=${encodeURIComponent(returnTo)}`}
+              replace
               style={{ color: 'var(--green-bright)', textDecoration: 'none' }}
             >
               注册 →

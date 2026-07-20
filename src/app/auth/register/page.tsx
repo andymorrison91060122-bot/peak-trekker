@@ -119,7 +119,7 @@ function RegisterPageContent() {
         await persistOnboardingCompletionToProfile(activeUserId)
       }
       clearClientAuthReturnPath()
-      window.location.assign(returnTo)
+      window.location.replace(returnTo)
       return
     }
 
@@ -143,7 +143,7 @@ function RegisterPageContent() {
       returnTo === '/explore'
         ? '/auth/login?registered=1'
         : `/auth/login?from=${encodeURIComponent(returnTo)}&registered=1`
-    window.location.assign(loginHref)
+    window.location.replace(loginHref)
   }
 
   return (
@@ -210,11 +210,17 @@ function RegisterPageContent() {
                   <div style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', marginBottom: 6 }}>
                     籍贯省份 {provinceRankingEnabled ? <span style={{ color: 'var(--green-primary)' }}>（为家乡省份积分）</span> : null}
                   </div>
-                  <select value={province} onChange={e => setProvince(e.target.value)} required
+                  <select value={province} onChange={e => setProvince(e.target.value)} required aria-describedby="register-province-help"
                     style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderBottom: '2px solid var(--green-primary)', color: province ? 'var(--text-primary)' : 'var(--text-muted)', fontFamily: 'Share Tech Mono', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}>
                     <option value="">选择省份...</option>
                     {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
+                  <p
+                    id="register-province-help"
+                    style={{ margin: 'var(--space-2) 0 0', color: 'var(--text-muted)', fontSize: 10, lineHeight: 1.6 }}
+                  >
+                    选择你的籍贯或常驻省，将作为个人资料中的归属地。
+                  </p>
                 </div>
                 <div style={{ padding: '10px 12px', background: 'rgba(45,106,79,0.08)', border: '1px solid rgba(45,106,79,0.2)', borderLeft: '3px solid var(--green-primary)', fontSize: 10, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', lineHeight: 1.8 }}>
                   🪪 初始：无执照<br />
@@ -239,6 +245,7 @@ function RegisterPageContent() {
             已有账号？{' '}
             <Link
               href={returnTo === '/explore' ? '/auth/login' : `/auth/login?from=${encodeURIComponent(returnTo)}`}
+              replace
               style={{ color: 'var(--green-bright)', textDecoration: 'none' }}
             >
               登录 →

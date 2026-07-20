@@ -102,7 +102,7 @@ export async function registerFreshUser(
     province?: string
   } = {}
 ) {
-  await ensureFreshUserAccountForLogin({ email, password, username, province })
+  let userId = await ensureFreshUserAccountForLogin({ email, password, username, province })
 
   const loginHref =
     returnTo === '/explore'
@@ -116,7 +116,7 @@ export async function registerFreshUser(
   await page.waitForURL((url) => !/\/auth\/login/.test(url.pathname), { timeout: 30_000 }).catch(() => {})
 
   if (/\/auth\/login/.test(page.url())) {
-    await ensureFreshUserAccountForLogin({ email, password, username, province })
+    userId = await ensureFreshUserAccountForLogin({ email, password, username, province })
     await page.getByPlaceholder('your@email.com').fill(email)
     await page.getByPlaceholder(/至少6位|••••••••/).fill(password)
     await page.getByRole('button', { name: '▶ 开始登山' }).click()
@@ -127,7 +127,32 @@ export async function registerFreshUser(
     await gotoDomContentLoadedWithRetry(page, `${baseURL}${returnTo}`)
   }
   await expect(page).toHaveURL(new RegExp(returnTo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), { timeout: 60_000 })
-  return { email, password, username }
+  return { email, password, username, userId }
+}
+
+export async function seedFreshUserAccountForLogin({
+  email = createTestEmail('qa-screenshot-history'),
+  password = 'PeakTrekker123!',
+  username = `qa-history-${Date.now()}`,
+  province = '四川',
+}: {
+  email?: string
+  password?: string
+  username?: string
+  province?: string
+} = {}) {
+  let lastError: unknown = null
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const userId = await ensureFreshUserAccountForLogin({ email, password, username, province })
+      return { userId, email, password }
+    } catch (error) {
+      lastError = error
+      if (attempt === 2 || !/fetch failed|ECONNRESET|timed out/i.test(String(error))) throw error
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)))
+    }
+  }
+  throw lastError
 }
 
 export async function dismissActivationChecklistIfPresent(page: Page) {
@@ -261,6 +286,8 @@ async function ensureFreshUserAccountForLogin({
   if (error) {
     throw new Error(`Failed to seed E2E profile: ${error.message}`)
   }
+
+  return user.id
 }
 
 function offsetCoordinate(latitude: number, longitude: number, distanceMeters: number) {

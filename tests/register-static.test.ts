@@ -33,7 +33,7 @@ test('register only performs a narrow onboarding completion profile update after
 test('register persists onboarding completion before redirecting an authenticated session', () => {
   const activeSessionIndex = requiredIndexOf(registerPage, 'if (activeSession) {')
   const persistenceIndex = requiredIndexOf(registerPage, 'await persistOnboardingCompletionToProfile(activeUserId)')
-  const redirectIndex = requiredIndexOf(registerPage, 'window.location.assign(returnTo)')
+  const redirectIndex = requiredIndexOf(registerPage, 'window.location.replace(returnTo)')
 
   assert.ok(activeSessionIndex < persistenceIndex)
   assert.ok(persistenceIndex < redirectIndex)
@@ -41,9 +41,9 @@ test('register persists onboarding completion before redirecting an authenticate
 
 test('register email-confirm branch does not attempt server onboarding persistence without a session', () => {
   const activeSessionIndex = requiredIndexOf(registerPage, 'if (activeSession) {')
-  const activeSessionRedirectIndex = requiredIndexOf(registerPage, 'window.location.assign(returnTo)')
+  const activeSessionRedirectIndex = requiredIndexOf(registerPage, 'window.location.replace(returnTo)')
   const loginRequiredBranchIndex = requiredIndexOf(registerPage, 'if (activeUserId) {', activeSessionRedirectIndex)
-  const loginRedirectIndex = requiredIndexOf(registerPage, 'window.location.assign(loginHref)', loginRequiredBranchIndex)
+  const loginRedirectIndex = requiredIndexOf(registerPage, 'window.location.replace(loginHref)', loginRequiredBranchIndex)
 
   assert.ok(activeSessionIndex < activeSessionRedirectIndex)
   assert.ok(activeSessionRedirectIndex < loginRequiredBranchIndex)
@@ -55,8 +55,19 @@ test('register email-confirm branch does not attempt server onboarding persisten
 
 test('register keeps session guidance, redirects, and local onboarding state', () => {
   assert.match(registerPage, /supabase\.auth\.signInWithPassword\(\{ email, password \}\)/)
-  assert.match(registerPage, /if \(activeSession\) \{[\s\S]*window\.location\.assign\(returnTo\)[\s\S]*return[\s\S]*\}/)
-  assert.match(registerPage, /const loginHref =[\s\S]*window\.location\.assign\(loginHref\)/)
+  assert.match(registerPage, /if \(activeSession\) \{[\s\S]*window\.location\.replace\(returnTo\)[\s\S]*return[\s\S]*\}/)
+  assert.match(registerPage, /const loginHref =[\s\S]*window\.location\.replace\(loginHref\)/)
   assert.match(registerPage, /setProvinceDraft\(province\)/)
   assert.match(registerPage, /setIntroSeen\(\)/)
+})
+
+test('register keeps province required and explains its profile purpose accessibly', () => {
+  const provinceSelect = registerPage.match(/<select[\s\S]*?<option value="">选择省份\.\.\.<\/option>[\s\S]*?<\/select>/)?.[0] ?? ''
+  assert.match(provinceSelect, /required/)
+  assert.match(provinceSelect, /aria-describedby="register-province-help"/)
+  assert.match(
+    registerPage,
+    /id="register-province-help"[\s\S]*选择你的籍贯或常驻省，将作为个人资料中的归属地。/,
+  )
+  assert.match(registerPage, /provinceRankingEnabled \? <span[\s\S]*（为家乡省份积分）/)
 })

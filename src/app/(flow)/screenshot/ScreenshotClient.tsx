@@ -2908,7 +2908,7 @@ export default function ScreenshotClient({
   }
 
   function openLogin() {
-    router.push(buildLoginHref())
+    router.replace(buildLoginHref())
   }
 
   function openUpgradeSheet() {

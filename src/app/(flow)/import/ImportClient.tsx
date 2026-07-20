@@ -4110,7 +4110,7 @@ export default function ImportClient({
           onBack={handleBack}
           onRetry={() => void startParsing()}
           onPickAnother={pickAnotherFile}
-          onLogin={() => router.push(buildLoginHref())}
+          onLogin={() => router.replace(buildLoginHref())}
         />
       )
     }
@@ -4189,7 +4189,7 @@ export default function ImportClient({
               void handleConfirm(mountainId, 'match', mountainName)
             }
           }}
-          onLogin={() => router.push(buildLoginHref())}
+          onLogin={() => router.replace(buildLoginHref())}
         />
       )
     }
@@ -4222,7 +4222,7 @@ export default function ImportClient({
             void handleConfirm(selection.mountain.id, 'select_mountain', selection.mountain.name)
           }}
           onRequestMountain={handleRequestMountain}
-          onLogin={() => router.push(buildLoginHref())}
+          onLogin={() => router.replace(buildLoginHref())}
         />
       )
     }
@@ -4243,7 +4243,7 @@ export default function ImportClient({
             setStep('select_mountain')
           }}
           onRequestMountain={() => handleRequestMountain(buildMountainRequestPayload(parseResult, 'import_no_match'))}
-          onLogin={() => router.push(buildLoginHref())}
+          onLogin={() => router.replace(buildLoginHref())}
         />
       )
     }

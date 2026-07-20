@@ -7,6 +7,12 @@ const archiveClient = readFileSync('src/app/(main)/archive/ArchiveClient.tsx', '
 const communityDetailClient = readFileSync('src/app/(flow)/community/[postId]/CommunityDetailClient.tsx', 'utf8')
 const activityDetailClient = readFileSync('src/app/(flow)/activity/[id]/ActivityDetailClient.tsx', 'utf8')
 const shareClient = readFileSync('src/app/(flow)/share/ShareClient.tsx', 'utf8')
+const loginPage = readFileSync('src/app/auth/login/page.tsx', 'utf8')
+const registerPage = readFileSync('src/app/auth/register/page.tsx', 'utf8')
+const screenshotClient = readFileSync('src/app/(flow)/screenshot/ScreenshotClient.tsx', 'utf8')
+const importClient = readFileSync('src/app/(flow)/import/ImportClient.tsx', 'utf8')
+const communityHelpers = readFileSync('tests/e2e/community.helpers.ts', 'utf8')
+const screenshotRecognitionFlowSpec = readFileSync('tests/e2e/screenshot-recognition-flow.spec.ts', 'utf8')
 
 test('trek completion paths replace consumed recording history', () => {
   const pendingFinishBranch = trekClient.match(/if \(intent\.kind === 'finish_incomplete'\) \{[\s\S]*?return true\n        \}/)?.[0] ?? ''
@@ -90,4 +96,82 @@ test('share and activity detail retain normal back behavior instead of masking u
   assert.match(handleShareBack, /router\.back\(\)/)
   assert.match(handleShareBack, /router\.replace\('\/explore'\)/)
   assert.match(activityDetailClient, /function handleBack\(\) \{[\s\S]{0,120}router\.back\(\)/)
+})
+
+test('auth handoff replaces process pages while preserving full-page navigation', () => {
+  const loginRegisterLink = loginPage.match(/<Link[\s\S]*?注册 →[\s\S]*?<\/Link>/)?.[0] ?? ''
+  const registerLoginLink = registerPage.match(/<Link[\s\S]*?登录 →[\s\S]*?<\/Link>/)?.[0] ?? ''
+
+  assert.match(loginPage, /window\.location\.replace\(returnTo\)/)
+  assert.doesNotMatch(loginPage, /window\.location\.assign\(returnTo\)/)
+  assert.match(registerPage, /window\.location\.replace\(returnTo\)/)
+  assert.match(registerPage, /window\.location\.replace\(loginHref\)/)
+  assert.doesNotMatch(registerPage, /window\.location\.assign\(/)
+  assert.match(loginRegisterLink, /\breplace\b/)
+  assert.match(registerLoginLink, /\breplace\b/)
+})
+
+test('screenshot and import auth gates replace consumed process entries', () => {
+  const screenshotOpenLogin = screenshotClient.match(/function openLogin\(\) \{[\s\S]*?\n  \}/)?.[0] ?? ''
+  const importLoginReplaces = importClient.match(/onLogin=\{\(\) => router\.replace\(buildLoginHref\(\)\)\}/g) ?? []
+
+  assert.match(screenshotOpenLogin, /router\.replace\(buildLoginHref\(\)\)/)
+  assert.doesNotMatch(screenshotOpenLogin, /router\.push\(/)
+  assert.equal(importLoginReplaces.length, 4)
+  assert.doesNotMatch(importClient, /onLogin=\{\(\) => router\.push\(buildLoginHref\(\)\)\}/)
+})
+
+test('FU-115 fixture cleanup stays spec-local and preserves failure-path evidence', () => {
+  const registerFreshUserSource = communityHelpers.match(/export async function registerFreshUser\([\s\S]*?\n\}/)?.[0] ?? ''
+  const finallyIndex = screenshotRecognitionFlowSpec.indexOf('} finally {')
+  const contextCloseIndex = screenshotRecognitionFlowSpec.indexOf("await captureEvidence('context close'", finallyIndex)
+  const videoSaveIndex = screenshotRecognitionFlowSpec.indexOf("await captureEvidence('video save'", finallyIndex)
+  const trackedUserPushes = screenshotRecognitionFlowSpec.match(/SEEDED_USER_IDS\.push\(account\.userId\)/g) ?? []
+  const trackedCheckinPushes = screenshotRecognitionFlowSpec.match(/SEEDED_CHECKIN_IDS\.push\(checkinId\)/g) ?? []
+  const userCreatedIncrements = screenshotRecognitionFlowSpec.match(/FIXTURE_LEDGER\.usersCreated \+= 1/g) ?? []
+  const checkinCreatedIncrements = screenshotRecognitionFlowSpec.match(/FIXTURE_LEDGER\.checkinsCreated \+= 1/g) ?? []
+  const userCreationTrackingPairs = screenshotRecognitionFlowSpec.match(/SEEDED_USER_IDS\.push\(account\.userId\)\n\s*FIXTURE_LEDGER\.usersCreated \+= 1/g) ?? []
+  const checkinCreationTrackingPairs = screenshotRecognitionFlowSpec.match(/SEEDED_CHECKIN_IDS\.push\(checkinId\)\n\s*FIXTURE_LEDGER\.checkinsCreated \+= 1/g) ?? []
+  const checkinCleanupSource = screenshotRecognitionFlowSpec.match(/async function cleanupSeededCheckins\(\): Promise<CleanupAttempt> \{[\s\S]*?\n\}/)?.[0] ?? ''
+  const userCleanupSource = screenshotRecognitionFlowSpec.match(/async function cleanupSeededUsers\(\): Promise<CleanupAttempt> \{[\s\S]*?\n\}/)?.[0] ?? ''
+
+  assert.doesNotMatch(communityHelpers, /SEEDED_E2E_USER_IDS|consumeSeededE2EUserIdsForCleanup/)
+  assert.doesNotMatch(registerFreshUserSource, /SEEDED_USER_IDS|seedFreshUserAccountForLogin/)
+  assert.match(registerFreshUserSource, /return \{ email, password, username, userId \}/)
+  assert.match(communityHelpers, /export async function seedFreshUserAccountForLogin[\s\S]*?return \{ userId, email, password \}/)
+  assert.match(screenshotRecognitionFlowSpec, /const SEEDED_USER_IDS: string\[\] = \[\]/)
+  assert.equal(trackedUserPushes.length, 4)
+  assert.equal(trackedCheckinPushes.length, 4)
+  assert.equal(userCreatedIncrements.length, 4)
+  assert.equal(checkinCreatedIncrements.length, 4)
+  assert.equal(userCreationTrackingPairs.length, 4)
+  assert.equal(checkinCreationTrackingPairs.length, 4)
+  assert.doesNotMatch(checkinCleanupSource, /FIXTURE_LEDGER\.checkinsCreated/)
+  assert.doesNotMatch(userCleanupSource, /FIXTURE_LEDGER\.usersCreated/)
+  assert.match(screenshotRecognitionFlowSpec, /function writeFixtureRecoveryManifest\(\)/)
+  assert.match(screenshotRecognitionFlowSpec, /const FIXTURE_RUN_ID = process\.env\.FU115_FIXTURE_RUN_ID/)
+  assert.match(screenshotRecognitionFlowSpec, /const FIXTURE_RUN_DIR = `\$\{EVIDENCE_DIR\}\/e2e-runs\/\$\{FIXTURE_RUN_ID\}`/)
+  assert.match(screenshotRecognitionFlowSpec, /runId: FIXTURE_RUN_ID/)
+  assert.match(screenshotRecognitionFlowSpec, /\$\{FIXTURE_RUN_DIR\}\/fixture-ledger\.json/)
+  assert.match(screenshotRecognitionFlowSpec, /pendingCheckinIds: SEEDED_CHECKIN_IDS/)
+  assert.match(screenshotRecognitionFlowSpec, /pendingUserIds: SEEDED_USER_IDS/)
+  assert.match(screenshotRecognitionFlowSpec, /const pendingIds = \[\.\.\.SEEDED_CHECKIN_IDS\]/)
+  assert.match(screenshotRecognitionFlowSpec, /removePendingIds\(SEEDED_CHECKIN_IDS, deletedIds\)/)
+  assert.match(screenshotRecognitionFlowSpec, /const pendingIds = \[\.\.\.SEEDED_USER_IDS\]/)
+  assert.match(screenshotRecognitionFlowSpec, /removePendingIds\(SEEDED_USER_IDS, \[userId\]\)/)
+  assert.match(screenshotRecognitionFlowSpec, /auth\.admin\.getUserById\(userId\)/)
+  assert.match(screenshotRecognitionFlowSpec, /remainingProfiles/)
+  assert.doesNotMatch(screenshotRecognitionFlowSpec, /SEEDED_CHECKIN_IDS\.splice\(0, SEEDED_CHECKIN_IDS\.length\)/)
+  assert.doesNotMatch(screenshotRecognitionFlowSpec, /SEEDED_USER_IDS\.splice\(0, SEEDED_USER_IDS\.length\)/)
+  assert.match(screenshotRecognitionFlowSpec, /const checkinAttempt = await cleanupSeededCheckins\(\)/)
+  assert.match(screenshotRecognitionFlowSpec, /const userAttempt = await cleanupSeededUsers\(\)/)
+  assert.match(screenshotRecognitionFlowSpec, /writeFixtureLedger\(\)/)
+  assert.match(screenshotRecognitionFlowSpec, /writeFixtureRecoveryManifest\(\)/)
+  assert.match(screenshotRecognitionFlowSpec, /checkins: \$\{error\}/)
+  assert.match(screenshotRecognitionFlowSpec, /users: \$\{error\}/)
+  assert.ok(finallyIndex >= 0)
+  assert.match(screenshotRecognitionFlowSpec.slice(finallyIndex), /await captureEvidence\('final screenshot'/)
+  assert.match(screenshotRecognitionFlowSpec.slice(finallyIndex), /await captureEvidence\('history evidence'/)
+  assert.ok(contextCloseIndex > finallyIndex)
+  assert.ok(videoSaveIndex > contextCloseIndex)
 })

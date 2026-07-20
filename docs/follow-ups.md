@@ -2,7 +2,7 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-21 · 最新版本记录: v0.112
+> Last Updated: 2026-07-21 · 最新版本记录: v0.113
 
 ---
 
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（10 条）
+## Active Follow-ups（9 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -302,11 +302,13 @@
 
 ---
 
-### FU-109 · 动效页加载流畅度优化
+## Deferred Registration
+
+### Deferred · FU-109 · 动效页加载流畅度优化
 
 - **优先级**: P3
 - **归属阶段**: 全站动效性能 / 后续优化
-- **状态**: 🟢 active（低优先级性能优化）
+- **状态**: ⏸ deferred（低优先级性能优化，非上线阻塞）
 
 **背景**: FU-76 Sprint A Phase 2-II 帧率诊断结论显示，入场动画编排本身已通过 Smoothness Fix 收口；残留卡顿主要来自加载层而非动效本身：全站 hydration long task 会阻塞进页面首帧（dev 环境放大到约 760–853ms，生产较轻），`/mountain/[id]` 的 MapLibre / `PmtilesSnapshotMap` late long task 在入场后约 1.8–3.6s 初始化，采样约 129–486ms。
 
@@ -316,9 +318,9 @@
 
 **验收口径**: 若启动本 FU，需要分别输出 dev / production frame interval、long task 列表、首屏可交互时间与 375px 真实视频；不得把动画编排问题和加载层 long task 混为一类。
 
----
+**Deferred（2026-07-21）**: 加载层性能优化非上线阻塞；现有诊断显示 dev 环境放大、生产较轻。将来先在生产实测卡顿和真实用户影响，再评估是否启动 hydration / bundle / map lazy-init 优化。
 
-## Deferred Registration
+---
 
 ### Deferred · FU-117 · 品牌色单一来源 + wordmark 字体统一治理
 
@@ -1805,6 +1807,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.113 — 2026-07-21**: tracker 增量收口 · FU-109 动效页加载流畅度优化转 Deferred（加载层性能优化非上线阻塞；dev 放大、生产较轻，将来先做生产实测再评估）。仅 docs、无代码 / DB。Active 10→9 · Closed 103→103 · Deferred 6→7。
 
 **v0.112 — 2026-07-21**: tracker 收口 · FU-98 省份编辑按产品决策关闭 won't-do；FU-117 品牌色 / wordmark 治理转 Deferred（不挡上线，将来候选）。均仅 docs、无代码 / DB。Active 12→10 · Closed 102→103 · Deferred 5→6。
 

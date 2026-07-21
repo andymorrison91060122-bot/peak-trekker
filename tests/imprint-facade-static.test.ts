@@ -20,7 +20,6 @@ const screenshotClient = readSource('src/app/(flow)/screenshot/ScreenshotClient.
 const explorePage = readSource('src/app/(main)/explore/page.tsx')
 const exploreClient = readSource('src/app/(main)/explore/ExploreClient.tsx')
 const mountainDetailClient = readSource('src/app/(flow)/mountain/[id]/MountainDetailClient.tsx')
-const checkinButton = readSource('src/components/ui/CheckinButton.tsx')
 const trekClient = readSource('src/app/(flow)/trek/TrekClient.tsx')
 
 test('tab bar places the imprint facade before the archive among visible product tabs', () => {
@@ -172,17 +171,20 @@ test('explore stores valid imprint template intent once and clears the entry URL
   assert.match(exploreClient, /router\.replace\('\/explore'\)/)
 })
 
-test('mountain CTAs consume pending intent only when the user starts trek recording', () => {
-  assert.match(checkinButton, /import \{ consumePendingShareTemplateForTrekUrl \} from '@\/lib\/share-template-intent'/)
-  assert.match(checkinButton, /normalizeAuthReturnPath\(consumePendingShareTemplateForTrekUrl\(\{ mountainId \}\), '\/trek'\)/)
-  assert.match(checkinButton, /router\.push\(consumePendingShareTemplateForTrekUrl\(\{ mountainId \}\)\)/)
-  assert.doesNotMatch(checkinButton, /peekPendingShareTemplate\(\)/)
-
-  assert.match(mountainDetailClient, /import \{ buildTrekUrl, consumePendingShareTemplateForTrekUrl \} from '@\/lib\/share-template-intent'/)
+test('live mountain CTA captures pending intent in the click handler and preserves it through guest login', () => {
+  assert.match(mountainDetailClient, /import \{ buildTrekUrl, consumePendingShareTemplate \} from '@\/lib\/share-template-intent'/)
+  assert.match(mountainDetailClient, /import \{ normalizeAuthReturnPath \} from '@\/lib\/auth-redirect'/)
   assert.match(mountainDetailClient, /const primaryHref = requiresLogin[\s\S]*buildTrekUrl\(\{ mountainId: mountain\.id \}\)/)
   assert.match(mountainDetailClient, /function handlePrimaryClick\(event: MouseEvent<HTMLAnchorElement>\)/)
-  assert.match(mountainDetailClient, /window\.location\.href = consumePendingShareTemplateForTrekUrl\(\{ mountainId: mountain\.id \}\)/)
-  assert.doesNotMatch(mountainDetailClient, /peekPendingShareTemplate\(\)/)
+  const bottomCta = mountainDetailClient.match(/function BottomCTA\([\s\S]*?\n}\n\nexport default function MountainDetailClient/)?.[0] ?? ''
+  assert.ok(bottomCta, 'the production BottomCTA implementation should remain extractable')
+  assert.match(bottomCta, /function handlePrimaryClick[\s\S]*consumePendingShareTemplate\(\)[\s\S]*buildTrekUrl\(\{ mountainId: mountain\.id, template: pendingTemplate \}\)/)
+  assert.match(bottomCta, /normalizeAuthReturnPath\(trekUrl, '\/trek'\)/)
+  assert.match(bottomCta, /window\.location\.href = `\/auth\/login\?from=\$\{encodeURIComponent\(authReturnPath\)\}`/)
+  assert.match(bottomCta, /if \(!pendingTemplate\) \{[\s\S]*window\.location\.href = primaryHref[\s\S]*return/)
+  assert.match(bottomCta, /window\.location\.href = trekUrl/)
+  assert.doesNotMatch(bottomCta, /consumePendingShareTemplate\(\)[\s\S]*const primaryHref/)
+  assert.doesNotMatch(bottomCta.match(/const primaryHref[\s\S]*?function handlePrimaryClick/)?.[0] ?? '', /sessionStorage|consumePendingShareTemplate|peekPendingShareTemplate/)
 })
 
 test('trek share completion keeps FU-102 replace closure and uses only explicit URL template', () => {

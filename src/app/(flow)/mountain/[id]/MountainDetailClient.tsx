@@ -36,7 +36,8 @@ import PmtilesSnapshotMap from '@/components/map/PmtilesSnapshotMap'
 import type { LicenseProgressSummary } from '@/lib/license-progress'
 import { formatMotionCountValue, formatMotionInteger as formatInteger, parseMotionTokenSeconds } from '@/lib/motion-count-format'
 import { trackEvent } from '@/lib/analytics/client'
-import { buildTrekUrl, consumePendingShareTemplateForTrekUrl } from '@/lib/share-template-intent'
+import { buildTrekUrl, consumePendingShareTemplate } from '@/lib/share-template-intent'
+import { normalizeAuthReturnPath } from '@/lib/auth-redirect'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 
 gsap.registerPlugin(useGSAP)
@@ -1328,9 +1329,22 @@ function BottomCTA({
     ? loginHref
     : buildTrekUrl({ mountainId: mountain.id })
   function handlePrimaryClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (requiresLogin) return
     event.preventDefault()
-    window.location.href = consumePendingShareTemplateForTrekUrl({ mountainId: mountain.id })
+    const pendingTemplate = consumePendingShareTemplate()
+
+    if (!pendingTemplate) {
+      window.location.href = primaryHref
+      return
+    }
+
+    const trekUrl = buildTrekUrl({ mountainId: mountain.id, template: pendingTemplate })
+    if (requiresLogin) {
+      const authReturnPath = normalizeAuthReturnPath(trekUrl, '/trek')
+      window.location.href = `/auth/login?from=${encodeURIComponent(authReturnPath)}`
+      return
+    }
+
+    window.location.href = trekUrl
   }
 
   return (

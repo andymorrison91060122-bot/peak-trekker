@@ -322,6 +322,21 @@ select {
   animation: pt-page-enter var(--motion-enter) var(--ease-out) both;
 }
 
+@keyframes pt-route-loading-reveal {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.pt-route-loading-delayed {
+  opacity: 0;
+  animation: pt-route-loading-reveal var(--motion-fast) var(--ease-out) 180ms both;
+}
+
 .pt-enter-d1 {
   animation-delay: 60ms;
 }
@@ -996,6 +1011,10 @@ select {
     animation: none;
     opacity: 1;
     transform: translateY(0);
+  }
+
+  .pt-route-loading-delayed {
+    animation: pt-route-loading-reveal 0.01ms linear 180ms both;
   }
 
   .ui-btn-loading-indicator::before,

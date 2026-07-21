@@ -1,6 +1,8 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import ts from 'typescript'
 
 const sourceExtension = 'ts'
 
@@ -35,6 +37,48 @@ function matchesPolicyError(
 
 function readSource(path: string) {
   return readFileSync(new URL(path, import.meta.url), 'utf8')
+}
+
+function loadPhotoPreprocessor() {
+  const routePath = new URL('../src/app/api/share/render/route.ts', import.meta.url)
+  const source = readFileSync(routePath, 'utf8')
+  const sourceFile = ts.createSourceFile(routePath.pathname, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+  const declaration = sourceFile.statements.find(
+    (statement): statement is ts.FunctionDeclaration =>
+      ts.isFunctionDeclaration(statement) && statement.name?.text === 'photoDataUrlForTemplate',
+  )
+  assert.ok(declaration, 'photoDataUrlForTemplate must remain extractable from the production route')
+  const printed = ts.createPrinter().printNode(ts.EmitHint.Unspecified, declaration, sourceFile)
+  const compiled = ts.transpileModule(`${printed}\nmodule.exports = { photoDataUrlForTemplate }`, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText
+  const runtimeModule = {
+    exports: {} as {
+      photoDataUrlForTemplate: (template: string, photoBase64?: string) => Promise<string | null>
+    },
+  }
+  return { runtimeModule, compiled }
+}
+
+async function measureChannelDelta(
+  image: Buffer | Uint8Array,
+  crop: { left: number; top: number; width: number; height: number },
+) {
+  const sharp = (await import('sharp')).default
+  const { data, info } = await sharp(image).extract(crop).removeAlpha().raw().toBuffer({ resolveWithObject: true })
+  let sum = 0
+  let max = 0
+  let count = 0
+  for (let index = 0; index < data.length; index += info.channels) {
+    const red = data[index] ?? 0
+    const green = data[index + 1] ?? 0
+    const blue = data[index + 2] ?? 0
+    const delta = Math.max(red, green, blue) - Math.min(red, green, blue)
+    sum += delta
+    max = Math.max(max, delta)
+    count += 1
+  }
+  return { mean: sum / Math.max(1, count), max }
 }
 
 describe('share render API field policy regression', () => {
@@ -197,6 +241,71 @@ describe('share render API field policy regression', () => {
     assert.doesNotMatch(monoFilmSource, /MonoFilmTrailSvg/)
     assert.doesNotMatch(monoFilmSource, /trackPreview/)
     assert.doesNotMatch(monoFilmSource, /<TrailSvg/)
+  })
+
+  test('premium mono-film export preprocesses photos to grayscale while the browser preview stays grayscale', () => {
+    const routeSource = readSource('../src/app/api/share/render/route.ts')
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const monoFilmSource = readSource('../src/lib/share-templates/premium-mono-film.tsx')
+    const photoPreprocess = routeSource.match(/async function photoDataUrlForTemplate[\s\S]*?\n}\n\nfunction renderTemplate/)?.[0] ?? ''
+
+    assert.ok(photoPreprocess)
+    assert.match(photoPreprocess, /template !== 'premium-vertical-story' && template !== 'premium-mono-film'/)
+    assert.match(photoPreprocess, /sharp\(Buffer\.from\(photoBase64, 'base64'\)\)[\s\S]*\.grayscale\(\)/)
+    assert.match(clientSource, /const monoFilm = template === 'premium-mono-film'/)
+    assert.match(clientSource, /if \(monoFilm\)[\s\S]*<PreviewPhotoBackground photoDataUrl=\{photoDataUrl\} grayscale>/)
+    assert.match(clientSource, /filter: grayscale \? 'grayscale\(1\)' : 'none'/)
+    assert.match(monoFilmSource, /<PhotoLayer photoDataUrl=\{photoDataUrl\} width=\{1080\} height=\{900\} grayscale \/>/)
+  })
+
+  test('premium mono-film production preprocessor survives an actual DB-free Satori PNG render as grayscale', async () => {
+    const React = await import('react')
+    const sharp = (await import('sharp')).default
+    const { renderSharePng } = await import('../src/lib/share-render-png.ts')
+    const { runtimeModule, compiled } = loadPhotoPreprocessor()
+    new Function('module', 'exports', 'sharp', 'Buffer', compiled)(runtimeModule, runtimeModule.exports, sharp, Buffer)
+
+    const blueHalf = await sharp({
+      create: { width: 540, height: 900, channels: 3, background: { r: 22, g: 118, b: 245 } },
+    }).png().toBuffer()
+    const colorPhoto = await sharp({
+      create: { width: 1080, height: 900, channels: 3, background: { r: 232, g: 42, b: 76 } },
+    }).composite([{ input: blueHalf, left: 540, top: 0 }]).png().toBuffer()
+    const rawPhotoDataUrl = `data:image/png;base64,${colorPhoto.toString('base64')}`
+    const processedPhotoDataUrl = await runtimeModule.exports.photoDataUrlForTemplate(
+      'premium-mono-film',
+      colorPhoto.toString('base64'),
+    )
+    assert.match(processedPhotoDataUrl ?? '', /^data:image\/jpeg;base64,/)
+
+    const renderPhoto = (photoDataUrl: string) => React.createElement(
+      'div',
+      { style: { display: 'flex', position: 'relative', width: 1080, height: 1920, background: '#0a0c0e' } },
+      React.createElement('img', {
+        src: photoDataUrl,
+        width: 1080,
+        height: 900,
+        alt: '',
+        style: { position: 'absolute', left: 0, top: 0, width: 1080, height: 900, objectFit: 'cover' },
+      }),
+    )
+    const baselinePng = await renderSharePng({ element: renderPhoto(rawPhotoDataUrl) })
+    const fixedPng = await renderSharePng({ element: renderPhoto(processedPhotoDataUrl!) })
+    const crop = { left: 300, top: 180, width: 480, height: 260 }
+    const beforeDelta = await measureChannelDelta(baselinePng, crop)
+    const afterDelta = await measureChannelDelta(fixedPng, crop)
+    assert.ok(beforeDelta.mean > 40, `baseline photo should retain color, mean delta=${beforeDelta.mean}`)
+    assert.ok(afterDelta.mean < 2, `fixed photo should be grayscale, mean delta=${afterDelta.mean}`)
+
+    const outputDir = join(process.cwd(), 'output', 'p3-cleanup-acceptance')
+    mkdirSync(outputDir, { recursive: true })
+    writeFileSync(join(outputDir, 'mono-film-export-before-color.png'), baselinePng)
+    writeFileSync(join(outputDir, 'mono-film-export-after-grayscale.png'), fixedPng)
+    writeFileSync(join(outputDir, 'fu106-satori-pixel-metrics.json'), `${JSON.stringify({
+      baselinePhotoRegionChannelDelta: beforeDelta,
+      fixedPhotoRegionChannelDelta: afterDelta,
+      evidenceBoundary: 'production photoDataUrlForTemplate extracted from route.ts and rendered by the actual DB-free Satori PNG pipeline',
+    }, null, 2)}\n`)
   })
 
   test('premium vertical story uses real track layer before ridge fallback', () => {

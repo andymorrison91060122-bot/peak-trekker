@@ -3,6 +3,7 @@ import Skeleton from '@/components/ui/Skeleton'
 export default function MainRouteLoading() {
   return (
     <div
+      className="pt-route-loading-delayed"
       aria-busy="true"
       aria-label="页面加载中"
       data-route-loading="main"

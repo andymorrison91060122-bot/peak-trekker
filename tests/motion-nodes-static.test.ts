@@ -154,6 +154,15 @@ describe('FU-76 universal motion gaps: auth entrance and route loading', () => {
     assert.match(flowLoading, /\[0, 1, 2\]\.map\(\(row\) =>/)
     assert.ok((flowLoading.match(/<Skeleton\b/g) ?? []).length >= 7, '(flow) loading should contain the approved full-viewport silhouette')
   })
+
+  test('main route loading uses a fixed anti-flash delay that survives reduced motion', () => {
+    assert.match(mainLoading, /className="pt-route-loading-delayed"/)
+    assert.match(globalsCss, /\.pt-route-loading-delayed\s*\{[\s\S]*opacity:\s*0;[\s\S]*animation:\s*pt-route-loading-reveal var\(--motion-fast\) var\(--ease-out\) 180ms both/)
+    assert.match(globalsCss, /@keyframes pt-route-loading-reveal\s*\{[\s\S]*from\s*\{[\s\S]*opacity:\s*0[\s\S]*to\s*\{[\s\S]*opacity:\s*1/)
+    assert.match(globalsCss, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.pt-route-loading-delayed\s*\{[\s\S]*animation:\s*pt-route-loading-reveal 0\.01ms linear 180ms both/)
+    assert.doesNotMatch(globalsCss, /\.pt-route-loading-delayed[\s\S]{0,240}animation-delay:\s*var\(--motion-fast\)/)
+    assert.doesNotMatch(flowLoading, /pt-route-loading-delayed/)
+  })
 })
 
 describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => {
@@ -739,8 +748,6 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(archiveClient, /data-archive-empty-cta=\{id\}/)
     assert.match(archiveClient, /<ArchiveEmptyAction key="find-mountain" id="find-mountain"/)
     assert.match(archiveClient, /<ArchiveEmptyAction key="bring-back" id="bring-back"/)
-    assert.match(archiveClient, /emptyActions: 0\.3/)
-    assert.match(archiveClient, /emptyCopy: 0\.48/)
     assert.match(archiveClient, /getSilenceCopy[\s\S]*`· \$\{months\} 个月 ·`/)
     assert.match(archiveClient, /<strong>档案至此<\/strong>/)
     assert.match(archiveClient, /data-testid="archive-trip-media"[\s\S]*archive-trip__media-frame/)
@@ -922,6 +929,28 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(archiveClient, /<ArchiveEmptyAction key="find-mountain" id="find-mountain"[\s\S]*<PrimaryButton[\s\S]*去找一座山[\s\S]*<ArchiveEmptyAction key="bring-back" id="bring-back"[\s\S]*<SecondaryButton[\s\S]*把以前的山行带回来/)
     assert.match(archiveClient, /data-archive-motion="empty-copy"[\s\S]*档案只保存[\s\S]*privacyCopy/)
     assert.match(archiveClient, /isFeatureEnabled\('COMMUNITY_ENABLED'\)[\s\S]*\? '想发到山友圈时再发 · Peak Trekker 不会替你声张。'[\s\S]*: '想分享时再分享 · Peak Trekker 不会替你声张。'/)
+  })
+
+  test('FU-118 gives the true Archive empty state one pre-hidden Profile-style entrance without timeline geometry', () => {
+    const emptyMotionBranch = archiveClient.match(
+      /const isTrueEmpty = Boolean\(motionMap\.get\('empty-state'\)\)([\s\S]*?)\n\s*const baseDuration/,
+    )?.[1] ?? ''
+
+    assert.match(emptyMotionBranch, /if \(isTrueEmpty\) \{/)
+    assert.match(emptyMotionBranch, /const emptyMotionTargets = \[header, identity, emptyState, \.\.\.emptyActions, emptyCopy, footer\]\.filter/)
+    assert.match(emptyMotionBranch, /gsap\.set\(emptyMotionTargets, \{ autoAlpha: 0 \}\)/)
+    assert.match(emptyMotionBranch, /gsap\.set\(emptyMotionTargets, \{ autoAlpha: 0 \}\)\s*root\.removeAttribute\('data-archive-empty-motion-pending'\)/)
+    assert.match(emptyMotionBranch, /rebuildArchiveScrollMotionRef\.current = \(\) => \{\}/)
+    assert.match(emptyMotionBranch, /Math\.min\(parseMotionTokenSeconds\(root, '--motion-base', 240\), 0\.2\)/)
+    assert.match(emptyMotionBranch, /Math\.min\(parseMotionTokenSeconds\(root, '--motion-enter', 320\), 0\.24\)/)
+    assert.match(emptyMotionBranch, /gsap\.timeline\(\{[\s\S]*onComplete: terminalizeArchiveMotion,[\s\S]*onInterrupt: terminalizeArchiveMotion/)
+    assert.match(emptyMotionBranch, /fromTo\(emptyState, \{ autoAlpha: 0, y: 16, scale: 0\.96 \}, \{[\s\S]*ease: 'back\.out\(1\.3\)'/)
+    assert.match(emptyMotionBranch, /fromTo\(emptyActions, \{ autoAlpha: 0, y: 8 \}, \{[\s\S]*stagger: \{ each: 0\.035, from: 'start' \}/)
+    assert.match(emptyMotionBranch, /return \(\) => \{ emptyTimeline\.kill\(\); terminalizeArchiveMotion\(\) \}/)
+    assert.doesNotMatch(emptyMotionBranch, /syncTimelineGeometry|ScrollTrigger/)
+    assert.match(archiveClient, /data-archive-empty-motion-pending=\{hasTrips \? undefined : ''\}/)
+    assert.match(archiveClient, /@media \(prefers-reduced-motion: no-preference\)[\s\S]*\[data-archive-empty-motion-pending\][\s\S]*opacity: 0;[\s\S]*visibility: hidden;/)
+    assert.match(archiveClient, /if \(mediaContext\.conditions\?\.reduceMotion\) \{\s*root\.removeAttribute\('data-archive-empty-motion-pending'\)\s*terminalizeArchiveMotion\(\)/)
   })
 
   test('FU-76 Phase 3 consolidates spinners and skeletons with reduced-motion static states', () => {

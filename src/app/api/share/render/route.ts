@@ -327,7 +327,7 @@ async function buildServerRenderPayload(apiRequest: ShareRenderApiRequest): Prom
 
 async function photoDataUrlForTemplate(template: ShareRenderTemplate, photoBase64?: string) {
   if (!photoBase64) return null
-  if (template !== 'premium-vertical-story') {
+  if (template !== 'premium-vertical-story' && template !== 'premium-mono-film') {
     return `data:image/jpeg;base64,${photoBase64}`
   }
 

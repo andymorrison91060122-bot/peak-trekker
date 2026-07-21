@@ -1150,13 +1150,70 @@ export default function ArchiveClient({
         { allowMotion: '(prefers-reduced-motion: no-preference)', reduceMotion: '(prefers-reduced-motion: reduce)' },
         (mediaContext) => {
           if (mediaContext.conditions?.reduceMotion) {
+            root.removeAttribute('data-archive-empty-motion-pending')
             terminalizeArchiveMotion()
             return () => terminalizeArchiveMotion()
           }
+          const motionMap = new Map(getMotionTargets().map((target) => [target.dataset.archiveMotion, target]))
+          const isTrueEmpty = Boolean(motionMap.get('empty-state'))
+          if (isTrueEmpty) {
+            rebuildArchiveScrollMotionRef.current = () => {}
+            const header = motionMap.get('header')
+            const identity = motionMap.get('identity')
+            const emptyState = motionMap.get('empty-state')
+            const emptyActions = emptyState ? getScopedTargets('[data-archive-empty-cta]', emptyState) : []
+            const emptyCopy = motionMap.get('empty-copy')
+            const footer = motionMap.get('footer')
+            const emptyMotionTargets = [header, identity, emptyState, ...emptyActions, emptyCopy, footer].filter(
+              (target): target is HTMLElement => Boolean(target),
+            )
+            gsap.set(emptyMotionTargets, { autoAlpha: 0 })
+            root.removeAttribute('data-archive-empty-motion-pending')
+
+            const emptyBaseDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.2)
+            const emptyEnterDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.24)
+            const emptyTimeline = gsap.timeline({
+              defaults: { duration: emptyBaseDuration, ease: 'power3.out' },
+              onComplete: terminalizeArchiveMotion,
+              onInterrupt: terminalizeArchiveMotion,
+            })
+
+            if (header) {
+              emptyTimeline.fromTo(header, { autoAlpha: 0 }, { autoAlpha: 1, duration: emptyBaseDuration, ease: 'power3.out' }, 0)
+            }
+            if (identity) {
+              emptyTimeline.fromTo(identity, { autoAlpha: 0 }, { autoAlpha: 1, duration: emptyBaseDuration, ease: 'power3.out' }, 0.04)
+            }
+            if (emptyState) {
+              emptyTimeline.fromTo(emptyState, { autoAlpha: 0, y: 16, scale: 0.96 }, {
+                autoAlpha: 1,
+                y: 0,
+                scale: 1,
+                duration: emptyEnterDuration,
+                ease: 'back.out(1.3)',
+              }, 0.1)
+            }
+            if (emptyActions.length) {
+              emptyTimeline.fromTo(emptyActions, { autoAlpha: 0, y: 8 }, {
+                autoAlpha: 1,
+                y: 0,
+                duration: emptyBaseDuration,
+                ease: 'power3.out',
+                stagger: { each: 0.035, from: 'start' },
+              }, 0.24)
+            }
+            if (emptyCopy) {
+              emptyTimeline.fromTo(emptyCopy, { autoAlpha: 0 }, { autoAlpha: 1, duration: emptyBaseDuration, ease: 'power3.out' }, 0.34)
+            }
+            if (footer) {
+              emptyTimeline.fromTo(footer, { autoAlpha: 0 }, { autoAlpha: 1, duration: emptyBaseDuration, ease: 'power3.out' }, 0.42)
+            }
+
+            return () => { emptyTimeline.kill(); terminalizeArchiveMotion() }
+          }
           const baseDuration = Math.min(parseMotionTokenSeconds(root, '--motion-base', 240), 0.22)
           const enterDuration = Math.min(parseMotionTokenSeconds(root, '--motion-enter', 320), 0.32)
-          const schedule = { header: 0, identity: 0.06, filters: 0.28, timeline: 0.34, trips: 0.38, emptyState: 0.1, emptyActions: 0.3, emptyCopy: 0.48, footer: 0.68 } as const
-          const motionMap = new Map(getMotionTargets().map((target) => [target.dataset.archiveMotion, target]))
+          const schedule = { header: 0, identity: 0.06, filters: 0.28, timeline: 0.34, trips: 0.38, footer: 0.68 } as const
           const geometry = syncTimelineGeometry()
           const timeline = gsap.timeline({ defaults: { duration: baseDuration, ease: 'power3.out' }, onComplete: terminalizeArchiveMotion, onInterrupt: terminalizeArchiveMotion })
           const addShell = (key: string, label: string, position: number, fromY = 14, scale = 0.98) => {
@@ -1170,8 +1227,7 @@ export default function ArchiveClient({
             }
           }
           addShell('header', 'header', schedule.header, 8, 1)
-          const isTrueEmpty = Boolean(motionMap.get('empty-state'))
-          addShell('identity', 'identity', isTrueEmpty ? 0 : schedule.identity, 14, 0.98)
+          addShell('identity', 'identity', schedule.identity, 14, 0.98)
           addShell('filters', 'filters', schedule.filters, 8, 1)
           if (geometry) {
             const length = geometry.basePath.getTotalLength()
@@ -1238,30 +1294,6 @@ export default function ArchiveClient({
               onInterrupt: () => { valueNode.textContent = finalText },
             }, 'identity')
           }
-          const emptyState = motionMap.get('empty-state')
-          if (emptyState) {
-            timeline.addLabel('emptyState', schedule.emptyState)
-            timeline.fromTo(emptyState, { autoAlpha: 0, y: 16, scale: 0.97 }, {
-              autoAlpha: 1,
-              y: 0,
-              scale: 1,
-              duration: enterDuration,
-              ease: 'back.out(1.3)',
-            }, 'emptyState')
-            const emptyActions = getScopedTargets('[data-archive-empty-cta]', emptyState)
-            if (emptyActions.length) {
-              timeline.addLabel('emptyActions', schedule.emptyActions)
-              timeline.fromTo(emptyActions, { autoAlpha: 0, y: 10, scale: 0.985 }, {
-                autoAlpha: 1,
-                y: 0,
-                scale: 1,
-                duration: baseDuration,
-                ease: 'power3.out',
-                stagger: { each: 0.04, from: 'start' },
-              }, 'emptyActions')
-            }
-          }
-          addShell('empty-copy', 'emptyCopy', schedule.emptyCopy, 0, 1)
           addShell('footer', 'footer', schedule.footer, 0, 1)
           return () => { timeline.kill(); terminalizeArchiveMotion() }
         },
@@ -1317,9 +1349,25 @@ export default function ArchiveClient({
     <div
       ref={motionScopeRef}
       data-archive-motion-root
+      data-archive-empty-motion-pending={hasTrips ? undefined : ''}
       className="archive-reinvention"
       style={{ '--archive-app-header-height': `${APP_HEADER_HEIGHT_PX}px` } as CSSProperties}
     >
+      {hasTrips ? null : (
+        <style>{`
+          @media (prefers-reduced-motion: no-preference) {
+            [data-archive-empty-motion-pending] [data-archive-motion="header"],
+            [data-archive-empty-motion-pending] [data-archive-motion="identity"],
+            [data-archive-empty-motion-pending] [data-archive-motion="empty-state"],
+            [data-archive-empty-motion-pending] [data-archive-empty-cta],
+            [data-archive-empty-motion-pending] [data-archive-motion="empty-copy"],
+            [data-archive-empty-motion-pending] [data-archive-motion="footer"] {
+              opacity: 0;
+              visibility: hidden;
+            }
+          }
+        `}</style>
+      )}
       <ArchiveContentHeading />
       {hasTrips ? (
         <>

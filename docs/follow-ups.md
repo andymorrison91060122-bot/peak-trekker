@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-21 · 最新版本记录: v0.113
+> Last Updated: 2026-07-21 · 最新版本记录: v0.114
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`6629e7091b802332ba1124f66077656bcf248c57`（Merge FU-115+FU-113 清债 · 2026-07-20）
+`1cf112d3f88cf9fed9f1e6397630600329652069`（Merge P3 清尾轮 · 2026-07-21）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-无进行中（FU-115+FU-113 已上线关闭；下一 sprint 待定）
+无进行中（P3 清尾轮已上线关闭；下一 sprint 待定）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -93,7 +93,7 @@
 
 ---
 
-## Active Follow-ups（9 条）
+## Active Follow-ups（5 条）
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
@@ -233,33 +233,36 @@
 
 ---
 
-### FU-83 · 地图遗留债
+## Deferred Registration
+
+### Deferred · FU-83 · 地图遗留债
 
 - **优先级**: P3
 - **归属阶段**: FU-47 系列书面承诺的独立项
-- **状态**: 🟢 active
+- **状态**: ⏸ deferred（地图遗留债；等待 DEM / PMTiles pipeline 与独立 visual-review sprint）
 
 **范围**:
 - ✅ (a) Activity `trackPoint` 超 mountain-bbox envelope 检测 + auto-fallback trace-only：PR #9 / merge `d20a5df` 已落地。策略 = mountain bbox 每轴扩 8%，raw valid points 中 >1% 超出扩展 bbox 才降级；`data-map-mode` 记录 `mountain-pmtiles` / `trace-only-no-asset` / `trace-only-map-error` / `trace-only-out-of-envelope` / `screenshot-shape`。
 - ✅ (b) `mountain_waypoints` 坐标数据化 + Mountain Detail 路线渲染解锁：PR #23 / branch `codex/fu83b-waypoint-coordinates` / merge `0fc750c851e2680fe69a707d24927f63c1ef521b` 合入 commits `251cd3e01d3a60050081aedf9d48902227981db2` + R1/R2 `954e03f4b8763d14e711bceeea11ad74461d3dc8`。新增 nullable `latitude` / `longitude` + range CHECK（生产 migration `20260619090000_add_waypoint_coordinates` 已 apply；columns 与两条 constraint 已 SQL 确认），admin waypoint 编辑接入坐标字段，Mountain Detail 在 `coordinateWaypoints.length >= 2` 时生成 GeoJSON route overlay。R1/R2 同步清理 route-card 信息层级：删除 no-waypoint 空态误导文案与 has-waypoint false-affordance chips，route card 收敛为 map + safety note；删除 dead `RouteSummitOnlyStrip` / `RouteWaypointStrip` / `getRouteOverlayPoints`。用户 2026-06-19 real-device / visual acceptance PASS。
-- (c) MapLibre 24-layer allowlist 扩等高线 / 地形细节：保持 Deferred。阻塞项仍是无 DEM source、FU-69 已关闭不做、FU-77 PMTiles pipeline 未完成；需按 `docs/map-weather-brief.md` §15.5.5 单独 visual-review sprint。
+- (c) MapLibre 24-layer allowlist 扩等高线 / 地形细节：阻塞项仍是无 DEM source、FU-69 已关闭不做、FU-77 PMTiles pipeline 未完成；需按 `docs/map-weather-brief.md` §15.5.5 单独 visual-review sprint。
 - ✅ (d) GPS trace fallback aspect-ratio distortion：PR #9 / merge `d20a5df` 已落地。新增 shared WGS-84 aspect-correct projector（`src/lib/geo-trace-projector.ts`），以 `cos(midLat)` + single range + centered letterbox 统一投影，服务 Activity trace-only / Trek reference fallback / Community detail preview；删除 dead `CommunityRouteVisualization.tsx`；`tests/fixtures/gpx/fu83-portrait-49609d3c.gpx` 固定 portrait ratio。before-state renders 可从 pre-merge main git history 复现。
 
-**剩余 Active**:
-- (c) contour / terrain layer allowlist 扩展（Deferred，等待 DEM / PMTiles pipeline 与独立 visual-review sprint）。
+**Deferred（2026-07-21）**: 地图遗留债不阻塞当前上线；(c) contour / terrain layer allowlist 扩展等待 DEM source、FU-77 PMTiles pipeline 与独立 visual-review sprint 后再启。
 
 **DATA RESIDUE 记录**:
 - FU-83 evidence run leftover `bf333b44-9931-4971-97e8-ada79af158a5` 已按用户授权删除。删除前五项验证通过：`source='screenshot_recognition'` / `verified_at=null` / `ranking_weight=0` / `track_points=[]` / posts refs `0`；计数对账 total `966 → 965`，`screenshot_recognition 1 → 0`，other-source `965 → 965`。
 
 ---
 
-### FU-106 · 照片模板 facade 预览与 Satori 出图亮度 / 裁切差异
+### Deferred · FU-106 · 照片模板 facade 预览与 Satori 出图亮度 / 裁切差异
 
 - **优先级**: P3
 - **归属阶段**: 分享模板视觉保真 / 后续评估
-- **状态**: 🟢 active（低优先级视觉 parity 评估）
+- **状态**: ⏸ deferred（照片模板亮度 / 裁切 parity 缓）
 
 **背景**: FU-85 R3E 五模板 facade-vs-Satori 并排证据显示，照片类模板在浏览器 CSS preview 与 Satori PNG 出图之间仍有亮度 / 裁切 / 渲染引擎差异，`premium-photo-overlay` 最明显。该差异来自浏览器实时预览与 Satori 服务端渲染路径既有差异，不是 FU-85 新引入的模板结构回归；R3E 已完成 text-align、数字格式、bbox 与 anchor parity 收口。
+
+**P3 清尾进展（2026-07-21）**: `premium-mono-film` 导出照片服务端 grayscale 已补齐，预览 / 导出一致，契约黑白影调达成。
 
 **待评估方向**:
 - 方案 A：照片类 facade 卡改用 Satori PNG 静态预览，提高所见即所得保真度，但会增加生成 / 缓存 / 加载复杂度。
@@ -267,30 +270,15 @@
 
 **验收口径**: 若启动本 FU，需要以照片类模板为重点，做 375px facade preview ↔ Satori export side-by-side，并明确性能 / 保真 tradeoff。
 
----
-
-### FU-107 · `/explore?shareTemplate` 未登录场景 template 保留边界
-
-- **优先级**: P3
-- **归属阶段**: 分享门面边缘链路 hardening
-- **状态**: 🟢 active（低频边缘场景）
-
-**背景**: FU-85 已通过 pending intent + 显式 `shareTemplate` URL 解决门面发起实时记录的常规模板传播与残留污染问题。但未登录场景仍有一个边缘风险：`CheckinButton` 登录分支会消费并清除 pending template，而 `MountainDetailClient` 登录分支不会；若登录 return 跳转丢失 query，门面所选模板可能无法继续带到后续 `/trek` / `/share`。
-
-**Scope**:
-- 复核 `/explore?shareTemplate=<id>` 未登录 → 登录 → 回到山峰 / trek 链路的实际 URL 与 pending 状态。
-- 统一 `CheckinButton` 与 `MountainDetailClient` 未登录分支的 template 保留策略。
-- 保持安全边界：不引入自由 `returnTo`，不破坏 FU-102 trek completion navigation closure。
-
-**验收口径**: 未登录从门面选择「选山实时记录」后，登录完成仍能保留已选模板；普通非门面记录不被旧 pending 污染。
+**Deferred（2026-07-21）**: mono-film 修复已落地；其余照片模板亮度 / 裁切 parity 不阻塞上线，后续按真实模板视觉反馈再评估。
 
 ---
 
-### FU-108 · `/share` 主预览（本地 HeroPreview）vs Satori 真海报漂移审计
+### Deferred · FU-108 · `/share` 主预览（本地 HeroPreview）vs Satori 真海报漂移审计
 
 - **优先级**: P3
 - **归属阶段**: 分享编辑器视觉保真 / 后续审计
-- **状态**: 🟢 active（低优先级 preview/export parity 审计）
+- **状态**: ⏸ deferred（低优先级 preview/export parity 审计）
 
 **背景**: `/share` 主预览目前是 `ShareClient` 内部 `HeroPreview` 本地实现，真实导出则走 `src/lib/share-templates/*` + Satori。两套实现天然存在视觉漂移风险；FU-76 分享编辑器重设计期间多次踩中该类问题：字号相对偏大、`text-align` 继承、`premium-altitude-profile` TIME / DATE 列、缩放层水平偏移、overlay / 内卡几何对齐等。
 
@@ -300,9 +288,9 @@
 
 **验收口径**: 若启动本 FU，需要输出全 10 分支 375px preview ↔ Satori side-by-side，并明确性能 / 交互 / 导出一致性 tradeoff。
 
----
+**Deferred（2026-07-21）**: `/share` 主预览 vs Satori 漂移审计不阻塞当前上线；保留为后续视觉保真候选。
 
-## Deferred Registration
+---
 
 ### Deferred · FU-109 · 动效页加载流畅度优化
 
@@ -449,7 +437,56 @@
 
 ---
 
-## Closed Follow-ups（103 条）
+## Closed Follow-ups（106 条）
+
+### FU-107 ✅ `/explore?shareTemplate` 未登录场景 template 保留边界
+
+- **优先级**: P3
+- **归属阶段**: 分享门面边缘链路 hardening
+- **状态**: ✅ closed（2026-07-21 上线 · PR #50 / merge `1cf112d3f88cf9fed9f1e6397630600329652069`）
+
+**关闭原因**: 未登录 Mountain CTA 活入口已修复 template 保留边界。`BottomCTA` 点击时消费 pending 分享模板，经 `normalizeAuthReturnPath` 进入登录 `from` 链路；普通无模板入口仍回 `/mountain/:id`，不被旧 pending 污染。
+
+**边界**: 不引入自由 `returnTo`；不碰死代码；不改 FU-102 completion navigation closure / Trek 历史清理语义。
+
+**验证**: P3 清尾轮用户真机验收通过；PR #50 合入 production deployment `dpl_6pXZbMyGCvVFTqjrdPoUHopQxyfL` READY。
+
+**关闭 commit**: 本次 docs 收尾 commit
+**关闭时间**: 2026-07-21
+
+---
+
+### FU-118 ✅ `(main)` 路由骨架防闪 + 档案空态入场
+
+- **优先级**: P3
+- **归属阶段**: P3 清尾 / 路由 loading 与 archive 空态 polish
+- **状态**: ✅ closed（2026-07-21 上线 · PR #50 / merge `1cf112d3f88cf9fed9f1e6397630600329652069`）
+
+**关闭原因**: `(main)` 路由骨架防闪与档案空态入场已随 P3 清尾轮落地。路由 loading 使用固定 `180ms` 阈值，reduced-motion 下不塌；档案空态改为 Profile 式入场，SSR 预隐藏仅 `no-preference` gated，独立时间线淡入 + 轻抬一次到位，移除 ScrollTrigger / geometry 依赖，杜绝 FOUC 与重播。
+
+**验证**: P3 清尾轮用户真机验收通过；PR #50 合入 production deployment `dpl_6pXZbMyGCvVFTqjrdPoUHopQxyfL` READY。
+
+**关闭 commit**: 本次 docs 收尾 commit
+**关闭时间**: 2026-07-21
+
+---
+
+### FU-119 ✅ Explore 早期 e2e 遗留假山峰清理
+
+- **优先级**: P3
+- **归属阶段**: 测试数据清理 / Explore 可见数据卫生
+- **状态**: ✅ closed（2026-07-21 清理完成）
+
+**关闭原因**: Explore 早期 e2e 遗留假山峰「测试山峰-1777956654251」已按精确 id 清理。目标 mountain id `17c2a2a8-a86d-4fe0-8029-8fdc55b999db` 经 Supabase 插件只读核查为测试残留，无真实引用；删除对账：`mountain_waypoints 13→0`、`weather_cache 1→0`、`mountains 19→18`，`checkins` / `trek_sessions` / `mountain_requests` 全 0，无真实引用。
+
+**边界**: 仅清理该测试山峰及确证同批残留引用；无代码改动、无 migration、无真实数据删除。
+
+**验证**: 生产已生效；P3 清尾轮 tracker closeout 记录 DATA RESIDUE 处理结果。
+
+**关闭 commit**: 本次 docs 收尾 commit
+**关闭时间**: 2026-07-21
+
+---
 
 ### FU-98 ✅ 省份编辑
 
@@ -1807,6 +1844,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.114 — 2026-07-21**: P3 清尾轮上线 · PR #50 / merge `1cf112d3f88cf9fed9f1e6397630600329652069` / Vercel prod deploy READY,用户真机验收通过。FU-107→Closed、FU-118(新登记)→Closed、FU-119(新登记)→Closed、FU-106(mono-film 修)→Deferred、FU-108→Deferred、FU-83→Deferred。Active 9→5 · Closed 103→106 · Deferred 7→10。
 
 **v0.113 — 2026-07-21**: tracker 增量收口 · FU-109 动效页加载流畅度优化转 Deferred（加载层性能优化非上线阻塞；dev 放大、生产较轻，将来先做生产实测再评估）。仅 docs、无代码 / DB。Active 10→9 · Closed 103→103 · Deferred 6→7。
 

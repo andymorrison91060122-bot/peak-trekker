@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "source_id": "curated:claude-canonical-six-v1",
+  "source_class": "curated_canonical",
+  "note": "claude_curated; GNS无峰顶候选; 低风险字段(不显示); 非verified",
+  "coordinates": {
+    "nianbaoyuze": {
+      "target_name": "年保玉则",
+      "latitude": 33.28,
+      "longitude": 101.14
+    },
+    "yading-xiannairi": {
+      "target_name": "仙乃日",
+      "latitude": 28.39,
+      "longitude": 100.33
+    },
+    "yading-xianuoduoji": {
+      "target_name": "夏诺多吉",
+      "latitude": 28.43,
+      "longitude": 100.36
+    },
+    "yading-yangmaiyong": {
+      "target_name": "央迈勇",
+      "latitude": 28.33,
+      "longitude": 100.31
+    },
+    "yala-xueshan": {
+      "target_name": "雅拉雪山",
+      "latitude": 30.72,
+      "longitude": 101.47
+    },
+    "yulong-xueshan": {
+      "target_name": "扇子陡",
+      "latitude": 27.1,
+      "longitude": 100.18
+    }
+  }
+}

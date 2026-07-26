@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "frozen_effective_canonicals_sha256": "5fe0f8fcc4154f10c014cfee79c6b57b6582eed77f9b0445c72ddfd593da4294",
+  "by_effective_canonical_key": {
+    "baiyun-shan-guangdong": {
+      "catalog_entity_kind": "mountain_area",
+      "coordinate_target_role": "representative_highpoint",
+      "verification_scope": "area_or_route",
+      "representative_highpoint_name": "摩星岭",
+      "reason": "白云山是用户搜索与记录的整体山地/景区；摩星岭仅作为最高点和地图参考。",
+      "query_name_additions": [
+        "广州白云山",
+        "摩星岭"
+      ],
+      "exact_target_name_additions": [
+        "摩星岭",
+        "白云山摩星岭",
+        "广州白云山摩星岭"
+      ]
+    },
+    "bogeda-feng": {
+      "catalog_entity_kind": "independent_peak",
+      "coordinate_target_role": "independent_summit",
+      "verification_scope": "summit_proximity",
+      "independent_summit_name": "博格达峰",
+      "reason": "博格达峰是可独立选择和记录的技术山峰。",
+      "query_name_additions": [
+        "Bogda Peak"
+      ],
+      "exact_target_name_additions": [
+        "Bogda Peak"
+      ]
+    },
+    "broad-peak": {
+      "catalog_entity_kind": "independent_peak",
+      "coordinate_target_role": "independent_summit",
+      "verification_scope": "summit_proximity",
+      "independent_summit_name": "布洛阿特峰",
+      "reason": "布洛阿特峰是可独立选择和记录的技术山峰。",
+      "query_name_additions": [
+        "Broad Peak"
+      ],
+      "exact_target_name_additions": [
+        "Broad Peak"
+      ]
+    },
+    "cang-shan": {
+      "catalog_entity_kind": "mountain_area",
+      "coordinate_target_role": "none",
+      "verification_scope": "area_or_route",
+      "reason": "藏山当前作为整体山地旅程记录，冻结来源未定义可靠代表高点。"
+    },
+    "dawagengza": {
+      "catalog_entity_kind": "mountain_area",
+      "coordinate_target_role": "none",
+      "verification_scope": "area_or_route",
+      "reason": "达瓦更扎当前作为整体山地景区旅程记录，冻结来源未定义可靠代表高点。"
+    },
+    "gongga-shan": {
+      "catalog_entity_kind": "independent_peak",
+      "coordinate_target_role": "independent_summit",
+      "verification_scope": "summit_proximity",
+      "independent_summit_name": "贡嘎雪山主峰",
+      "reason": "贡嘎雪山主峰是贡嘎山系内可独立识别的主峰实体。",
+      "query_name_additions": [
+        "贡嘎山",
+        "Minya Konka"
+      ],
+      "exact_target_name_additions": [
+        "贡嘎山",
+        "Minya Konka"
+      ]
+    },
+    "kawagebo": {
+      "catalog_entity_kind": "independent_peak",
+      "coordinate_target_role": "independent_summit",
+      "verification_scope": "summit_proximity",
+      "independent_summit_name": "卡瓦格博峰",
+      "reason": "卡瓦格博峰是独立地理峰体；访问关闭状态不改变实体语义。",
+      "query_name_additions": [
+        "Kawagarbo",
+        "梅里雪山主峰"
+      ],
+      "exact_target_name_additions": [
+        "Kawagarbo",
+        "梅里雪山主峰"
+      ]
+    },
+    "ling-shan-jiangsu": {
+      "catalog_entity_kind": "mountain_area",
+      "coordinate_target_role": "none",
+      "verification_scope": "area_or_route",
+      "reason": "江苏灵山当前作为整体山地/景区旅程记录，冻结来源未定义可靠代表高点。"
+    },
+    "ling-shan-jiangxi": {
+      "catalog_entity_kind": "mountain_area",
+      "coordinate_target_role": "none",
+      "verification_scope": "area_or_route",
+      "reason": "江西灵山当前作为整体山地旅程记录，冻结来源未定义可靠代表高点。"
+    },
+    "muztagata-feng": {
+      "catalog_entity_kind": "independent_peak",
+      "coordinate_target_role": "independent_summit",
+      "verification_scope": "summit_proximity",
+      "independent_summit_name": "慕士塔格峰",
+      "reason": "慕士塔格峰是可独立选择和记录的技术山峰。",
+      "query_name_additions": [
+        "Muztagh Ata"
+      ],
+      "exact_target_name_additions": [
+        "Muztagh Ata"
+      ]
+    },
+    "namchabarwa": {
+      "catalog_entity_kind": "independent_peak",
+      "coordinate_target_role": "independent_summit",
+      "verification_scope": "summit_proximity",
+      "independent_summit_name": "南迦巴瓦峰",
+      "reason": "南迦巴瓦峰是可独立识别的技术山峰。",
+      "query_name_additions": [
+        "Namcha Barwa"
+      ],
+      "exact_target_name_additions": [
+        "Namcha Barwa"
+      ]
+    },
+    "qiaogeli-feng-k2": {
+      "catalog_entity_kind": "independent_peak",
+      "coordinate_target_role": "independent_summit",
+      "verification_scope": "summit_proximity",
+      "independent_summit_name": "乔戈里峰（K2）",
+      "reason": "乔戈里峰（K2）是可独立选择和记录的技术山峰。",
+      "query_name_additions": [
+        "乔戈里峰",
+        "K2",
+        "Chhogori"
+      ],
+      "exact_target_name_additions": [
+        "乔戈里峰",
+        "K2",
+        "Chhogori"
+      ]
+    },
+    "siguniang-dafeng": {
+      "exact_target_name_additions": [
+        "大峰",
+        "四姑娘山大峰"
+      ]
+    },
+    "siguniang-erfeng": {
+      "exact_target_name_additions": [
+        "二峰",
+        "四姑娘山二峰"
+      ]
+    },
+    "siguniang-luotuo-feng": {
+      "exact_target_name_additions": [
+        "骆驼峰",
+        "四姑娘山骆驼峰"
+      ]
+    },
+    "siguniang-sanfeng": {
+      "exact_target_name_additions": [
+        "三峰",
+        "四姑娘山三峰"
+      ]
+    },
+    "siguniang-yaomei-feng": {
+      "query_name_additions": [
+        "幺妹峰",
+        "四姑娘山主峰",
+        "Yaomei Peak"
+      ],
+      "exact_target_name_additions": [
+        "幺妹峰",
+        "四姑娘山主峰",
+        "Yaomei Peak"
+      ]
+    },
+    "tianhua-shan": {
+      "catalog_entity_kind": "mountain_area",
+      "coordinate_target_role": "none",
+      "verification_scope": "area_or_route",
+      "reason": "天华山当前作为整体山地旅程记录，冻结来源未定义可靠代表高点。"
+    },
+    "yuntai-shan-guizhou": {
+      "catalog_entity_kind": "mountain_area",
+      "coordinate_target_role": "none",
+      "verification_scope": "area_or_route",
+      "reason": "贵州云台山当前作为整体山地/景区旅程记录，冻结来源未定义可靠代表高点。"
+    },
+    "yuzhu-feng": {
+      "catalog_entity_kind": "independent_peak",
+      "coordinate_target_role": "independent_summit",
+      "verification_scope": "summit_proximity",
+      "independent_summit_name": "玉珠峰",
+      "reason": "玉珠峰是独立峰体；北坡和南坡是路线/检索上下文，不是峰顶别名。",
+      "query_name_additions": [
+        "玉珠峰北坡",
+        "玉珠峰南坡",
+        "玉珠峰北坡线",
+        "玉珠峰南坡线"
+      ],
+      "exact_target_name_exclusions": [
+        "玉珠峰北坡",
+        "玉珠峰南坡",
+        "玉珠峰北坡线",
+        "玉珠峰南坡线"
+      ]
+    },
+    "zhuoer-shan": {
+      "catalog_entity_kind": "mountain_area",
+      "coordinate_target_role": "none",
+      "verification_scope": "area_or_route",
+      "reason": "卓尔山当前作为整体山地景区旅程记录，冻结来源未定义可靠代表高点。"
+    }
+  }
+}

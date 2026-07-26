@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "peak-trekker.t13-source-request-manifest.schema.json",
+  "title": "T13 source request manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "stratified_sample_sha256",
+    "stratified_sample_manifest_sha256",
+    "population_binding_sha256",
+    "network_collection_contract",
+    "requests"
+  ],
+  "properties": {
+    "schema_version": { "const": "t13-source-request-manifest-v1" },
+    "stratified_sample_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "stratified_sample_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "population_binding_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "network_collection_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overpass_endpoint",
+        "user_agent",
+        "timeout_ms",
+        "retry_limit",
+        "backoff",
+        "checkpoint_resume",
+        "outcome_enum",
+        "source_independence_rule",
+        "datum_policy"
+      ],
+      "properties": {
+        "overpass_endpoint": { "type": "string", "format": "uri" },
+        "user_agent": { "type": "string", "minLength": 1 },
+        "timeout_ms": { "type": "integer", "minimum": 1 },
+        "retry_limit": { "type": "integer", "minimum": 0 },
+        "backoff": { "type": "string", "minLength": 1 },
+        "checkpoint_resume": { "type": "boolean" },
+        "outcome_enum": {
+          "const": [
+            "complete",
+            "missing",
+            "blocked",
+            "rate_limited",
+            "transport_error",
+            "invalid_response"
+          ]
+        },
+        "source_independence_rule": { "type": "string", "minLength": 1 },
+        "datum_policy": { "type": "string", "minLength": 1 }
+      }
+    },
+    "requests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "request_id",
+          "effective_canonical_key",
+          "source_family",
+          "adapter_version",
+          "normalized_request_params",
+          "request_hash",
+          "response_hash",
+          "response_cas_path",
+          "parsed_output_hash",
+          "parsed_output_cas_path",
+          "http_status",
+          "fetched_at",
+          "cache_hit",
+          "source_license",
+          "outcome",
+          "outcome_reason",
+          "rate_limit_signal"
+        ],
+        "properties": {
+          "request_id": { "type": "string", "minLength": 1 },
+          "effective_canonical_key": { "type": "string", "minLength": 1 },
+          "source_family": { "type": "string", "minLength": 1 },
+          "adapter_version": { "type": "string", "minLength": 1 },
+          "normalized_request_params": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "request_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "response_hash": {
+            "anyOf": [
+              { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+              { "type": "null" }
+            ]
+          },
+          "response_cas_path": {
+            "anyOf": [
+              { "type": "string", "pattern": "^.+/sha256/[a-f0-9]{64}$" },
+              { "type": "null" }
+            ]
+          },
+          "parsed_output_hash": {
+            "anyOf": [
+              { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+              { "type": "null" }
+            ]
+          },
+          "parsed_output_cas_path": {
+            "anyOf": [
+              { "type": "string", "pattern": "^.+/sha256/[a-f0-9]{64}$" },
+              { "type": "null" }
+            ]
+          },
+          "http_status": {
+            "anyOf": [
+              { "type": "integer", "minimum": 100, "maximum": 599 },
+              { "type": "null" }
+            ]
+          },
+          "fetched_at": { "type": "string", "format": "date-time" },
+          "cache_hit": { "type": "boolean" },
+          "source_license": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "license_id",
+              "license_url",
+              "attribution_required"
+            ],
+            "properties": {
+              "license_id": { "type": "string", "minLength": 1 },
+              "license_url": {
+                "anyOf": [
+                  { "type": "string", "format": "uri" },
+                  { "type": "null" }
+                ]
+              },
+              "attribution_required": { "type": "boolean" }
+            }
+          },
+          "outcome": {
+            "enum": [
+              "complete",
+              "missing",
+              "blocked",
+              "rate_limited",
+              "transport_error",
+              "invalid_response"
+            ]
+          },
+          "outcome_reason": {
+            "anyOf": [
+              { "type": "string", "minLength": 1 },
+              { "type": "null" }
+            ]
+          },
+          "rate_limit_signal": { "type": "boolean" }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "outcome": { "enum": ["complete", "missing"] } },
+              "required": ["outcome"]
+            },
+            "then": {
+              "properties": {
+                "http_status": { "type": "integer", "minimum": 200, "maximum": 299 },
+                "response_hash": { "type": "string" },
+                "response_cas_path": { "type": "string" },
+                "parsed_output_hash": { "type": "string" },
+                "parsed_output_cas_path": { "type": "string" }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "outcome": { "const": "blocked" } },
+              "required": ["outcome"]
+            },
+            "then": {
+              "properties": {
+                "outcome_reason": { "type": "string", "minLength": 1 }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "outcome": { "const": "rate_limited" } },
+              "required": ["outcome"]
+            },
+            "then": {
+              "anyOf": [
+                {
+                  "properties": { "http_status": { "const": 429 } }
+                },
+                {
+                  "properties": { "rate_limit_signal": { "const": true } }
+                }
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": { "outcome": { "const": "transport_error" } },
+              "required": ["outcome"]
+            },
+            "then": {
+              "properties": {
+                "http_status": { "type": "null" },
+                "outcome_reason": { "type": "string", "minLength": 1 }
+              }
+            }
+          },
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "response_hash": { "type": "null" },
+                  "response_cas_path": { "type": "null" }
+                }
+              },
+              {
+                "properties": {
+                  "response_hash": { "type": "string" },
+                  "response_cas_path": { "type": "string" }
+                }
+              }
+            ]
+          },
+          {
+            "oneOf": [
+              {
+                "properties": {
+                  "parsed_output_hash": { "type": "null" },
+                  "parsed_output_cas_path": { "type": "null" }
+                }
+              },
+              {
+                "properties": {
+                  "parsed_output_hash": { "type": "string" },
+                  "parsed_output_cas_path": { "type": "string" }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

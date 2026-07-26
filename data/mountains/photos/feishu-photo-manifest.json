@@ -1,0 +1,6815 @@
+[
+ {
+  "effective_canonical_key": "aerjin-shan",
+  "name": "阿尔金山主峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2",
+   "候选5"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "RDV4bUljFovnAZxkVQIcmNOSnhe",
+    "name": "aerjin-shan_7.jpg",
+    "size": 204035
+   },
+   {
+    "field": "候选2",
+    "file_token": "ChFabIuF4oLsUHxXbPrcnz8BnIf",
+    "name": "aerjin-shan_1.jpg",
+    "size": 311702
+   },
+   {
+    "field": "候选5",
+    "file_token": "XESLbrTUZoYTl1xoKmfcbMT8n5g",
+    "name": "aerjin-shan_5.jpg",
+    "size": 365988
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "ailao-shan",
+  "name": "哀牢山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "OKYabaGS7oVFBxxIczOceBmSnve",
+    "name": "image.png",
+    "size": 363835
+   },
+   {
+    "field": "自备图",
+    "file_token": "RMCqb2UrKoPUqcxZbIdcZObDnrc",
+    "name": "image.png",
+    "size": 337345
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "animaqing-feng",
+  "name": "阿尼玛卿峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "YAllb8O8foc703xTA7jciCNCnUe",
+    "name": "animaqing-feng_0.jpg",
+    "size": 151107
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "ao-shan",
+  "name": "鳌山",
+  "key_source": "filename",
+  "selected": [
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "Erx0bIafhoYYjCxx2dYcW4kOnsb",
+    "name": "ao-shan_8.jpg",
+    "size": 192903
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "bagong-shan",
+  "name": "八公山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "LZ04bzR32o1voxxRONgcUaItnXc",
+    "name": "image.png",
+    "size": 346419
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "baicaopan",
+  "name": "野三坡白草畔",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Wnh1bfj4Yoi8MuxxP5mcAvnyngf",
+    "name": "baicaopan_7.jpg",
+    "size": 400027
+   },
+   {
+    "field": "候选3",
+    "file_token": "DIX4bjNvNoZBrJxTZkmcRv5QnWc",
+    "name": "baicaopan_4.jpg",
+    "size": 303744
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "baihua-shan",
+  "name": "百花山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "MonUbAUpPosvJGxIsTPcYxrInxj",
+    "name": "baihua-shan_7.jpg",
+    "size": 389306
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "baima-jian",
+  "name": "白马尖",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Q0WfbtpjyoTy1cxVeoecARrRnVg",
+    "name": "baima-jian_0.jpg",
+    "size": 463249
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "baima-xueshan-zhalaqueni-feng",
+  "name": "白马雪山扎拉雀尼峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2",
+   "候选5"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "ADL8bGQxioPmvqxitZacE7CNnUc",
+    "name": "baima-xueshan-zhalaqueni-feng_1.jpg",
+    "size": 311702
+   },
+   {
+    "field": "候选2",
+    "file_token": "U8KZbBsDHoOe45xd9mDcw3EgnQL",
+    "name": "baima-xueshan-zhalaqueni-feng_7.jpg",
+    "size": 204035
+   },
+   {
+    "field": "候选5",
+    "file_token": "WkyxbKVtUoMm0JxpWNCcx1dLnlc",
+    "name": "baima-xueshan-zhalaqueni-feng_5.jpg",
+    "size": 365988
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "baishan-zu",
+  "name": "百山祖",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "YgCubkw14oAoqUxOaADcNkRwnEf",
+    "name": "baishan-zu_0.jpg",
+    "size": 455297
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "baishi-shan",
+  "name": "白石山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Lr0abzBkMoPvFmxk1wPcn4cGnpb",
+    "name": "baishi-shan_6.jpg",
+    "size": 408867
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "baiyun-shan-guangdong",
+  "name": "白云山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "JBkrbtl5soyzDqx34pYcYU6bnWc",
+    "name": "image.png",
+    "size": 770569
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "baiyun-shan-luoyang",
+  "name": "洛阳白云山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Nzt8bFK0No9W27xTGbAcLKmfnSb",
+    "name": "image.png",
+    "size": 959644
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "baizhang-ling",
+  "name": "百丈岭",
+  "key_source": "filename",
+  "selected": [
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "KqnlbdSQqovUqExi6LFcaQmsnNf",
+    "name": "baizhang-ling_1.jpg",
+    "size": 299476
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "balang-shan",
+  "name": "巴朗山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "LUYkb56Mdo6llkxFz8dcyU4knog",
+    "name": "balang-shan_3.jpg",
+    "size": 373277
+   },
+   {
+    "field": "候选2",
+    "file_token": "MKn7bjIdKoOPdGxEtJlc3MX9nTF",
+    "name": "balang-shan_1.jpg",
+    "size": 223871
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "bamian-shan",
+  "name": "八面山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "FjBvbEUP6oaO7yxMOfbcDlwBnpb",
+    "name": "bamian-shan_0.jpg",
+    "size": 122582
+   },
+   {
+    "field": "候选2",
+    "file_token": "AOmfbnYUioXj2TxuBAjcsBqvnoh",
+    "name": "bamian-shan_4.jpg",
+    "size": 330760
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "banji-feng",
+  "name": "半脊峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "W7xvb6ylro1QSGx1cuacUY8knPg",
+    "name": "image.png",
+    "size": 392094
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "baota-shan",
+  "name": "宝塔山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "OEDRbtRiQoH7yrxwF4TcYig3n9e",
+    "name": "baota-shan_8.jpg",
+    "size": 340644
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "baxian-shan",
+  "name": "八仙山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Bvq2bFGxkoYzazx0jKHcCmu3nqh",
+    "name": "baxian-shan_2.jpg",
+    "size": 399421
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "beiling-shan",
+  "name": "北灵山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "RxqnbgjtqorcZKxqDZDcWRl1nSh",
+    "name": "image.png",
+    "size": 376779
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "beiwudang-shan",
+  "name": "北武当山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "BIkhbp6DSoQ27KxifNFcMKjFn4d",
+    "name": "beiwudang-shan_0.jpg",
+    "size": 59538
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "bijia-shan-liaoning",
+  "name": "笔架山",
+  "key_source": "filename",
+  "selected": [
+   "候选2",
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "MGDebiOnyo07EYxMUPccEiNln4e",
+    "name": "bijia-shan-liaoning_3.jpg",
+    "size": 341760
+   },
+   {
+    "field": "候选1",
+    "file_token": "HH29b7gp7oaauAxIxnhcKgZQnAh",
+    "name": "bijia-shan-liaoning_2.jpg",
+    "size": 403224
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "bogeda-feng",
+  "name": "博格达峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "S4gOboEHsoUDXQxC2akcAfTGnJD",
+    "name": "bogeda-feng_1.jpg",
+    "size": 240261
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "broad-peak",
+  "name": "布洛阿特峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "NxM3b1HwOoCao4xak0Yco05Fn7e",
+    "name": "broad-peak_0.jpg",
+    "size": 494724
+   },
+   {
+    "field": "候选2",
+    "file_token": "E3RobdGqnoqi4KxajNxcXkkMnsh",
+    "name": "broad-peak_5.jpg",
+    "size": 218502
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "bukadaban-feng",
+  "name": "布喀达坂峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "JayIb74p0osbcUxoYDXcV0KQn3Y",
+    "name": "image.png",
+    "size": 232316
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "caishi-ji",
+  "name": "采石矶",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "N2y2bEa7RoD6YexMpvjcbrhZn5c",
+    "name": "image.png",
+    "size": 366615
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "cang-shan",
+  "name": "藏山",
+  "key_source": "filename",
+  "selected": [
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "WK7tbTk1zo09Sqx7TTPcPNvcnjc",
+    "name": "cang-shan_0.jpg",
+    "size": 584330
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "cangshan-yunnan",
+  "name": "苍山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "XKuTblPkvommbRxWVsIc6myZnYf",
+    "name": "cangshan-yunnan_3.jpg",
+    "size": 681166
+   },
+   {
+    "field": "候选2",
+    "file_token": "TPK1bnXNqowaV5x3Bf2cUieznfc",
+    "name": "cangshan-yunnan_1.jpg",
+    "size": 232180
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "cangyan-shan",
+  "name": "苍岩山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "SUItbRIAFoAfW9xa1TuczQpinqe",
+    "name": "cangyan-shan_0.jpg",
+    "size": 863018
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "cha-shan",
+  "name": "茶山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "FZqcbf7VDouvYDxEfHlctswWnFf",
+    "name": "cha-shan_4.jpg",
+    "size": 26192
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "changbaishan",
+  "name": "长白山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "TthAbqAFUowypUx8WJ6c9wYanTg",
+    "name": "changbaishan_6.jpg",
+    "size": 170729
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "chaya-shan",
+  "name": "嵖岈山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "GafxbIJpQoHqZ3xJX2Rc97iMnnc",
+    "name": "chaya-shan_5.jpg",
+    "size": 265253
+   },
+   {
+    "field": "候选2",
+    "file_token": "CjsUbhwm4otnygx7JCpcbwWanoh",
+    "name": "chaya-shan_0.jpg",
+    "size": 406043
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "chen-shan",
+  "name": "辰山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "HrKqb4vsfo3MBnx4Pubcwi3pnEe",
+    "name": "image.png",
+    "size": 1380153
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "chuandi-ding",
+  "name": "船底顶",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "GoSObU78voDxQTxKeGFcNLUOnof",
+    "name": "image.png",
+    "size": 355857
+   },
+   {
+    "field": "自备图",
+    "file_token": "ENr7b0S5SouAf7x6GjUcIIL8nEh",
+    "name": "image.png",
+    "size": 492359
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dabai-shan",
+  "name": "大白山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "G0BHbOzfmobDJMxtVIFcw4yGn2k",
+    "name": "image.png",
+    "size": 1341390
+   },
+   {
+    "field": "自备图",
+    "file_token": "HK1gbSgInoVsn6xd5T2cRr97nJc",
+    "name": "image.png",
+    "size": 765544
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dabieshan-bodao-feng",
+  "name": "大别山薄刀峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "No3ZbazvmoFAg0xDmW0cCj2hnSg",
+    "name": "dabieshan-bodao-feng_0.jpg",
+    "size": 192671
+   },
+   {
+    "field": "候选2",
+    "file_token": "TouabiUrioMNUyxFJWRc4zgNndz",
+    "name": "dabieshan-bodao-feng_1.jpg",
+    "size": 376585
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dadong-shan",
+  "name": "大东山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "TGK6bKf9coRG2MxPVarchGHlnDd",
+    "name": "dadong-shan_0.jpg",
+    "size": 233480
+   },
+   {
+    "field": "候选2",
+    "file_token": "JBmiblxwyoIEw5xH6C7c2f6GnWc",
+    "name": "dadong-shan_3.jpg",
+    "size": 272191
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dahong-shan",
+  "name": "大洪山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Ow9mbkz8Yo9xVfx6bpQcqikJn3g",
+    "name": "dahong-shan_0.jpg",
+    "size": 386554
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "daiyun-shan",
+  "name": "戴云山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "TYBCbSAw9oiZeHxT3u6ci2xYn8e",
+    "name": "image.png",
+    "size": 413862
+   },
+   {
+    "field": "自备图",
+    "file_token": "WXw3bJx0dosHaCx7BtpcfVtJnHf",
+    "name": "image.png",
+    "size": 296712
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dajue-shan",
+  "name": "大觉山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "MpFcbGR3eosddmxmhEGc7rr7nSd",
+    "name": "image.png",
+    "size": 969700
+   },
+   {
+    "field": "自备图",
+    "file_token": "K7yObgKbxo2J5HxZN71cVd2cnUd",
+    "name": "image.png",
+    "size": 526996
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dalari-feng",
+  "name": "打拉日峰",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "WqdpbcXLhoEXvzxj3ftcUpyznQe",
+    "name": "image.png",
+    "size": 413610
+   },
+   {
+    "field": "自备图",
+    "file_token": "VdakbpWqWoIr2axmwnicsgOSnle",
+    "name": "image.png",
+    "size": 316850
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "daluo-shan",
+  "name": "大罗山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "KhcobQo6IoZUz5xodULcpgwWnec",
+    "name": "image.png",
+    "size": 1358140
+   },
+   {
+    "field": "自备图",
+    "file_token": "MdvDbkx5Ooq65LxwX8McF90mnBO",
+    "name": "image.png",
+    "size": 818784
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "damao-shan",
+  "name": "大茂山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Qf4GbQMuuoPP9PxM7Jwceo7tnnh",
+    "name": "damao-shan_1.jpg",
+    "size": 458888
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "daming-shan-guangxi",
+  "name": "大明山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "CzO2b7KEhodopexs8OBcD0QOnyg",
+    "name": "daming-shan-guangxi_0.jpg",
+    "size": 190367
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "daming-shan-zhejiang",
+  "name": "大明山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "R8F5bH0r3oyam9xOgkgcG4b0nXb",
+    "name": "daming-shan-zhejiang_4.jpg",
+    "size": 8327
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dangling-xiaqiangla",
+  "name": "党岭夏羌拉",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Lcu8bdRVJoFA5Exw5ZocAcPEnzh",
+    "name": "dangling-xiaqiangla_0.jpg",
+    "size": 662167
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dangling-xiaqiangniea",
+  "name": "党岭夏羌涅阿",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "J1HbbqCxyoJJ61xdzKucscmunq3",
+    "name": "image.png",
+    "size": 1004213
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "danxiashan-bazhai",
+  "name": "丹霞山巴寨",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选3",
+   "候选5"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Ziu8bE5Fsot1OgxL1auc0Mg1nfc",
+    "name": "danxiashan-bazhai_6.jpg",
+    "size": 432465
+   },
+   {
+    "field": "候选3",
+    "file_token": "Q5bhbSaFdoRRZyxwW9WcJfxfnAc",
+    "name": "danxiashan-bazhai_0.jpg",
+    "size": 453577
+   },
+   {
+    "field": "候选5",
+    "file_token": "SIKfbTEMyoWaB1xnBPAcJnOhn4d",
+    "name": "danxiashan-bazhai_4.jpg",
+    "size": 418436
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "daqing-shan",
+  "name": "大青山主峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "VozPbL5QToXECSxgcM4cNoLXnCh",
+    "name": "image.png",
+    "size": 1003096
+   },
+   {
+    "field": "自备图",
+    "file_token": "F1PMbL67hoCFs8xTU8XcKM7Qn7d",
+    "name": "image.png",
+    "size": 1163597
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "darong-shan",
+  "name": "大容山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "XaMObIDOvolSljxmJKiclQ9DnKg",
+    "name": "darong-shan_9.jpg",
+    "size": 337425
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "datudingzi-shan",
+  "name": "大秃顶子山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "VOSZbP71Zow0rwxVkcxcjZNKnzd",
+    "name": "image.png",
+    "size": 778757
+   },
+   {
+    "field": "自备图",
+    "file_token": "Sutmbhs6JoMcxXxkHyvcdYKnnOf",
+    "name": "image.png",
+    "size": 1243495
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dawagengza",
+  "name": "达瓦更扎",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Nj9xboSzQoMSmyxyEe4ce55onAe",
+    "name": "image.png",
+    "size": 730608
+   },
+   {
+    "field": "自备图",
+    "file_token": "IvT5bEyYTo8ZL9x3HzicwH42nRh",
+    "name": "image.png",
+    "size": 961429
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dawei-shan",
+  "name": "大围山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "KMFKbRmtRoE3Rdx6dX5cld9lnpy",
+    "name": "image.png",
+    "size": 1298381
+   },
+   {
+    "field": "自备图",
+    "file_token": "GsbbbSeGKoAggQxmVAZcHQh1nMb",
+    "name": "image.png",
+    "size": 917602
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "diaoluo-shan",
+  "name": "吊罗山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Ma2IbD1YuoSYvGxH1rUcvYBMnLh",
+    "name": "image.png",
+    "size": 901732
+   },
+   {
+    "field": "自备图",
+    "file_token": "AKnLbTbydoS71FxCO6zcyvv5nFc",
+    "name": "image.png",
+    "size": 1025858
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dinghu-shan",
+  "name": "鼎湖山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "QXzTbiCCro22UsxPIgtcIvEUnnh",
+    "name": "dinghu-shan_7.jpg",
+    "size": 742605
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dongbai-shan",
+  "name": "东白山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "KR3HbV8BPolgDDx9qOScyf12nRd",
+    "name": "dongbai-shan_7.jpg",
+    "size": 347471
+   },
+   {
+    "field": "候选2",
+    "file_token": "O9f6b9RRiovPl2xzZ2Uc0I0CnLd",
+    "name": "dongbai-shan_8.jpg",
+    "size": 836579
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "donghu-moshan",
+  "name": "东湖磨山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "S0sxbvvP1o78Evx1CcncpDfGnHz",
+    "name": "donghu-moshan_2.jpg",
+    "size": 317618
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dongling-shan",
+  "name": "东灵山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "PxBlbTANqo6qSYxVbMqcelHInXf",
+    "name": "dongling-shan_0.jpg",
+    "size": 261205
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "duku-gonglu-route",
+  "name": "独库公路沿线山峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "BK5PbVuWeoyXF3x4jhLcDwo0nWg",
+    "name": "duku-gonglu-route_2.jpg",
+    "size": 320689
+   },
+   {
+    "field": "候选2",
+    "file_token": "Yybmbu6weoO8kzxnmo5cm2gFn0b",
+    "name": "duku-gonglu-route_1.jpg",
+    "size": 338969
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "duri-feng",
+  "name": "都日峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "UyNwb9JkGofcQgxNYsicBBV6nNc",
+    "name": "duri-feng_0.jpg",
+    "size": 164837
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "dushu-jian",
+  "name": "独竖尖",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "USIGbwl7bo2vkwxF0C7cfFUqnCb",
+    "name": "dushu-jian_0.jpg",
+    "size": 265903
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "duxiu-feng",
+  "name": "独秀峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "UZW5bL8eqo7JY1xuFIQcyYsmn8d",
+    "name": "image.png",
+    "size": 1225049
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "emeishan",
+  "name": "峨眉山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "UjYob1EKsoEKwZxy0HQceigLnJb",
+    "name": "emeishan_1.jpg",
+    "size": 166522
+   },
+   {
+    "field": "候选2",
+    "file_token": "SfN1bzgcNoAgPfxJA3tc7vhDncc",
+    "name": "emeishan_0.jpg",
+    "size": 29867
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "erlong-shan",
+  "name": "二龙山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "MxacbCIo9oya3bx82UYcFqzknyh",
+    "name": "image.png",
+    "size": 367202
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "fanjingshan",
+  "name": "梵净山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "X1YXb4xaMo8aXFxTOvPchiX6nMg",
+    "name": "fanjingshan_0.jpg",
+    "size": 246507
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "fenghuang-shan-guangdong",
+  "name": "凤凰山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "KzgobshWvohV8hxt703cVKyQnmb",
+    "name": "fenghuang-shan-guangdong_0.jpg",
+    "size": 447730
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "fenghuang-shan-heilongjiang",
+  "name": "凤凰山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "LH96bAQbVoHQWgxuUg1cWpFBnpd",
+    "name": "image.png",
+    "size": 1028422
+   },
+   {
+    "field": "自备图",
+    "file_token": "XOUXb4AeroG670xE14acyS01nVe",
+    "name": "image.png",
+    "size": 829663
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "fenghuang-shan-liaoning",
+  "name": "凤凰山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "BuMLbNXN5ozKxMxVFMPcsOocnWf",
+    "name": "image.png",
+    "size": 744288
+   },
+   {
+    "field": "自备图",
+    "file_token": "X2LsbFxpwojC3QxpbNfcVwB7nEg",
+    "name": "image.png",
+    "size": 549785
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "fenghuang-tuo",
+  "name": "凤凰坨",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "RBiBbL5EwoKxxPxRpnScwYebnMe",
+    "name": "image.png",
+    "size": 1233574
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gang-shan-liaoning",
+  "name": "岗山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "VEhDbEbo9oMOsNxUUXHcqhlWnBf",
+    "name": "gang-shan-liaoning_0.jpg",
+    "size": 722830
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gangpengqing-feng",
+  "name": "岗彭庆峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "MmkJbzSb4oaY12xXe5YcZomjnPe",
+    "name": "gangpengqing-feng_0.jpg",
+    "size": 285772
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gangrenboqi-cluster",
+  "name": "冈仁波齐周边山峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Tts1bPS9FoFIpGxxoF1cPsTTnUg",
+    "name": "gangrenboqi-cluster_0.jpg",
+    "size": 247133
+   },
+   {
+    "field": "候选2",
+    "file_token": "MV30b9GYVomAbZxDGnGcfgR8n3z",
+    "name": "gangrenboqi-cluster_5.jpg",
+    "size": 159621
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gangshka-xuefeng",
+  "name": "岗什卡雪峰",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "JlsCbiJqxoaYsaxOxeGc4fYgn0d",
+    "name": "image.png",
+    "size": 2268230
+   },
+   {
+    "field": "自备图",
+    "file_token": "TrmVb2vzto1hS7xGmaGcBr3GnFe",
+    "name": "image.png",
+    "size": 960099
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gaoligongshan-gawagapu-feng",
+  "name": "高黎贡山嘎娃嘎普峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Moq0bbn1HoO6ZAxuQwIcvkpFn1g",
+    "name": "gaoligongshan-gawagapu-feng_0.jpg",
+    "size": 180418
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gasherbrum-1-feng",
+  "name": "加舒尔布鲁木I峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "YIW3bivazol7jHxmQBQc0AYWnQe",
+    "name": "gasherbrum-1-feng_0.jpg",
+    "size": 66731
+   },
+   {
+    "field": "候选2",
+    "file_token": "ULajbqelXocAe4xEHqRcmjfPn9d",
+    "name": "gasherbrum-1-feng_6.jpg",
+    "size": 206071
+   },
+   {
+    "field": "候选3",
+    "file_token": "FEODbsq9aoQ5bAxtIBbceAGHnGc",
+    "name": "gasherbrum-1-feng_5.jpg",
+    "size": 246166
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gasherbrum-2-feng",
+  "name": "加舒尔布鲁木II峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "ScsvbXCMGoRRa1x4RYsc2Qthnnb",
+    "name": "gasherbrum-2-feng_0.jpg",
+    "size": 31352
+   },
+   {
+    "field": "候选2",
+    "file_token": "TXLRbWvDaoaGTVxyUnmcvkCInlY",
+    "name": "gasherbrum-2-feng_5.jpg",
+    "size": 335366
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gechuan-jian",
+  "name": "搁船尖",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "C759b3XOooCRaAxJzn9cr4qSnZb",
+    "name": "image.png",
+    "size": 357054
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "geladandong-feng",
+  "name": "各拉丹冬峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "FJPMbU4bFogd8AxgRxmc80GHn8b",
+    "name": "geladandong-feng_0.jpg",
+    "size": 446319
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gele-shan",
+  "name": "歌乐山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "EX3DbcQmPoljF3x9bW3c9n2wng3",
+    "name": "gele-shan_8.jpg",
+    "size": 244492
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "genie-shan",
+  "name": "格聂神山主峰",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "NdYfbLUD2oTJd5xagnKcZm5dnUf",
+    "name": "image.png",
+    "size": 417853
+   },
+   {
+    "field": "自备图",
+    "file_token": "G83ibFlqFoi8oMxrzCucSyemnYe",
+    "name": "image.png",
+    "size": 517625
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gongga-baihaizi-shan",
+  "name": "白海子山主峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Z2cRbAJknoxWZux64Tdc61S7nv5",
+    "name": "gongga-baihaizi-shan_0.jpg",
+    "size": 939648
+   },
+   {
+    "field": "候选2",
+    "file_token": "CznUbMOFAoXS40xghoAcj4WEnQe",
+    "name": "gongga-baihaizi-shan_3.jpg",
+    "size": 273906
+   },
+   {
+    "field": "候选3",
+    "file_token": "NgRtbD9ozoArkqxhcrGcYrUGnCg",
+    "name": "gongga-baihaizi-shan_6.jpg",
+    "size": 394930
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gongga-jiazi-feng",
+  "name": "贡嘎嘉子峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "TAgwbguCQonVuCxWFvBc5dMZn5b",
+    "name": "gongga-jiazi-feng_7.jpg",
+    "size": 242472
+   },
+   {
+    "field": "候选2",
+    "file_token": "BU8ObXda5oulFZxQmkJc1wStn6f",
+    "name": "gongga-jiazi-feng_4.jpg",
+    "size": 209380
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gongga-leduomanyin-feng",
+  "name": "贡嘎勒多曼因峰",
+  "key_source": "filename",
+  "selected": [
+   "候选3",
+   "候选4"
+  ],
+  "images": [
+   {
+    "field": "候选3",
+    "file_token": "ErUbby4l1o1QpXxhb3OcitlynFe",
+    "name": "gongga-leduomanyin-feng_3.jpg",
+    "size": 331655
+   },
+   {
+    "field": "候选4",
+    "file_token": "QJf5bQerfoSAwrxxhxRcHht2ncC",
+    "name": "gongga-leduomanyin-feng_5.jpg",
+    "size": 332307
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gongga-nama-feng",
+  "name": "那玛峰",
+  "key_source": "filename",
+  "selected": [
+   "候选2",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "P3x7bpWT2og9WSxFAJac88IDnRc",
+    "name": "gongga-nama-feng_6.jpg",
+    "size": 679953
+   },
+   {
+    "field": "候选3",
+    "file_token": "O03ybBBlaoQuQ2xKDE1cmUUdnpb",
+    "name": "gongga-nama-feng_4.jpg",
+    "size": 431650
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gongga-riwuqie-feng",
+  "name": "贡嘎日乌且峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "WSXfb7Yw7o96d8xQ6xTcxxJKnug",
+    "name": "gongga-riwuqie-feng_7.jpg",
+    "size": 242472
+   },
+   {
+    "field": "候选2",
+    "file_token": "R2VEbc815o6HFGxNkizcl0s5nvf",
+    "name": "gongga-riwuqie-feng_4.jpg",
+    "size": 209380
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gongga-shan",
+  "name": "贡嘎雪山主峰",
+  "key_source": "filename",
+  "selected": [
+   "候选3",
+   "候选4"
+  ],
+  "images": [
+   {
+    "field": "候选3",
+    "file_token": "RLk5bAjDHotnKJxSkYfcupIUnUX",
+    "name": "gongga-shan_5.jpg",
+    "size": 332307
+   },
+   {
+    "field": "候选4",
+    "file_token": "FuyYbRu36oVXwexyuzdc2RWxn5d",
+    "name": "gongga-shan_0.jpg",
+    "size": 123647
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gongga-tianhaizi-shan",
+  "name": "田海子山主峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "IVJqbiUhdojxkuxeYILc3kkenRd",
+    "name": "gongga-tianhaizi-shan_0.jpg",
+    "size": 417376
+   },
+   {
+    "field": "候选2",
+    "file_token": "XXzJbbbQaoOWEHxDNGlcV6i0nth",
+    "name": "gongga-tianhaizi-shan_2.jpg",
+    "size": 335749
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gongga-xiaogongga-feng",
+  "name": "贡嘎小贡嘎峰",
+  "key_source": "filename",
+  "selected": [
+   "候选3",
+   "候选4"
+  ],
+  "images": [
+   {
+    "field": "候选3",
+    "file_token": "OynxbsiuWoJ4QQxgesScpSTinLc",
+    "name": "gongga-xiaogongga-feng_3.jpg",
+    "size": 331655
+   },
+   {
+    "field": "候选4",
+    "file_token": "Xpmbbfipto5lwOxEIkXc6qAfnAd",
+    "name": "gongga-xiaogongga-feng_1.jpg",
+    "size": 224653
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gongyu-yan",
+  "name": "公盂岩",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "OygObjkVgo9UNqx96Ficeg5Unnh",
+    "name": "gongyu-yan_8.jpg",
+    "size": 162460
+   },
+   {
+    "field": "候选2",
+    "file_token": "Vebgb5NJkoMvImxCTmhcWgKMnQU",
+    "name": "gongyu-yan_7.jpg",
+    "size": 187351
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gouwei-zhang",
+  "name": "狗尾嶂",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "N1ZVbC5gcoXCWRxjQbkcdTBbnNb",
+    "name": "image.png",
+    "size": 1022308
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gu-shan-fujian",
+  "name": "鼓山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "OaipbVl6ToKKg6x9tmzc0NtJn3b",
+    "name": "image.png",
+    "size": 921329
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gua-shan",
+  "name": "卦山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Cx6vbtQeAoaRACxaymXcC4Chn3b",
+    "name": "image.png",
+    "size": 359981
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "guangwu-shan",
+  "name": "光雾山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "EIGybXHhaoHJPjx3mqGcwvHZn6g",
+    "name": "image.png",
+    "size": 780571
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "guanmen-shan",
+  "name": "关门山",
+  "key_source": "filename",
+  "selected": [
+   "候选4",
+   "候选2",
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选4",
+    "file_token": "JyJbb6jcGoVVsuxGdl0cGskTnLf",
+    "name": "guanmen-shan_0.jpg",
+    "size": 72910
+   },
+   {
+    "field": "候选2",
+    "file_token": "V2RCbjyHKooBX9xXpyDcjcR8noc",
+    "name": "guanmen-shan_2.jpg",
+    "size": 96425
+   },
+   {
+    "field": "候选1",
+    "file_token": "AgojbteYyoJWrzx4091cptjFnxb",
+    "name": "guanmen-shan_1.jpg",
+    "size": 26117
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "guanzhai-shan",
+  "name": "冠豸山",
+  "key_source": "filename",
+  "selected": [
+   "候选3",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选3",
+    "file_token": "NjIkbSCcvoEHcsxbtiKcPXwhnKg",
+    "name": "guanzhai-shan_9.jpg",
+    "size": 414694
+   },
+   {
+    "field": "候选2",
+    "file_token": "RK4Xba5OOofaG3xkyOjcR1g6nae",
+    "name": "guanzhai-shan_8.jpg",
+    "size": 228955
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "gui-feng",
+  "name": "龟峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "CMoSbvu4roLwn4xzfGJc9Fuhnke",
+    "name": "gui-feng_2.jpg",
+    "size": 186899
+   },
+   {
+    "field": "候选2",
+    "file_token": "EaavbvJGIopJ5wxPN8CcPRsbnPf",
+    "name": "gui-feng_1.jpg",
+    "size": 331930
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "guifeng-shan",
+  "name": "圭峰山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "YQegbtWVJolsrhxgxBAcIaa4nuc",
+    "name": "image.png",
+    "size": 4907475
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "guniu-jiang",
+  "name": "牯牛降",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "ZfHhbSKhYo28vExMJD8cDjipn6g",
+    "name": "guniu-jiang_2.jpg",
+    "size": 260875
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "haba-xueshan",
+  "name": "哈巴雪山主峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "LfydbP8RUoCWooxPD75ch31tnkh",
+    "name": "haba-xueshan_0.jpg",
+    "size": 283485
+   },
+   {
+    "field": "候选2",
+    "file_token": "F2IobeTbmo7R7jxVCOFcqtrVnRV",
+    "name": "haba-xueshan_5.jpg",
+    "size": 386037
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "hailaer-xishan",
+  "name": "海拉尔西山国家森林公园主峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Hu92b0B43o8MQHxocvbcDhoxn1X",
+    "name": "image.png",
+    "size": 336082
+   },
+   {
+    "field": "自备图",
+    "file_token": "C0ysbM7ZUogkgzx6T5QcCzFwnLf",
+    "name": "image.png",
+    "size": 562773
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "haituo-shan",
+  "name": "海坨山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "PytOb3V1voDtm6xv6Fjc9snrnqe",
+    "name": "haituo-shan_6.jpg",
+    "size": 322128
+   },
+   {
+    "field": "候选2",
+    "file_token": "RQMrblAOiojSaux2rlBcuyYSnbe",
+    "name": "haituo-shan_4.jpg",
+    "size": 362619
+   },
+   {
+    "field": "候选3",
+    "file_token": "O4wnbMLnMo2a0fx8iWmc4gphnCg",
+    "name": "haituo-shan_7.jpg",
+    "size": 238446
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "hantengeli-feng",
+  "name": "汗腾格里峰",
+  "key_source": "filename",
+  "selected": [
+   "候选2",
+   "候选3",
+   "候选4"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "VQLWbqQzjoyEZQx2jaTcbgfNnse",
+    "name": "hantengeli-feng_0.jpg",
+    "size": 210383
+   },
+   {
+    "field": "候选3",
+    "file_token": "Yfn8bXDdeoyq6zxCQQmcGiEfnIc",
+    "name": "hantengeli-feng_7.jpg",
+    "size": 283058
+   },
+   {
+    "field": "候选4",
+    "file_token": "YkdmbKhcvoHG0Qx1S2GciPLGnih",
+    "name": "hantengeli-feng_5.jpg",
+    "size": 166522
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "heban-shan",
+  "name": "鹤伴山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Kyf8bieLdo0I3UxmCbNcXC0tnyd",
+    "name": "image.png",
+    "size": 450377
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "heishan-gu",
+  "name": "黑山谷",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "JkrbbmQZ3oLykxx04uCc3mFWnWg",
+    "name": "image.png",
+    "size": 1928240
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "helan-shan",
+  "name": "贺兰山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "ZJ8fbAMioo6HSoxPTUGcLWQanff",
+    "name": "image.png",
+    "size": 317330
+   },
+   {
+    "field": "自备图",
+    "file_token": "MLyTbapyro1Iqjxrapmc9DSDnxZ",
+    "name": "image.png",
+    "size": 464796
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "hengshan-hunan",
+  "name": "衡山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "SCtObpOrZoEhxpxtvM9cP9CXn1g",
+    "name": "image.png",
+    "size": 579624
+   },
+   {
+    "field": "自备图",
+    "file_token": "WlRobUiRRoqFGUxMqiucqwf2nCe",
+    "name": "image.png",
+    "size": 331416
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "hengshan-shanxi",
+  "name": "恒山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "ARMabXoQuovRaNxtdKhchE9WnFf",
+    "name": "image.png",
+    "size": 1140267
+   },
+   {
+    "field": "自备图",
+    "file_token": "CmdRbQaXqoLnFBxVxJcczpzTn1d",
+    "name": "image.png",
+    "size": 256817
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huabo-shan",
+  "name": "花脖山",
+  "key_source": "filename",
+  "selected": [
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "AWMFbSWzhodDjVxXjhccWq2Nnmn",
+    "name": "huabo-shan_1.jpg",
+    "size": 569651
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huaguoshan-jiangsu",
+  "name": "花果山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "NkSubjvMcoJcazxOwMHc6fGknLc",
+    "name": "image.png",
+    "size": 278458
+   },
+   {
+    "field": "自备图",
+    "file_token": "ZAdFbsg80o1joDxdlHFcOH30nZb",
+    "name": "image.png",
+    "size": 193245
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huangbai-shan",
+  "name": "黄柏山主峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "TPLFbZrS8okM6xxcDqyc3FoBngb",
+    "name": "image.png",
+    "size": 2802112
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huangcao-liang",
+  "name": "黄草梁",
+  "key_source": "filename",
+  "selected": [
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选3",
+    "file_token": "Dg5fbYNokowfbrxEXircCoMYn0g",
+    "name": "huangcao-liang_5.jpg",
+    "size": 239071
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huanggang-liang",
+  "name": "黄岗梁",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "BwFqbaPyroj18wxVYlecUqjwnLd",
+    "name": "image.png",
+    "size": 607797
+   },
+   {
+    "field": "自备图",
+    "file_token": "SCNAb8wRio8kpJxXIAOcPL4sneh",
+    "name": "image.png",
+    "size": 677651
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huanggang-shan",
+  "name": "黄岗山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "WoeYbs6KnotDJrxYCygcCvnonub",
+    "name": "image.png",
+    "size": 346423
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huanghua-liang",
+  "name": "黄花梁",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "VrRHb5Fjqon11mx9VA6c7Wxrnxd",
+    "name": "image.png",
+    "size": 692006
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huangmao-jian",
+  "name": "黄茅尖",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "G7FrbZDE5oNJYvxqiNBcHwHHnQd",
+    "name": "image.png",
+    "size": 7642017
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huangniu-shi",
+  "name": "黄牛石",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "DYOAbTiXgoOCV6xfPBNcsObXnJf",
+    "name": "image.png",
+    "size": 5424097
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huangshan",
+  "name": "黄山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "C4VDbE5q4oVtPYxekQHcMsOzndh",
+    "name": "huangshan_4.jpg",
+    "size": 291419
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huangshan-xihai-route",
+  "name": "黄山西海大峡谷环线",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "JCNZbcW6WopemtxksIvczBTOnGb",
+    "name": "huangshan-xihai-route_1.jpg",
+    "size": 409369
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huapi-ling",
+  "name": "桦皮岭",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "XQcZbV0ndogIxExUzSYcRFJDnRg",
+    "name": "huapi-ling_7.jpg",
+    "size": 1466668
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huashan",
+  "name": "华山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "IB8MbYUL9o05Npx5KsycjmOYn7c",
+    "name": "huashan_0.jpg",
+    "size": 378682
+   },
+   {
+    "field": "候选3",
+    "file_token": "QY4obkadFoZT7nxEdF7cLtFXnNc",
+    "name": "huashan_1.jpg",
+    "size": 406341
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huhe-bashige",
+  "name": "呼和巴什格",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "AXJ2bOgSwoVPZZxuOj7cAs65ngc",
+    "name": "image.png",
+    "size": 1613693
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huihang-gudao-route",
+  "name": "徽杭古道沿线山峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "OEElbkEv4od7oMxn3BCcKSx1nNb",
+    "name": "image.png",
+    "size": 1794102
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huitengxile-huanghuagou",
+  "name": "辉腾锡勒黄花沟主峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "OqpSb07uIoVcuyxNO1kcFABnn1g",
+    "name": "huitengxile-huanghuagou_0.jpg",
+    "size": 301425
+   },
+   {
+    "field": "候选2",
+    "file_token": "EHWJbyidJoXRfoxiaP5c6PKZnUg",
+    "name": "huitengxile-huanghuagou_2.jpg",
+    "size": 235420
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huoyan-shan",
+  "name": "火焰山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "HWQwb4FL7owqvixPyxKcwck7nFb",
+    "name": "huoyan-shan_0.jpg",
+    "size": 391543
+   },
+   {
+    "field": "候选2",
+    "file_token": "Rw4sbrfxwoSn8QxrDFrc1lmLnee",
+    "name": "huoyan-shan_6.jpg",
+    "size": 343394
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "huping-shan",
+  "name": "壶瓶山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "WDylbe3booDJKCxxsE7cL2yNnke",
+    "name": "image.png",
+    "size": 501713
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "hutiaoxia-gaolu-route",
+  "name": "虎跳峡高路徒步线",
+  "key_source": "filename",
+  "selected": [
+   "候选2",
+   "候选4"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "KcFvbA22zoFfwRx3kzPcuUGgnnQ",
+    "name": "hutiaoxia-gaolu-route_6.jpg",
+    "size": 440252
+   },
+   {
+    "field": "候选4",
+    "file_token": "ThwtbGiyLo8ZA0x0wNmc0rbcn8e",
+    "name": "hutiaoxia-gaolu-route_4.jpg",
+    "size": 45167
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiaer-mengcuo",
+  "name": "甲尔猛措",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "ClKxb4VoXonch1x0FDkccYQlnMe",
+    "name": "image.png",
+    "size": 1039768
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jianfeng-ling",
+  "name": "尖峰岭",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "BQJ7bssJGo4sgNxhTk1cbVNtnvf",
+    "name": "image.png",
+    "size": 797581
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jianglang-shan",
+  "name": "江郎山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选4",
+   "候选5"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "RJLHbr6wHorAqqxvlNOc3euPnUh",
+    "name": "jianglang-shan_0.jpg",
+    "size": 331915
+   },
+   {
+    "field": "候选4",
+    "file_token": "IULEb8X0voKrgyxPJhWcFYgTnCg",
+    "name": "jianglang-shan_1.jpg",
+    "size": 295005
+   },
+   {
+    "field": "候选5",
+    "file_token": "WYOwb6azCovycvxm6OKc2qJ6nxc",
+    "name": "jianglang-shan_5.jpg",
+    "size": 487363
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiangsanglamu-feng",
+  "name": "姜桑拉姆峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "HJyqbNpW9ouTzYxiZodc5KxKnBd",
+    "name": "jiangsanglamu-feng_1.jpg",
+    "size": 238445
+   },
+   {
+    "field": "候选3",
+    "file_token": "Vxaxb7AzQoikONxYwljccFQhnhf",
+    "name": "jiangsanglamu-feng_7.jpg",
+    "size": 383958
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jianmen-guan",
+  "name": "剑门关",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "PjDZbsvwSowKRPxNIZHctwDJnae",
+    "name": "image.png",
+    "size": 666701
+   },
+   {
+    "field": "自备图",
+    "file_token": "TovxbYl62o1kqoxN1trcyzlHnCb",
+    "name": "image.png",
+    "size": 573074
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiaoding-shan",
+  "name": "轿顶山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "FsOZbef99ocFKGxvow1cgN58n7g",
+    "name": "image.png",
+    "size": 503332
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiaozi-xueshan",
+  "name": "轿子雪山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "I1PobE2DvoM4G0xhXPqc4x7Jnx3",
+    "name": "jiaozi-xueshan_1.jpg",
+    "size": 347920
+   },
+   {
+    "field": "候选3",
+    "file_token": "Y0KTbGQQXoUjaOx8qbWcaLjNnQe",
+    "name": "jiaozi-xueshan_3.jpg",
+    "size": 241155
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jietongsusong-feng",
+  "name": "解同速松峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "RpOvbavuIo6T0TxH4llcDEr3nch",
+    "name": "image.png",
+    "size": 1693805
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jigongshan",
+  "name": "鸡公山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选3",
+   "候选4"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "FXlgbqwCso9IjXxHRRZcqYOqnRd",
+    "name": "jigongshan_7.jpg",
+    "size": 190975
+   },
+   {
+    "field": "候选3",
+    "file_token": "V9LBb5pjto7vhGx8IfYcTzm3nOh",
+    "name": "jigongshan_6.jpg",
+    "size": 256528
+   },
+   {
+    "field": "候选4",
+    "file_token": "TZgWbM9Hso4cgfxsgMecmNU6nVf",
+    "name": "jigongshan_9.jpg",
+    "size": 306089
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiming-shan",
+  "name": "鸡鸣山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "BYc6bt10Lo2e2ZxDgqGcHLe3n5i",
+    "name": "jiming-shan_9.jpg",
+    "size": 672624
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jinfo-shan",
+  "name": "金佛山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "VKumb0izNoTJRfxIdRjctxwinuc",
+    "name": "image.png",
+    "size": 567075
+   },
+   {
+    "field": "自备图",
+    "file_token": "ToH6bCA88ohfdFxs0PLcejlFnxh",
+    "name": "image.png",
+    "size": 215707
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jinggang-shan",
+  "name": "井冈山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Uw9fbREkkoM3n0xM00icX9KVnyh",
+    "name": "jinggang-shan_0.jpg",
+    "size": 390851
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jingting-shan",
+  "name": "敬亭山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "R4vZbvKero3VK0xjUbpcyIP5n4G",
+    "name": "jingting-shan_9.jpg",
+    "size": 72298
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jinlong-shan",
+  "name": "金龙山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "FdK6buz7zoJYCnxdHdFcVGfonfh",
+    "name": "image.png",
+    "size": 865979
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jinyun-shan",
+  "name": "缙云山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "XYvWbu7pvoGmdvxQRX0cSrUvn9g",
+    "name": "jinyun-shan_6.jpg",
+    "size": 263997
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiucai-ling",
+  "name": "韭菜岭",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "RMm2bPRN4oIgeNxraGQcwlWwn7g",
+    "name": "jiucai-ling_0.jpg",
+    "size": 331500
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiucai-ping",
+  "name": "韭菜坪",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "BKvYbfOZxo2K09xa7tCciJq1nnb",
+    "name": "jiucai-ping_0.jpg",
+    "size": 206799
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiuding-shan",
+  "name": "九顶山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "IZ5mbMpPzoSFI4x29B0cN444njd",
+    "name": "image.png",
+    "size": 619375
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiugongshan",
+  "name": "九宫山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "AOOabbTlKoYSM7xGoVJc6sbEnLb",
+    "name": "jiugongshan_1.jpg",
+    "size": 36789
+   },
+   {
+    "field": "候选2",
+    "file_token": "DPOXbwxeIo9gbyxJHy5cZamynkd",
+    "name": "jiugongshan_2.jpg",
+    "size": 37892
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiuhuashan",
+  "name": "九华山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Px6obl9lto9Sdvxo86ucehySnLd",
+    "name": "jiuhuashan_0.jpg",
+    "size": 244466
+   },
+   {
+    "field": "候选2",
+    "file_token": "TdcobWk84oGoDOx3EzocC5SJnJh",
+    "name": "jiuhuashan_4.jpg",
+    "size": 330207
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiulong-shan-zhejiang",
+  "name": "九龙山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "DdqYbDORCoGoo0xBVakcB71rnDd",
+    "name": "image.png",
+    "size": 981137
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiushan-ding",
+  "name": "九山顶",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "EpwPb7Q12oFNUlxjCxhcjwILnUc",
+    "name": "image.png",
+    "size": 1065037
+   },
+   {
+    "field": "自备图",
+    "file_token": "Rn4xbWPErouVRvxsQB2cTXXGn3f",
+    "name": "image.png",
+    "size": 300078
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jiuwan-shan",
+  "name": "九万山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "P8GvbXp7logzB5xvpLPcH9lFndd",
+    "name": "image.png",
+    "size": 293414
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "jizu-shan",
+  "name": "鸡足山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "SkjKbAyXMoxov5xjhOMcO2qnnYb",
+    "name": "jizu-shan_2.jpg",
+    "size": 79582
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "junfeng-shan",
+  "name": "军峰山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "TGzTbNUe8o2J1hxQvO9cyedLn2f",
+    "name": "image.png",
+    "size": 991378
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "kawagebo",
+  "name": "卡瓦格博峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选5"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "FR2Xb3z3soj8qBx4DytcAxjXnVe",
+    "name": "kawagebo_0.jpg",
+    "size": 311702
+   },
+   {
+    "field": "候选5",
+    "file_token": "W4NWbT4mKoCiLMx17DpcZO2ynOe",
+    "name": "kawagebo_2.jpg",
+    "size": 273513
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "kongtong-shan",
+  "name": "崆峒山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "IMf2bgAK3ooyTCxOcKzcLrS6n9c",
+    "name": "kongtong-shan_3.jpg",
+    "size": 518607
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "kongur-feng",
+  "name": "公格尔峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选4"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "WkiebLsHKoLmc3x3unMc8AmnnAh",
+    "name": "kongur-feng_0.jpg",
+    "size": 117362
+   },
+   {
+    "field": "候选4",
+    "file_token": "TRhDbt1snoKKdIxEECwcQhrLnaf",
+    "name": "kongur-feng_3.jpg",
+    "size": 265653
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "kongur-jiubie-feng",
+  "name": "公格尔九别峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Vzg8bpYlao0JHYxvpzHc9ODUnYe",
+    "name": "kongur-jiubie-feng_0.jpg",
+    "size": 443454
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "kulagangri-feng",
+  "name": "库拉岗日峰",
+  "key_source": "filename",
+  "selected": [
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "LoOKbXZ3LolZsqxXY1Rchy4ynjW",
+    "name": "kulagangri-feng_4.jpg",
+    "size": 266244
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "kunyushan",
+  "name": "昆嵛山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "EaRfb3FuroHkY3xNy6QcDc69neg",
+    "name": "kunyushan_0.jpg",
+    "size": 417984
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "lafa-shan",
+  "name": "拉法山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "A6lzbMRs8omV6yxuClDcRmKMnSd",
+    "name": "image.png",
+    "size": 670882
+   },
+   {
+    "field": "自备图",
+    "file_token": "R1GdbfEhUo6FHyxwwzbcQQxanz7",
+    "name": "image.png",
+    "size": 295317
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "lang-shan-hunan",
+  "name": "崀山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "HczJb0G4aoTqrPxPEyjcalq1ntd",
+    "name": "lang-shan-hunan_0.jpg",
+    "size": 289635
+   },
+   {
+    "field": "候选3",
+    "file_token": "AkPgbPWMGoni9sxkxi1c6YlRnTd",
+    "name": "lang-shan-hunan_2.jpg",
+    "size": 308598
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "lang-shan-jiangsu",
+  "name": "狼山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "YhsNb5VTNoZ9gpxPae9c7qzPnZc",
+    "name": "lang-shan-jiangsu_8.jpg",
+    "size": 317704
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "langya-shan-anhui",
+  "name": "琅琊山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "JUL6bfNFFozqZ9xHLHpcfwhmnge",
+    "name": "image.png",
+    "size": 474248
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "langya-shan-hebei",
+  "name": "狼牙山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "FnJlb3j7Yor7DwxcaBOcarL5nsb",
+    "name": "langya-shan-hebei_0.jpg",
+    "size": 409549
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "laojunshan-henan",
+  "name": "老君山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "QxxPbFlzSoiYjrx1pMbcG1JEnz0",
+    "name": "laojunshan-henan_1.jpg",
+    "size": 730556
+   },
+   {
+    "field": "候选2",
+    "file_token": "WsoMboO4yoNT8ox3oHPcvkNRnPb",
+    "name": "laojunshan-henan_0.jpg",
+    "size": 159152
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "laoshan",
+  "name": "崂山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Mli2bljDDoFmRixGeYScgkuDndh",
+    "name": "laoshan_3.jpg",
+    "size": 292726
+   },
+   {
+    "field": "候选2",
+    "file_token": "P4AMbcrWxohyHhxFZPccyyafnue",
+    "name": "laoshan_4.jpg",
+    "size": 288084
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "laotudingzi",
+  "name": "老秃顶子",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Dus1bup2TodhUVxorWXc02Qfnbe",
+    "name": "laotudingzi_0.jpg",
+    "size": 314541
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "laoyacha-nao",
+  "name": "老鸦岔垴",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "TXpsbxw8yo9srLxAxPecFYySnWd",
+    "name": "image.png",
+    "size": 305039
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "laoye-ling",
+  "name": "老爷岭",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Z07HblyTaoO36wxHb9OceL6BnQc",
+    "name": "image.png",
+    "size": 407214
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "li-shan",
+  "name": "骊山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "IDmsbl2LdoLEjnxkhETc1DCUnhb",
+    "name": "li-shan_4.jpg",
+    "size": 256156
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "liang-shan-shandong",
+  "name": "水泊梁山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "MAm3b6IwVozpSdx8ZudcdYUCn5e",
+    "name": "liang-shan-shandong_8.jpg",
+    "size": 208240
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "ling-shan-jiangsu",
+  "name": "灵山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "CEGpbZjCsoBlXkxw6SmclkDonpd",
+    "name": "ling-shan-jiangsu_5.jpg",
+    "size": 29834
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "ling-shan-jiangxi",
+  "name": "灵山",
+  "key_source": "filename",
+  "selected": [
+   "候选3",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选3",
+    "file_token": "Ho1JbdxSCoDRmUx4hzdcrLfUnEe",
+    "name": "ling-shan-jiangxi_6.jpg",
+    "size": 27874
+   },
+   {
+    "field": "候选2",
+    "file_token": "V2v9bDn7Aox8smxH211cMOYsnUc",
+    "name": "ling-shan-jiangxi_4.jpg",
+    "size": 12034
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "lingtong-shan",
+  "name": "灵通山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "SqUFb4vAVoViYFxTZqycLDJXnQd",
+    "name": "image.png",
+    "size": 458004
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "lionggongdao-zhufeng",
+  "name": "刘公岛主峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "CcKObpdCVoitXixWs7IcTrUrndg",
+    "name": "image.png",
+    "size": 267732
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "lishan-shunwang-ping",
+  "name": "历山舜王坪",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "GBWAbhMXAoiH2Nx2xWQcZ3dXnee",
+    "name": "lishan-shunwang-ping_7.jpg",
+    "size": 656324
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "liuding-shan",
+  "name": "六鼎山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "B3PRb7QUho0wwbx8DqPcVDkrnid",
+    "name": "liuding-shan_8.jpg",
+    "size": 207322
+   },
+   {
+    "field": "候选2",
+    "file_token": "XbRPbGgeFo8lM3xWXY7cU6LSnSh",
+    "name": "liuding-shan_5.jpg",
+    "size": 742605
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "liupan-shan",
+  "name": "六盘山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "GKCnblmQHoCfkmxCWk4cu6LqnUe",
+    "name": "liupan-shan_3.jpg",
+    "size": 397951
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "longhu-shan",
+  "name": "龙虎山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "N6gMbb2lQoFvCZxjL2UcSNdon2b",
+    "name": "image.png",
+    "size": 777360
+   },
+   {
+    "field": "自备图",
+    "file_token": "TKG7bU1hBoI8vMxLKovcUcVynBc",
+    "name": "image.png",
+    "size": 1368409
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "longxu-shan",
+  "name": "龙须山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "CGIxbL5pPoUvqAxKPxLcXB5GnMx",
+    "name": "longxu-shan_0.jpg",
+    "size": 239820
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "loushan-guan",
+  "name": "娄山关",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "XskVbFYGRoE6A7xBWYIcfKjknFg",
+    "name": "loushan-guan_4.jpg",
+    "size": 47894
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "lue-shan",
+  "name": "芦芽山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "UeA3b1YCJoAihsxNhR5coshpnSc",
+    "name": "lue-shan_5.jpg",
+    "size": 1277688
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "luofushan",
+  "name": "罗浮山",
+  "key_source": "filename",
+  "selected": [
+   "候选2",
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "AwMXbIMnUo5StYx8rxKcGbsTnpe",
+    "name": "luofushan_7.jpg",
+    "size": 111147
+   },
+   {
+    "field": "候选1",
+    "file_token": "EoDub8XTroiITQx7gwac25dHnUc",
+    "name": "luofushan_3.jpg",
+    "size": 149316
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "luozi-feng",
+  "name": "洛子峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "XkFKbADMJoaBZOxr9cgcpJCQnTf",
+    "name": "luozi-feng_0.jpg",
+    "size": 369911
+   },
+   {
+    "field": "候选2",
+    "file_token": "IyelbqeuboWDUtxPizLc2UR3nzh",
+    "name": "luozi-feng_4.jpg",
+    "size": 679953
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "lushan",
+  "name": "庐山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "QMfkbHOrmotW3tx8Sl7c4U8vncf",
+    "name": "image.png",
+    "size": 231501
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "lushan-shandong",
+  "name": "鲁山主峰",
+  "key_source": "filename",
+  "selected": [
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选3",
+    "file_token": "JSuVblXyzosRflxqeVwcZFeTnJe",
+    "name": "lushan-shandong_2.jpg",
+    "size": 52346
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "luzi-feng",
+  "name": "鲁孜峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "AkSpbLoDlo4z4lxBq3XcoEblnze",
+    "name": "image.png",
+    "size": 155062
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "maiji-shan",
+  "name": "麦积山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "O11HbxdqlomzoIxjv8BcPBnbnAe",
+    "name": "maiji-shan_4.jpg",
+    "size": 402071
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "makalu-feng",
+  "name": "马卡鲁峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "ITx4bInyfo5A6ZxPq2icqhW0nQe",
+    "name": "makalu-feng_0.jpg",
+    "size": 222362
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "mang-shan-beijing",
+  "name": "蟒山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "WHEnbjyXPocisbxjvXUcnGvHnod",
+    "name": "mang-shan-beijing_3.jpg",
+    "size": 292928
+   },
+   {
+    "field": "候选2",
+    "file_token": "YNqIb7LA2o4YoJxKFiocFU8UnDg",
+    "name": "mang-shan-beijing_1.jpg",
+    "size": 455713
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "mang-shan-hunan",
+  "name": "莽山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "ThutbHyJyoa3GYxWQbEcRwzknjg",
+    "name": "mang-shan-hunan_0.jpg",
+    "size": 184052
+   },
+   {
+    "field": "候选2",
+    "file_token": "DxrTbSLwyoux96xxE4YcmHuJnsg",
+    "name": "mang-shan-hunan_2.jpg",
+    "size": 134710
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "mangdang-shan",
+  "name": "芒砀山主峰",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "PZOZbEggzooYxfxOxdocoUDBn4c",
+    "name": "image.png",
+    "size": 256543
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "manhan-shan",
+  "name": "蛮汉山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "S0aFbOpkco7jLmxZZOgcFvv7nXc",
+    "name": "image.png",
+    "size": 456738
+   },
+   {
+    "field": "自备图",
+    "file_token": "QbnebSdqcoUZDIxiKpqcrFrKnld",
+    "name": "image.png",
+    "size": 267427
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "mao-shan",
+  "name": "茅山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "MbeebR3qKoDnV2xbgiAcmWsbn7d",
+    "name": "image.png",
+    "size": 96304
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "maoer-shan-guangxi",
+  "name": "猫儿山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "OGObb9QJromlNsxzlkEc1AWHnfg",
+    "name": "maoer-shan-guangxi_0.jpg",
+    "size": 14418
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "maoer-shan-jilin",
+  "name": "帽儿山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "O1habRfw4o3eghxezGgcIeGandc",
+    "name": "image.png",
+    "size": 796864
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "maya-xueshan",
+  "name": "马牙雪山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "EjRAbpCbmoi4DCxOIVYcUXeCnMd",
+    "name": "image.png",
+    "size": 166074
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "meihua-shan-fujian",
+  "name": "梅花山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "C9ZRbpSsWomh4yx9QEhcStEBnkb",
+    "name": "image.png",
+    "size": 1120544
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "mengdagangri-feng",
+  "name": "蒙达岗日峰",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "GgSzbYzIwo7pe1xuBfWcEb3tnRb",
+    "name": "image.png",
+    "size": 475429
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "mian-shan",
+  "name": "绵山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "I4NDbdNNcoCvTsxdwXecfAExnRc",
+    "name": "mian-shan_7.jpg",
+    "size": 425935
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "miaofeng-shan",
+  "name": "妙峰山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "KAacbRbwuo80ocxyW48cM57TnDT",
+    "name": "miaofeng-shan_4.jpg",
+    "size": 386137
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "mingsha-shan",
+  "name": "鸣沙山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "LRazbAIxGouUtRxnbOPcEvV5nyc",
+    "name": "mingsha-shan_2.jpg",
+    "size": 125422
+   },
+   {
+    "field": "候选2",
+    "file_token": "RKTZbvAtdo8ot2xcfVncgsWxnAg",
+    "name": "mingsha-shan_0.jpg",
+    "size": 217692
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "mingyue-shan",
+  "name": "明月山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "GtQAbXnm5oPHA1xkgd3cffs8nie",
+    "name": "image.png",
+    "size": 509446
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "mogan-shan",
+  "name": "莫干山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Dzq8bGhzooDtkexsaPccEDvbnBh",
+    "name": "mogan-shan_8.jpg",
+    "size": 81502
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "mulan-shan",
+  "name": "木兰山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "MGcFbaVDpoDB99xNXn3cNJjynTc",
+    "name": "image.png",
+    "size": 335339
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "muztagata-feng",
+  "name": "慕士塔格峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "F9TgbE2bCojSh3xDz5dcQ424nDc",
+    "name": "muztagata-feng_0.jpg",
+    "size": 141606
+   },
+   {
+    "field": "候选2",
+    "file_token": "IuZCbRZyIouKxZxcIsjcjpp6nle",
+    "name": "muztagata-feng_2.jpg",
+    "size": 309681
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "namchabarwa",
+  "name": "南迦巴瓦峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "QKNKbMYA8oxVuvxSOG7c5NeNnWe",
+    "name": "namchabarwa_0.jpg",
+    "size": 326906
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "namunani-feng",
+  "name": "纳木那尼峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Mv7zbcqosoQnyjxbxDtcHso4nkf",
+    "name": "namunani-feng_0.jpg",
+    "size": 869428
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "nanfeng-mian",
+  "name": "南风面",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Q1LabWVqSoAoynxM1HJc4NwEnSc",
+    "name": "image.png",
+    "size": 1039864
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "nangong-shan",
+  "name": "南宫山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "CMP1bgMArofygGxJ0sQcrTpBnZf",
+    "name": "image.png",
+    "size": 1084459
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "nanhuang-gudao-route",
+  "name": "南黄古道沿线山峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "IPBzbE45aoFkcMx2hvpcb6wYnPb",
+    "name": "nanhuang-gudao-route_9.jpg",
+    "size": 554861
+   },
+   {
+    "field": "候选2",
+    "file_token": "DfqxbSN0OoGFCaxX5ZscdQ7BnQh",
+    "name": "nanhuang-gudao-route_8.jpg",
+    "size": 572655
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "nankun-shan",
+  "name": "南昆山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "TGXRb2aOGobNMbxyJI2c2vbxnrh",
+    "name": "nankun-shan_0.jpg",
+    "size": 363304
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "nanyandang-shan",
+  "name": "南雁荡山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Pih7bzPjfogZzexmzNIc8THhnNW",
+    "name": "nanyandang-shan_0.jpg",
+    "size": 1088485
+   },
+   {
+    "field": "候选3",
+    "file_token": "PmCwb5j0No1nG5xE7lucdFbxn5b",
+    "name": "nanyandang-shan_2.jpg",
+    "size": 877201
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "nianbaoyuze",
+  "name": "年保玉则",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "KdsNbBddDowvrrxOAAzciAPSndb",
+    "name": "image.png",
+    "size": 2158153
+   },
+   {
+    "field": "自备图",
+    "file_token": "LesSbCXKMoRWgHxlEzTconkrnR4",
+    "name": "image.png",
+    "size": 387482
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "ningjinkangsha-feng",
+  "name": "宁金抗沙峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选3",
+   "候选4"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "OItMb3WLEoi7fDx3Ao8cHsvnnQf",
+    "name": "ningjinkangsha-feng_0.jpg",
+    "size": 339513
+   },
+   {
+    "field": "候选3",
+    "file_token": "HeKNbEkAroni3bxBRGbcFwJ6n2L",
+    "name": "ningjinkangsha-feng_7.jpg",
+    "size": 326273
+   },
+   {
+    "field": "候选4",
+    "file_token": "ASiebb6GOoFVpkxVKetczOWZnOc",
+    "name": "ningjinkangsha-feng_6.jpg",
+    "size": 301552
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "niubei-shan",
+  "name": "牛背山",
+  "key_source": "filename",
+  "selected": [
+   "候选2",
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "Ln0GbvDcgoRdWgxST20c2FzQn5g",
+    "name": "niubei-shan_1.jpg",
+    "size": 335403
+   },
+   {
+    "field": "候选1",
+    "file_token": "I2Ljb0RRbo3f4UxTAi8cPkavnpb",
+    "name": "niubei-shan_4.jpg",
+    "size": 193310
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "nyainqentanglha",
+  "name": "念青唐古拉峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "JTqZb95DLox0y4x0YRWcEmFRnuR",
+    "name": "nyainqentanglha_0.jpg",
+    "size": 72635
+   },
+   {
+    "field": "候选2",
+    "file_token": "StQVbYtrYo1CQzx4vjWcrK8Tnfb",
+    "name": "nyainqentanglha_7.jpg",
+    "size": 267933
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "paiya-shan",
+  "name": "排牙山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "GEtgbFmw1ofR2lx8vQCcS1dInYe",
+    "name": "paiya-shan_4.jpg",
+    "size": 383324
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "pan-shan",
+  "name": "盘山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "KgFLbnlt2o4yiQxCNgpcyhSwnbc",
+    "name": "pan-shan_1.jpg",
+    "size": 293813
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "putuoshan-foding-shan",
+  "name": "普陀山佛顶山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "ChThbqOyUoC5iRxeITqco370nXe",
+    "name": "image.png",
+    "size": 297082
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qian-shan",
+  "name": "千山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Jklobi0oto7gGlxHV5acG9fXngg",
+    "name": "qian-shan_4.jpg",
+    "size": 873757
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qianfo-shan-sichuan",
+  "name": "千佛山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "IQuzbxrifoissZxsMbRcwCwbnzg",
+    "name": "qianfo-shan-sichuan_2.jpg",
+    "size": 346830
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qianling-shan",
+  "name": "黔灵山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "YZ1obnrVYoEVLwxVMgTcov6cnYb",
+    "name": "image.png",
+    "size": 628297
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qiaogeli-feng-k2",
+  "name": "乔戈里峰（K2）",
+  "key_source": "filename",
+  "selected": [
+   "候选2",
+   "候选4",
+   "候选5"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "FccybFKH4o3wmtxGafpcbPRjnnf",
+    "name": "qiaogeli-feng-k2_5.jpg",
+    "size": 225679
+   },
+   {
+    "field": "候选4",
+    "file_token": "GiQrbCwCwojYrqxNCqocGU4Gn5e",
+    "name": "qiaogeli-feng-k2_4.jpg",
+    "size": 427916
+   },
+   {
+    "field": "候选5",
+    "file_token": "O60Kb0NXVoCQc9xiKtictQ4OnHf",
+    "name": "qiaogeli-feng-k2_6.jpg",
+    "size": 234855
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qilianshan-tuanjie-feng",
+  "name": "祁连山团结峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "AtP0bFayMoCgJXxufmDch5H2nyE",
+    "name": "qilianshan-tuanjie-feng_0.jpg",
+    "size": 17714
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qingchengshan-laojun-ge",
+  "name": "青城山老君阁",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "XJbMbj41qov5YYxKObJcjTmsnLe",
+    "name": "qingchengshan-laojun-ge_7.jpg",
+    "size": 478465
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qinghaihu-nanshan",
+  "name": "青海湖南山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "FHXTbQkEiocuHmx78hDcIb1xnne",
+    "name": "image.png",
+    "size": 1064899
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qingliang-feng",
+  "name": "清凉峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "CHCfb3xK1otUhUxzrQmcOeDXn5e",
+    "name": "image.png",
+    "size": 753933
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qingyuan-shan",
+  "name": "清源山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "IXyfbprTOotUn6xGGFUcKBhxndg",
+    "name": "image.png",
+    "size": 354073
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qingyun-shan-fujian",
+  "name": "青云山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Ex9cb3KpxowTwrxEKD6c6rYRndc",
+    "name": "image.png",
+    "size": 1325619
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qiniang-shan",
+  "name": "七娘山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "QnMObNlADoKLwXxPPehcxJ9hnid",
+    "name": "image.png",
+    "size": 781179
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qiongmugangri-feng",
+  "name": "穷母岗日峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "DCeUbptyXotuNXxEOf8cYQSdn7f",
+    "name": "image.png",
+    "size": 1457709
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qiyue-shan",
+  "name": "齐岳山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "NHpcbEjcQoI9gaxCBaWc4CUvnBd",
+    "name": "qiyue-shan_1.jpg",
+    "size": 639104
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qiyun-shan-anhui",
+  "name": "齐云山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "IlkabQ9RTo9UNPx8l8ycCjUznNc",
+    "name": "qiyun-shan-anhui_4.jpg",
+    "size": 425172
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qiyun-shan-jiangxi",
+  "name": "齐云山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "YeJhbVovCo2332xRr51c3OKInkd",
+    "name": "image.png",
+    "size": 477838
+   },
+   {
+    "field": "自备图",
+    "file_token": "DkAlbssEsoawrbxTYbLcE2c4nwg",
+    "name": "image.png",
+    "size": 1034833
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "qizi-feng",
+  "name": "启孜峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Xav5bh6oLo530YxuzZBcbZvpnLf",
+    "name": "image.png",
+    "size": 3146483
+   },
+   {
+    "field": "自备图",
+    "file_token": "YYLCbbfJ9oDjuOxcTapci99unXc",
+    "name": "image.png",
+    "size": 288229
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "queer-shan",
+  "name": "雀儿山主峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "A8k2bsembocwUUxxnBbcXYFvnah",
+    "name": "queer-shan_0.jpg",
+    "size": 208443
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "sanao-aotaiji",
+  "name": "三奥雪山奥太基",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "INX4blu5PoM9mkxIJ1Bcoc39n4f",
+    "name": "image.png",
+    "size": 730010
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "sanao-aotaimei",
+  "name": "三奥雪山奥太美",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "MRcmbRAjGouOkExARFochuzYndb",
+    "name": "image.png",
+    "size": 689744
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "sanao-aotaina",
+  "name": "三奥雪山奥太娜",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "T7e8bnOFloyOvwxkolLc0pnVn9f",
+    "name": "image.png",
+    "size": 872952
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "sanbai-shan",
+  "name": "三百山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "OxUJbMhxyoW3RKxXIJPciHhpnRd",
+    "name": "sanbai-shan_0.jpg",
+    "size": 1152532
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "sangdankangsang-feng",
+  "name": "桑丹康桑峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "AU2lbFRVToHjYlxW1sMc8DgQnIg",
+    "name": "image.png",
+    "size": 423480
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "sanqingshan",
+  "name": "三清山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选3",
+   "候选4"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Yboab2OPCo9I81xgKTJcDALCnjc",
+    "name": "sanqingshan_4.jpg",
+    "size": 430145
+   },
+   {
+    "field": "候选3",
+    "file_token": "VWbabCJNSohLljx4qntc1Lrxnuh",
+    "name": "sanqingshan_2.jpg",
+    "size": 355100
+   },
+   {
+    "field": "候选4",
+    "file_token": "ESRMblUZvoySQ1xJz64cNb4Tnhc",
+    "name": "sanqingshan_1.jpg",
+    "size": 140197
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "sejila-shan",
+  "name": "色季拉山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "KIyFbZW5AoUCpBxuNYqcEH4TnBe",
+    "name": "sejila-shan_0.jpg",
+    "size": 41329
+   },
+   {
+    "field": "候选2",
+    "file_token": "PkRPbqStHo5DGlxsLjscuDSOnzg",
+    "name": "sejila-shan_1.jpg",
+    "size": 44304
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shao-shan",
+  "name": "韶山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Z253bVwZkoKQYYx117BcjD8ondc",
+    "name": "image.png",
+    "size": 6983707
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "she-shan",
+  "name": "佘山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Kaf1bkQEkoLnYoxqImDcsVxrngO",
+    "name": "she-shan_0.jpg",
+    "size": 481596
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shengtang-shan",
+  "name": "圣堂山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "LakxbRtZ5ovQMvxM9X4cpvYcnEg",
+    "name": "image.png",
+    "size": 334602
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shennong-ding",
+  "name": "神农顶",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "ETZobTbKVoBZIvx1smYcjO8hnme",
+    "name": "shennong-ding_5.jpg",
+    "size": 573209
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shennongjia-laojun-shan",
+  "name": "神农架老君山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "F4w9bDsCmolghuxpWSqc7DAln9p",
+    "name": "shennongjia-laojun-shan_2.jpg",
+    "size": 360878
+   },
+   {
+    "field": "候选2",
+    "file_token": "QdIubfxYnopY5PxGuTvcAihAnIe",
+    "name": "shennongjia-laojun-shan_1.jpg",
+    "size": 349369
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shennongshan",
+  "name": "神农山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "GjiZb1d8So6lLAx4q3mcEfghnNe",
+    "name": "shennongshan_4.jpg",
+    "size": 279606
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shenxian-ju",
+  "name": "神仙居",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "NpVWbQ9vwoxc85xzzN7csTpRn6g",
+    "name": "shenxian-ju_7.jpg",
+    "size": 262015
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shigao-shan",
+  "name": "石膏山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "UAa7bBAdFoyp8zxamVHcmPSRnXg",
+    "name": "image.png",
+    "size": 883956
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shika-xueshan",
+  "name": "石卡雪山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "C1H7b1J4xoJaoGxVKVzcrdy6nRh",
+    "name": "shika-xueshan_7.jpg",
+    "size": 204035
+   },
+   {
+    "field": "候选2",
+    "file_token": "PoBzbAeQLoBLvoxvYr5c0elNnrc",
+    "name": "shika-xueshan_1.jpg",
+    "size": 311702
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shikeng-kong",
+  "name": "石坑崆",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "BJgdbeexgokNb4xvRDpcdInWnnx",
+    "name": "shikeng-kong_3.jpg",
+    "size": 134710
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shishapangma-lenggang-feng",
+  "name": "冷岗峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "XN7NbAnPooX4NgxO6WlcqmnEnoe",
+    "name": "image.png",
+    "size": 435852
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shiwan-dashan",
+  "name": "十万大山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "YRl2bmliyoeq9JxelZecy2cGnZg",
+    "name": "image.png",
+    "size": 247784
+   },
+   {
+    "field": "自备图",
+    "file_token": "D8XSbCOkJoncGVxs8xecpAsPnng",
+    "name": "image.png",
+    "size": 337718
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shuangta-shan",
+  "name": "双塔山",
+  "key_source": "filename",
+  "selected": [
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "UV90bHB0ooXO0PxKF6zcFQv4nZe",
+    "name": "shuangta-shan_5.jpg",
+    "size": 423268
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "shunan-zhuhai",
+  "name": "蜀南竹海",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "P5VSbC5bQoUJomxsoU8cfl0QnGd",
+    "name": "shunan-zhuhai_5.jpg",
+    "size": 55041
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "siguniang-dafeng",
+  "name": "四姑娘山大峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "C89nbiTeUo0eiYxcrpac7Ctbned",
+    "name": "siguniang-dafeng_0.jpg",
+    "size": 301425
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "siguniang-erfeng",
+  "name": "四姑娘山二峰",
+  "key_source": "filename",
+  "selected": [
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "CQgHbzeUNomAUWxLgOdciPfIn6f",
+    "name": "siguniang-erfeng_2.jpg",
+    "size": 235420
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "siguniang-luotuo-feng",
+  "name": "四姑娘山骆驼峰",
+  "key_source": "filename",
+  "selected": [
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "ZEF5btSQWogdElxUHPfcnSC8nLW",
+    "name": "siguniang-luotuo-feng_0.jpg",
+    "size": 301425
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "siguniang-sanfeng",
+  "name": "四姑娘山三峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "YdW9bhTPcoaT8Xx0oQScHu7xnze",
+    "name": "siguniang-sanfeng_2.jpg",
+    "size": 235420
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "siguniang-yaomei-feng",
+  "name": "四姑娘山幺妹峰",
+  "key_source": "filename",
+  "selected": [
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "LLDrbWJJJoJ07Ix1UXecCv1DnCd",
+    "name": "siguniang-yaomei-feng_2.jpg",
+    "size": 235420
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "simian-shan",
+  "name": "四面山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "O1uzb2gJooSJktxTjIhcPTPynnb",
+    "name": "image.png",
+    "size": 372213
+   },
+   {
+    "field": "自备图",
+    "file_token": "QJqHb7ho2oxC2Gx5aAVctQNanxf",
+    "name": "image.png",
+    "size": 375875
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "siming-shan",
+  "name": "四明山",
+  "key_source": "filename",
+  "selected": [
+   "候选4",
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选4",
+    "file_token": "YoMRbcwdfoaF86xPoKJcDHmmnxe",
+    "name": "siming-shan_7.jpg",
+    "size": 17662
+   },
+   {
+    "field": "候选1",
+    "file_token": "DFUxbuEOQoon04xtlxrcZLJXnWd",
+    "name": "siming-shan_3.jpg",
+    "size": 20965
+   },
+   {
+    "field": "候选2",
+    "file_token": "LeBabxRDOoPvNVxpKHoczPlLnug",
+    "name": "siming-shan_5.jpg",
+    "size": 34150
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "siren-tong",
+  "name": "四人同",
+  "key_source": "filename",
+  "selected": [
+   "候选4",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选4",
+    "file_token": "E93kbfmyyoFXaFxMSe4cOc3unFV",
+    "name": "siren-tong_5.jpg",
+    "size": 482454
+   },
+   {
+    "field": "候选3",
+    "file_token": "ZpoKb4wxpoyHsFxCGaQce7V2n4f",
+    "name": "siren-tong_4.jpg",
+    "size": 311872
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "songshan",
+  "name": "嵩山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "E2EibwqVcoY65PxE9etc8sf0npg",
+    "name": "songshan_0.jpg",
+    "size": 443406
+   },
+   {
+    "field": "候选2",
+    "file_token": "U4TubfcOVoFMpbxqi0jcoYZ8n7g",
+    "name": "songshan_2.jpg",
+    "size": 804177
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "sumu-shan",
+  "name": "苏木山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "EhJxbtLIeokhMlx9DpUctgdwnyg",
+    "name": "image.png",
+    "size": 453695
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "taibaishan",
+  "name": "太白山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "BfeZbPfxhoJbqexPq4ecTHALnbQ",
+    "name": "taibaishan_0.jpg",
+    "size": 316125
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "taimu-shan",
+  "name": "太姥山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "IuzCbtxxWo5aXyxJDmbcrqjXncg",
+    "name": "taimu-shan_0.jpg",
+    "size": 23417
+   },
+   {
+    "field": "候选2",
+    "file_token": "LgCZbAJNCodJcfxVpVlce1EynDh",
+    "name": "taimu-shan_3.jpg",
+    "size": 24944
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "taishan",
+  "name": "泰山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "XgUBbBIuqoYlmbxrkJ8cIM8wnHd",
+    "name": "image.png",
+    "size": 904067
+   },
+   {
+    "field": "自备图",
+    "file_token": "Tt7IbIrIdoAGROxTABPcgnLxneg",
+    "name": "image.png",
+    "size": 495979
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "taizi-jian",
+  "name": "太子尖",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "KuZwbfWmyouAqtx8I1vcpcoDnSc",
+    "name": "image.png",
+    "size": 325635
+   },
+   {
+    "field": "自备图",
+    "file_token": "POBfbMem3oFrXtxCUnIcd6Q6nlb",
+    "name": "image.png",
+    "size": 299837
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tanglaangqu-feng",
+  "name": "唐拉昂曲峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "EedIblNdOoXxOFxIVaTcRl7Tnib",
+    "name": "tanglaangqu-feng_2.jpg",
+    "size": 173654
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tianhua-shan",
+  "name": "天华山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "YPSFb1jlVoD5KbxCwzAcvmlMnMd",
+    "name": "image.png",
+    "size": 12240570
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tianjieshan",
+  "name": "天界山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "UdKwbVDGoojUyNxmi2scxy6yn3b",
+    "name": "tianjieshan_3.jpg",
+    "size": 816614
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tianma-shan-shanghai",
+  "name": "天马山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "ZLTAbT8UvoVSznxdWk8cO4rVnuR",
+    "name": "image.png",
+    "size": 380375
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tianmu-shan",
+  "name": "天目山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "YAIhbtzBLocn1Xxaqwbc8IGXnGb",
+    "name": "image.png",
+    "size": 470274
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tianmushan-qijian-route",
+  "name": "天目山七尖穿越线",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "M1P0bMymno8pdtxvbk9cjjBNnhh",
+    "name": "image.png",
+    "size": 3155784
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tianping-shan",
+  "name": "天平山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "E9qNbKE4MoVy2fxY9YTcZWa5nIc",
+    "name": "image.png",
+    "size": 936414
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tiantaishan-huading-shan",
+  "name": "天台山华顶山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "KphKbNaXjoThMHxJ27LchY3dn2f",
+    "name": "tiantaishan-huading-shan_2.jpg",
+    "size": 329286
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tiantang-ding",
+  "name": "天堂顶",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "GHaFbfbXUo9GI4x7MlAcFpCanhb",
+    "name": "image.png",
+    "size": 812286
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tiantang-zhai",
+  "name": "天堂寨",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "XI9Wb3mgEomDkExZSUXcA2OHnVg",
+    "name": "tiantang-zhai_0.jpg",
+    "size": 281322
+   },
+   {
+    "field": "候选2",
+    "file_token": "CDNCbxGcNopV8FxFxtmcV4G0nKh",
+    "name": "tiantang-zhai_1.jpg",
+    "size": 716620
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tianzhushan-anhui",
+  "name": "天柱山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "QRiMb9KHVohVbNxoLgkc28XwnVh",
+    "name": "tianzhushan-anhui_0.jpg",
+    "size": 541103
+   },
+   {
+    "field": "候选2",
+    "file_token": "XAqLbmYKRoXX3HxPobccgGYJncw",
+    "name": "tianzhushan-anhui_1.jpg",
+    "size": 959822
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tonggong-jian",
+  "name": "童公尖",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "TPyCbZEEMoKI0hxvAXocLcd8ngf",
+    "name": "image.png",
+    "size": 317696
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tuo-liang",
+  "name": "驼梁",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "XK95bankbozcNHxS2G3cmzrWnvF",
+    "name": "tuo-liang_6.jpg",
+    "size": 39804
+   },
+   {
+    "field": "候选2",
+    "file_token": "KZYDbo3ScoMsnLxQokicm2dznrd",
+    "name": "tuo-liang_2.jpg",
+    "size": 45445
+   },
+   {
+    "field": "候选3",
+    "file_token": "LF4IbMJ2xoMXljxKbt9cJcbBngd",
+    "name": "tuo-liang_7.jpg",
+    "size": 29063
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "tuomuer-feng",
+  "name": "托木尔峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Q6EJbJWuPofF88xzKZhchkTDnsd",
+    "name": "tuomuer-feng_2.jpg",
+    "size": 256664
+   },
+   {
+    "field": "候选2",
+    "file_token": "BSqYb9Ep4owWGixOKJrcI8ZEnNf",
+    "name": "tuomuer-feng_4.jpg",
+    "size": 301233
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wanfo-shan-anhui",
+  "name": "万佛山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Xt8KbxkNao5tNIxTbBycpgrWnhc",
+    "name": "image.png",
+    "size": 331243
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wangmang-ling",
+  "name": "王莽岭",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "ErmPb4NpeoUMEIxanQ8c4r2lnPf",
+    "name": "wangmang-ling_5.jpg",
+    "size": 995068
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wangmangling-xiyaigou-route",
+  "name": "太行山王莽岭-锡崖沟环线",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "YfL3b8gQHoAYUPxF8z4c09NEnXb",
+    "name": "wangmangling-xiyaigou-route_1.jpg",
+    "size": 525200
+   },
+   {
+    "field": "候选2",
+    "file_token": "LBm4bbyK7oBUwVxntsocllcunAh",
+    "name": "wangmangling-xiyaigou-route_2.jpg",
+    "size": 436642
+   },
+   {
+    "field": "候选3",
+    "file_token": "LurgbkpiooCJyVx8s7jcfofPnRg",
+    "name": "wangmangling-xiyaigou-route_0.jpg",
+    "size": 522083
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wangwushan",
+  "name": "王屋山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "AmmBb0LDFoy6lmxVFsMcf2I4nkf",
+    "name": "wangwushan_7.jpg",
+    "size": 1198294
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wangxiang-yan",
+  "name": "太行大峡谷王相岩",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "EuEvbOSoFo8xv4xfC6lcdKoinnc",
+    "name": "image.png",
+    "size": 569360
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wanxian-shan",
+  "name": "万仙山主峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "DuIHb0vSko3PoaxdKiIcmbfUnxc",
+    "name": "wanxian-shan_6.jpg",
+    "size": 939648
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wawu-shan",
+  "name": "瓦屋山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "NlezbrB8LobOpWxMMF7cr5TWnOd",
+    "name": "image.png",
+    "size": 304659
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "weizhou-volcanic-landform-route",
+  "name": "涠洲岛火山地貌游览线",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Vd01bIpVzoM6CyxIDmjcsFvGnFb",
+    "name": "image.png",
+    "size": 1516646
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wudangshan",
+  "name": "武当山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "YbZbb33gaomnoux9gjhcCDw1nvd",
+    "name": "wudangshan_0.jpg",
+    "size": 351901
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wugongshan-guangdong",
+  "name": "武功山广东段",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "C64KbqitkoV71WxIwuZchdjHnpb",
+    "name": "wugongshan-guangdong_0.jpg",
+    "size": 575910
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wugongshan-jiangxi",
+  "name": "武功山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "KVq5bjf6eo4mkrxhKIDcLPxhnwx",
+    "name": "wugongshan-jiangxi_0.jpg",
+    "size": 575910
+   },
+   {
+    "field": "候选2",
+    "file_token": "NshLbYBDMoIP9Uxys4FcCvFVn7c",
+    "name": "wugongshan-jiangxi_2.jpg",
+    "size": 293653
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wulao-feng",
+  "name": "五老峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "KsbKbj7H0o6UNIxCZsOc5DLYnMe",
+    "name": "wulao-feng_5.jpg",
+    "size": 271142
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wuliang-shan",
+  "name": "无量山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "RBTNbYrs9oZVflxG9VIcnTKrnRf",
+    "name": "image.png",
+    "size": 694451
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wuling-shan",
+  "name": "雾灵山",
+  "key_source": "filename",
+  "selected": [
+   "候选2",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "J8jebTzOvot4ioxYWEWcka3en3d",
+    "name": "wuling-shan_0.jpg",
+    "size": 415979
+   },
+   {
+    "field": "候选3",
+    "file_token": "LI4Yb82kioxiHjxn1tXciQCXnZf",
+    "name": "wuling-shan_5.jpg",
+    "size": 344625
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wuling-shan-chongqing",
+  "name": "武陵山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Q8TebkPsVoQR1RxtjlLco5aZnqe",
+    "name": "wuling-shan-chongqing_2.jpg",
+    "size": 332919
+   },
+   {
+    "field": "候选3",
+    "file_token": "E7QMbcJijo4nqPxOGvLckHeJnpt",
+    "name": "wuling-shan-chongqing_9.jpg",
+    "size": 556420
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wumeng-shan",
+  "name": "乌蒙山",
+  "key_source": "filename",
+  "selected": [
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选3",
+    "file_token": "OgXPbaDKsodBv5xH87FcgPYvnNd",
+    "name": "wumeng-shan_3.jpg",
+    "size": 241155
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wutaishan",
+  "name": "五台山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "O5YcbrXIZolmNqxoJUDcq4j9nhf",
+    "name": "image.png",
+    "size": 16836294
+   },
+   {
+    "field": "自备图",
+    "file_token": "ENCJbWxIpoWfvKxVRH1cH0nenQd",
+    "name": "image.png",
+    "size": 811934
+   },
+   {
+    "field": "自备图",
+    "file_token": "AqwsbUgqMoqhwaxXlqOcZnnDnph",
+    "name": "image.png",
+    "size": 458777
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wutong-shan",
+  "name": "梧桐山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "FBQNbHq0vompRcxBvGqcWN7in9g",
+    "name": "image.png",
+    "size": 373770
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wuyue-zhai",
+  "name": "五岳寨",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "XAkzbKIcbo2QJ1xpRiYcHQTZneb",
+    "name": "image.png",
+    "size": 526409
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "wuzhi-shan",
+  "name": "五指山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Wo5zbGF8ooh1oZxJQypc3s1Unzd",
+    "name": "wuzhi-shan_2.jpg",
+    "size": 1099597
+   },
+   {
+    "field": "候选2",
+    "file_token": "QmW3bVxOeoogNlxkO3Icocm5nEh",
+    "name": "wuzhi-shan_3.jpg",
+    "size": 1036180
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xi-shan-yunnan",
+  "name": "西山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "K5BEbxQGMokmXKxcVOsc1hjinrc",
+    "name": "xi-shan-yunnan_0.jpg",
+    "size": 430926
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xiang-shan",
+  "name": "香山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "AoXnb44d3op7KRxH3FxcZKDpnCc",
+    "name": "image.png",
+    "size": 1096468
+   },
+   {
+    "field": "自备图",
+    "file_token": "BQrfbejRzokabpx1KcGc5hFgnzA",
+    "name": "image.png",
+    "size": 3910498
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xiangbi-shan",
+  "name": "象鼻山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "AJB2btGw2oup5NxdsmVcTVdgnAh",
+    "name": "xiangbi-shan_0.jpg",
+    "size": 388579
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xiangtang-shan",
+  "name": "响堂山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "T8jGbGbfiohVSIxHswjcXGLVnYb",
+    "name": "image.png",
+    "size": 380171
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xiannv-shan",
+  "name": "仙女山",
+  "key_source": "filename",
+  "selected": [
+   "候选3",
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选3",
+    "file_token": "XOBGbCZH0ognSqxGnKscHECLnwc",
+    "name": "xiannv-shan_2.jpg",
+    "size": 512371
+   },
+   {
+    "field": "候选1",
+    "file_token": "CWgmbSPf8ow3PVxfhE3cHEfdnDc",
+    "name": "xiannv-shan_7.jpg",
+    "size": 537226
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xiaowutai-shan",
+  "name": "小五台山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "GfwMbciaQoQxKPx0sejcIcz1nGf",
+    "name": "xiaowutai-shan_0.jpg",
+    "size": 396762
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xiaoxinganling-liangshui",
+  "name": "小兴安岭凉水主峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "LNeKbgktKoMMuNxlbghcau3FnKb",
+    "name": "image.png",
+    "size": 432509
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xiata-gudao-route",
+  "name": "夏塔古道沿线山峰",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Gj5bbCk7SohmCpxddBiccL50nZb",
+    "name": "image.png",
+    "size": 935993
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xicheng-shan",
+  "name": "析城山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "L5VxbDjeSo51ktxzFlocOvWlnFh",
+    "name": "image.png",
+    "size": 1321394
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xiling-xueshan",
+  "name": "西岭雪山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "QYSJbdV74oxT4IxhbJOcwxXSnMZ",
+    "name": "image.png",
+    "size": 353703
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xiqiao-shan",
+  "name": "西樵山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "DcudbKpTIoFcSzxwzEFceNCTnCf",
+    "name": "image.png",
+    "size": 2153169
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xixiabangma-feng",
+  "name": "希夏邦马峰主峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "VJRebdmdFoHCgLxNylYcNaDVnvh",
+    "name": "xixiabangma-feng_0.jpg",
+    "size": 81558
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xuebao-ding",
+  "name": "雪宝顶主峰",
+  "key_source": "filename",
+  "selected": [
+   "候选2",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "FEQtbyMLkoKD8yxVb6ScNvjvngR",
+    "name": "xuebao-ding_7.jpg",
+    "size": 463199
+   },
+   {
+    "field": "候选3",
+    "file_token": "Lxgjbw54yot6UsxcdwLcWOn3nEe",
+    "name": "xuebao-ding_6.jpg",
+    "size": 273182
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xuedou-shan",
+  "name": "雪窦山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "P8e1bNFcvoH5jqxvtS9chgKFnJf",
+    "name": "xuedou-shan_0.jpg",
+    "size": 560295
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xuefeng-shan",
+  "name": "雪峰山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "KdLdbsusNog0mHxMJ4qcVqDbnxb",
+    "name": "xuefeng-shan_0.jpg",
+    "size": 66699
+   },
+   {
+    "field": "候选2",
+    "file_token": "SKbhbADxEoU7kdx81RYcpuuonUb",
+    "name": "xuefeng-shan_1.jpg",
+    "size": 139291
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xuelong-bao",
+  "name": "雪隆包",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Tl5WbLEJEoRDOxxuLPucAOjnnff",
+    "name": "image.png",
+    "size": 200124
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "xueshan-zhang",
+  "name": "雪山嶂",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "WLEMbLMhOoPUIixn94UcPH8YnXb",
+    "name": "image.png",
+    "size": 698744
+   },
+   {
+    "field": "自备图",
+    "file_token": "C1Uvb26IeoW6vpxPAMjcAq5un2g",
+    "name": "image.png",
+    "size": 432647
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yading-xiannairi",
+  "name": "仙乃日",
+  "key_source": "filename",
+  "selected": [
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选2",
+    "file_token": "JbLtbc9T9o6HRExWes6cSseJnZc",
+    "name": "yading-xiannairi_1.jpg",
+    "size": 501286
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yading-xianuoduoji",
+  "name": "夏诺多吉",
+  "key_source": "filename",
+  "selected": [
+   "候选3",
+   "候选4"
+  ],
+  "images": [
+   {
+    "field": "候选3",
+    "file_token": "UQEQbHD1joObIZxf4fHc1pDfnSd",
+    "name": "yading-xianuoduoji_3.jpg",
+    "size": 341012
+   },
+   {
+    "field": "候选4",
+    "file_token": "L4tsblaLLoEGLtxYejAcEKX8nke",
+    "name": "yading-xianuoduoji_2.jpg",
+    "size": 339011
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yading-yangmaiyong",
+  "name": "央迈勇",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "E3MXb8wuAoK2xsx1epfcy8pengJ",
+    "name": "yading-yangmaiyong_0.jpg",
+    "size": 397652
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yala-xueshan",
+  "name": "雅拉雪山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Sa4mb2xOTojIc4xMcKZc2ZKznLc",
+    "name": "yala-xueshan_0.jpg",
+    "size": 417376
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yalongwan-canghai-lou",
+  "name": "亚龙湾热带天堂森林公园主峰",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Ssq8bGRFyoDPPdxS10XcIohKngf",
+    "name": "image.png",
+    "size": 675937
+   },
+   {
+    "field": "自备图",
+    "file_token": "BDRAbAE97obg7axcS40cDcFynUf",
+    "name": "image.png",
+    "size": 1959940
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yandangshan-zhejiang",
+  "name": "雁荡山",
+  "key_source": "filename",
+  "selected": [
+   "候选3",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选3",
+    "file_token": "TTrObAQ4Qo90KdxiMhucEIQfnXc",
+    "name": "yandangshan-zhejiang_2.jpg",
+    "size": 877201
+   },
+   {
+    "field": "候选2",
+    "file_token": "PBALbU86IojclCx93Mhc3MxBnwh",
+    "name": "yandangshan-zhejiang_1.jpg",
+    "size": 1126915
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yangcao-shan",
+  "name": "羊草山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "GzerbigTzokKluxvcgdcoSeqnpb",
+    "name": "image.png",
+    "size": 887525
+   },
+   {
+    "field": "自备图",
+    "file_token": "KG4bbNqWToK2NZxfJQicxhwxnQh",
+    "name": "image.png",
+    "size": 839638
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yaoshan-henan",
+  "name": "尧山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "DJD4bJCeyogqdJxrRVhcO4JRnmb",
+    "name": "yaoshan-henan_0.jpg",
+    "size": 944962
+   },
+   {
+    "field": "候选2",
+    "file_token": "DpP8b2pzfoM4a4xa3IvcTRyJnBc",
+    "name": "yaoshan-henan_1.jpg",
+    "size": 1169354
+   },
+   {
+    "field": "候选3",
+    "file_token": "STGrbrYTpo1brJxgPNUc8CKJn2c",
+    "name": "yaoshan-henan_2.jpg",
+    "size": 831598
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yi-shan",
+  "name": "峄山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Ame8bybFwotCgNx9gklcHb16nwe",
+    "name": "image.png",
+    "size": 4239420
+   },
+   {
+    "field": "自备图",
+    "file_token": "BNYbbbYUiokPx1xekeccgqcDnfh",
+    "name": "image.png",
+    "size": 484373
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yimengshan-guimeng",
+  "name": "沂蒙山龟蒙",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "IdXqbfhIxoxQ6CxnzxIcId0xnyg",
+    "name": "yimengshan-guimeng_0.jpg",
+    "size": 176020
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yingge-ling",
+  "name": "鹦哥岭",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "IxaMbAPx4o1DhqxAr2kcvgJNntf",
+    "name": "image.png",
+    "size": 624773
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yinna-shan",
+  "name": "阴那山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "EJ1hbip8zoyQdexHrKPcbZMZnng",
+    "name": "image.png",
+    "size": 908070
+   },
+   {
+    "field": "自备图",
+    "file_token": "O27Gb4L9oonvCvxXvyFc0eRXnIb",
+    "name": "image.png",
+    "size": 585508
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yintiao-ling",
+  "name": "阴条岭",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "WmPGbfWI8oBzuOxmS9tcDUIgnTh",
+    "name": "image.png",
+    "size": 868142
+   },
+   {
+    "field": "自备图",
+    "file_token": "QMg8bZrbHoZhlExCO5vcSrSJnJd",
+    "name": "image.png",
+    "size": 589717
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yishan-shandong",
+  "name": "沂山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "FTdLbbhoYoNSlsxE8C8c4yG0nWh",
+    "name": "image.png",
+    "size": 363987
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yiwulu-shan",
+  "name": "医巫闾山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "ZvljbXeqyopXzpx3QBvcOG8dn5e",
+    "name": "image.png",
+    "size": 392678
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yuanbao-shan",
+  "name": "元宝山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "R3CvbyrUhoLzOpxjkqbcTKDunZb",
+    "name": "yuanbao-shan_7.jpg",
+    "size": 396441
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yubeng-route",
+  "name": "雨崩徒步线",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "FCt2buZSsoVdnHxY62VcTtbDnPh",
+    "name": "image.png",
+    "size": 301844
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yuelu-shan",
+  "name": "岳麓山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "AEUobQC6JoWwm6xDVYYcdoRNnjg",
+    "name": "image.png",
+    "size": 412259
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yulong-xueshan",
+  "name": "玉龙雪山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "JGxmbPD6qo5yukxVGGNciT8Cn40",
+    "name": "image.png",
+    "size": 306818
+   },
+   {
+    "field": "自备图",
+    "file_token": "MJccbjDbPoEGkTxDsSecuRG2nWc",
+    "name": "image.png",
+    "size": 353259
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yunding-shan-fujian",
+  "name": "云顶山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "UvMvbWgrCojpqGxjtXbcpvQPnYL",
+    "name": "yunding-shan-fujian_2.jpg",
+    "size": 924755
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yunding-shan-shanxi",
+  "name": "云顶山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "INZSbfEh8oroI4x811UcRatGnHy",
+    "name": "yunding-shan-shanxi_1.jpg",
+    "size": 309510
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yunlong-shan",
+  "name": "云龙山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "SbXBbYZXNodGp4xNWRYcYZEYn5f",
+    "name": "image.png",
+    "size": 705484
+   },
+   {
+    "field": "自备图",
+    "file_token": "Dj4ub1UtToQKXtxjfEFcaPX1nDc",
+    "name": "image.png",
+    "size": 943094
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yunmeng-shan",
+  "name": "云蒙山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "SKfubNuqsot9gTxrfiGcXInbnCc",
+    "name": "yunmeng-shan_5.jpg",
+    "size": 473502
+   },
+   {
+    "field": "候选2",
+    "file_token": "QaNNbPMxRo1rD3xkqWUcg7Psnle",
+    "name": "yunmeng-shan_7.jpg",
+    "size": 460212
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yuntai-shan-guizhou",
+  "name": "云台山",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选3"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "KhP3bt3xBo8RrOxHnvac1nUhnMc",
+    "name": "yuntai-shan-guizhou_3.jpg",
+    "size": 638963
+   },
+   {
+    "field": "候选3",
+    "file_token": "JiL3bQubqo2z9oxHEmvcLwRhnoh",
+    "name": "yuntai-shan-guizhou_5.jpg",
+    "size": 727497
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yuntai-shan-henan",
+  "name": "云台山（河南）",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "VbVXbw6Jmoy2oMxeevXcFth8nMg",
+    "name": "yuntai-shan-henan_0.jpg",
+    "size": 280029
+   },
+   {
+    "field": "候选2",
+    "file_token": "MaK0bfyXuoa34axhowYcpuq5n6S",
+    "name": "yuntai-shan-henan_1.jpg",
+    "size": 698219
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yuzhu-feng",
+  "name": "玉珠峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "VqiKbMwfooBj9jxGE6FcCvsCnSh",
+    "name": "yuzhu-feng_0.jpg",
+    "size": 106115
+   },
+   {
+    "field": "候选2",
+    "file_token": "SFzDbbuYboGqnDxmudCcN0r8npg",
+    "name": "yuzhu-feng_1.jpg",
+    "size": 172324
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "yuzhu-yuxu-feng",
+  "name": "玉虚峰",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "TKHobUrLvohPZtxXM4hcJGOtned",
+    "name": "image.png",
+    "size": 524857
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "zhangjiajie-qixing-shan",
+  "name": "张家界七星山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "PfmubrXEZoJ0rkxqR3ncgC3Nncc",
+    "name": "image.png",
+    "size": 1062277
+   },
+   {
+    "field": "自备图",
+    "file_token": "FwZubJJFboLbGtxFJLyc0bZfnzg",
+    "name": "image.png",
+    "size": 829330
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "zhangjiajie-tianmen-shan",
+  "name": "张家界天门山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "PHfHbW0Rson2j2xvTuactzfbnDg",
+    "name": "zhangjiajie-tianmen-shan_0.jpg",
+    "size": 1219744
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "zhangshi-yan",
+  "name": "嶂石岩",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "Fif8brYAxoI22hxFPcccnBhKnjb",
+    "name": "image.png",
+    "size": 1011141
+   },
+   {
+    "field": "自备图",
+    "file_token": "BWUFbpfuCongoixxvr6crs3Pn6d",
+    "name": "image.png",
+    "size": 906602
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "zhangzi-feng",
+  "name": "章子峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2",
+   "候选5"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "Ad5jb3m2XogeZ8xhEwjchCxKnne",
+    "name": "zhangzi-feng_0.jpg",
+    "size": 402839
+   },
+   {
+    "field": "候选2",
+    "file_token": "HNBBb9XiIoKY7hxRUQycLNGanQg",
+    "name": "zhangzi-feng_8.jpg",
+    "size": 232225
+   },
+   {
+    "field": "候选5",
+    "file_token": "QrFLbKkChoW3Nkx9WGZc7F8anfg",
+    "name": "zhangzi-feng_4.jpg",
+    "size": 318631
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "zhaogong-shan",
+  "name": "赵公山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "RoZnbuQLeobuMWxkTQLc5toGnJg",
+    "name": "image.png",
+    "size": 640356
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "zhongnan-shan",
+  "name": "终南山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "W7fbb8dzLoJt3Fx1lI3cc49Bncf",
+    "name": "image.png",
+    "size": 990182
+   },
+   {
+    "field": "自备图",
+    "file_token": "PasCbSDZRoW5KPxKXOic8HvRnaf",
+    "name": "image.png",
+    "size": 772838
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "zhumulangma-beipo",
+  "name": "珠穆朗玛峰北坡",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "LflBbRj90oVaJsxoyZQcKQiznVh",
+    "name": "zhumulangma-beipo_0.jpg",
+    "size": 365536
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "zhuoaoyou-feng",
+  "name": "卓奥友峰",
+  "key_source": "filename",
+  "selected": [
+   "候选1",
+   "候选2"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "QSMCbCriTolGbPxMLemcboMgnjd",
+    "name": "zhuoaoyou-feng_8.jpg",
+    "size": 237471
+   },
+   {
+    "field": "候选2",
+    "file_token": "Zo1dbXTAgoNiPQxwdOrc6UChnxc",
+    "name": "zhuoaoyou-feng_3.jpg",
+    "size": 381556
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "zhuoer-shan",
+  "name": "卓尔山",
+  "key_source": "filename",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "A3VKbMYkPoi1Ryx4EGFcHTw2nEf",
+    "name": "image.png",
+    "size": 447425
+   },
+   {
+    "field": "自备图",
+    "file_token": "TEfybFulLoBejuxnR1ycnKr8n1d",
+    "name": "image.png",
+    "size": 567101
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "zijin-shan-jiangsu",
+  "name": "紫金山",
+  "key_source": "name-unique",
+  "selected": [
+   "用自备图"
+  ],
+  "images": [
+   {
+    "field": "自备图",
+    "file_token": "MycOb4254oi6y2xxAthcf4PSns5",
+    "name": "image.png",
+    "size": 1083284
+   },
+   {
+    "field": "自备图",
+    "file_token": "Uwg7bmMOrof4lRxISPnc1PJjnQf",
+    "name": "image.png",
+    "size": 1202922
+   }
+  ]
+ },
+ {
+  "effective_canonical_key": "zu-shan",
+  "name": "祖山",
+  "key_source": "filename",
+  "selected": [
+   "候选1"
+  ],
+  "images": [
+   {
+    "field": "候选1",
+    "file_token": "EOlYb4XtPooYxVxXK5zcHwZTnIh",
+    "name": "zu-shan_5.jpg",
+    "size": 80245
+   }
+  ]
+ }
+]

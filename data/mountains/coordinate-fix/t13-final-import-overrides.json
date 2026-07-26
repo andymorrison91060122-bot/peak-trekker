@@ -1,0 +1,53 @@
+{
+  "schema_version": "t13-final-import-overrides-v1",
+  "coordinate_overrides": [
+    {
+      "effective_canonical_key": "zijin-shan-jiangsu",
+      "latitude": 32.07251,
+      "longitude": 118.84057,
+      "datum": "WGS-84",
+      "coordinate_kind": "summit",
+      "source_link": "https://www.peakwiki.org/peak.php?pid=355"
+    },
+    {
+      "effective_canonical_key": "xiang-shan",
+      "latitude": 39.99006,
+      "longitude": 116.17157,
+      "datum": "WGS-84",
+      "coordinate_kind": "summit",
+      "source_link": "https://www.peakwiki.org/peak.php?pid=479"
+    },
+    {
+      "effective_canonical_key": "mogan-shan",
+      "latitude": 30.61158,
+      "longitude": 119.85513,
+      "datum": "WGS-84",
+      "coordinate_kind": "summit",
+      "source_link": "https://www.peakwiki.org/peak.php?pid=697"
+    }
+  ],
+  "rejected_external_coordinates": [
+    {
+      "effective_canonical_key": "pan-shan",
+      "latitude": 40.10394,
+      "longitude": 117.26868,
+      "source_link": "http://www.517huwai.com:8080/blog/57935",
+      "decision": "discarded",
+      "reason": "The cited source was unreachable (HTTP 503), so reachability and coordinate text could not be verified. Existing GNS area coordinate remains unchanged."
+    }
+  ],
+  "field_overrides": [
+    {
+      "effective_canonical_key": "xuedou-shan",
+      "field": "altitude",
+      "previous_value": 800,
+      "altitude_m_exact": 971.7,
+      "altitude_display_m": 972,
+      "rounding_rule": "ROUND half-up",
+      "source": "National Surveying and Mapping authority release, republished by Zhejiang Online",
+      "source_link": "https://china.zjol.com.cn/05china/system/2008/09/28/009983372.shtml",
+      "decision_note": "The official release names 雪窦山黄泥浆岗 and gives 971.7m; 800m describes the scenic mountain area rather than the surveyed summit."
+    }
+  ],
+  "legacy_coordinate_rule": "The 18 production legacy rows retain their production latitude/longitude during reconciliation; T13 coordinates must not overwrite them."
+}

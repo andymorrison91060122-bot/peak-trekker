@@ -1,0 +1,72 @@
+{
+  "schema_version": "t13-final-radius-summary-v1",
+  "total": 359,
+  "resolved": 227,
+  "unresolved": 132,
+  "all_is_active_false": true,
+  "all_is_readable_false": true,
+  "bucket_counts": {
+    "summit_4dp_or_more": 160,
+    "area": 67,
+    "seed_3dp_or_more": 7,
+    "seed_2dp": 26,
+    "seed_1dp": 82,
+    "seed_0dp_inactive": 17
+  },
+  "user_expected_counts": {
+    "summit_4dp_or_more": 157,
+    "area": 69,
+    "seed_3dp_or_more": 8,
+    "seed_2dp": 26,
+    "seed_1dp": 82,
+    "seed_0dp_inactive": 17
+  },
+  "differences": {
+    "summit_4dp_or_more": 3,
+    "area": -2,
+    "seed_3dp_or_more": -1,
+    "seed_2dp": 0,
+    "seed_1dp": 0,
+    "seed_0dp_inactive": 0
+  },
+  "difference_explanation": [
+    "紫金山 and 莫干山 move from area to verified summit coordinates: summit +2, area -2.",
+    "香山 moves from unresolved seed_3dp_or_more to a verified summit coordinate: summit +1, seed_3dp_or_more -1.",
+    "盘山 external submission was discarded because its cited page was unreachable; the existing area coordinate remains."
+  ],
+  "zero_radius_keys": [
+    "baima-xueshan-zhalaqueni-feng",
+    "baizhang-ling",
+    "dangling-xiaqiangla",
+    "dangling-xiaqiangniea",
+    "danxiashan-bazhai",
+    "duri-feng",
+    "gaoligongshan-gawagapu-feng",
+    "gongga-baihaizi-shan",
+    "gongga-tianhaizi-shan",
+    "hutiaoxia-gaolu-route",
+    "putuoshan-foding-shan",
+    "sanao-aotaiji",
+    "sanao-aotaimei",
+    "sanao-aotaina",
+    "wanfo-shan-anhui",
+    "wumeng-shan",
+    "zhangjiajie-qixing-shan"
+  ],
+  "adopted_external_keys": [
+    "zijin-shan-jiangsu",
+    "xiang-shan",
+    "mogan-shan"
+  ],
+  "rejected_external_coordinates": [
+    {
+      "effective_canonical_key": "pan-shan",
+      "latitude": 40.10394,
+      "longitude": 117.26868,
+      "source_link": "http://www.517huwai.com:8080/blog/57935",
+      "decision": "discarded",
+      "reason": "The cited source was unreachable (HTTP 503), so reachability and coordinate text could not be verified. Existing GNS area coordinate remains unchanged."
+    }
+  ],
+  "output_sha256": "eada39739bc96daeee2352df81b3eaac5896b424a27ea17e8bef507579b78375"
+}

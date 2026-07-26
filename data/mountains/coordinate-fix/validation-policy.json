@@ -1,0 +1,197 @@
+{
+  "schema_version": "t13-validation-policy-v3",
+  "gold_set_file": "gold-set.jsonl",
+  "accuracy_strategy": {
+    "catalog_authority_13": {
+      "role": "connectivity_smoke_only",
+      "accuracy_denominator": false,
+      "reason": "The authority set is dominated by internationally documented high mountains and is not representative of the 359-row catalog."
+    },
+    "summit_world_peak_7": {
+      "role": "connectivity_smoke_only",
+      "accuracy_denominator": false,
+      "cases": [
+        "博格达峰",
+        "布洛阿特峰",
+        "卡瓦格博峰",
+        "公格尔九别峰",
+        "慕士塔格峰",
+        "南迦巴瓦峰",
+        "乔戈里峰（K2）"
+      ],
+      "required_disclaimer": "样本为 7 座世界级高峰，不代表目录整体，尤其不代表低海拔小山。",
+      "reporting_rule": "The disclaimer must appear beside every mention of a result or count from these seven cases. Never publish a standalone 7/7-style claim."
+    },
+    "legacy_regression_18": {
+      "role": "historical_compatibility_only",
+      "accuracy_denominator": false,
+      "promoted_count": 0
+    },
+    "mechanical_sanity_gates": {
+      "evidence_schema_version": "t13-mechanical-evidence-v1",
+      "effective_entry_rule": "No boolean callbacks. Rerun pinned source adapters from response bytes and recompute gate values. Phase 0 has no pinned Copernicus GeoTIFF adapter, so resolved/effective output must fail closed until Phase 1 implements that derivation.",
+      "province_bbox": {
+        "method": "point_in_sourced_bounds"
+      },
+      "elevation_tolerance_bands": [
+        { "max_altitude_m": 999.9, "tolerance_m": 100 },
+        { "max_altitude_m": 2999.9, "tolerance_m": 150 },
+        { "max_altitude_m": 4999.9, "tolerance_m": 250 },
+        { "max_altitude_m": null, "tolerance_m": 400 }
+      ],
+      "seed_displacement": {
+        "automatic_review_threshold_m": 50000,
+        "rule": "A larger displacement cannot be resolved automatically; it remains review-required."
+      },
+      "coordinate_precision": {
+        "method": "derive the minimum decimal count from latitude_literal and longitude_literal, parse both literals back to the numeric coordinates, and reject any supplied precision mismatch"
+      }
+    },
+    "dem_local_maximum": {
+      "required_for_resolved": true,
+      "dataset": {
+        "name": "Copernicus DEM GLO-30",
+        "product_id": "COP-DEM_GLO-30-DGED",
+        "model_type": "digital_surface_model",
+        "resolution_m": 30,
+        "horizontal_datum": "WGS-84 G1150 / EPSG:4326",
+        "vertical_datum": "EGM2008 / EPSG:3855",
+        "coverage": "global land surface",
+        "official_product_url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+        "official_access_url": "https://documentation.dataspace.copernicus.eu/APIs/S3.html",
+        "access": "Copernicus Data Space S3-compatible object storage or OData; registered account and temporary credentials required",
+        "license": "COP-DEM GLO-30 Full, Free & Open with required attribution"
+      },
+      "radius_m": 300,
+      "radius_basis": "A 300m geodesic radius spans roughly ten 30m samples from the candidate in each direction, large enough to reject article or scenic-area centers while remaining a local summit test.",
+      "candidate_to_local_maximum_max_distance_m": 45,
+      "candidate_to_local_maximum_max_elevation_gap_m": 8,
+      "pass_contract": [
+        "Load the source tile bytes from the hash-bound DEM CAS, never from labels in a result row.",
+        "Compute every DEM sample whose cell center lies within the 300m geodesic disk.",
+        "Locate the maximum elevation mechanically from those samples.",
+        "Pass only when the candidate is within 45m of a maximum cell and no more than 8m below that maximum.",
+        "Run the separate ledger-altitude tolerance gate as well; DEM local maximum does not replace elevation sanity."
+      ],
+      "known_limits": [
+        "GLO-30 is a DSM, so vegetation and structures can influence low-elevation maxima.",
+        "The 30m grid cannot establish sub-cell summit position; the 45m alignment allowance reflects grid sampling, not a looser coordinate truth standard.",
+        "A failed DEM gate yields needs_review or unresolved; it is never silently overridden to improve coverage."
+      ]
+    },
+    "stratified_manual_audit": {
+      "sample_size": 30,
+      "seed": "t13-stratified-audit-v1-2026-07-26",
+      "population": "all 359 effective canonical rows before any source result is known",
+      "low_altitude_small_mountain": {
+        "definition": "effective altitude is non-null and below 1000m",
+        "minimum_sample_share": "not below the population share"
+      },
+      "strata": [
+        "difficulty",
+        "altitude_band",
+        "province"
+      ],
+      "altitude_bands_m": [
+        "null",
+        "<500",
+        "500-999.9",
+        "1000-2999.9",
+        "3000-4999.9",
+        ">=5000"
+      ],
+      "selection_algorithm": "Before provider collection, calculate proportional marginal targets for each category in difficulty, altitude_band, and province. Iteratively select the row that reduces the largest combined marginal deficit; break ties by SHA-256(seed + ':' + effective_canonical_key). Freeze the selected JSONL and SHA before requests begin.",
+      "anti_cherry_pick": [
+        "Do not substitute a famous or easy-to-find mountain.",
+        "Do not replace blocked, missing, needs_review, or unresolved selections.",
+        "Report selection and pipeline failure as evidence, not as grounds for resampling."
+      ],
+      "evidence_packet": [
+        "candidate and adopted coordinates",
+        "source votes with lineage and datum",
+        "name and elevation match evidence",
+        "Copernicus DEM local window summary and profile or contour evidence",
+        "surrounding terrain or satellite basemap reference",
+        "all sanity gate inputs, computations, and verdicts"
+      ],
+      "accuracy_source": "Only the human-adjudicated stratified sample may support catalog-wide accuracy conclusions."
+    }
+  },
+  "denominators": {
+    "catalog_accuracy_13": {
+      "membership_field": "catalog_accuracy",
+      "expected_count": 13,
+      "description": "Historical membership label retained for gold-set compatibility; these 13 authority cases are now connectivity smoke only and not an accuracy denominator.",
+      "accuracy_denominator": false
+    },
+    "summit_accuracy_independent_summit_7": {
+      "membership_field": "summit_accuracy",
+      "expected_count": 7,
+      "description": "Historical membership label retained for gold-set compatibility; these seven world-class peaks are connectivity smoke only and not representative of catalog accuracy.",
+      "accuracy_denominator": false,
+      "required_disclaimer": "样本为 7 座世界级高峰，不代表目录整体，尤其不代表低海拔小山。",
+      "reporting_policy": "list_every_case_error_and_verdict",
+      "forbidden_aggregates_while_sample_size_is_single_digit": [
+        "median",
+        "p95",
+        "max"
+      ]
+    },
+    "legacy_regression_18": {
+      "membership_field": "legacy_regression",
+      "expected_count": 18,
+      "description": "Production coordinates are historical state, not assumed summit truth. Report proposed displacement and compatibility impact only.",
+      "excluded_from_accuracy_by_default": true
+    }
+  },
+  "legacy_promotion_policy": {
+    "mode": "case_by_case_only",
+    "evidence_definitions": {
+      "verified_attempt_count_proxy": "checkins with verified_at; checkin-level distance evidence is counted separately",
+      "terminal_outcome_ratio_pct": "trek_sessions status=summit_verified divided by statuses in summit_verified|finished|aborted; this is not an attempt pass rate",
+      "known_limitations": [
+        "The database does not preserve every failed verification attempt as a row.",
+        "A zero verification_distance_m is non-diagnostic and cannot independently establish coordinate accuracy.",
+        "Historical-photo and track-import verification are not equivalent to independent real-device summit GPS evidence."
+      ],
+      "query_file": "legacy-regression-observations.sql",
+      "query_sql_sha256": "0ef7abb4244cb084929638a8a1f97c988429810347a2a2d89cdbec86847a552c",
+      "observation_file": "legacy-regression-observations.jsonl",
+      "observation_sha256": "c7423e95ed3093797373867fc17403b2fc1fdb64e09a3c838284904a2ede1f2a",
+      "schema_snapshot": {
+        "mountains_row_count": 18,
+        "mountains_column_count": 19,
+        "mountains_schema_fingerprint": "3311fa509429350e2fd72a7646d61ff7",
+        "fingerprint_algorithm": "postgres_md5",
+        "fingerprint_input": "ordered string_agg(column_name:data_type:is_nullable:column_default, '|' order by ordinal_position)",
+        "query_file": "production-zero-write-check.sql",
+        "query_sha256": "e4a62dfc8c3f516869aec2abcdc1a7d50e9f55366f35992ff7588a6634b1a2d9",
+        "observed_at": "2026-07-26"
+      },
+      "observation_window": "all matching rows through the 2026-07-26 read-only snapshot",
+      "source_filters": [
+        "verified_at is not null for verified checkin aggregates",
+        "terminal session statuses are summit_verified|finished|aborted"
+      ],
+      "fixture_exclusion_rule": null,
+      "fixture_exclusion_count": null,
+      "fixture_exclusion_status": "not proven; therefore the snapshot cannot promote a legacy row"
+    },
+    "required_evidence": [
+      "sufficient_verified_attempt_count",
+      "normal_verified_attempt_rate",
+      "no_whole_arcminute_or_whole_arcsecond_grid_signal",
+      "semantic_identity_compatible"
+    ],
+    "promoted_case_ids": [],
+    "promoted_count": 0,
+    "decision": "No legacy row currently satisfies every criterion. High-volume rows contain non-diagnostic zero distances or outliers; rows with clean-looking success rates have grid signals, semantic ambiguity, or no checkin-level distance evidence."
+  },
+  "semantic_difference_exclusions": [
+    {
+      "gold_case_id": "prod-legacy-wuyishan",
+      "rule": "Do not cite the roughly 31.4 km 武夷山 to huanggang-shan delta as coordinate inaccuracy.",
+      "reason": "The legacy 武夷山 semantic scope is not equivalent to the huanggang-shan alias-merge target; the displacement is semantic and target identity remains review-sensitive."
+    }
+  ]
+}

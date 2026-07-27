@@ -230,6 +230,7 @@ async function fetchImportMountain(
     .from('mountains')
     .select('id, latitude, longitude, difficulty')
     .eq('id', mountainId)
+    .eq('is_active', true)
     .maybeSingle()
 
   if (error) {
@@ -403,6 +404,7 @@ export async function POST(request: Request) {
       .from('mountains')
       .select('id, latitude, longitude, difficulty')
       .eq('id', mountainId)
+      .eq('is_active', true)
       .maybeSingle()
 
     if (error) {

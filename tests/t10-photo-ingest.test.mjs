@@ -24,11 +24,18 @@ import {
   buildManifestFromFeishuRecords,
 } from '../scripts/mountains/t10-photo-manifest.mjs'
 import {
+  markReplacementStorageRolledBack,
+  markReplacementStorageVerified,
+  prepareReplacementStorageIntent,
+  recordReplacementStorageExistence,
   REPLACEMENT_COUNTS,
 } from '../scripts/mountains/t10-photo-replacement-20260728.mjs'
 import {
   uniqueCandidateAttributions,
 } from '../scripts/mountains/t10-photo-attribution.mjs'
+import {
+  T11_IMAGE_TARGETS,
+} from '../scripts/mountains/t11-image-sync.mjs'
 import {
   assertFrozenRollbackEvidence,
   assertInputBinding,
@@ -605,4 +612,79 @@ test('rollback is bound to frozen snapshot/checkpoint, not current sidecars', ()
       }),
     /sidecars changed/
   )
+})
+
+test('replacement storage intent survives apply -> rollback -> apply', () => {
+  const storagePath = 'catalog/example/01-image.png'
+  const asset = {
+    storage_path: storagePath,
+    stored_sha256: 'a'.repeat(64),
+    stored_size_bytes: 123,
+    stored_mime: 'image/png',
+  }
+  const checkpoint = {
+    storage_intents: {},
+    created_storage_paths: [],
+    preexisting_matching_storage_paths: [],
+  }
+
+  prepareReplacementStorageIntent(checkpoint, asset)
+  recordReplacementStorageExistence(checkpoint, storagePath, false)
+  checkpoint.created_storage_paths.push(storagePath)
+  markReplacementStorageVerified(checkpoint, storagePath)
+  assert.deepEqual(checkpoint.storage_intents[storagePath], {
+    status: 'verified',
+    expected_sha256: asset.stored_sha256,
+    expected_size_bytes: asset.stored_size_bytes,
+    expected_mime: asset.stored_mime,
+    existed_before: false,
+  })
+
+  markReplacementStorageRolledBack(checkpoint, [storagePath])
+  assert.equal(
+    checkpoint.storage_intents[storagePath].status,
+    'rolled_back'
+  )
+  assert.deepEqual(checkpoint.created_storage_paths, [])
+
+  prepareReplacementStorageIntent(checkpoint, asset)
+  assert.equal(checkpoint.storage_intents[storagePath].status, 'pending')
+  assert.equal(
+    Object.hasOwn(checkpoint.storage_intents[storagePath], 'existed_before'),
+    false
+  )
+  recordReplacementStorageExistence(checkpoint, storagePath, false)
+  checkpoint.created_storage_paths.push(storagePath)
+  markReplacementStorageVerified(checkpoint, storagePath)
+  assert.equal(checkpoint.storage_intents[storagePath].status, 'verified')
+  assert.deepEqual(checkpoint.created_storage_paths, [storagePath])
+})
+
+test('T11 image sync is pinned to four manifest deltas and guards visibility flags', () => {
+  assert.deepEqual(
+    T11_IMAGE_TARGETS.map((target) => target.effective_canonical_key),
+    [
+      'gongga-jiazi-feng',
+      'gongga-riwuqie-feng',
+      'gongga-xiaogongga-feng',
+      'gongyu-yan',
+    ]
+  )
+  assert.equal(
+    T11_IMAGE_TARGETS.filter((target) => target.is_illustrative).length,
+    3
+  )
+  const source = fs.readFileSync(
+    path.join(REPO_ROOT, 'scripts/mountains/t11-image-sync.mjs'),
+    'utf8'
+  )
+  assert.match(source, /\.eq\('is_active', false\)/)
+  assert.match(source, /\.eq\('is_readable', false\)/)
+  assert.match(source, /bindCurrentSidecars: false/)
+  assert.equal(
+    source.indexOf('recordReplacementStorageExistence(')
+      < source.indexOf('.upload(asset.storage_path'),
+    true
+  )
+  assert.match(source, /markReplacementStorageRolledBack/)
 })

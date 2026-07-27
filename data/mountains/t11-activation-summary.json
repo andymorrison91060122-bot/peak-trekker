@@ -1,0 +1,118 @@
+{
+  "access_status_distribution": {
+    "closed": 7,
+    "open": 330,
+    "pilgrimage_only": 1,
+    "unknown": 4
+  },
+  "active_canonical": 342,
+  "active_total": 342,
+  "difficulty_distribution": {
+    "advanced": 34,
+    "beginner": 148,
+    "expert": 31,
+    "intermediate": 129
+  },
+  "excluded": [
+    {
+      "effective_canonical_key": "baima-xueshan-zhalaqueni-feng",
+      "name": "白马雪山扎拉雀尼峰",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "baizhang-ling",
+      "name": "百丈岭",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "dangling-xiaqiangla",
+      "name": "党岭夏羌拉",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "dangling-xiaqiangniea",
+      "name": "党岭夏羌涅阿",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "danxiashan-bazhai",
+      "name": "丹霞山巴寨",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "duri-feng",
+      "name": "都日峰",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "gaoligongshan-gawagapu-feng",
+      "name": "高黎贡山嘎娃嘎普峰",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "gongga-baihaizi-shan",
+      "name": "白海子山主峰",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "gongga-tianhaizi-shan",
+      "name": "田海子山主峰",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "hutiaoxia-gaolu-route",
+      "name": "虎跳峡高路徒步线",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "putuoshan-foding-shan",
+      "name": "普陀山佛顶山",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "sanao-aotaiji",
+      "name": "三奥雪山奥太基",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "sanao-aotaimei",
+      "name": "三奥雪山奥太美",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "sanao-aotaina",
+      "name": "三奥雪山奥太娜",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "wanfo-shan-anhui",
+      "name": "万佛山",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "wumeng-shan",
+      "name": "乌蒙山",
+      "reason": "excluded_d11_coordinate"
+    },
+    {
+      "effective_canonical_key": "zhangjiajie-qixing-shan",
+      "name": "张家界七星山",
+      "reason": "excluded_d11_coordinate"
+    }
+  ],
+  "excluded_count": 17,
+  "frozen_sha256": {
+    "effective_canonical_enrichment": "b3f43ef40e009c35ee1ca96aed9d55038afe4eb76a39b9c7bb37f2e4404cfee5",
+    "effective_canonicals": "5fe0f8fcc4154f10c014cfee79c6b57b6582eed77f9b0445c72ddfd593da4294",
+    "entity_semantics": "45e8685f42968cedfa6b3f7adbb998c5cdbe28af74b823b77975be838aa0cd8a",
+    "t13_final_coordinate": "eada39739bc96daeee2352df81b3eaac5896b424a27ea17e8bef507579b78375"
+  },
+  "migration_b_expected": true,
+  "quality_tier_distribution": {
+    "blocked": 17,
+    "needs_review": 342
+  },
+  "readable_canonical": 342,
+  "readable_total": 345,
+  "schema_version": "t11-activation-summary-v1"
+}

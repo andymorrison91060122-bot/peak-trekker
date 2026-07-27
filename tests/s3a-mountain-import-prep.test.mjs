@@ -17,13 +17,20 @@ import {
   LEGACY_RETAINED,
   LEGACY_REUSE_BY_CANONICAL_KEY,
 } from '../scripts/mountains/s3a-import.mjs'
+import {
+  gateReasons,
+} from '../scripts/mountains/t11-quality-activation.mjs'
 
 const migrationA = fs.readFileSync(
   'supabase/migrations/20260726170147_s3a_mountain_import_prep_r5.sql',
   'utf8'
 )
 const migrationB = fs.readFileSync(
-  'supabase/migrations/20260726170148_s3a_mountain_activation_guard_r5.sql',
+  'supabase/migrations/20260727165934_s3a_mountain_activation_guard_r5.sql',
+  'utf8'
+)
+const activationRouteNoteMigration = fs.readFileSync(
+  'supabase/migrations/20260728090000_s3a_activation_route_note_and_altitude_provenance.sql',
   'utf8'
 )
 const importConfirmRoute = fs.readFileSync('src/app/api/import/confirm/route.ts', 'utf8')
@@ -88,6 +95,35 @@ test('activation guard has a row-level precheck before trigger creation', () => 
   assert.match(precheck, /jsonb_agg/)
   assert.match(precheck, /WHERE is_active = true/)
   assert.match(precheck, /RAISE EXCEPTION 'mountains_activation_ready_guard precheck failed/)
+})
+
+test('forward activation guard requires route_note and pins all five altitude provenance URLs', () => {
+  assert.match(
+    activationRouteNoteMigration,
+    /NULLIF\(BTRIM\(NEW\.route_note\), ''\) IS NULL/
+  )
+  assert.match(
+    activationRouteNoteMigration,
+    /mountains_activation_route_note_guard precheck failed/
+  )
+  assert.match(
+    activationRouteNoteMigration,
+    /GET DIAGNOSTICS updated_count = ROW_COUNT/
+  )
+  assert.equal(
+    activationRouteNoteMigration.match(
+      /https:\/\/www\.forestry\.gov\.cn\/c\/www\/kjkjxw\/529581\.jhtml/g
+    )?.length,
+    3
+  )
+  assert.match(
+    activationRouteNoteMigration,
+    /https:\/\/ydyl\.gansu\.gov\.cn\/gsydyl\/gjjl\/llssl\/202311\/t20231128_15845\.html/
+  )
+  assert.match(
+    activationRouteNoteMigration,
+    /https:\/\/hyj\.gxzf\.gov\.cn\/zwgk_66846\/hygl\/t7663494\.shtml/
+  )
 })
 
 test('direct-id creation and service routes require is_active=true', () => {
@@ -215,7 +251,49 @@ test('import payload is source-faithful, sanitized, and preserves approved acces
   assert.equal(serialized.includes('file_token'), false)
   assert.equal(serialized.includes('/private/tmp'), false)
   assert.equal(serialized.includes('source-cache'), false)
-  assert.equal(plan.rows.filter((row) => row.altitude === null).length, 5)
+  assert.equal(plan.rows.filter((row) => row.altitude === null).length, 0)
+  const t11AltitudeExpected = {
+    'aerjin-shan': [5798, 5798],
+    'weizhou-volcanic-landform-route': [80, 79.6],
+    'yading-xiannairi': [5999, 5998.5],
+    'yading-xianuoduoji': [5951, 5951.3],
+    'yading-yangmaiyong': [6033, 6033],
+  }
+  const altitudeSources = {
+    'aerjin-shan':
+      'https://ydyl.gansu.gov.cn/gsydyl/gjjl/llssl/202311/t20231128_15845.html',
+    'weizhou-volcanic-landform-route':
+      'https://hyj.gxzf.gov.cn/zwgk_66846/hygl/t7663494.shtml',
+    'yading-xiannairi':
+      'https://www.forestry.gov.cn/c/www/kjkjxw/529581.jhtml',
+    'yading-xianuoduoji':
+      'https://www.forestry.gov.cn/c/www/kjkjxw/529581.jhtml',
+    'yading-yangmaiyong':
+      'https://www.forestry.gov.cn/c/www/kjkjxw/529581.jhtml',
+  }
+  for (const [key, [display, exact]] of Object.entries(t11AltitudeExpected)) {
+    const row = plan.rows.find(
+      (candidate) => candidate.effective_canonical_key === key
+    )
+    assert.equal(row.altitude, display)
+    assert.equal(row.altitude_m_exact, exact)
+    assert.equal(row.field_review_status.altitude, 'approved')
+    assert.equal(
+      row.field_review_status.altitude_resolution.source_url,
+      altitudeSources[key]
+    )
+    assert.deepEqual(
+      row.field_review_status.altitude_resolution.conflict_values_m,
+      JSON.parse(
+        fs.readFileSync(
+          'data/mountains/t11-altitude-overrides.json',
+          'utf8'
+        )
+      ).rows.find(
+        (override) => override.effective_canonical_key === key
+      ).conflict_values_m
+    )
+  }
 })
 
 test('D10 supplies exactly nine honest no-public-route notes without inventing routes', () => {
@@ -330,4 +408,42 @@ test('legacy binding and reconciliation are exact-id, idempotent, and preserve c
   assert.match(reconciliationSql, /delta_mountains/)
   assert.doesNotMatch(reconciliationSql, /enforce_mountain_activation_ready/)
   assert.doesNotMatch(reconciliationSql, /CREATE TRIGGER/)
+})
+
+test('T11 content gate is mechanical and activation remains staged 1 -> 20 -> remaining', () => {
+  assert.deepEqual(
+    gateReasons({
+      cover_image: 'cover',
+      description: 'description',
+      risk_note: 'risk',
+      route_note: 'route',
+      altitude: 1234,
+    }),
+    []
+  )
+  assert.deepEqual(
+    gateReasons({
+      cover_image: ' ',
+      description: null,
+      risk_note: '',
+      route_note: undefined,
+      altitude: null,
+    }),
+    [
+      'cover_image_missing',
+      'description_missing',
+      'risk_note_missing',
+      'route_note_missing',
+      'altitude_missing',
+    ]
+  )
+  const source = fs.readFileSync(
+    'scripts/mountains/t11-quality-activation.mjs',
+    'utf8'
+  )
+  assert.match(source, /if \(stageName === 'one'\) return candidates\.slice\(0, 1\)/)
+  assert.match(source, /if \(stageName === 'twenty'\) return candidates\.slice\(1, 20\)/)
+  assert.match(source, /if \(stageName === 'remaining'\) return candidates\.slice\(20\)/)
+  assert.match(source, /row\.summit_radius_m === null/)
+  assert.doesNotMatch(source, /summit_radius_m\\s*:/)
 })

@@ -75,6 +75,7 @@ export async function fetchMountainForVerification(supabase: ServerSupabaseClien
     .from('mountains')
     .select(MOUNTAIN_VERIFY_SELECT_FULL)
     .eq('id', mountainId)
+    .eq('is_active', true)
     .single()) as {
     data: VerifyMountain | null
     error: { message?: string | null } | null
@@ -89,6 +90,7 @@ export async function fetchMountainForVerification(supabase: ServerSupabaseClien
       .from('mountains')
       .select(MOUNTAIN_VERIFY_SELECT_FALLBACK)
       .eq('id', mountainId)
+      .eq('is_active', true)
       .single()) as {
       data: VerifyMountain | null
       error: { message?: string | null } | null

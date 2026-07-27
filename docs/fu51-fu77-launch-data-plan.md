@@ -1,8 +1,8 @@
 # FU-51 / FU-77 · 上线数据落地任务文档 v2
 
 - 建档：2026-07-24
-- 更新：2026-07-27
-- 状态：T1–T10、T13 已完成；Migration B、T11/T12 未启动
+- 更新：2026-07-28
+- 状态：T1–T11、T13 与 Migration B 已完成；T12 待生产人工验收
 - 单一事实源：
   - 清洗账本：`data/mountains/ledger/effective_canonicals.jsonl`（359 实体）
   - 内容补全：`data/mountains/ledger/effective-canonical-enrichment.jsonl`
@@ -128,8 +128,8 @@
 - [x] **T9 一次性导入脚本（ledger → mountains upsert）** — ✅ 2026-07-27，359 canonical 已入库且全部显式 `is_active=false / is_readable=false`
   - 证据：`scripts/mountains/s3a-import.mjs`、`output/s3a-r5-import-evidence/production-import-report.md`。
   - 18 行 legacy reconciliation 保留生产原坐标；导入采用 `effective_canonical_key` 幂等 upsert。
-- [ ] **Migration B activation guard**
-  - 文件：`supabase/migrations/20260726170148_s3a_mountain_activation_guard_r5.sql`。
+- [x] **Migration B activation guard**
+  - 文件：`supabase/migrations/20260727165934_s3a_mountain_activation_guard_r5.sql`（与生产 ledger 版本对齐）。
   - 状态：未 apply；须在内容验收与激活前独立执行 precheck，当前不得提前部署。
 - [x] **T9b UI 诚实显示（去假公式兜底）** — ✅ 用户 2026-07-27 视觉验收 PASS；commit `c9c17cd`（未 push）
   - 状态：代码、focused tests、375px 证据与用户视觉验收均完成。
@@ -170,9 +170,14 @@
   - 证据：`data/mountains/coordinate-fix/t13-final-coordinate.jsonl`、`data/mountains/coordinate-fix/T13-CLOSEOUT-REPORT.md`。
 
 **上线门禁 + 验收**
-- [ ] **T11 质量分档 + is_active 决策**
-  - 做法：按 spec §8 给每座打 A/B/C；只对 A/B（过一票否决）flip `is_active=true`；C 留库不公开+进补齐列表。
-  - DoD：359 座各有档位标记 + is_active 决策；一票否决项 0 漏放。
+- [x] **T11 质量分档 + is_active 决策** — ✅ 2026-07-28 完成
+  - **海拔冲突消解**：仙乃日 `5998.5→5999`、央迈勇 `6033.0→6033`、夏诺多吉 `5951.3→5951` 按用户裁定的自然资源部 2023 值；阿尔金山主峰采用甘肃省人民政府公开资料 `5798m`；涠洲岛火山地貌游览线采用广西壮族自治区海洋局公开的岛体最高海拔 `79.6→80m`。精确值写 `altitude_m_exact`，原冲突数组保留在 `field_review_status.altitude_resolution`；冻结账本未改。
+  - **T10 manifest 同步**：贡嘎嘉子峰 / 贡嘎日乌且峰 / 贡嘎小贡嘎峰各改挂 1 张用户自备图，公盂岩改挂候选 2；4 个新对象逐个从 public URL 重下载核 SHA / size / MIME，旧 8 对象保留。最终 359 cover、138 座 gallery / 157 张 gallery、173 座示意图，4 行 `is_active/is_readable` 写前后均为 `false/false`。
+  - **Migration B**：生产 ledger `20260727165934_s3a_mountain_activation_guard_r5`；apply 前 15 条 active 行 blockers=0。apply 后回读 function + `BEFORE INSERT OR UPDATE` trigger 存在，持续守卫 `is_active ⇒ is_readable + altitude + cover + description + risk_note`。前向 migration `20260728090000_s3a_activation_route_note_and_altitude_provenance.sql` 追加 `route_note` 持续守卫，并对齐阿尔金山、涠洲岛与稻城三神山的公开海拔 provenance URL。
+  - **§12 与分档**：359 座机械逐行核 cover / description / risk / route / altitude；内容闸门 blockers=0。当前 canonical 均无 `mountain_waypoints`，故 342 座按 spec §8 记 B / `needs_review`（缺点位但 UI 可隐藏），D11 的 17 座记 C / `blocked` 且保持不可见；署名不作上线闸门。
+  - **分批激活**：排除既有 15 座后，按 checkpoint 执行 `1 + 19 + 307`，累计新增 327，最终 canonical active/readable `342/342`；全表 active/readable `342/345`（额外 3 条为历史保链 legacy）。阶段 1 阿尔金山主峰、阶段 2 首尾哀牢山/笔架山生产详情均 HTTP 200 且 HTML 含山名。
+  - **最终分布**：难度 beginner 148 / intermediate 129 / advanced 34 / expert 31；准入 open 330 / closed 7 / unknown 4 / pilgrimage_only 1；trigger + §12 违规 0。17 座 D11 均 blocked、exposed=0。
+  - **证据**：`data/mountains/t11-altitude-overrides.json`、`data/mountains/t11-quality-decisions.jsonl`、`data/mountains/t11-activation-snapshot.json`、`data/mountains/t11-activation-checkpoint.json`、`data/mountains/t11-activation-summary.json`、`data/mountains/photos/t11-image-sync-assets.jsonl`、`data/mountains/photos/t11-image-sync-snapshot.json`、`data/mountains/photos/t11-image-sync-checkpoint.json`、`data/mountains/photos/t11-image-sync-summary.json`；执行脚本为 `scripts/mountains/t11-quality-activation.mjs` 与 `scripts/mountains/t11-image-sync.mjs`。
 - [ ] **T12 生产验收（用户人工 + Claude 一手核）**
   - DoD：抽样 N 座详情页/卡片截图：真距离(非公式)、真简介、风险/路线非空壳、无假数字；用户 PASS。
 

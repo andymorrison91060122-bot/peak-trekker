@@ -295,7 +295,7 @@ async function selectRows(supabase, keys = TARGET_KEYS) {
 async function snapshot() {
   assert.equal(fs.existsSync(SNAPSHOT_PATH), false, 'replacement snapshot exists')
   assert.equal(fs.existsSync(CHECKPOINT_PATH), false, 'replacement checkpoint exists')
-  const assets = loadAssets()
+  loadAssets()
   const supabase = createAdminClient()
   const rows = await selectRows(supabase)
   assert.equal(rows.every((row) => row.is_active && row.is_readable), true)
@@ -347,7 +347,9 @@ async function snapshot() {
   }
 }
 
-function loadFrozenEvidence() {
+export function loadReplacementFrozenEvidence({
+  bindCurrentSidecars = true,
+} = {}) {
   const snapshotPayload = JSON.parse(fs.readFileSync(SNAPSHOT_PATH, 'utf8'))
   const checkpoint = JSON.parse(fs.readFileSync(CHECKPOINT_PATH, 'utf8'))
   assert.equal(
@@ -358,11 +360,62 @@ function loadFrozenEvidence() {
     checkpoint.schema_version,
     't10-photo-replacement-checkpoint-v1'
   )
-  assertBinding(snapshotPayload.input_binding, sidecarBinding())
+  if (bindCurrentSidecars) {
+    assertBinding(snapshotPayload.input_binding, sidecarBinding())
+  }
   assertBinding(checkpoint.input_binding, snapshotPayload.input_binding)
   assert.equal(snapshotPayload.rows.length, 11)
   assert.equal(snapshotPayload.old_linked_objects.length, 18)
   return { snapshot: snapshotPayload, checkpoint }
+}
+
+export function prepareReplacementStorageIntent(checkpoint, asset) {
+  const current = checkpoint.storage_intents[asset.storage_path]
+  if (current?.status === 'verified') return current
+  const next = {
+    status: 'pending',
+    expected_sha256: asset.stored_sha256,
+    expected_size_bytes: asset.stored_size_bytes,
+    expected_mime: asset.stored_mime,
+  }
+  checkpoint.storage_intents[asset.storage_path] = next
+  return next
+}
+
+export function recordReplacementStorageExistence(
+  checkpoint,
+  storagePath,
+  existedBefore
+) {
+  const intent = checkpoint.storage_intents[storagePath]
+  assert(intent, `storage intent missing: ${storagePath}`)
+  assert.equal(typeof existedBefore, 'boolean')
+  intent.existed_before = existedBefore
+  intent.status = 'observed'
+  return intent
+}
+
+export function markReplacementStorageVerified(checkpoint, storagePath) {
+  const intent = checkpoint.storage_intents[storagePath]
+  assert(intent, `storage intent missing: ${storagePath}`)
+  assert.equal(typeof intent.existed_before, 'boolean')
+  intent.status = 'verified'
+  return intent
+}
+
+export function markReplacementStorageRolledBack(checkpoint, storagePaths) {
+  for (const storagePath of storagePaths) {
+    const intent = checkpoint.storage_intents[storagePath]
+    assert(intent, `storage intent missing: ${storagePath}`)
+    intent.status = 'rolled_back'
+  }
+  checkpoint.created_storage_paths = checkpoint.created_storage_paths.filter(
+    (storagePath) => !storagePaths.includes(storagePath)
+  )
+  checkpoint.preexisting_matching_storage_paths =
+    checkpoint.preexisting_matching_storage_paths.filter(
+      (storagePath) => !storagePaths.includes(storagePath)
+    )
 }
 
 function saveCheckpoint(checkpoint) {
@@ -435,20 +488,20 @@ function rowMatchesPatch(row, before, patch) {
 async function ensureStorageObject(supabase, asset, checkpoint) {
   const existingIntent = checkpoint.storage_intents[asset.storage_path]
   if (existingIntent?.status === 'verified') return
-  if (!existingIntent) {
-    checkpoint.storage_intents[asset.storage_path] = {
-      status: 'pending',
-      expected_sha256: asset.stored_sha256,
-      expected_size_bytes: asset.stored_size_bytes,
-      expected_mime: asset.stored_mime,
-    }
-    saveCheckpoint(checkpoint)
-  }
+  prepareReplacementStorageIntent(checkpoint, asset)
+  saveCheckpoint(checkpoint)
   const publicUrl = publicUrlForAsset(supabase, asset)
   const response = await fetchWithBoundedRetry(
     `${publicUrl}?t10_replacement_probe=${asset.stored_sha256.slice(0, 16)}`,
   )
   const missing = await isMissingPublicObjectResponse(response)
+  recordReplacementStorageExistence(
+    checkpoint,
+    asset.storage_path,
+    !missing
+  )
+  // Persist ownership before upload so a crash cannot orphan an untracked object.
+  saveCheckpoint(checkpoint)
   let created = false
   if (!missing) {
     assert.equal(response.status, 200, `existing object unreadable: ${asset.storage_path}`)
@@ -461,10 +514,14 @@ async function ensureStorageObject(supabase, asset, checkpoint) {
         contentType: asset.stored_mime,
         cacheControl: T10_CACHE_CONTROL,
         upsert: false,
-      })
+    })
     if (error && !isAlreadyExists(error)) throw error
     await verifyPublicObject(asset, publicUrl)
     created = !error
+    if (isAlreadyExists(error)) {
+      checkpoint.storage_intents[asset.storage_path].existed_before = true
+      saveCheckpoint(checkpoint)
+    }
   }
   if (created) {
     checkpoint.created_storage_paths.push(asset.storage_path)
@@ -477,13 +534,13 @@ async function ensureStorageObject(supabase, asset, checkpoint) {
   checkpoint.preexisting_matching_storage_paths = [
     ...new Set(checkpoint.preexisting_matching_storage_paths),
   ]
-  checkpoint.storage_intents[asset.storage_path].status = 'verified'
+  markReplacementStorageVerified(checkpoint, asset.storage_path)
   saveCheckpoint(checkpoint)
 }
 
 async function applyReplacement() {
   const assets = loadAssets()
-  const { snapshot, checkpoint } = loadFrozenEvidence()
+  const { snapshot, checkpoint } = loadReplacementFrozenEvidence()
   const snapshotByKey = new Map(
     snapshot.rows.map((row) => [row.effective_canonical_key, row])
   )
@@ -577,7 +634,7 @@ async function verifyOldLinkedObjects(snapshot) {
 
 async function verifyFinal() {
   const assets = loadAssets()
-  const { snapshot, checkpoint } = loadFrozenEvidence()
+  const { snapshot, checkpoint } = loadReplacementFrozenEvidence()
   assert.equal(checkpoint.completed_keys.length, 11)
   const supabase = createAdminClient()
   const rows = await selectRows(supabase)
@@ -671,7 +728,9 @@ async function verifyFinal() {
 }
 
 async function rollback() {
-  const { snapshot, checkpoint } = loadFrozenEvidence()
+  const { snapshot, checkpoint } = loadReplacementFrozenEvidence({
+    bindCurrentSidecars: false,
+  })
   const supabase = createAdminClient()
   for (const before of [...snapshot.rows].reverse()) {
     if (
@@ -706,13 +765,20 @@ async function rollback() {
     delete checkpoint.rows_after[before.effective_canonical_key]
     saveCheckpoint(checkpoint)
   }
-  for (let index = 0; index < checkpoint.created_storage_paths.length; index += 100) {
-    const paths = checkpoint.created_storage_paths.slice(index, index + 100)
+  const rollbackStoragePaths = Object.entries(checkpoint.storage_intents)
+    .filter(
+      ([, intent]) =>
+        intent.existed_before === false
+        && intent.status !== 'rolled_back'
+    )
+    .map(([storagePath]) => storagePath)
+  for (let index = 0; index < rollbackStoragePaths.length; index += 100) {
+    const paths = rollbackStoragePaths.slice(index, index + 100)
     const { error } = await supabase.storage.from(T10_BUCKET).remove(paths)
     if (error) throw error
   }
-  const removed = checkpoint.created_storage_paths.length
-  checkpoint.created_storage_paths = []
+  const removed = rollbackStoragePaths.length
+  markReplacementStorageRolledBack(checkpoint, rollbackStoragePaths)
   saveCheckpoint(checkpoint)
   return { restored_rows: 11, removed_new_objects: removed }
 }

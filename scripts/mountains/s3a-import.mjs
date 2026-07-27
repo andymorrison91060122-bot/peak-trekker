@@ -33,6 +33,7 @@ const DATA_PATHS = Object.freeze({
     'photos/t10-photo-assets.jsonl'
   ),
   d10_route_note_overrides: path.join(DATA_ROOT, 'd10-route-note-overrides.json'),
+  t11_altitude_overrides: path.join(DATA_ROOT, 't11-altitude-overrides.json'),
 })
 
 export const LEGACY_REUSE_BY_CANONICAL_KEY = Object.freeze({
@@ -277,8 +278,8 @@ function buildCoordinateFields(t13, enrichment) {
   }
 }
 
-function buildFieldReviewStatus(enrichment, semantics, t13) {
-  return {
+function buildFieldReviewStatus(enrichment, semantics, t13, altitudeOverride) {
+  const status = {
     altitude: enrichment.altitude?.status ?? 'unknown',
     coordinate: t13.status,
     intro: (enrichment.intro_added_claims ?? []).some((claim) => claim.basis === 'needs_review')
@@ -286,6 +287,16 @@ function buildFieldReviewStatus(enrichment, semantics, t13) {
       : 'approved',
     semantics: semanticReviewStatus(semantics.semantic_status),
   }
+  if (altitudeOverride) {
+    status.altitude = 'approved'
+    status.altitude_resolution = {
+      provenance_label: altitudeOverride.provenance_label,
+      source_url: altitudeOverride.source_url,
+      resolution: altitudeOverride.resolution,
+      conflict_values_m: altitudeOverride.conflict_values_m,
+    }
+  }
+  return status
 }
 
 function buildRow({
@@ -359,7 +370,12 @@ function buildRow({
     semantic_review_status: semanticReviewStatus(semantics.semantic_status),
     source_payload_sha256: sourcePayloadSha,
     source_payload_hashes: sourcePayloadHashes,
-    field_review_status: buildFieldReviewStatus(enrichment, semantics, t13),
+    field_review_status: buildFieldReviewStatus(
+      enrichment,
+      semantics,
+      t13,
+      altitudeOverride
+    ),
   }
 }
 
@@ -388,6 +404,7 @@ export function buildImportPlan() {
   const importOverrides = readJson(DATA_PATHS.t13_final_import_overrides)
   const photoAssets = readJsonl(DATA_PATHS.photo_baseline_assets)
   const routeNoteOverrides = readJson(DATA_PATHS.d10_route_note_overrides)
+  const t11AltitudeOverrides = readJson(DATA_PATHS.t11_altitude_overrides)
 
   const mapByKey = (rows) => new Map(
     rows.map((row) => [row.effective_canonical_key, row])
@@ -415,10 +432,25 @@ export function buildImportPlan() {
   assert.equal(routeNoteOverrides.rows.length, 9)
   const routeNoteOverrideByKey = mapByKey(routeNoteOverrides.rows)
   assert.equal(routeNoteOverrideByKey.size, 9)
-  const altitudeOverrideByKey = new Map(
-    importOverrides.field_overrides
+  assert.equal(
+    t11AltitudeOverrides.schema_version,
+    't11-altitude-overrides-v1'
+  )
+  assert.equal(t11AltitudeOverrides.rows.length, 5)
+  const altitudeOverrideRows = [
+    ...importOverrides.field_overrides
       .filter((row) => row.field === 'altitude')
-      .map((row) => [row.effective_canonical_key, row])
+      .map((row) => ({
+        ...row,
+        provenance_label: 'T13 approved import override',
+        source_url: null,
+        resolution: row.reason ?? 'approved_import_override',
+        conflict_values_m: [],
+      })),
+    ...t11AltitudeOverrides.rows,
+  ]
+  const altitudeOverrideByKey = new Map(
+    altitudeOverrideRows.map((row) => [row.effective_canonical_key, row])
   )
 
   assert.equal(canonicals.length, 359)
@@ -485,7 +517,7 @@ export function buildImportPlan() {
   assert.equal(rows.every((row) => row.is_active === false), true)
   assert.equal(rows.every((row) => row.is_readable === false), true)
   assert.equal(rows.filter((row) => row.summit_radius_m === null).length, 17)
-  assert.equal(rows.filter((row) => row.altitude === null).length, 5)
+  assert.equal(rows.filter((row) => row.altitude === null).length, 0)
   assert.equal(rows.filter((row) => row.image_is_illustrative).length, 159)
 
   return {

@@ -1,0 +1,63 @@
+{
+  "schema_version": "t11-altitude-overrides-v1",
+  "rounding_rule": "round_half_up_to_integer_meters",
+  "rows": [
+    {
+      "effective_canonical_key": "aerjin-shan",
+      "altitude_m_exact": 5798,
+      "altitude_display_m": 5798,
+      "provenance_label": "甘肃省人民政府公开资料",
+      "source_url": "https://ydyl.gansu.gov.cn/gsydyl/gjjl/llssl/202311/t20231128_15845.html",
+      "resolution": "authority_value_selected",
+      "conflict_values_m": [
+        5798,
+        5828
+      ]
+    },
+    {
+      "effective_canonical_key": "weizhou-volcanic-landform-route",
+      "altitude_m_exact": 79.6,
+      "altitude_display_m": 80,
+      "provenance_label": "广西壮族自治区海洋局公开资料",
+      "source_url": "https://hyj.gxzf.gov.cn/zwgk_66846/hygl/t7663494.shtml",
+      "resolution": "official_island_maximum_elevation",
+      "conflict_values_m": []
+    },
+    {
+      "effective_canonical_key": "yading-xiannairi",
+      "altitude_m_exact": 5998.5,
+      "altitude_display_m": 5999,
+      "provenance_label": "自然资源部 2023",
+      "source_url": "https://www.forestry.gov.cn/c/www/kjkjxw/529581.jhtml",
+      "resolution": "user_approved_authority_value",
+      "conflict_values_m": [
+        5998.5,
+        6032
+      ]
+    },
+    {
+      "effective_canonical_key": "yading-xianuoduoji",
+      "altitude_m_exact": 5951.3,
+      "altitude_display_m": 5951,
+      "provenance_label": "自然资源部 2023",
+      "source_url": "https://www.forestry.gov.cn/c/www/kjkjxw/529581.jhtml",
+      "resolution": "user_approved_authority_value",
+      "conflict_values_m": [
+        5951.3,
+        5958
+      ]
+    },
+    {
+      "effective_canonical_key": "yading-yangmaiyong",
+      "altitude_m_exact": 6033,
+      "altitude_display_m": 6033,
+      "provenance_label": "自然资源部 2023",
+      "source_url": "https://www.forestry.gov.cn/c/www/kjkjxw/529581.jhtml",
+      "resolution": "user_approved_authority_value",
+      "conflict_values_m": [
+        5958,
+        6033
+      ]
+    }
+  ]
+}

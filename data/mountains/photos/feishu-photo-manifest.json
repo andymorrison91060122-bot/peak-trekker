@@ -32,7 +32,7 @@
  {
   "effective_canonical_key": "ailao-shan",
   "name": "哀牢山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -86,7 +86,7 @@
  {
   "effective_canonical_key": "bagong-shan",
   "name": "八公山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -219,7 +219,7 @@
  {
   "effective_canonical_key": "baiyun-shan-guangdong",
   "name": "白云山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -235,7 +235,7 @@
  {
   "effective_canonical_key": "baiyun-shan-luoyang",
   "name": "洛阳白云山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -313,7 +313,7 @@
  {
   "effective_canonical_key": "banji-feng",
   "name": "半脊峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -361,7 +361,7 @@
  {
   "effective_canonical_key": "beiling-shan",
   "name": "北灵山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -455,7 +455,7 @@
  {
   "effective_canonical_key": "bukadaban-feng",
   "name": "布喀达坂峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -471,7 +471,7 @@
  {
   "effective_canonical_key": "caishi-ji",
   "name": "采石矶",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -597,7 +597,7 @@
  {
   "effective_canonical_key": "chen-shan",
   "name": "辰山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -613,7 +613,7 @@
  {
   "effective_canonical_key": "chuandi-ding",
   "name": "船底顶",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -635,7 +635,7 @@
  {
   "effective_canonical_key": "dabai-shan",
   "name": "大白山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -719,7 +719,7 @@
  {
   "effective_canonical_key": "daiyun-shan",
   "name": "戴云山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -741,7 +741,7 @@
  {
   "effective_canonical_key": "dajue-shan",
   "name": "大觉山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -763,7 +763,7 @@
  {
   "effective_canonical_key": "dalari-feng",
   "name": "打拉日峰",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -785,7 +785,7 @@
  {
   "effective_canonical_key": "daluo-shan",
   "name": "大罗山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -871,7 +871,7 @@
  {
   "effective_canonical_key": "dangling-xiaqiangniea",
   "name": "党岭夏羌涅阿",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -917,7 +917,7 @@
  {
   "effective_canonical_key": "daqing-shan",
   "name": "大青山主峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -955,7 +955,7 @@
  {
   "effective_canonical_key": "datudingzi-shan",
   "name": "大秃顶子山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -977,7 +977,7 @@
  {
   "effective_canonical_key": "dawagengza",
   "name": "达瓦更扎",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -999,7 +999,7 @@
  {
   "effective_canonical_key": "dawei-shan",
   "name": "大围山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1021,7 +1021,7 @@
  {
   "effective_canonical_key": "diaoluo-shan",
   "name": "吊罗山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1169,7 +1169,7 @@
  {
   "effective_canonical_key": "duxiu-feng",
   "name": "独秀峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1185,30 +1185,29 @@
  {
   "effective_canonical_key": "emeishan",
   "name": "峨眉山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选1",
-   "候选2"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选1",
-    "file_token": "UjYob1EKsoEKwZxy0HQceigLnJb",
-    "name": "emeishan_1.jpg",
-    "size": 166522
+    "field": "自备图",
+    "file_token": "GaoEb9DGaoNpxexMp9xcUTX1nVg",
+    "name": "image.png",
+    "size": 302259
    },
    {
-    "field": "候选2",
-    "file_token": "SfN1bzgcNoAgPfxJA3tc7vhDncc",
-    "name": "emeishan_0.jpg",
-    "size": 29867
+    "field": "自备图",
+    "file_token": "VMuObq2TboEolYxDEkAcMw78n7c",
+    "name": "image.png",
+    "size": 245733
    }
   ]
  },
  {
   "effective_canonical_key": "erlong-shan",
   "name": "二龙山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1256,7 +1255,7 @@
  {
   "effective_canonical_key": "fenghuang-shan-heilongjiang",
   "name": "凤凰山",
-  "key_source": "filename",
+  "key_source": "name_province",
   "selected": [
    "用自备图"
   ],
@@ -1278,7 +1277,7 @@
  {
   "effective_canonical_key": "fenghuang-shan-liaoning",
   "name": "凤凰山",
-  "key_source": "filename",
+  "key_source": "name_province",
   "selected": [
    "用自备图"
   ],
@@ -1300,7 +1299,7 @@
  {
   "effective_canonical_key": "fenghuang-tuo",
   "name": "凤凰坨",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1371,7 +1370,7 @@
  {
   "effective_canonical_key": "gangshka-xuefeng",
   "name": "岗什卡雪峰",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1462,7 +1461,7 @@
  {
   "effective_canonical_key": "gechuan-jian",
   "name": "搁船尖",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1510,7 +1509,7 @@
  {
   "effective_canonical_key": "genie-shan",
   "name": "格聂神山主峰",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1562,23 +1561,16 @@
  {
   "effective_canonical_key": "gongga-jiazi-feng",
   "name": "贡嘎嘉子峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选1",
-   "候选2"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选1",
-    "file_token": "TAgwbguCQonVuCxWFvBc5dMZn5b",
-    "name": "gongga-jiazi-feng_7.jpg",
-    "size": 242472
-   },
-   {
-    "field": "候选2",
-    "file_token": "BU8ObXda5oulFZxQmkJc1wStn6f",
-    "name": "gongga-jiazi-feng_4.jpg",
-    "size": 209380
+    "field": "自备图",
+    "file_token": "S55fb9eRfo9GPhxfl4AcRVLInFh",
+    "name": "image.png",
+    "size": 4526614
    }
   ]
  },
@@ -1631,46 +1623,32 @@
  {
   "effective_canonical_key": "gongga-riwuqie-feng",
   "name": "贡嘎日乌且峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选1",
-   "候选2"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选1",
-    "file_token": "WSXfb7Yw7o96d8xQ6xTcxxJKnug",
-    "name": "gongga-riwuqie-feng_7.jpg",
-    "size": 242472
-   },
-   {
-    "field": "候选2",
-    "file_token": "R2VEbc815o6HFGxNkizcl0s5nvf",
-    "name": "gongga-riwuqie-feng_4.jpg",
-    "size": 209380
+    "field": "自备图",
+    "file_token": "AfXQbaZ8goDpPHx8fu6cw0uvndb",
+    "name": "image.png",
+    "size": 4526614
    }
   ]
  },
  {
   "effective_canonical_key": "gongga-shan",
   "name": "贡嘎雪山主峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选3",
-   "候选4"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选3",
-    "file_token": "RLk5bAjDHotnKJxSkYfcupIUnUX",
-    "name": "gongga-shan_5.jpg",
-    "size": 332307
-   },
-   {
-    "field": "候选4",
-    "file_token": "FuyYbRu36oVXwexyuzdc2RWxn5d",
-    "name": "gongga-shan_0.jpg",
-    "size": 123647
+    "field": "自备图",
+    "file_token": "Sh4dbEghKoJdefxdvuWcPpGqnkg",
+    "name": "image.png",
+    "size": 4526614
    }
   ]
  },
@@ -1700,23 +1678,16 @@
  {
   "effective_canonical_key": "gongga-xiaogongga-feng",
   "name": "贡嘎小贡嘎峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选3",
-   "候选4"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选3",
-    "file_token": "OynxbsiuWoJ4QQxgesScpSTinLc",
-    "name": "gongga-xiaogongga-feng_3.jpg",
-    "size": 331655
-   },
-   {
-    "field": "候选4",
-    "file_token": "Xpmbbfipto5lwOxEIkXc6qAfnAd",
-    "name": "gongga-xiaogongga-feng_1.jpg",
-    "size": 224653
+    "field": "自备图",
+    "file_token": "UMYIbMcC0oqJCVxPv1gc1fhInWe",
+    "name": "image.png",
+    "size": 4526614
    }
   ]
  },
@@ -1725,16 +1696,9 @@
   "name": "公盂岩",
   "key_source": "filename",
   "selected": [
-   "候选1",
    "候选2"
   ],
   "images": [
-   {
-    "field": "候选1",
-    "file_token": "OygObjkVgo9UNqx96Ficeg5Unnh",
-    "name": "gongyu-yan_8.jpg",
-    "size": 162460
-   },
    {
     "field": "候选2",
     "file_token": "Vebgb5NJkoMvImxCTmhcWgKMnQU",
@@ -1746,7 +1710,7 @@
  {
   "effective_canonical_key": "gouwei-zhang",
   "name": "狗尾嶂",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1762,7 +1726,7 @@
  {
   "effective_canonical_key": "gu-shan-fujian",
   "name": "鼓山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1778,7 +1742,7 @@
  {
   "effective_canonical_key": "gua-shan",
   "name": "卦山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1794,7 +1758,7 @@
  {
   "effective_canonical_key": "guangwu-shan",
   "name": "光雾山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1886,7 +1850,7 @@
  {
   "effective_canonical_key": "guifeng-shan",
   "name": "圭峰山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -1941,7 +1905,7 @@
  {
   "effective_canonical_key": "hailaer-xishan",
   "name": "海拉尔西山国家森林公园主峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2023,7 +1987,7 @@
  {
   "effective_canonical_key": "heban-shan",
   "name": "鹤伴山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2039,7 +2003,7 @@
  {
   "effective_canonical_key": "heishan-gu",
   "name": "黑山谷",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2055,7 +2019,7 @@
  {
   "effective_canonical_key": "helan-shan",
   "name": "贺兰山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2077,7 +2041,7 @@
  {
   "effective_canonical_key": "hengshan-hunan",
   "name": "衡山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2099,7 +2063,7 @@
  {
   "effective_canonical_key": "hengshan-shanxi",
   "name": "恒山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2137,7 +2101,7 @@
  {
   "effective_canonical_key": "huaguoshan-jiangsu",
   "name": "花果山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2159,7 +2123,7 @@
  {
   "effective_canonical_key": "huangbai-shan",
   "name": "黄柏山主峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2191,7 +2155,7 @@
  {
   "effective_canonical_key": "huanggang-liang",
   "name": "黄岗梁",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2213,7 +2177,7 @@
  {
   "effective_canonical_key": "huanggang-shan",
   "name": "黄岗山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2229,7 +2193,7 @@
  {
   "effective_canonical_key": "huanghua-liang",
   "name": "黄花梁",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2245,7 +2209,7 @@
  {
   "effective_canonical_key": "huangmao-jian",
   "name": "黄茅尖",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2261,7 +2225,7 @@
  {
   "effective_canonical_key": "huangniu-shi",
   "name": "黄牛石",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2277,16 +2241,22 @@
  {
   "effective_canonical_key": "huangshan",
   "name": "黄山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选1"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选1",
-    "file_token": "C4VDbE5q4oVtPYxekQHcMsOzndh",
-    "name": "huangshan_4.jpg",
-    "size": 291419
+    "field": "自备图",
+    "file_token": "A7tMbxRHHoqxiFxazCVcTdsRn5d",
+    "name": "image.png",
+    "size": 492070
+   },
+   {
+    "field": "自备图",
+    "file_token": "JxAnbYw62o6EiDxlV07cAzmpnTe",
+    "name": "image.png",
+    "size": 315165
    }
   ]
  },
@@ -2325,30 +2295,29 @@
  {
   "effective_canonical_key": "huashan",
   "name": "华山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选1",
-   "候选3"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选1",
-    "file_token": "IB8MbYUL9o05Npx5KsycjmOYn7c",
-    "name": "huashan_0.jpg",
-    "size": 378682
+    "field": "自备图",
+    "file_token": "AwoTbGpTPoMEsIxPe3kcefLWnke",
+    "name": "image.png",
+    "size": 408250
    },
    {
-    "field": "候选3",
-    "file_token": "QY4obkadFoZT7nxEdF7cLtFXnNc",
-    "name": "huashan_1.jpg",
-    "size": 406341
+    "field": "自备图",
+    "file_token": "GdEMbYKD0oGNxPxKl3iczvYqnJF",
+    "name": "image.png",
+    "size": 354879
    }
   ]
  },
  {
   "effective_canonical_key": "huhe-bashige",
   "name": "呼和巴什格",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2364,7 +2333,7 @@
  {
   "effective_canonical_key": "huihang-gudao-route",
   "name": "徽杭古道沿线山峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2426,7 +2395,7 @@
  {
   "effective_canonical_key": "huping-shan",
   "name": "壶瓶山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2465,7 +2434,7 @@
  {
   "effective_canonical_key": "jiaer-mengcuo",
   "name": "甲尔猛措",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2481,7 +2450,7 @@
  {
   "effective_canonical_key": "jianfeng-ling",
   "name": "尖峰岭",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2550,7 +2519,7 @@
  {
   "effective_canonical_key": "jianmen-guan",
   "name": "剑门关",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2572,7 +2541,7 @@
  {
   "effective_canonical_key": "jiaoding-shan",
   "name": "轿顶山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2611,7 +2580,7 @@
  {
   "effective_canonical_key": "jietongsusong-feng",
   "name": "解同速松峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2673,7 +2642,7 @@
  {
   "effective_canonical_key": "jinfo-shan",
   "name": "金佛山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2727,7 +2696,7 @@
  {
   "effective_canonical_key": "jinlong-shan",
   "name": "金龙山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2791,7 +2760,7 @@
  {
   "effective_canonical_key": "jiuding-shan",
   "name": "九顶山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2853,7 +2822,7 @@
  {
   "effective_canonical_key": "jiulong-shan-zhejiang",
   "name": "九龙山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2869,7 +2838,7 @@
  {
   "effective_canonical_key": "jiushan-ding",
   "name": "九山顶",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2891,7 +2860,7 @@
  {
   "effective_canonical_key": "jiuwan-shan",
   "name": "九万山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2923,7 +2892,7 @@
  {
   "effective_canonical_key": "junfeng-shan",
   "name": "军峰山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -2939,23 +2908,16 @@
  {
   "effective_canonical_key": "kawagebo",
   "name": "卡瓦格博峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选1",
-   "候选5"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选1",
-    "file_token": "FR2Xb3z3soj8qBx4DytcAxjXnVe",
-    "name": "kawagebo_0.jpg",
-    "size": 311702
-   },
-   {
-    "field": "候选5",
-    "file_token": "W4NWbT4mKoCiLMx17DpcZO2ynOe",
-    "name": "kawagebo_2.jpg",
-    "size": 273513
+    "field": "自备图",
+    "file_token": "YdyYbekbroDm64x6yYZcKsOFnug",
+    "name": "image.png",
+    "size": 247510
    }
   ]
  },
@@ -3049,7 +3011,7 @@
  {
   "effective_canonical_key": "lafa-shan",
   "name": "拉法山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3110,7 +3072,7 @@
  {
   "effective_canonical_key": "langya-shan-anhui",
   "name": "琅琊山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3204,7 +3166,7 @@
  {
   "effective_canonical_key": "laoyacha-nao",
   "name": "老鸦岔垴",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3220,7 +3182,7 @@
  {
   "effective_canonical_key": "laoye-ling",
   "name": "老爷岭",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3307,7 +3269,7 @@
  {
   "effective_canonical_key": "lingtong-shan",
   "name": "灵通山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3323,7 +3285,7 @@
  {
   "effective_canonical_key": "lionggongdao-zhufeng",
   "name": "刘公岛主峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3394,7 +3356,7 @@
  {
   "effective_canonical_key": "longhu-shan",
   "name": "龙虎山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3510,7 +3472,7 @@
  {
   "effective_canonical_key": "lushan",
   "name": "庐山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3542,7 +3504,7 @@
  {
   "effective_canonical_key": "luzi-feng",
   "name": "鲁孜峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3636,7 +3598,7 @@
  {
   "effective_canonical_key": "mangdang-shan",
   "name": "芒砀山主峰",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3652,7 +3614,7 @@
  {
   "effective_canonical_key": "manhan-shan",
   "name": "蛮汉山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3674,7 +3636,7 @@
  {
   "effective_canonical_key": "mao-shan",
   "name": "茅山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3706,7 +3668,7 @@
  {
   "effective_canonical_key": "maoer-shan-jilin",
   "name": "帽儿山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3722,7 +3684,7 @@
  {
   "effective_canonical_key": "maya-xueshan",
   "name": "马牙雪山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3738,7 +3700,7 @@
  {
   "effective_canonical_key": "meihua-shan-fujian",
   "name": "梅花山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3754,7 +3716,7 @@
  {
   "effective_canonical_key": "mengdagangri-feng",
   "name": "蒙达岗日峰",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3825,7 +3787,7 @@
  {
   "effective_canonical_key": "mingyue-shan",
   "name": "明月山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3857,7 +3819,7 @@
  {
   "effective_canonical_key": "mulan-shan",
   "name": "木兰山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3873,23 +3835,22 @@
  {
   "effective_canonical_key": "muztagata-feng",
   "name": "慕士塔格峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选1",
-   "候选2"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选1",
-    "file_token": "F9TgbE2bCojSh3xDz5dcQ424nDc",
-    "name": "muztagata-feng_0.jpg",
-    "size": 141606
+    "field": "自备图",
+    "file_token": "EiEqbgMuAoRzNQxLRdjc7eyunsc",
+    "name": "image.png",
+    "size": 608613
    },
    {
-    "field": "候选2",
-    "file_token": "IuZCbRZyIouKxZxcIsjcjpp6nle",
-    "name": "muztagata-feng_2.jpg",
-    "size": 309681
+    "field": "自备图",
+    "file_token": "WqeWbcXRFoJ3avx8CmRclUnGnPh",
+    "name": "image.png",
+    "size": 875423
    }
   ]
  },
@@ -3928,7 +3889,7 @@
  {
   "effective_canonical_key": "nanfeng-mian",
   "name": "南风面",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -3944,7 +3905,7 @@
  {
   "effective_canonical_key": "nangong-shan",
   "name": "南宫山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4022,7 +3983,7 @@
  {
   "effective_canonical_key": "nianbaoyuze",
   "name": "年保玉则",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4152,7 +4113,7 @@
  {
   "effective_canonical_key": "putuoshan-foding-shan",
   "name": "普陀山佛顶山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4200,7 +4161,7 @@
  {
   "effective_canonical_key": "qianling-shan",
   "name": "黔灵山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4278,7 +4239,7 @@
  {
   "effective_canonical_key": "qinghaihu-nanshan",
   "name": "青海湖南山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4294,7 +4255,7 @@
  {
   "effective_canonical_key": "qingliang-feng",
   "name": "清凉峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4310,7 +4271,7 @@
  {
   "effective_canonical_key": "qingyuan-shan",
   "name": "清源山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4326,7 +4287,7 @@
  {
   "effective_canonical_key": "qingyun-shan-fujian",
   "name": "青云山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4342,7 +4303,7 @@
  {
   "effective_canonical_key": "qiniang-shan",
   "name": "七娘山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4358,7 +4319,7 @@
  {
   "effective_canonical_key": "qiongmugangri-feng",
   "name": "穷母岗日峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4406,7 +4367,7 @@
  {
   "effective_canonical_key": "qiyun-shan-jiangxi",
   "name": "齐云山",
-  "key_source": "filename",
+  "key_source": "name_province",
   "selected": [
    "用自备图"
   ],
@@ -4428,7 +4389,7 @@
  {
   "effective_canonical_key": "qizi-feng",
   "name": "启孜峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4466,7 +4427,7 @@
  {
   "effective_canonical_key": "sanao-aotaiji",
   "name": "三奥雪山奥太基",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4482,7 +4443,7 @@
  {
   "effective_canonical_key": "sanao-aotaimei",
   "name": "三奥雪山奥太美",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4498,7 +4459,7 @@
  {
   "effective_canonical_key": "sanao-aotaina",
   "name": "三奥雪山奥太娜",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4530,7 +4491,7 @@
  {
   "effective_canonical_key": "sangdankangsang-feng",
   "name": "桑丹康桑峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4599,7 +4560,7 @@
  {
   "effective_canonical_key": "shao-shan",
   "name": "韶山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4631,7 +4592,7 @@
  {
   "effective_canonical_key": "shengtang-shan",
   "name": "圣堂山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4647,16 +4608,22 @@
  {
   "effective_canonical_key": "shennong-ding",
   "name": "神农顶",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选1"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选1",
-    "file_token": "ETZobTbKVoBZIvx1smYcjO8hnme",
-    "name": "shennong-ding_5.jpg",
-    "size": 573209
+    "field": "自备图",
+    "file_token": "ITGob48lBoDt0wx6ctUcq5sjnHf",
+    "name": "image.png",
+    "size": 233138
+   },
+   {
+    "field": "自备图",
+    "file_token": "Pq8dbupZ7oy3tpxfKZXceBpUnMd",
+    "name": "image.png",
+    "size": 318831
    }
   ]
  },
@@ -4718,7 +4685,7 @@
  {
   "effective_canonical_key": "shigao-shan",
   "name": "石膏山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4773,7 +4740,7 @@
  {
   "effective_canonical_key": "shishapangma-lenggang-feng",
   "name": "冷岗峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4789,7 +4756,7 @@
  {
   "effective_canonical_key": "shiwan-dashan",
   "name": "十万大山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4923,7 +4890,7 @@
  {
   "effective_canonical_key": "simian-shan",
   "name": "四面山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -4998,30 +4965,29 @@
  {
   "effective_canonical_key": "songshan",
   "name": "嵩山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选1",
-   "候选2"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选1",
-    "file_token": "E2EibwqVcoY65PxE9etc8sf0npg",
-    "name": "songshan_0.jpg",
-    "size": 443406
+    "field": "自备图",
+    "file_token": "XhTVbWMHronHSWxsdgicTMhInEc",
+    "name": "image.png",
+    "size": 704845
    },
    {
-    "field": "候选2",
-    "file_token": "U4TubfcOVoFMpbxqi0jcoYZ8n7g",
-    "name": "songshan_2.jpg",
-    "size": 804177
+    "field": "自备图",
+    "file_token": "WudebX9MxoeLItx7u6qcMwqCn4c",
+    "name": "image.png",
+    "size": 424969
    }
   ]
  },
  {
   "effective_canonical_key": "sumu-shan",
   "name": "苏木山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5076,7 +5042,7 @@
  {
   "effective_canonical_key": "taishan",
   "name": "泰山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5098,7 +5064,7 @@
  {
   "effective_canonical_key": "taizi-jian",
   "name": "太子尖",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5136,7 +5102,7 @@
  {
   "effective_canonical_key": "tianhua-shan",
   "name": "天华山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5168,7 +5134,7 @@
  {
   "effective_canonical_key": "tianma-shan-shanghai",
   "name": "天马山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5184,7 +5150,7 @@
  {
   "effective_canonical_key": "tianmu-shan",
   "name": "天目山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5200,7 +5166,7 @@
  {
   "effective_canonical_key": "tianmushan-qijian-route",
   "name": "天目山七尖穿越线",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5216,7 +5182,7 @@
  {
   "effective_canonical_key": "tianping-shan",
   "name": "天平山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5248,7 +5214,7 @@
  {
   "effective_canonical_key": "tiantang-ding",
   "name": "天堂顶",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5310,7 +5276,7 @@
  {
   "effective_canonical_key": "tonggong-jian",
   "name": "童公尖",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5379,7 +5345,7 @@
  {
   "effective_canonical_key": "wanfo-shan-anhui",
   "name": "万佛山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5457,7 +5423,7 @@
  {
   "effective_canonical_key": "wangxiang-yan",
   "name": "太行大峡谷王相岩",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5489,7 +5455,7 @@
  {
   "effective_canonical_key": "wawu-shan",
   "name": "瓦屋山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5505,7 +5471,7 @@
  {
   "effective_canonical_key": "weizhou-volcanic-landform-route",
   "name": "涠洲岛火山地貌游览线",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5521,16 +5487,22 @@
  {
   "effective_canonical_key": "wudangshan",
   "name": "武当山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选1"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选1",
-    "file_token": "YbZbb33gaomnoux9gjhcCDw1nvd",
-    "name": "wudangshan_0.jpg",
-    "size": 351901
+    "field": "自备图",
+    "file_token": "OKuobUHDVovqNXxP7CccxecmnBc",
+    "name": "image.png",
+    "size": 315011
+   },
+   {
+    "field": "自备图",
+    "file_token": "E30lbxdmCogTF7x7PXNcmWihnWd",
+    "name": "image.png",
+    "size": 284092
    }
   ]
  },
@@ -5592,7 +5564,7 @@
  {
   "effective_canonical_key": "wuliang-shan",
   "name": "无量山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5670,7 +5642,7 @@
  {
   "effective_canonical_key": "wutaishan",
   "name": "五台山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5698,7 +5670,7 @@
  {
   "effective_canonical_key": "wutong-shan",
   "name": "梧桐山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5714,7 +5686,7 @@
  {
   "effective_canonical_key": "wuyue-zhai",
   "name": "五岳寨",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5769,7 +5741,7 @@
  {
   "effective_canonical_key": "xiang-shan",
   "name": "香山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5807,7 +5779,7 @@
  {
   "effective_canonical_key": "xiangtang-shan",
   "name": "响堂山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5862,7 +5834,7 @@
  {
   "effective_canonical_key": "xiaoxinganling-liangshui",
   "name": "小兴安岭凉水主峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5878,7 +5850,7 @@
  {
   "effective_canonical_key": "xiata-gudao-route",
   "name": "夏塔古道沿线山峰",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5894,7 +5866,7 @@
  {
   "effective_canonical_key": "xicheng-shan",
   "name": "析城山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5910,7 +5882,7 @@
  {
   "effective_canonical_key": "xiling-xueshan",
   "name": "西岭雪山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -5926,7 +5898,7 @@
  {
   "effective_canonical_key": "xiqiao-shan",
   "name": "西樵山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6020,7 +5992,7 @@
  {
   "effective_canonical_key": "xuelong-bao",
   "name": "雪隆包",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6036,7 +6008,7 @@
  {
   "effective_canonical_key": "xueshan-zhang",
   "name": "雪山嶂",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6129,7 +6101,7 @@
  {
   "effective_canonical_key": "yalongwan-canghai-lou",
   "name": "亚龙湾热带天堂森林公园主峰",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6151,30 +6123,29 @@
  {
   "effective_canonical_key": "yandangshan-zhejiang",
   "name": "雁荡山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选3",
-   "候选2"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选3",
-    "file_token": "TTrObAQ4Qo90KdxiMhucEIQfnXc",
-    "name": "yandangshan-zhejiang_2.jpg",
-    "size": 877201
+    "field": "自备图",
+    "file_token": "PdzPb94iiofTyexMFi9cPRW4ndb",
+    "name": "image.png",
+    "size": 374264
    },
    {
-    "field": "候选2",
-    "file_token": "PBALbU86IojclCx93Mhc3MxBnwh",
-    "name": "yandangshan-zhejiang_1.jpg",
-    "size": 1126915
+    "field": "自备图",
+    "file_token": "WFonbWv1Hot7Q6xeGtnchQVMnYd",
+    "name": "image.png",
+    "size": 379516
    }
   ]
  },
  {
   "effective_canonical_key": "yangcao-shan",
   "name": "羊草山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6226,7 +6197,7 @@
  {
   "effective_canonical_key": "yi-shan",
   "name": "峄山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6264,7 +6235,7 @@
  {
   "effective_canonical_key": "yingge-ling",
   "name": "鹦哥岭",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6280,7 +6251,7 @@
  {
   "effective_canonical_key": "yinna-shan",
   "name": "阴那山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6302,7 +6273,7 @@
  {
   "effective_canonical_key": "yintiao-ling",
   "name": "阴条岭",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6324,7 +6295,7 @@
  {
   "effective_canonical_key": "yishan-shandong",
   "name": "沂山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6340,7 +6311,7 @@
  {
   "effective_canonical_key": "yiwulu-shan",
   "name": "医巫闾山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6372,7 +6343,7 @@
  {
   "effective_canonical_key": "yubeng-route",
   "name": "雨崩徒步线",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6388,7 +6359,7 @@
  {
   "effective_canonical_key": "yuelu-shan",
   "name": "岳麓山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6404,7 +6375,7 @@
  {
   "effective_canonical_key": "yulong-xueshan",
   "name": "玉龙雪山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6458,7 +6429,7 @@
  {
   "effective_canonical_key": "yunlong-shan",
   "name": "云龙山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6572,7 +6543,7 @@
  {
   "effective_canonical_key": "yuzhu-yuxu-feng",
   "name": "玉虚峰",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6588,7 +6559,7 @@
  {
   "effective_canonical_key": "zhangjiajie-qixing-shan",
   "name": "张家界七星山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6610,23 +6581,23 @@
  {
   "effective_canonical_key": "zhangjiajie-tianmen-shan",
   "name": "张家界天门山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
-   "候选1"
+   "用自备图"
   ],
   "images": [
    {
-    "field": "候选1",
-    "file_token": "PHfHbW0Rson2j2xvTuactzfbnDg",
-    "name": "zhangjiajie-tianmen-shan_0.jpg",
-    "size": 1219744
+    "field": "自备图",
+    "file_token": "Demab4EpLoz6cVx7yNwcKK0snnb",
+    "name": "image.png",
+    "size": 389942
    }
   ]
  },
  {
   "effective_canonical_key": "zhangshi-yan",
   "name": "嶂石岩",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6678,7 +6649,7 @@
  {
   "effective_canonical_key": "zhaogong-shan",
   "name": "赵公山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6694,7 +6665,7 @@
  {
   "effective_canonical_key": "zhongnan-shan",
   "name": "终南山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6755,7 +6726,7 @@
  {
   "effective_canonical_key": "zhuoer-shan",
   "name": "卓尔山",
-  "key_source": "filename",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],
@@ -6777,7 +6748,7 @@
  {
   "effective_canonical_key": "zijin-shan-jiangsu",
   "name": "紫金山",
-  "key_source": "name-unique",
+  "key_source": "unique_name",
   "selected": [
    "用自备图"
   ],

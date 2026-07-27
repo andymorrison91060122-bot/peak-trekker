@@ -3,8 +3,10 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
-export const T10_MANIFEST_SHA256 =
+export const T10_BASELINE_MANIFEST_SHA256 =
   '57fd2927eef49617963c56448df4511c631a9eabdaf0a40aee5e6309437aaf88'
+export const T10_MANIFEST_SHA256 =
+  '6dafe46780262cd404af0dee8e1c50a3e2fde50068f27c628273ccebc5e392ff'
 export const T10_BUCKET = 'mountain-media'
 export const T10_CACHE_CONTROL = '31536000'
 export const T10_MAX_BYTES = 8 * 1024 * 1024
@@ -202,17 +204,6 @@ export function validatePhotoManifest(manifest, sourceRows = []) {
       !asset.is_user_supplied
       && ILLUSTRATIVE_REPRESENTATIVE_KEYS.has(asset.effective_canonical_key)
   )
-  assert.equal(assets.length, 519)
-  assert.deepEqual(Object.fromEntries([...imageCounts]), {
-    1: 218,
-    2: 122,
-    3: 19,
-  })
-  assert.equal(userSupplied.length, 200)
-  assert.equal(
-    new Set(userSupplied.map((asset) => asset.effective_canonical_key)).size,
-    149
-  )
   assert.equal(representative.length, 11)
   assert.equal(
     new Set(representative.map((asset) => asset.effective_canonical_key)).size,
@@ -226,7 +217,10 @@ export function validatePhotoManifest(manifest, sourceRows = []) {
       single_image_mountains: imageCounts.get(1),
       double_image_mountains: imageCounts.get(2),
       triple_image_mountains: imageCounts.get(3),
-      user_supplied_mountains: 149,
+      user_supplied_mountains:
+        new Set(
+          userSupplied.map((asset) => asset.effective_canonical_key)
+        ).size,
       user_supplied_images: userSupplied.length,
       representative_mountains: 10,
       representative_images: representative.length,

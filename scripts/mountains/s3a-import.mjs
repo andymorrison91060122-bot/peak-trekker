@@ -16,6 +16,7 @@ const FROZEN_SHA256 = Object.freeze({
   entity_semantics: '45e8685f42968cedfa6b3f7adbb998c5cdbe28af74b823b77975be838aa0cd8a',
   effective_canonical_enrichment: 'b3f43ef40e009c35ee1ca96aed9d55038afe4eb76a39b9c7bb37f2e4404cfee5',
   t13_final_coordinate: 'eada39739bc96daeee2352df81b3eaac5896b424a27ea17e8bef507579b78375',
+  photo_baseline_assets: '306d309e72630ef124a7e62863bb4c5e40fc4493dd9949d74ac1d0e166e496ae',
 })
 
 const DATA_PATHS = Object.freeze({
@@ -27,7 +28,10 @@ const DATA_PATHS = Object.freeze({
   ),
   t13_final_coordinate: path.join(T13_ROOT, 't13-final-coordinate.jsonl'),
   t13_final_import_overrides: path.join(T13_ROOT, 't13-final-import-overrides.json'),
-  photo_manifest: path.join(DATA_ROOT, 'photos/feishu-photo-manifest.json'),
+  photo_baseline_assets: path.join(
+    DATA_ROOT,
+    'photos/t10-photo-assets.jsonl'
+  ),
   d10_route_note_overrides: path.join(DATA_ROOT, 'd10-route-note-overrides.json'),
 })
 
@@ -382,7 +386,7 @@ export function buildImportPlan() {
   const enrichment = readJsonl(DATA_PATHS.effective_canonical_enrichment)
   const t13 = readJsonl(DATA_PATHS.t13_final_coordinate)
   const importOverrides = readJson(DATA_PATHS.t13_final_import_overrides)
-  const photos = readJson(DATA_PATHS.photo_manifest)
+  const photoAssets = readJsonl(DATA_PATHS.photo_baseline_assets)
   const routeNoteOverrides = readJson(DATA_PATHS.d10_route_note_overrides)
 
   const mapByKey = (rows) => new Map(
@@ -391,7 +395,22 @@ export function buildImportPlan() {
   const semanticsByKey = mapByKey(semantics)
   const enrichmentByKey = mapByKey(enrichment)
   const t13ByKey = mapByKey(t13)
-  const photoByKey = mapByKey(photos)
+  const photoByKey = new Map()
+  for (const asset of photoAssets) {
+    const row = photoByKey.get(asset.effective_canonical_key) ?? {
+      effective_canonical_key: asset.effective_canonical_key,
+      images: [],
+    }
+    row.images.push({
+      field: asset.field,
+      name: asset.original_name,
+      order: asset.order,
+    })
+    photoByKey.set(asset.effective_canonical_key, row)
+  }
+  for (const row of photoByKey.values()) {
+    row.images.sort((left, right) => left.order - right.order)
+  }
   assert.equal(routeNoteOverrides.schema_version, 'd10-route-note-overrides-v1')
   assert.equal(routeNoteOverrides.rows.length, 9)
   const routeNoteOverrideByKey = mapByKey(routeNoteOverrides.rows)

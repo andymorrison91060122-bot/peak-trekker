@@ -16,9 +16,16 @@ import {
   sanitizeStorageBasename,
   sha256File,
   sourceTypeForField,
+  T10_BASELINE_MANIFEST_SHA256,
   T10_MANIFEST_SHA256,
   validatePhotoManifest,
 } from '../scripts/mountains/t10-photo-lib.mjs'
+import {
+  buildManifestFromFeishuRecords,
+} from '../scripts/mountains/t10-photo-manifest.mjs'
+import {
+  REPLACEMENT_COUNTS,
+} from '../scripts/mountains/t10-photo-replacement-20260728.mjs'
 import {
   uniqueCandidateAttributions,
 } from '../scripts/mountains/t10-photo-attribution.mjs'
@@ -37,25 +44,148 @@ const MANIFEST_PATH = path.join(
   'data/mountains/photos/feishu-photo-manifest.json'
 )
 
-test('T10 manifest is frozen and reproduces the 359/519 baseline', () => {
+test('T10 current manifest is frozen and reflects the 2026-07-28 Feishu dump', () => {
   assert.equal(sha256File(MANIFEST_PATH), T10_MANIFEST_SHA256)
   const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'))
   const result = validatePhotoManifest(manifest)
   assert.deepEqual(result.summary, {
     mountains: 359,
-    images: 519,
-    single_image_mountains: 218,
-    double_image_mountains: 122,
+    images: 516,
+    single_image_mountains: 221,
+    double_image_mountains: 119,
     triple_image_mountains: 19,
-    user_supplied_mountains: 149,
-    user_supplied_images: 200,
+    user_supplied_mountains: 163,
+    user_supplied_images: 222,
     representative_mountains: 10,
     representative_images: 11,
   })
   assert.equal(
     new Set(result.assets.map((asset) => asset.file_token)).size,
-    519
+    516
   )
+})
+
+test('historical full-ingest evidence remains bound to the v1 manifest', () => {
+  const snapshot = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        'data/mountains/photos/t10-db-image-snapshot.json'
+      ),
+      'utf8'
+    )
+  )
+  const checkpoint = JSON.parse(
+    fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        'data/mountains/photos/t10-ingest-checkpoint.json'
+      ),
+      'utf8'
+    )
+  )
+  assert.equal(
+    snapshot.input_binding.source_manifest_sha256,
+    T10_BASELINE_MANIFEST_SHA256
+  )
+  assert.equal(
+    checkpoint.input_binding.source_manifest_sha256,
+    T10_BASELINE_MANIFEST_SHA256
+  )
+  assert.equal(checkpoint.verified_storage_paths.length, 519)
+})
+
+test('manifest rebuild is deterministic and duplicate self-image names use province identity', () => {
+  const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'))
+  const canonicals = fs
+    .readFileSync(
+      path.join(
+        REPO_ROOT,
+        'data/mountains/ledger/effective_canonicals.jsonl'
+      ),
+      'utf8'
+    )
+    .trim()
+    .split('\n')
+    .map((line) => JSON.parse(line))
+  const canonicalByKey = new Map(
+    canonicals.map((row) => [row.effective_canonical_key, row])
+  )
+  const records = manifest.map((row) => {
+    const fields = {
+      山名: row.name,
+      省份: canonicalByKey.get(row.effective_canonical_key).provinces[0],
+      选中: row.selected,
+    }
+    for (const image of row.images) {
+      const attachments = fields[image.field] ?? []
+      attachments.push({
+        file_token: image.file_token,
+        name: image.name,
+        size: image.size,
+      })
+      fields[image.field] = attachments
+    }
+    return { fields }
+  })
+  assert.deepEqual(
+    buildManifestFromFeishuRecords(records, manifest, canonicals),
+    manifest
+  )
+  const duplicateSelf = records.find(
+    (row) =>
+      row.fields.山名 === '凤凰山'
+      && row.fields.省份 === '黑龙江省'
+  )
+  duplicateSelf.fields.省份 = '不存在省'
+  assert.throws(
+    () => buildManifestFromFeishuRecords(records, manifest, canonicals),
+    /canonical identity unresolved/
+  )
+})
+
+test('2026-07-28 replacement is pinned to 11 visible mountains and 19 user images', () => {
+  assert.equal(Object.keys(REPLACEMENT_COUNTS).length, 11)
+  assert.equal(
+    Object.values(REPLACEMENT_COUNTS).reduce((sum, count) => sum + count, 0),
+    19
+  )
+  const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'))
+  const byKey = new Map(
+    manifest.map((row) => [row.effective_canonical_key, row])
+  )
+  for (const [key, count] of Object.entries(REPLACEMENT_COUNTS)) {
+    const row = byKey.get(key)
+    assert(row, key)
+    assert.equal(row.images.length, count, key)
+    assert.equal(
+      row.images.every((image) => image.field === '自备图'),
+      true,
+      key
+    )
+  }
+})
+
+test('replacement script guards visibility flags and retains old linked objects', () => {
+  const source = fs.readFileSync(
+    path.join(
+      REPO_ROOT,
+      'scripts/mountains/t10-photo-replacement-20260728.mjs'
+    ),
+    'utf8'
+  )
+  assert.match(source, /upsert: false/)
+  assert.match(source, /\.eq\('is_active', before\.is_active\)/)
+  assert.match(source, /\.eq\('is_readable', before\.is_readable\)/)
+  assert.match(source, /old_linked_objects_retained_and_verified/)
+  assert.match(source, /provider: 'user_supplied'/)
+  assert.match(source, /license_id: 'user_owned'/)
+  assert.match(source, /review_status: 'approved_by_user'/)
+  const oldObjectVerifier = source.slice(
+    source.indexOf('async function verifyOldLinkedObjects('),
+    source.indexOf('async function verifyFinal(')
+  )
+  assert.doesNotMatch(oldObjectVerifier, /\.remove\(/)
 })
 
 test('pending storage reconciliation accepts only Supabase object-not-found responses', async () => {

@@ -1,0 +1,16 @@
+{
+  "covers": 359,
+  "flags_unchanged": true,
+  "gallery_images": 161,
+  "gallery_rows": 142,
+  "illustrative_rows": 170,
+  "manifest_sha256": "6dafe46780262cd404af0dee8e1c50a3e2fde50068f27c628273ccebc5e392ff",
+  "old_linked_objects_retained_and_verified": 18,
+  "replaced_mountains": 11,
+  "replacement_bytes_verified": 11801124,
+  "replacement_images": 19,
+  "schema_version": "t10-photo-replacement-summary-v1",
+  "visible_rows": 15,
+  "visible_unresolved_attribution_images": 0,
+  "visible_unresolved_attribution_mountains": 0
+}

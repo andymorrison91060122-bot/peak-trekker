@@ -1,0 +1,686 @@
+{
+  "input_binding": {
+    "replacement_asset_sha256": "462cb44fc9f78ff7fffc3dc74054948fefba99e6872db26839143af8dad9e249",
+    "source_manifest_sha256": "6dafe46780262cd404af0dee8e1c50a3e2fde50068f27c628273ccebc5e392ff"
+  },
+  "old_linked_objects": [
+    {
+      "effective_canonical_key": "emeishan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/emeishan/01-emeishan-1.jpg",
+      "storage_path": "catalog/emeishan/01-emeishan-1.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "c3853a7901860c6387b721a13a6ba0dc912770cc370c6fa1dd55ef075037c9c9",
+      "stored_size_bytes": 166522
+    },
+    {
+      "effective_canonical_key": "emeishan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/emeishan/02-emeishan-0.jpg",
+      "storage_path": "catalog/emeishan/02-emeishan-0.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "b3026dde722a0fce7d7833e8743cfc579e5f2d77a579029fd44bed4635e9613a",
+      "stored_size_bytes": 29867
+    },
+    {
+      "effective_canonical_key": "gongga-shan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-shan/01-gongga-shan-5.jpg",
+      "storage_path": "catalog/gongga-shan/01-gongga-shan-5.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "1326fc800190b70bc2c5fddbc7e30e96df61c0c5ada32e635919c2210d70a22b",
+      "stored_size_bytes": 332307
+    },
+    {
+      "effective_canonical_key": "gongga-shan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-shan/02-gongga-shan-0.jpg",
+      "storage_path": "catalog/gongga-shan/02-gongga-shan-0.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "420827fec344e4fef0e6520ca83432008e7f1c69479bd74357c97e440e82ccf1",
+      "stored_size_bytes": 123647
+    },
+    {
+      "effective_canonical_key": "huangshan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/huangshan/01-huangshan-4.jpg",
+      "storage_path": "catalog/huangshan/01-huangshan-4.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "1d578df8fb9db3ebcbe70c8d912604a9feacc8eb1269815e0f84e4558a2bd137",
+      "stored_size_bytes": 291419
+    },
+    {
+      "effective_canonical_key": "huashan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/huashan/01-huashan-0.jpg",
+      "storage_path": "catalog/huashan/01-huashan-0.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "29c0f5f84e4ae91dd65b0d8dca39364b43f9090e0ed963c74c593b78d02bf468",
+      "stored_size_bytes": 378682
+    },
+    {
+      "effective_canonical_key": "huashan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/huashan/02-huashan-1.jpg",
+      "storage_path": "catalog/huashan/02-huashan-1.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "cf10b1bc26e01ddc07f6040989643ad33fdd467c925c817ede7b7131319b0a32",
+      "stored_size_bytes": 406341
+    },
+    {
+      "effective_canonical_key": "kawagebo",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/kawagebo/01-kawagebo-0.jpg",
+      "storage_path": "catalog/kawagebo/01-kawagebo-0.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "08b520a9cafb3aa94de162575d225775c0b1ecd444ca1d91591be46758042581",
+      "stored_size_bytes": 311702
+    },
+    {
+      "effective_canonical_key": "kawagebo",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/kawagebo/02-kawagebo-2.jpg",
+      "storage_path": "catalog/kawagebo/02-kawagebo-2.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "1d10dc15aa4be420bc9e13fe03e70bc1bfaba3521eb23029c8df74167f0813c8",
+      "stored_size_bytes": 273513
+    },
+    {
+      "effective_canonical_key": "muztagata-feng",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/muztagata-feng/01-muztagata-feng-0.jpg",
+      "storage_path": "catalog/muztagata-feng/01-muztagata-feng-0.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "9054be25d4bd9f79f962a09c1ea3d8e0e6847aa2d63448e81e6cbe6468592bb0",
+      "stored_size_bytes": 141606
+    },
+    {
+      "effective_canonical_key": "muztagata-feng",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/muztagata-feng/02-muztagata-feng-2.jpg",
+      "storage_path": "catalog/muztagata-feng/02-muztagata-feng-2.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "4238d89c06a7ecc34f34b88f1df988af8b46b1e527fada7d1d497e9383a9d8e4",
+      "stored_size_bytes": 309681
+    },
+    {
+      "effective_canonical_key": "shennong-ding",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/shennong-ding/01-shennong-ding-5.jpg",
+      "storage_path": "catalog/shennong-ding/01-shennong-ding-5.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "d21c2be2f81f322bfbc2d37df35451b5d6ab9a11c3223d1f641ddb197deeba2e",
+      "stored_size_bytes": 573209
+    },
+    {
+      "effective_canonical_key": "songshan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/songshan/01-songshan-0.jpg",
+      "storage_path": "catalog/songshan/01-songshan-0.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "56f930003ae8d5fade396f6d0c03aafa375b1a3015b926b081290de2cf9fe4fd",
+      "stored_size_bytes": 443406
+    },
+    {
+      "effective_canonical_key": "songshan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/songshan/02-songshan-2.jpg",
+      "storage_path": "catalog/songshan/02-songshan-2.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "2c4f3f77024605fbb82c175da2f4b41937cd84c3eb162a6b39a730f3257dbf8f",
+      "stored_size_bytes": 804177
+    },
+    {
+      "effective_canonical_key": "wudangshan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/wudangshan/01-wudangshan-0.jpg",
+      "storage_path": "catalog/wudangshan/01-wudangshan-0.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "cf03088fc17766307e6fc50e3a4f66f64b5642ad7884b1df40a1e0db6578b8be",
+      "stored_size_bytes": 351901
+    },
+    {
+      "effective_canonical_key": "yandangshan-zhejiang",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/yandangshan-zhejiang/01-yandangshan-zhejiang-2.jpg",
+      "storage_path": "catalog/yandangshan-zhejiang/01-yandangshan-zhejiang-2.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "5f2a39d9eb2328502400668c63a2b0d462f2baa0fecad4afbb8807886b08a22d",
+      "stored_size_bytes": 877201
+    },
+    {
+      "effective_canonical_key": "yandangshan-zhejiang",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/yandangshan-zhejiang/02-yandangshan-zhejiang-1.jpg",
+      "storage_path": "catalog/yandangshan-zhejiang/02-yandangshan-zhejiang-1.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "c7c650f134cec3437ba8dea15fd988c8f8fe6865e263d7ccccb22ca844ecb1ba",
+      "stored_size_bytes": 1126915
+    },
+    {
+      "effective_canonical_key": "zhangjiajie-tianmen-shan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/zhangjiajie-tianmen-shan/01-zhangjiajie-tianmen-shan-0.jpg",
+      "storage_path": "catalog/zhangjiajie-tianmen-shan/01-zhangjiajie-tianmen-shan-0.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "cf7ad30827847e32722cfa72784eec4306e2d6db22ba0fed64c4a36b6ca2c57e",
+      "stored_size_bytes": 1219744
+    }
+  ],
+  "rows": [
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/emeishan/01-emeishan-1.jpg",
+      "effective_canonical_key": "emeishan",
+      "gallery_images": [
+        "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/emeishan/02-emeishan-0.jpg"
+      ],
+      "id": "f52bd0d3-2331-4404-b522-aaca38dff872",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "c3853a7901860c6387b721a13a6ba0dc912770cc370c6fa1dd55ef075037c9c9",
+          "filename": "emeishan_1.jpg",
+          "height": 854,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "c3853a7901860c6387b721a13a6ba0dc912770cc370c6fa1dd55ef075037c9c9",
+          "original_size_bytes": 166522,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/emeishan/01-emeishan-1.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/emeishan/01-emeishan-1.jpg",
+          "stored_size_bytes": 166522,
+          "width": 1280
+        },
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "b3026dde722a0fce7d7833e8743cfc579e5f2d77a579029fd44bed4635e9613a",
+          "filename": "emeishan_0.jpg",
+          "height": 354,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 2,
+          "original_file_sha256": "b3026dde722a0fce7d7833e8743cfc579e5f2d77a579029fd44bed4635e9613a",
+          "original_size_bytes": 29867,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/emeishan/02-emeishan-0.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/emeishan/02-emeishan-0.jpg",
+          "stored_size_bytes": 29867,
+          "width": 600
+        }
+      ],
+      "is_active": true,
+      "is_readable": true
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-shan/01-gongga-shan-5.jpg",
+      "effective_canonical_key": "gongga-shan",
+      "gallery_images": [
+        "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-shan/02-gongga-shan-0.jpg"
+      ],
+      "id": "67bf0560-1e07-457b-9afa-b113d8b99661",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "1326fc800190b70bc2c5fddbc7e30e96df61c0c5ada32e635919c2210d70a22b",
+          "filename": "gongga-shan_5.jpg",
+          "height": 853,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "1326fc800190b70bc2c5fddbc7e30e96df61c0c5ada32e635919c2210d70a22b",
+          "original_size_bytes": 332307,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-shan/01-gongga-shan-5.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/gongga-shan/01-gongga-shan-5.jpg",
+          "stored_size_bytes": 332307,
+          "width": 1280
+        },
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "420827fec344e4fef0e6520ca83432008e7f1c69479bd74357c97e440e82ccf1",
+          "filename": "gongga-shan_0.jpg",
+          "height": 800,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 2,
+          "original_file_sha256": "420827fec344e4fef0e6520ca83432008e7f1c69479bd74357c97e440e82ccf1",
+          "original_size_bytes": 123647,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-shan/02-gongga-shan-0.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/gongga-shan/02-gongga-shan-0.jpg",
+          "stored_size_bytes": 123647,
+          "width": 1280
+        }
+      ],
+      "is_active": true,
+      "is_readable": true
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/huangshan/01-huangshan-4.jpg",
+      "effective_canonical_key": "huangshan",
+      "gallery_images": [],
+      "id": "404add39-6b3f-4180-988e-4d67e09993b3",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "1d578df8fb9db3ebcbe70c8d912604a9feacc8eb1269815e0f84e4558a2bd137",
+          "filename": "huangshan_4.jpg",
+          "height": 853,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "1d578df8fb9db3ebcbe70c8d912604a9feacc8eb1269815e0f84e4558a2bd137",
+          "original_size_bytes": 291419,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/huangshan/01-huangshan-4.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/huangshan/01-huangshan-4.jpg",
+          "stored_size_bytes": 291419,
+          "width": 1280
+        }
+      ],
+      "is_active": true,
+      "is_readable": true
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/huashan/01-huashan-0.jpg",
+      "effective_canonical_key": "huashan",
+      "gallery_images": [
+        "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/huashan/02-huashan-1.jpg"
+      ],
+      "id": "216508c9-ffca-4164-8010-534d8650ee64",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "29c0f5f84e4ae91dd65b0d8dca39364b43f9090e0ed963c74c593b78d02bf468",
+          "filename": "huashan_0.jpg",
+          "height": 605,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "29c0f5f84e4ae91dd65b0d8dca39364b43f9090e0ed963c74c593b78d02bf468",
+          "original_size_bytes": 378682,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/huashan/01-huashan-0.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/huashan/01-huashan-0.jpg",
+          "stored_size_bytes": 378682,
+          "width": 1280
+        },
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "cf10b1bc26e01ddc07f6040989643ad33fdd467c925c817ede7b7131319b0a32",
+          "filename": "huashan_1.jpg",
+          "height": 720,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 2,
+          "original_file_sha256": "cf10b1bc26e01ddc07f6040989643ad33fdd467c925c817ede7b7131319b0a32",
+          "original_size_bytes": 406341,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/huashan/02-huashan-1.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/huashan/02-huashan-1.jpg",
+          "stored_size_bytes": 406341,
+          "width": 1280
+        }
+      ],
+      "is_active": true,
+      "is_readable": true
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/kawagebo/01-kawagebo-0.jpg",
+      "effective_canonical_key": "kawagebo",
+      "gallery_images": [
+        "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/kawagebo/02-kawagebo-2.jpg"
+      ],
+      "id": "39da9919-3efd-4523-b5a2-2bf9ba6a9eaa",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "08b520a9cafb3aa94de162575d225775c0b1ecd444ca1d91591be46758042581",
+          "filename": "kawagebo_0.jpg",
+          "height": 820,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "08b520a9cafb3aa94de162575d225775c0b1ecd444ca1d91591be46758042581",
+          "original_size_bytes": 311702,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/kawagebo/01-kawagebo-0.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/kawagebo/01-kawagebo-0.jpg",
+          "stored_size_bytes": 311702,
+          "width": 1280
+        },
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "1d10dc15aa4be420bc9e13fe03e70bc1bfaba3521eb23029c8df74167f0813c8",
+          "filename": "kawagebo_2.jpg",
+          "height": 961,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 2,
+          "original_file_sha256": "1d10dc15aa4be420bc9e13fe03e70bc1bfaba3521eb23029c8df74167f0813c8",
+          "original_size_bytes": 273513,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/kawagebo/02-kawagebo-2.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/kawagebo/02-kawagebo-2.jpg",
+          "stored_size_bytes": 273513,
+          "width": 1280
+        }
+      ],
+      "is_active": true,
+      "is_readable": true
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/muztagata-feng/01-muztagata-feng-0.jpg",
+      "effective_canonical_key": "muztagata-feng",
+      "gallery_images": [
+        "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/muztagata-feng/02-muztagata-feng-2.jpg"
+      ],
+      "id": "1c250ea9-7c86-4322-9f10-f17e72430f4c",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "9054be25d4bd9f79f962a09c1ea3d8e0e6847aa2d63448e81e6cbe6468592bb0",
+          "filename": "muztagata-feng_0.jpg",
+          "height": 573,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "9054be25d4bd9f79f962a09c1ea3d8e0e6847aa2d63448e81e6cbe6468592bb0",
+          "original_size_bytes": 141606,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/muztagata-feng/01-muztagata-feng-0.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/muztagata-feng/01-muztagata-feng-0.jpg",
+          "stored_size_bytes": 141606,
+          "width": 900
+        },
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "4238d89c06a7ecc34f34b88f1df988af8b46b1e527fada7d1d497e9383a9d8e4",
+          "filename": "muztagata-feng_2.jpg",
+          "height": 960,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 2,
+          "original_file_sha256": "4238d89c06a7ecc34f34b88f1df988af8b46b1e527fada7d1d497e9383a9d8e4",
+          "original_size_bytes": 309681,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/muztagata-feng/02-muztagata-feng-2.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/muztagata-feng/02-muztagata-feng-2.jpg",
+          "stored_size_bytes": 309681,
+          "width": 1280
+        }
+      ],
+      "is_active": true,
+      "is_readable": true
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/shennong-ding/01-shennong-ding-5.jpg",
+      "effective_canonical_key": "shennong-ding",
+      "gallery_images": [],
+      "id": "b733089f-cc28-43f1-a87a-d691f24134c8",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "d21c2be2f81f322bfbc2d37df35451b5d6ab9a11c3223d1f641ddb197deeba2e",
+          "filename": "shennong-ding_5.jpg",
+          "height": 960,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "d21c2be2f81f322bfbc2d37df35451b5d6ab9a11c3223d1f641ddb197deeba2e",
+          "original_size_bytes": 573209,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/shennong-ding/01-shennong-ding-5.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/shennong-ding/01-shennong-ding-5.jpg",
+          "stored_size_bytes": 573209,
+          "width": 1280
+        }
+      ],
+      "is_active": true,
+      "is_readable": true
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/songshan/01-songshan-0.jpg",
+      "effective_canonical_key": "songshan",
+      "gallery_images": [
+        "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/songshan/02-songshan-2.jpg"
+      ],
+      "id": "c3455346-3f62-4d4b-9ccc-ac83e9babdfc",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "56f930003ae8d5fade396f6d0c03aafa375b1a3015b926b081290de2cf9fe4fd",
+          "filename": "songshan_0.jpg",
+          "height": 676,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "56f930003ae8d5fade396f6d0c03aafa375b1a3015b926b081290de2cf9fe4fd",
+          "original_size_bytes": 443406,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/songshan/01-songshan-0.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/songshan/01-songshan-0.jpg",
+          "stored_size_bytes": 443406,
+          "width": 1280
+        },
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "2c4f3f77024605fbb82c175da2f4b41937cd84c3eb162a6b39a730f3257dbf8f",
+          "filename": "songshan_2.jpg",
+          "height": 1920,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 2,
+          "original_file_sha256": "2c4f3f77024605fbb82c175da2f4b41937cd84c3eb162a6b39a730f3257dbf8f",
+          "original_size_bytes": 804177,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/songshan/02-songshan-2.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/songshan/02-songshan-2.jpg",
+          "stored_size_bytes": 804177,
+          "width": 1280
+        }
+      ],
+      "is_active": true,
+      "is_readable": true
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/wudangshan/01-wudangshan-0.jpg",
+      "effective_canonical_key": "wudangshan",
+      "gallery_images": [],
+      "id": "4d1a818b-8038-49d1-a173-a58e8c76801c",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "cf03088fc17766307e6fc50e3a4f66f64b5642ad7884b1df40a1e0db6578b8be",
+          "filename": "wudangshan_0.jpg",
+          "height": 850,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "cf03088fc17766307e6fc50e3a4f66f64b5642ad7884b1df40a1e0db6578b8be",
+          "original_size_bytes": 351901,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/wudangshan/01-wudangshan-0.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/wudangshan/01-wudangshan-0.jpg",
+          "stored_size_bytes": 351901,
+          "width": 1280
+        }
+      ],
+      "is_active": true,
+      "is_readable": true
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/yandangshan-zhejiang/01-yandangshan-zhejiang-2.jpg",
+      "effective_canonical_key": "yandangshan-zhejiang",
+      "gallery_images": [
+        "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/yandangshan-zhejiang/02-yandangshan-zhejiang-1.jpg"
+      ],
+      "id": "9c8848e9-6e18-4883-b8da-475699c7c856",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "5f2a39d9eb2328502400668c63a2b0d462f2baa0fecad4afbb8807886b08a22d",
+          "filename": "yandangshan-zhejiang_2.jpg",
+          "height": 1440,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "5f2a39d9eb2328502400668c63a2b0d462f2baa0fecad4afbb8807886b08a22d",
+          "original_size_bytes": 877201,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/yandangshan-zhejiang/01-yandangshan-zhejiang-2.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/yandangshan-zhejiang/01-yandangshan-zhejiang-2.jpg",
+          "stored_size_bytes": 877201,
+          "width": 1920
+        },
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "c7c650f134cec3437ba8dea15fd988c8f8fe6865e263d7ccccb22ca844ecb1ba",
+          "filename": "yandangshan-zhejiang_1.jpg",
+          "height": 1440,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 2,
+          "original_file_sha256": "c7c650f134cec3437ba8dea15fd988c8f8fe6865e263d7ccccb22ca844ecb1ba",
+          "original_size_bytes": 1126915,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/yandangshan-zhejiang/02-yandangshan-zhejiang-1.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/yandangshan-zhejiang/02-yandangshan-zhejiang-1.jpg",
+          "stored_size_bytes": 1126915,
+          "width": 1920
+        }
+      ],
+      "is_active": true,
+      "is_readable": true
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/zhangjiajie-tianmen-shan/01-zhangjiajie-tianmen-shan-0.jpg",
+      "effective_canonical_key": "zhangjiajie-tianmen-shan",
+      "gallery_images": [],
+      "id": "44d40dcd-f1d0-47af-98bb-154505a72fa5",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "cf7ad30827847e32722cfa72784eec4306e2d6db22ba0fed64c4a36b6ca2c57e",
+          "filename": "zhangjiajie-tianmen-shan_0.jpg",
+          "height": 1277,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "cf7ad30827847e32722cfa72784eec4306e2d6db22ba0fed64c4a36b6ca2c57e",
+          "original_size_bytes": 1219744,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/zhangjiajie-tianmen-shan/01-zhangjiajie-tianmen-shan-0.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/zhangjiajie-tianmen-shan/01-zhangjiajie-tianmen-shan-0.jpg",
+          "stored_size_bytes": 1219744,
+          "width": 1920
+        }
+      ],
+      "is_active": true,
+      "is_readable": true
+    }
+  ],
+  "schema_version": "t10-photo-replacement-snapshot-v1"
+}

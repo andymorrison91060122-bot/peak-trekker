@@ -516,17 +516,16 @@ async function mapConcurrent(items, concurrency, mapper) {
 
 export async function recoverAttribution() {
   const assets = readJsonl(ASSET_PATH)
-  assert.equal(assets.length, 519)
   const scratchRoot =
     process.env.T10_CANDIDATE_SCRATCH_ROOT ?? DEFAULT_SCRATCH_ROOT
   const localIndex = loadCandidateMetadata(scratchRoot)
   const rows = await mapConcurrent(assets, 12, async (asset, index) => {
     process.stderr.write(
-      `[attribution ${index + 1}/519] ${asset.effective_canonical_key}#${asset.order}\n`
+      `[attribution ${index + 1}/${assets.length}] ${asset.effective_canonical_key}#${asset.order}\n`
     )
     return attributionRow(asset, await resolveAsset(asset, localIndex))
   })
-  assert.equal(rows.length, 519)
+  assert.equal(rows.length, assets.length)
   assertNoSensitiveMaterial(rows)
   const incompatible = rows.filter((row) =>
     isCommerciallyIncompatibleLicense(row.license_id)

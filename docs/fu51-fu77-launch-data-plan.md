@@ -149,7 +149,9 @@
   - **最终对账**：359 cover；141 座 gallery/160 张；519 条 license manifest；519 个 `catalog/` 路径精确匹配；11 个历史 Storage 对象未变；`is_active/is_readable` 前后逐键一致。黄山/华山/五台山详情页 HTTP 200，HTML 中 1/2/3 图顺序与 manifest 一致。
   - **P1 真实回读复验（2026-07-27）**：修正 `--verify` 后重新下载 sidecar 绑定的 **519/519** 个 public object、合计 **293,012,636 bytes**，逐个核 SHA-256 / Content-Type / Content-Length / 实际字节数，全部一致；瞬时 transport / 429 / 5xx 采用有限重试。此项为本次真实下载证据，不沿用 checkpoint 的历史 `verified` 标签。
   - **证据**：`data/mountains/photos/t10-photo-assets.jsonl`、`t10-image-attribution.jsonl`、`t10-attribution-unresolved.jsonl`、`t10-db-image-snapshot.json`、`t10-ingest-checkpoint.json`、`t10-ingest-summary.json`；下载/准备文件在 `output/t10-photo-work/`。
-  - **2026-07-27 增量换图状态**：飞书 11 行备注已按 canonical key 精确映射并回读；但 `自备图` 附件实际合计 **19 张**，与批准的 **18 张**不一致（`gongga-shan 1/2`、`kawagebo 1/2`、`huangshan 2/1`、`shennong-ding 2/1`、`wudangshan 2/1`）。附件均名为 `image.png` 且接口无可用时间戳，无法机械判断多余/缺失归属；因此新 manifest、Storage 与 DB 增量写保持未执行，待飞书表修正后续跑。旧 18 个 Storage 对象保持原状。
+  - **2026-07-28 增量换图完成**：按用户解除的数量门，11 座以飞书实际自备图数量替换，共 **19 张**（首张 cover、其余 gallery，单座不超过 3 张）。当前飞书 manifest SHA=`6dafe46780262cd404af0dee8e1c50a3e2fde50068f27c628273ccebc5e392ff`，仍覆盖 359 座、516 张、file token 零重复/零缺失；相对旧 manifest 的另外 4 条飞书选择变化只进入当前 manifest，未纳入本次生产写入。
+  - **增量写入证据**：19 个新稳定路径均以 `upsert:false` 上传，并从 public URL 重下载核 SHA-256 / Content-Type / Content-Length / 实际字节数，合计 **11,801,124 bytes**；旧 18 个已挂接候选图对象逐一回读一致并保留，未删除。11 行逐座写入后立即回读，`is_active/is_readable` 全部保持 `true/true`，未激活任何新山峰。
+  - **增量最终对账**：359 cover；142 座 gallery/161 张；`image_is_illustrative=true` **170 座**；15 条 active/readable 行的未闭环署名为 **0 张 / 0 座**。冻结证据为 `t10-replacement-20260728-assets.jsonl`、`t10-replacement-20260728-snapshot.json`、`t10-replacement-20260728-checkpoint.json`、`t10-replacement-20260728-summary.json`；脚本支持只依赖冻结 snapshot/checkpoint 的精确 rollback。
   - 📌 **D11**：seed 0dp 的 17 座坐标误差约 ±111km，本轮不补、T11 必须排除激活；首发候选上限 **342 座（359−17）**。
 
 - [x] **T13 坐标补齐管线（S3-A R5 审计暴露·2026-07-26 用户选定方案 B）** — ✅ 2026-07-27 收口

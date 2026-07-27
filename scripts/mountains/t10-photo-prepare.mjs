@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 import sharp from 'sharp'
@@ -35,6 +36,51 @@ const WORK_ROOT = path.join(REPO_ROOT, 'output/t10-photo-work')
 const SOURCE_ROOT = path.join(WORK_ROOT, 'source')
 const PREPARED_ROOT = path.join(WORK_ROOT, 'prepared')
 const FEISHU_BASE = 'https://open.feishu.cn/open-apis'
+
+function curlConfigValue(value) {
+  return `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+}
+
+function curlRequest({ url, method = 'GET', headers = [], body = null, timeout = 60 }) {
+  const marker = '\n__T10_CURL_HTTP_STATUS__:'
+  const config = [
+    `url = ${curlConfigValue(url)}`,
+    `request = ${curlConfigValue(method)}`,
+    ...headers.map((header) => `header = ${curlConfigValue(header)}`),
+    ...(body === null ? [] : [`data = ${curlConfigValue(body)}`]),
+  ].join('\n')
+  const result = spawnSync(
+    'curl',
+    [
+      '--http1.1',
+      '--silent',
+      '--show-error',
+      '--max-time',
+      String(timeout),
+      '--config',
+      '-',
+      '--write-out',
+      `${marker}%{http_code}`,
+    ],
+    {
+      input: config,
+      encoding: null,
+      maxBuffer: 32 * 1024 * 1024,
+    }
+  )
+  if (result.error) throw result.error
+  if (result.status !== 0) {
+    throw new Error(`Feishu curl transport failed (${result.status})`)
+  }
+  const output = result.stdout
+  const markerBuffer = Buffer.from(marker)
+  const markerIndex = output.lastIndexOf(markerBuffer)
+  assert.notEqual(markerIndex, -1, 'Feishu curl status marker missing')
+  return {
+    status: Number(output.subarray(markerIndex + markerBuffer.length).toString()),
+    body: output.subarray(0, markerIndex),
+  }
+}
 
 function freezeSourceDescriptors() {
   const sourceStatePath =
@@ -108,7 +154,7 @@ function safeProgress(asset, message) {
   )
 }
 
-class FeishuMediaClient {
+export class FeishuMediaClient {
   constructor(appId, appSecret) {
     assert(appId, 'FEISHU_APP_ID is required')
     assert(appSecret, 'FEISHU_APP_SECRET is required')
@@ -116,9 +162,29 @@ class FeishuMediaClient {
     this.appSecret = appSecret
     this.token = null
     this.expiresAt = 0
+    this.transport = process.env.T10_FEISHU_TRANSPORT ?? 'fetch'
   }
 
   async refreshToken() {
+    if (this.transport === 'curl') {
+      const response = curlRequest({
+        url: `${FEISHU_BASE}/auth/v3/tenant_access_token/internal`,
+        method: 'POST',
+        headers: ['content-type: application/json'],
+        body: JSON.stringify({
+          app_id: this.appId,
+          app_secret: this.appSecret,
+        }),
+        timeout: 20,
+      })
+      const payload = JSON.parse(response.body.toString('utf8'))
+      assert.equal(response.status, 200, `Feishu token HTTP ${response.status}`)
+      assert.equal(payload.code ?? 0, 0, `Feishu token error ${payload.code}`)
+      assert.equal(typeof payload.tenant_access_token, 'string')
+      this.token = payload.tenant_access_token
+      this.expiresAt = Date.now() + Math.max(60, payload.expire ?? 7200) * 1000
+      return
+    }
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 20_000)
     try {
@@ -160,6 +226,27 @@ class FeishuMediaClient {
       const timer = setTimeout(() => controller.abort(), 60_000)
       let response
       try {
+        if (this.transport === 'curl') {
+          const curlResponse = curlRequest({
+            url: `${FEISHU_BASE}/drive/v1/medias/${encodeURIComponent(asset.file_token)}/download`,
+            headers: [`authorization: Bearer ${this.token}`],
+            timeout: 60,
+          })
+          if (curlResponse.status === 200) return curlResponse.body
+          if (curlResponse.status === 401 && !refreshedAfter401) {
+            refreshedAfter401 = true
+            await this.refreshToken()
+            continue
+          }
+          if (curlResponse.status !== 429 && curlResponse.status < 500) {
+            throw new Error(`Feishu media HTTP ${curlResponse.status}`)
+          }
+          lastError = new Error(
+            `Feishu media transient HTTP ${curlResponse.status}`
+          )
+          if (attempt < 4) await sleep(retryDelayMs(null, attempt))
+          continue
+        }
         response = await fetch(
           `${FEISHU_BASE}/drive/v1/medias/${encodeURIComponent(asset.file_token)}/download`,
           {
@@ -190,7 +277,7 @@ class FeishuMediaClient {
   }
 }
 
-async function verifyDecodable(buffer, expectedMime) {
+export async function verifyDecodable(buffer, expectedMime) {
   assert.equal(detectImageMime(buffer), expectedMime)
   const pipeline = sharp(buffer, { failOn: 'error' })
   const metadata = await pipeline.metadata()
@@ -203,7 +290,7 @@ async function verifyDecodable(buffer, expectedMime) {
   }
 }
 
-async function compressIfNeeded(buffer, sourceMime, sourceDimensions) {
+export async function compressIfNeeded(buffer, sourceMime, sourceDimensions) {
   if (buffer.length <= T10_MAX_BYTES) {
     return {
       buffer,
@@ -353,7 +440,10 @@ export async function prepareT10Assets() {
     a.effective_canonical_key.localeCompare(b.effective_canonical_key, 'en-US')
     || a.order - b.order
   )
-  assert.equal(new Set(rows.map((row) => row.storage_path)).size, 519)
+  assert.equal(
+    new Set(rows.map((row) => row.storage_path)).size,
+    validated.assets.length
+  )
   assert.equal(rows.every((row) => row.stored_size_bytes <= T10_MAX_BYTES), true)
   const credentialValues = [
     process.env.FEISHU_APP_ID,

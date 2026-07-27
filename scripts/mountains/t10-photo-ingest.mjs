@@ -16,7 +16,7 @@ import {
   stableJson,
   T10_BUCKET,
   T10_CACHE_CONTROL,
-  T10_MANIFEST_SHA256,
+  T10_BASELINE_MANIFEST_SHA256,
   writeJsonAtomic,
 } from './t10-photo-lib.mjs'
 
@@ -26,10 +26,6 @@ const WORK_ROOT = path.join(REPO_ROOT, 'output/t10-photo-work')
 const PREPARED_ROOT = path.join(WORK_ROOT, 'prepared')
 const ASSET_PATH = path.join(PHOTO_ROOT, 't10-photo-assets.jsonl')
 const ATTRIBUTION_PATH = path.join(PHOTO_ROOT, 't10-image-attribution.jsonl')
-const SOURCE_MANIFEST_PATH = path.join(
-  PHOTO_ROOT,
-  'feishu-photo-manifest.json'
-)
 const SOURCE_DESCRIPTOR_PATH = path.join(
   PHOTO_ROOT,
   't10-selected-source-descriptors.json'
@@ -93,7 +89,6 @@ function loadRouteOverrides() {
 function loadInputs() {
   const assets = readJsonl(ASSET_PATH)
   const attribution = readJsonl(ATTRIBUTION_PATH)
-  assert.equal(sha256File(SOURCE_MANIFEST_PATH), T10_MANIFEST_SHA256)
   assert.equal(assets.length, 519)
   assert.equal(attribution.length, 519)
   assert.equal(
@@ -146,7 +141,7 @@ function loadInputs() {
   assertNoSensitiveMaterial(assets)
   assertNoSensitiveMaterial(attribution)
   const inputBinding = {
-    source_manifest_sha256: sha256File(SOURCE_MANIFEST_PATH),
+    source_manifest_sha256: T10_BASELINE_MANIFEST_SHA256,
     source_descriptor_sha256: sha256File(SOURCE_DESCRIPTOR_PATH),
     asset_sidecar_sha256: sha256File(ASSET_PATH),
     attribution_sidecar_sha256: sha256File(ATTRIBUTION_PATH),

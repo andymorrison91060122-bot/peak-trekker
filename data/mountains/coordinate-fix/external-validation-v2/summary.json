@@ -1,0 +1,103 @@
+{
+  "schema_version": "t13-external-coordinate-audit-v2-summary-v1",
+  "generated_at": "2026-07-26T12:28:20.082Z",
+  "input_rows": {
+    "total": 41,
+    "primary_29": 29,
+    "appended_12": 12
+  },
+  "decisions": {
+    "可采用": 11,
+    "需外部补正": 23,
+    "拒收": 7
+  },
+  "datum_verdicts": {
+    "indeterminate_reference_disagreement": 9,
+    "likely_wgs84": 11,
+    "unverified_no_wgs84_reference": 20,
+    "unverified_spatial_reference_only": 1
+  },
+  "query_batches": {
+    "total_rows": 192,
+    "ordinary_rows": 166,
+    "route_or_area_rows": 26,
+    "files": [
+      {
+        "file": "ordinary-batch-01.txt",
+        "kind": "ordinary",
+        "count": 40
+      },
+      {
+        "file": "ordinary-batch-02.txt",
+        "kind": "ordinary",
+        "count": 40
+      },
+      {
+        "file": "ordinary-batch-03.txt",
+        "kind": "ordinary",
+        "count": 40
+      },
+      {
+        "file": "ordinary-batch-04.txt",
+        "kind": "ordinary",
+        "count": 40
+      },
+      {
+        "file": "ordinary-batch-05.txt",
+        "kind": "ordinary",
+        "count": 6
+      },
+      {
+        "file": "route-area-batch-01.txt",
+        "kind": "route_or_area",
+        "count": 26
+      }
+    ]
+  },
+  "logic_note": "GCJ evidence is external GCJ->WGS becoming closer to a known WGS reference and external raw coordinate matching WGS->GCJ(reference); WGS->GCJ(external) becoming closer to WGS reference is not treated as evidence.",
+  "boundaries": {
+    "production_writes": 0,
+    "migration_applies": 0,
+    "coordinate_imports": 0,
+    "runtime_changes": 0,
+    "pushes": 0
+  },
+  "per_input_batch": {
+    "primary_29": {
+      "total": 29,
+      "decisions": {
+        "可采用": 11,
+        "需外部补正": 16,
+        "拒收": 2
+      }
+    },
+    "appended_12": {
+      "total": 12,
+      "decisions": {
+        "可采用": 0,
+        "需外部补正": 7,
+        "拒收": 5
+      }
+    }
+  },
+  "direct_source_integrity": {
+    "coordinate_mismatch": 2,
+    "unavailable": 1,
+    "mismatched_rows": [
+      {
+        "row_number": 18,
+        "key": "dawagengza"
+      },
+      {
+        "row_number": 19,
+        "key": "sejila-shan"
+      }
+    ],
+    "unavailable_rows": [
+      {
+        "row_number": 25,
+        "key": "putuoshan-foding-shan"
+      }
+    ]
+  }
+}

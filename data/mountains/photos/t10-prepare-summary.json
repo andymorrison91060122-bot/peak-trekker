@@ -1,0 +1,35 @@
+{
+  "asset_sidecar_sha256": "306d309e72630ef124a7e62863bb4c5e40fc4493dd9949d74ac1d0e166e496ae",
+  "compressed": [
+    {
+      "effective_canonical_key": "tianhua-shan",
+      "order": 1,
+      "original_sha256": "0840d9a9cc1baf3bc7e101bd78726bb3425d1da8897ffa25aa65a062ee4f22d0",
+      "original_size_bytes": 12240570,
+      "quality": 90,
+      "stored_sha256": "a6ad2523c740afd0d287cded33e64e9a48fd2f2503a9798e29e3cf5ce3e895a1",
+      "stored_size_bytes": 2127160
+    },
+    {
+      "effective_canonical_key": "wutaishan",
+      "order": 1,
+      "original_sha256": "8fb63bc9f78496f3a7ae359cfda0eadfcf5e4d5b7ac430b261e1716553ab8f4e",
+      "original_size_bytes": 16836294,
+      "quality": 90,
+      "stored_sha256": "394d3508b152342ad9a72d3c5fe6220f41e271291076c8fc12165e56f5c9b303",
+      "stored_size_bytes": 1416354
+    }
+  ],
+  "double_image_mountains": 122,
+  "images": 519,
+  "manifest_sha256": "57fd2927eef49617963c56448df4511c631a9eabdaf0a40aee5e6309437aaf88",
+  "mountains": 359,
+  "representative_images": 11,
+  "representative_mountains": 10,
+  "schema_version": "t10-prepare-summary-v1",
+  "single_image_mountains": 218,
+  "source_descriptor_sha256": "21fa4074359689047537c9c2dd2016f47994bca48b28607d668c0b50034453eb",
+  "triple_image_mountains": 19,
+  "user_supplied_images": 200,
+  "user_supplied_mountains": 149
+}

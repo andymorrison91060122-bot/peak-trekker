@@ -1,0 +1,279 @@
+{
+  "schema_version": "t13-direct-coordinate-v2-summary-v1",
+  "generated_at": "2026-07-26T07:42:43.255Z",
+  "method": "one-time direct acquisition; prior pipeline infrastructure retired as a gate",
+  "rules": {
+    "datum": "WGS-84 only",
+    "minimum_precision_decimals": 3,
+    "source_elevation_missing": "accepted with elevation_check=skipped",
+    "province_mismatch": "neighbor province accepted and recorded; unrelated same-name province rejected",
+    "area_coordinate": "accepted for catalog/map use; not suitable as summit verification center",
+    "original_coordinate_usage": "coarse screen only: >150km reject; 50-150km manual review list",
+    "external_cross_validation": "source_count counts distinct external providers within 3km for summit or 15km for area; single-source accepted"
+  },
+  "source_parse_stats": {
+    "gns": {
+      "scanned": 57645,
+      "matchedRows": 240
+    },
+    "geonames": {
+      "scanned": 958527,
+      "matchedRows": 251
+    },
+    "v1": {
+      "added": 676
+    },
+    "nominatim": {
+      "added": 27
+    },
+    "reverse": {
+      "applied": 24
+    }
+  },
+  "total": 359,
+  "resolved": 226,
+  "unresolved": 133,
+  "coordinate_kind": {
+    "summit": 157,
+    "area": 69
+  },
+  "precision": {
+    "four_or_more": 218,
+    "exactly_three": 8
+  },
+  "source_contributions": {
+    "OpenStreetMap": {
+      "selected_primary": 159,
+      "present_in_sources": 160,
+      "standalone_v2_acceptable": {
+        "resolved": 160,
+        "summit": 152,
+        "area": 8
+      }
+    },
+    "GNS/NGA": {
+      "selected_primary": 44,
+      "present_in_sources": 97,
+      "standalone_v2_acceptable": {
+        "resolved": 108,
+        "summit": 8,
+        "area": 100
+      }
+    },
+    "Wikidata": {
+      "selected_primary": 18,
+      "present_in_sources": 59,
+      "standalone_v2_acceptable": {
+        "resolved": 67,
+        "summit": 0,
+        "area": 67
+      }
+    },
+    "GeoNames.org": {
+      "selected_primary": 5,
+      "present_in_sources": 84,
+      "standalone_v2_acceptable": {
+        "resolved": 94,
+        "summit": 5,
+        "area": 89
+      }
+    }
+  },
+  "difficulty_resolution": {
+    "beginner": {
+      "total": 151,
+      "resolved": 112,
+      "rate": 0.7417
+    },
+    "intermediate": {
+      "total": 133,
+      "resolved": 83,
+      "rate": 0.6241
+    },
+    "advanced": {
+      "total": 43,
+      "resolved": 13,
+      "rate": 0.3023
+    },
+    "expert": {
+      "total": 32,
+      "resolved": 18,
+      "rate": 0.5625
+    }
+  },
+  "unresolved_reason_counts": {
+    "coordinate_precision_below_3dp": 11,
+    "original_displacement_over_150km": 29,
+    "no_external_candidate_found": 93,
+    "unrelated_province_same_name_risk": 26,
+    "source_elevation_mismatch": 15
+  },
+  "displacement_50_to_150km": [
+    {
+      "effective_canonical_key": "banji-feng",
+      "mountain_name": "半脊峰",
+      "latitude": 31.2407881,
+      "longitude": 102.9230824,
+      "coordinate_kind": "summit",
+      "primary_source": "OpenStreetMap",
+      "actual_province": "四川省",
+      "expected_provinces": [
+        "四川省"
+      ],
+      "original_displacement_km": 57.044
+    },
+    {
+      "effective_canonical_key": "fenghuang-shan-guangdong",
+      "mountain_name": "凤凰山",
+      "latitude": 23.2167352,
+      "longitude": 113.3925363,
+      "coordinate_kind": "summit",
+      "primary_source": "OpenStreetMap",
+      "actual_province": "广东省",
+      "expected_provinces": [
+        "广东省"
+      ],
+      "original_displacement_km": 74.13
+    },
+    {
+      "effective_canonical_key": "laotudingzi",
+      "mountain_name": "老秃顶子",
+      "latitude": 41.5979253,
+      "longitude": 126.40223,
+      "coordinate_kind": "summit",
+      "primary_source": "OpenStreetMap",
+      "actual_province": "吉林省",
+      "expected_provinces": [
+        "辽宁省"
+      ],
+      "original_displacement_km": 131.089
+    },
+    {
+      "effective_canonical_key": "ling-shan-jiangsu",
+      "mountain_name": "灵山",
+      "latitude": 30.1541774,
+      "longitude": 119.9283883,
+      "coordinate_kind": "summit",
+      "primary_source": "OpenStreetMap",
+      "actual_province": "浙江省",
+      "expected_provinces": [
+        "江苏省"
+      ],
+      "original_displacement_km": 145.018
+    },
+    {
+      "effective_canonical_key": "mian-shan",
+      "mountain_name": "绵山",
+      "latitude": 35.777661,
+      "longitude": 111.66229,
+      "coordinate_kind": "summit",
+      "primary_source": "OpenStreetMap",
+      "actual_province": "山西省",
+      "expected_provinces": [
+        "山西省"
+      ],
+      "original_displacement_km": 123.018
+    },
+    {
+      "effective_canonical_key": "sangdankangsang-feng",
+      "mountain_name": "桑丹康桑峰",
+      "latitude": 30.801,
+      "longitude": 91.501,
+      "coordinate_kind": "area",
+      "primary_source": "GNS/NGA",
+      "actual_province": "西藏自治区",
+      "expected_provinces": [
+        "西藏自治区"
+      ],
+      "original_displacement_km": 87.57
+    },
+    {
+      "effective_canonical_key": "she-shan",
+      "mountain_name": "佘山",
+      "latitude": 31.4218039,
+      "longitude": 122.2408095,
+      "coordinate_kind": "summit",
+      "primary_source": "OpenStreetMap",
+      "actual_province": "上海市",
+      "expected_provinces": [
+        "上海市"
+      ],
+      "original_displacement_km": 105.202
+    },
+    {
+      "effective_canonical_key": "yaoshan-henan",
+      "mountain_name": "尧山",
+      "latitude": 33.6394829,
+      "longitude": 111.8272445,
+      "coordinate_kind": "summit",
+      "primary_source": "OpenStreetMap",
+      "actual_province": "河南省",
+      "expected_provinces": [
+        "河南省"
+      ],
+      "original_displacement_km": 58.022
+    }
+  ],
+  "actual_province_unknown": [
+    {
+      "effective_canonical_key": "hantengeli-feng",
+      "mountain_name": "汗腾格里峰",
+      "latitude": 42.2108108,
+      "longitude": 80.175012,
+      "primary_source": "OpenStreetMap",
+      "expected_provinces": [
+        "新疆维吾尔自治区"
+      ]
+    },
+    {
+      "effective_canonical_key": "luozi-feng",
+      "mountain_name": "洛子峰",
+      "latitude": 27.9619855,
+      "longitude": 86.9325045,
+      "primary_source": "OpenStreetMap",
+      "expected_provinces": [
+        "西藏自治区"
+      ]
+    },
+    {
+      "effective_canonical_key": "makalu-feng",
+      "mountain_name": "马卡鲁峰",
+      "latitude": 27.889183,
+      "longitude": 87.088564,
+      "primary_source": "GNS/NGA",
+      "expected_provinces": [
+        "西藏自治区"
+      ]
+    },
+    {
+      "effective_canonical_key": "qiaogeli-feng-k2",
+      "mountain_name": "乔戈里峰（K2）",
+      "latitude": 35.88159,
+      "longitude": 76.512927,
+      "primary_source": "GNS/NGA",
+      "expected_provinces": [
+        "新疆维吾尔自治区"
+      ]
+    },
+    {
+      "effective_canonical_key": "zhuoaoyou-feng",
+      "mountain_name": "卓奥友峰",
+      "latitude": 28.09405,
+      "longitude": 86.6608,
+      "primary_source": "GeoNames.org",
+      "expected_provinces": [
+        "西藏自治区"
+      ]
+    }
+  ],
+  "osm_nominatim_supplement": {
+    "requested": 153,
+    "request_outcomes": {
+      "ok": 153
+    },
+    "newly_resolved": 20,
+    "summit": 12,
+    "area": 8,
+    "selected_way_or_relation": 8
+  }
+}

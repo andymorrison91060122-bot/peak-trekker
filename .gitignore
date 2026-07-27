@@ -66,3 +66,9 @@ peak-trekker-import-samples/
 
 # Local-only screenshot OCR fixtures (personal activity screenshots, never commit raw images)
 爬山轨迹结果参考图片/
+
+# T13 one-time network response cache (large, reproducible, never commit)
+data/mountains/coordinate-fix/source-cache/
+
+# T10 Feishu download/prepared cache (large, reproducible, never commit)
+/output/t10-photo-work/

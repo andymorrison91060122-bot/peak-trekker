@@ -39,6 +39,13 @@ import { trackEvent } from '@/lib/analytics/client'
 import { buildTrekUrl, consumePendingShareTemplate } from '@/lib/share-template-intent'
 import { normalizeAuthReturnPath } from '@/lib/auth-redirect'
 import { isFeatureEnabled } from '@/lib/feature-flags'
+import {
+  buildMountainRiskCopy,
+  getEstimatedAscentMeters,
+  getEstimatedDurationRange,
+  getMountainAccessDisplay,
+  getMountainDistanceKm,
+} from '@/lib/mountain-route-display'
 
 gsap.registerPlugin(useGSAP)
 
@@ -71,9 +78,9 @@ type MountainDetailClientProps = {
 
 function getRouteFacts(mountain: Mountain) {
   return {
-    length: mountain.length_km ?? Number(Math.max(4.2, Math.min(26, mountain.altitude / 260)).toFixed(1)),
-    gain: mountain.elevation_gain_m ?? Math.max(320, Math.round(mountain.altitude * 0.68)),
-    duration: mountain.estimated_duration ?? `${Math.max(2, Math.min(12, Math.round(mountain.altitude / 650)))}h`,
+    length: getMountainDistanceKm(mountain),
+    gain: getEstimatedAscentMeters(mountain),
+    duration: getEstimatedDurationRange(mountain),
   }
 }
 
@@ -386,6 +393,7 @@ function DecisionRow({
             color: 'var(--color-on-surface-variant)',
             fontSize: 'var(--font-label-m-size)',
             lineHeight: 'var(--font-label-m-line)',
+            whiteSpace: 'pre-line',
           }}
         >
           {sub}
@@ -600,20 +608,31 @@ function DecisionSection({
 }) {
   const season = getSeasonDecision(mountain)
   const suitabilityCopy = getDifficultySuitabilityCopy(mountain.difficulty)
+  const accessDisplay = getMountainAccessDisplay(mountain.access_status)
+  const riskCopy = buildMountainRiskCopy(mountain.difficulty, mountain.risk_note)
+  const accessCopy = mountain.access_note?.trim() || (
+    accessDisplay.status === 'closed'
+      ? '该山峰当前不开放，请勿擅自进入。开放范围以当地最新公告为准。'
+      : accessDisplay.status === 'pilgrimage_only'
+        ? '这里只开放转山环线，不提供登顶引导。请遵守当地管理要求。'
+        : '当前开放状态尚未核实，请在出发前查询当地最新公告。'
+  )
 
   return (
     <section data-testid="mountain-decision-section" data-mountain-motion="decision">
       <SectionHeader title="这座山适不适合你" />
       <div style={{ padding: '0 var(--space-4)' }}>
-        <div data-mountain-motion-child="decision-advisory" style={{ marginBottom: 'var(--space-3)' }}>
-          <DifficultyAdvisory
-            difficulty={mountain.difficulty}
-            userLicense={userLicense}
-            mountainName={mountain.name}
-            compact={requiresLogin}
-            onShowLicenseSheet={requiresLogin ? undefined : onShowLicenseSheet}
-          />
-        </div>
+        {accessDisplay.canStartTrek ? (
+          <div data-mountain-motion-child="decision-advisory" style={{ marginBottom: 'var(--space-3)' }}>
+            <DifficultyAdvisory
+              difficulty={mountain.difficulty}
+              userLicense={userLicense}
+              mountainName={mountain.name}
+              compact={requiresLogin}
+              onShowLicenseSheet={requiresLogin ? undefined : onShowLicenseSheet}
+            />
+          </div>
+        ) : null}
         <div
           data-mountain-motion-child="decision-card"
           style={{
@@ -623,25 +642,35 @@ function DecisionSection({
             overflow: 'hidden',
           }}
         >
-          <DecisionRow
-            tone="ok"
-            label={requiresLogin ? '登录后可开始记录' : '始终可以继续记录'}
-            sub={
-              requiresLogin
-                ? '需要登录来保存 GPS 记录，但难度不会锁定入口'
-                : suitabilityCopy
-            }
-            helpAnchor="license.license-tiers"
-          />
-          <DecisionRow
-            tone={season.ok ? 'ok' : 'warn'}
-            label={season.label}
-            sub={season.sub}
-          />
+          {accessDisplay.canStartTrek ? (
+            <DecisionRow
+              tone="ok"
+              label={requiresLogin ? '登录后可开始记录' : '始终可以继续记录'}
+              sub={
+                requiresLogin
+                  ? '需要登录来保存 GPS 记录，但难度不会锁定入口'
+                  : suitabilityCopy
+              }
+              helpAnchor="license.license-tiers"
+            />
+          ) : (
+            <DecisionRow
+              tone="warn"
+              label={accessDisplay.suitabilityLabel ?? '开放状态待确认'}
+              sub={accessCopy}
+            />
+          )}
+          {accessDisplay.canStartTrek ? (
+            <DecisionRow
+              tone={season.ok ? 'ok' : 'warn'}
+              label={season.label}
+              sub={season.sub}
+            />
+          ) : null}
           <DecisionRow
             tone="warn"
             label="天气与路线仅供决策参考"
-            sub="不承诺实时路况 · 出发前请自行复核"
+            sub={riskCopy ?? '不承诺实时路况 · 出发前请自行复核'}
             last
           />
         </div>
@@ -1324,6 +1353,7 @@ function BottomCTA({
   requiresLogin: boolean
   hasWaypoints: boolean
 }) {
+  const accessDisplay = getMountainAccessDisplay(mountain.access_status)
   const loginHref = `/auth/login?from=${encodeURIComponent(`/mountain/${mountain.id}`)}`
   const primaryHref = requiresLogin
     ? loginHref
@@ -1381,19 +1411,29 @@ function BottomCTA({
         >
           查看路线
         </SecondaryButton>
-        <PrimaryButton
-          className="pt-pressable-hero"
-          as="a"
-          href={primaryHref}
-          onClick={handlePrimaryClick}
-          onPointerDown={markPressFallback}
-          onPointerUp={clearPressFallback}
-          onPointerCancel={clearPressFallback}
-          onPointerLeave={clearPressFallback}
-          onBlur={clearPressFallback}
-        >
-          {requiresLogin ? '登录后开始记录' : '开始记录'}
-        </PrimaryButton>
+        {accessDisplay.canStartTrek ? (
+          <PrimaryButton
+            className="pt-pressable-hero"
+            data-testid="mountain-primary-cta"
+            as="a"
+            href={primaryHref}
+            onClick={handlePrimaryClick}
+            onPointerDown={markPressFallback}
+            onPointerUp={clearPressFallback}
+            onPointerCancel={clearPressFallback}
+            onPointerLeave={clearPressFallback}
+            onBlur={clearPressFallback}
+          >
+            {requiresLogin ? '登录后开始记录' : '开始记录'}
+          </PrimaryButton>
+        ) : (
+          <PrimaryButton
+            data-testid="mountain-primary-cta"
+            disabled
+          >
+            {accessDisplay.ctaLabel}
+          </PrimaryButton>
+        )}
       </div>
     </div>
   )
@@ -1747,19 +1787,19 @@ export default function MountainDetailClient({
           />
           <StatTile
             label="距离 km"
-            value={String(routeFacts.length)}
+            value={routeFacts.length === null ? '--' : String(routeFacts.length)}
             motionKind="distance"
-            countValue={routeFacts.length}
+            countValue={routeFacts.length ?? undefined}
             countFormat="decimal"
           />
           <StatTile
-            label="爬升 m"
-            value={formatInteger(routeFacts.gain)}
+            label={routeFacts.gain === null ? '爬升 m' : '估算爬升 m'}
+            value={routeFacts.gain === null ? '--' : formatInteger(routeFacts.gain)}
             motionKind="gain"
-            countValue={routeFacts.gain}
+            countValue={routeFacts.gain ?? undefined}
             countFormat="integer"
           />
-          <StatTile label="时长" value={routeFacts.duration} motionKind="duration" />
+          <StatTile label="时长" value={routeFacts.duration ?? '--'} motionKind="duration" />
         </div>
       </section>
 

@@ -1,0 +1,3627 @@
+{
+  "schema_version": 1,
+  "by_effective_canonical_key": {
+    "aerjin-shan": {
+      "intro": "阿尔金山主峰位于甘肃省阿克塞境内，是甘肃西部高山地貌的重要山峰。",
+      "fact_fields": [
+        "primary_name",
+        "provinces"
+      ],
+      "added_claims": [
+        {
+          "claim": "阿尔金山主峰位于甘肃省阿克塞境内，是甘肃西部高山地貌的重要山峰。",
+          "basis": "needs_review",
+          "note": "阿克塞境内的甘肃西部山峰定位来自用户已锁定的S1.3纠偏"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review",
+      "s1_4_previous_intro": "甘肃西部阿克塞境内的阿尔金山主峰，攀登需具备高海拔经验并按规定办理正规手续。"
+    },
+    "ailao-shan": {
+      "intro": "原始森林铺满哀牢山国家级自然保护区，成熟步道穿行在3166米山地间。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "animaqing-feng": {
+      "intro": "藏区四大神山之一阿尼玛卿峰，海拔6282米，也是昆仑山脉东段主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "藏区神山阿尼玛卿峰横卧昆仑山东段，6282米雪脊需高海拔经验与正规手续。"
+    },
+    "ao-shan": {
+      "intro": "秦岭第二高峰鳌山，以3475米高山草甸串起经典鳌太穿越的苍茫山脊。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "bagong-shan": {
+      "intro": "淝水之战与淮南子文化交汇八公山，完善步道环绕241.2米历史名山。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "baicaopan": {
+      "intro": "高山草甸与森林覆盖野三坡白草畔，1983米景区也是夏日避暑去处。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "baihua-shan": {
+      "intro": "森林与草甸铺展北京百花山，1991米保护区内已有完善景区步道。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "baima-jian": {
+      "intro": "大别山最高峰白马尖以森林峡谷见长，1777米山路已有成熟徒步线路。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "baima-xueshan-zhalaqueni-feng": {
+      "intro": "国家级自然保护区内的白马雪山扎拉雀尼峰，海拔5429米，也是滇金丝猴原生地。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "滇金丝猴原生地环绕白马雪山扎拉雀尼峰，5429米攀登需高海拔经验与正规手续。"
+    },
+    "baishan-zu": {
+      "intro": "百山祖冷杉生长在浙江第二高峰，1856.7米保护区内可循成熟步道。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "baishi-shan": {
+      "intro": "大理岩峰林托起白石山，悬空栈道穿过2096米的北方奇山景观。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "baiyun-shan-guangdong": {
+      "intro": "羊城第一秀白云山嵌入广州城中，环线步道由景区正门通往摩星岭。",
+      "fact_fields": [
+        "description"
+      ],
+      "added_claims": [
+        {
+          "claim": "白云山代表高点为摩星岭",
+          "basis": "needs_review",
+          "note": "简介已使用该世界知识关系，但冻结源未明确支持，需人工补证"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review"
+    },
+    "baiyun-shan-luoyang": {
+      "intro": "中原极顶洛阳白云山森林浓密，2216米玉皇顶线路也是避暑去处。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [
+        {
+          "claim": "洛阳白云山代表高点为玉皇顶",
+          "basis": "needs_review",
+          "note": "简介已使用该世界知识关系，但冻结源未明确支持，需人工补证"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review"
+    },
+    "baizhang-ling": {
+      "intro": "浙西三尖核心百丈岭串联森林与古道，平缓环线穿行在1334米山地间。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "balang-shan": {
+      "intro": "川西门户巴朗山铺展高山草甸与云海，5040米山地可循成熟往返线路。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "bamian-shan": {
+      "intro": "罗霄山脉核心八面山铺开高山草甸，2042.1米山脊是华南经典徒步目的地。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "banji-feng": {
+      "intro": "冰川与冰坡构成半脊峰的技术攀登路段，主峰海拔5430米。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "冰川与冰坡构成半脊峰的技术路段，5430米攀登需高海拔经验与正规手续。"
+    },
+    "baota-shan": {
+      "intro": "延安城市象征宝塔山承载红色记忆，完善步道环绕1135.5米景区山地。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "baxian-shan": {
+      "intro": "天津次生林在八仙山保护区铺展，1052米聚仙峰线路生态景观丰富。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "beiling-shan": {
+      "intro": "高山草甸铺展北灵山，1922米环线也是京郊热门露营徒步去处。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "beiwudang-shan": {
+      "intro": "道教名山北武当山以花岗岩峰林见长，景区步道通往2254米金顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "bijia-shan-liaoning": {
+      "intro": "天桥奇观连接渤海湾笔架山，完善景区步道通往78.3米海岛山岳。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "bogeda-feng": {
+      "intro": "天山东段主峰博格达峰，冰雪之巅俯临天山天池，是新疆醒目的雪山地标。",
+      "fact_fields": [
+        "description",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "broad-peak": {
+      "intro": "世界第十二高峰布洛阿特峰，8051米冰岩高悬于喀喇昆仑山脉。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "bukadaban-feng": {
+      "intro": "青海省最高峰布喀达坂峰，海拔6860米，也是昆仑山脉东段核心山峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "昆仑山东段的布喀达坂峰高达6860米，技术攀登须有专业向导并办理官方许可。"
+    },
+    "caishi-ji": {
+      "intro": "长江三大名矶之一采石矶承载李白文化，景区环线绕行翠螺山。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "cang-shan": {
+      "intro": "赵氏孤儿传说为藏山留下千年回响，成熟石阶从景区铺向约1700米山巅。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "cangshan-yunnan": {
+      "intro": "大理苍山以马龙峰为主峰，4122米山地已有成熟往返徒步线路。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "cangyan-shan": {
+      "intro": "悬空寺嵌入苍岩山历史山景，完善步道由景区正门通往玉皇顶。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "cha-shan": {
+      "intro": "河北第二高峰茶山铺开高山草甸，2524米环线也是小众露营徒步去处。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "changbaishan": {
+      "intro": "火山天池为长白山点亮东北天际，2691米白云峰立于苍茫林海之上。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "chaya-shan": {
+      "intro": "西游记取景地嵖岈山遍布花岗岩奇石，完善环线穿过天磨峰景观。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "chen-shan": {
+      "intro": "矿坑花园藏在上海辰山植物园，完善环线串起71.4米城市山岳。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "chuandi-ding": {
+      "intro": "华南经典穿越线翻越船底顶，1586米山地连接罗坑、平坑与新洞。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "dabai-shan": {
+      "intro": "寒温带原生林覆盖大兴安岭北段大白山，1528.7米保护区已有成熟路线。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "dabieshan-bodao-feng": {
+      "intro": "花岗岩峰林铺展大别山薄刀峰，1404.2米森林公园已有成熟环线。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "dadong-shan": {
+      "intro": "广东经典徒步线，大东山的原始森林与山间温泉，藏着岭南少见的野趣。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "dahong-shan": {
+      "intro": "佛教文化与绿林起义记忆交汇大洪山，完善步道通往宝珠峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "daiyun-shan": {
+      "intro": "闽中屋脊戴云山也是福建第二高峰，1856米保护区内已有成熟往返线路。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "dajue-shan": {
+      "intro": "峡谷漂流与山岳景观汇聚大觉山，景区环线通往1364米大觉岩。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "dalari-feng": {
+      "intro": "喜马拉雅山脉中段核心山峰打拉日峰，海拔6777米。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "喜马拉雅中段的打拉日峰高达6777米，大本营往返攀登须办理正规手续。"
+    },
+    "daluo-shan": {
+      "intro": "花岗岩龙脊与水库构成大罗山景观，温州城郊环线选择丰富。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "damao-shan": {
+      "intro": "古北岳大茂山藏着森林与瀑布，1898米保护区适合小众山野徒步。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "daming-shan-guangxi": {
+      "intro": "南宁最高峰大明山铺开保护区山景，1760.4米龙头峰线路也是避暑去处。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "daming-shan-zhejiang": {
+      "intro": "峡谷、瀑布与悬空栈道汇聚浙西大明山，1489.9米环线通往千亩田。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "dangling-xiaqiangla": {
+      "intro": "党岭村至大本营的往返路线通向党岭夏羌拉，主峰海拔5470米。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "高海拔雪线围绕党岭夏羌拉，5470米攀登需高海拔经验并办理正规手续。"
+    },
+    "dangling-xiaqiangniea": {
+      "intro": "党岭村至大本营的往返路线通向党岭夏羌涅阿，主峰海拔5260米。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "高海拔雪线围绕党岭夏羌涅阿，5260米攀登需高海拔经验并办理正规手续。"
+    },
+    "danxiashan-bazhai": {
+      "intro": "世界自然遗产丹霞山巴寨展现丹霞地貌奇观，619.2米往返线路已成熟。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "daqing-shan": {
+      "intro": "阴山中段大青山主峰铺开草甸与森林，2338米山地也是呼和浩特最高点。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "darong-shan": {
+      "intro": "高山草甸与湖泊点亮大容山森林公园，完善步道通往1275.6米梅花顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "datudingzi-shan": {
+      "intro": "张广才岭主峰大秃顶子山也是黑龙江最高峰，四季可见滑雪与徒步风景。",
+      "fact_fields": [
+        "description"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "dawagengza": {
+      "intro": "雪山与云海构成达瓦更扎的观景舞台，约3900米山地已有成熟往返线路。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "dawei-shan": {
+      "intro": "杜鹃花海铺满长沙近郊大围山，完善景区步道通往1607.9米七星岭。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "diaoluo-shan": {
+      "intro": "热带原始林与瀑布覆盖吊罗山森林公园，1499米往返线也是避暑去处。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "dinghu-shan": {
+      "intro": "中国首个自然保护区鼎湖山守住北回归线绿洲，环线通往鸡笼山。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "dongbai-shan": {
+      "intro": "高山草甸与风车铺展浙中最高峰东白山，1194.6米山地是热门露营去处。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "donghu-moshan": {
+      "intro": "东湖磨山嵌入武汉城市山水，完善环线由景区正门通往楚天台。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "dongling-shan": {
+      "intro": "北京最高峰东灵山铺展开阔草甸，2303米往返线是京郊经典徒步选择。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "duku-gonglu-route": {
+      "intro": "天山景观沿独库公路铺展，那拉提徒步环线串起成熟山野路线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "duri-feng": {
+      "intro": "松潘县至大本营的往返路线通向都日峰，主峰海拔5437米。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "高海拔雪线围绕松潘都日峰，5437米攀登需高海拔经验并办理正规手续。"
+    },
+    "dushu-jian": {
+      "intro": "武夷山脉深处的独竖尖，以2128米山脊串起江西经典穿越风景。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "duxiu-feng": {
+      "intro": "桂林山水名句发源于独秀峰，靖江王府环抱216米历史文化名山。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "emeishan": {
+      "intro": "普贤道场峨眉山云海翻涌，古老石阶由金顶延伸至3099米万佛顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "erlong-shan": {
+      "intro": "湖泊与森林环绕城市近郊二龙山，完善景区环线提供休闲山野体验。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "fanjingshan": {
+      "intro": "世界自然遗产梵净山拔地而起，红云金顶与弥勒道场共同写下黔东灵山气象。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "fenghuang-shan-guangdong": {
+      "intro": "佛教文化融入深圳凤凰山，完善城市步道环绕望烟楼主峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "fenghuang-shan-heilongjiang": {
+      "intro": "高山花园与峡谷瀑布交汇黑龙江凤凰山，1696.2米路线适合避暑徒步。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "fenghuang-shan-liaoning": {
+      "intro": "辽东第一山凤凰山以险峻山景和悬空栈道见长，完善步道通往攒云峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "fenghuang-tuo": {
+      "intro": "森林覆盖京郊小众山岳凤凰坨，1529米往返线适合轻装徒步。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "gang-shan-liaoning": {
+      "intro": "辽宁最高峰岗山深藏龙岗山脉，1373.1米保护区森林覆盖浓密。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "gangpengqing-feng": {
+      "intro": "喜马拉雅山脉西段核心山峰岗彭庆峰，海拔7299米。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "喜马拉雅西段岗彭庆峰高达7299米，技术攀登须有专业向导并办理官方许可。"
+    },
+    "gangrenboqi-cluster": {
+      "intro": "藏地转山信仰环绕冈仁波齐，塔钦出发的52公里环线承载朝圣者脚步。",
+      "fact_fields": [
+        "description",
+        "classic_route",
+        "length"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "gangshka-xuefeng": {
+      "intro": "祁连山脉东段最高峰岗什卡雪峰，海拔5254.5米。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "祁连山东段最高峰岗什卡雪峰高达5254.5米，攀登需高海拔经验与正规手续。"
+    },
+    "gaoligongshan-gawagapu-feng": {
+      "intro": "国家级自然保护区内的高黎贡山嘎娃嘎普峰，海拔5128米，也是高黎贡山主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "高黎贡山主峰嘎娃嘎普峰立于保护区，5128米攀登需高海拔经验与正规手续。"
+    },
+    "gasherbrum-1-feng": {
+      "intro": "世界第十一高峰加舒尔布鲁木I峰，8080米冰岩矗立于喀喇昆仑山脉。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "gasherbrum-2-feng": {
+      "intro": "喀喇昆仑山脉核心山峰加舒尔布鲁木II峰，海拔8035米，位列世界第十三高峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "世界第十三高峰加舒尔布鲁木II峰，8035米技术攀登须配专业装备与官方许可。"
+    },
+    "gechuan-jian": {
+      "intro": "徽开古道穿过搁船尖喀斯特山地，明教发源地串起成熟环线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "geladandong-feng": {
+      "intro": "长江源头的各拉丹冬峰，海拔6621米，也是唐古拉山脉主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "长江源头各拉丹冬峰也是唐古拉山主峰，6621米技术攀登须获官方许可。"
+    },
+    "gele-shan": {
+      "intro": "红色记忆融入重庆歌乐山，完善景区环线由正门通往云顶寺。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "genie-shan": {
+      "intro": "藏区神山格聂神山主峰，海拔6204米，也是四川第三高峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "四川第三高峰格聂神山主峰高达6204米，登山需高海拔经验并办理正规手续。"
+    },
+    "gongga-baihaizi-shan": {
+      "intro": "贡嘎卫峰白海子山主峰，海拔5924米，是一座技术型雪山。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "贡嘎卫峰白海子山主峰高达5924米，技术攀登须由专业向导组织并办理许可。"
+    },
+    "gongga-jiazi-feng": {
+      "intro": "大岩壁构成贡嘎嘉子峰的技术攀登特征，山峰海拔6540米，也是贡嘎卫峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "大岩壁构成贡嘎嘉子峰的技术核心，6540米西壁攀登须配技术装备并办理许可。"
+    },
+    "gongga-leduomanyin-feng": {
+      "intro": "传统冰川路线通向贡嘎勒多曼因峰，山峰海拔6112米，也是贡嘎卫峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "冰川路段构成贡嘎勒多曼因峰的技术核心，6112米攀登须配技术装备并办理许可。"
+    },
+    "gongga-nama-feng": {
+      "intro": "贡嘎群峰观景点那玛峰，海拔5588米，也是贡嘎卫峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "贡嘎群峰观景点那玛峰高达5588米，攀登需高海拔经验并办理正规手续。"
+    },
+    "gongga-riwuqie-feng": {
+      "intro": "冰壁与岩壁构成贡嘎日乌且峰的技术路段，山峰海拔6376米，也是贡嘎卫峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "冰壁与岩壁构成贡嘎日乌且峰的技术路段，6376米攀登须配技术装备并办理许可。"
+    },
+    "gongga-shan": {
+      "intro": "“蜀山之王”贡嘎雪山主峰，海拔7556米，也是四川省最高峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "蜀山之王贡嘎主峰高达7556米，极高山技术攀登须配专业装备并获官方许可。"
+    },
+    "gongga-tianhaizi-shan": {
+      "intro": "冰壁与岩壁混合路段构成田海子山主峰的技术特征，山峰海拔6070米，也是贡嘎卫峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "冰壁与岩壁交织田海子山主峰，6070米技术攀登须配技术装备并办理许可。"
+    },
+    "gongga-xiaogongga-feng": {
+      "intro": "贡嘎群峰中的贡嘎小贡嘎峰，海拔5928米，经典路线由子梅村经大本营往返主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "技术雪线围绕贡嘎小贡嘎峰，5928米攀登需高海拔经验并办理正规手续。"
+    },
+    "gongyu-yan": {
+      "intro": "喀斯特地貌环绕华东小众公盂岩，前坑村至公盂村串起露营徒步环线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "gouwei-zhang": {
+      "intro": "高山草甸与云海铺展广东第四高峰狗尾嶂，1684米环线难度适中。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "gu-shan-fujian": {
+      "intro": "涌泉寺坐落于福州鼓山，完善步道串起城市核心山岳的清幽景致。",
+      "fact_fields": [
+        "description"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "gua-shan": {
+      "intro": "古松与天宁寺相映成景，卦山以佛教文化和文保底蕴铺开山间步道。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "guangwu-shan": {
+      "intro": "米仓古道穿过光雾山红叶胜境，完善步道引向2507米山地深处。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "guanmen-shan": {
+      "intro": "枫叶、森林与瀑布层层展开，关门山以完整步道串起多层山野景观。",
+      "fact_fields": [
+        "description"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "guanzhai-shan": {
+      "intro": "“北夷南豸，丹霞双绝”，冠豸山以奇峻丹霞和完善步道迎接来客。",
+      "fact_fields": [
+        "description"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "gui-feng": {
+      "intro": "丹霞奇石铺开龟峰的世界遗产画卷，环线步道串起骆驼峰景观。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "guifeng-shan": {
+      "intro": "江门城市山野从圭峰山展开，森林公园步道环绕云峰主峰而行。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "guniu-jiang": {
+      "intro": "“华东最后一片原始森林”藏于牯牛降，成熟路线深入自然保护区。",
+      "fact_fields": [
+        "description"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "haba-xueshan": {
+      "intro": "云南高海拔雪山标杆哈巴雪山主峰，海拔5396米，经典路线由哈巴村经大本营往返主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "云南高海拔雪山标杆哈巴雪山，5396米主峰须具备高海拔经验并办理正规许可。"
+    },
+    "hailaer-xishan": {
+      "intro": "樟子松原生林铺满海拉尔西山，完善步道连接城市与664.2米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "haituo-shan": {
+      "intro": "高山草甸与云海构成海坨山的京郊视野，冬奥核心区就在山野周边。",
+      "fact_fields": [
+        "description"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "hantengeli-feng": {
+      "intro": "天山山脉第二高峰汗腾格里峰，海拔6995米，是近七千米级技术型雪山。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "天山第二高峰汗腾格里峰逼近7000米，技术攀登须取得官方许可。"
+    },
+    "heban-shan": {
+      "intro": "森林景观铺展在滨州近郊鹤伴山，完善步道通向728.8米山巅。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "heishan-gu": {
+      "intro": "峡谷与瀑布交织成黑山谷的渝黔山色，完善步道穿行约1900米山地。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "helan-shan": {
+      "intro": "宁夏回族自治区境内的贺兰山，3556米高程勾勒出西北山地的起伏轮廓。",
+      "fact_fields": [
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "hengshan-hunan": {
+      "intro": "南岳衡山兼具佛道文化底蕴，景区步道一路通向1300.2米祝融峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "hengshan-shanxi": {
+      "intro": "北岳恒山沉淀深厚道教文化，景区步道由山门通往2016.1米天峰岭。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huabo-shan": {
+      "intro": "瀑布与森林包围辽宁第二高峰花脖山，成熟路线通向1336.1米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huaguoshan-jiangsu": {
+      "intro": "《西游记》文化为花果山增添想象，完善步道通往江苏最高峰玉女峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [
+        {
+          "claim": "花果山内部高点为玉女峰",
+          "basis": "needs_review",
+          "note": "简介已使用该世界知识关系，但冻结源未明确支持，需人工补证"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review"
+    },
+    "huangbai-shan": {
+      "intro": "豫鄂交界森林铺满黄柏山，成熟路线从景区通向1352.6米大牛山主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huangcao-liang": {
+      "intro": "京西古道、长城遗址与高山草甸在黄草梁相遇，柏峪线路延伸至象鼻山。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huanggang-liang": {
+      "intro": "森林与草原在黄岗梁交界，大兴安岭最高峰立于2029米山地深处。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huanggang-shan": {
+      "intro": "桐木村与篁村两条线路分别通向黄岗山，2157.8米山巅横跨闽赣山野。",
+      "fact_fields": [
+        "altitude",
+        "mountain_routes"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huanghua-liang": {
+      "intro": "开阔草甸铺满京西黄花梁，江水河村环线穿过1850米平缓山脊。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huangmao-jian": {
+      "intro": "“江浙第一高峰”黄茅尖立于凤阳山保护区，成熟路线通往1929米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huangniu-shi": {
+      "intro": "粤赣交界的高山草甸铺向黄牛石，成熟环线穿行于1430米山脊。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huangshan": {
+      "intro": "奇松、怪石与云海铺展黄山画卷，莲花峰在1864.8米处托起群峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "huangshan-xihai-route": {
+      "intro": "峡谷与峰林构成黄山西海大峡谷环线，排云亭至天海串起核心景观。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huapi-ling": {
+      "intro": "草原天路从桦皮岭向西延伸，高山草甸与森林铺满2128.7米山脊。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huashan": {
+      "intro": "“奇险天下第一山”华山壁立关中，经典环线穿过西峰直抵2154.9米南峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "huhe-bashige": {
+      "intro": "荒漠草原环绕呼和巴什格，2364米狼山主峰立于阴山山脉西段。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huihang-gudao-route": {
+      "intro": "古道与峡谷串起徽杭古道穿越线，这条经典徒步路线由浙基田通往永来村。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huitengxile-huanghuagou": {
+      "intro": "草原与风电景观铺满辉腾锡勒黄花沟，景区步道通向约2100米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huoyan-shan": {
+      "intro": "炽热地貌与《西游记》取景记忆汇聚火焰山，完善步道延伸至831.7米山地。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "huping-shan": {
+      "intro": "“湖南屋脊”壶瓶山立于自然保护区，成熟路线通向2098.7米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "hutiaoxia-gaolu-route": {
+      "intro": "峡谷景观一路伴随虎跳峡高路，成熟穿越线由虎跳峡镇延伸至中虎跳。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jiaer-mengcuo": {
+      "intro": "森林、瀑布与海子构成甲尔猛措的山地画面，上孟乡环线深入约4000米山地。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jianfeng-ling": {
+      "intro": "热带山海林景观汇聚尖峰岭，成熟路线穿过国家级自然保护区通往主峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jianglang-shan": {
+      "intro": "三爿石塑造江郎山丹霞奇观，世界自然遗产步道通向816.8米峰顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jiangsanglamu-feng": {
+      "intro": "喜马拉雅山脉中段核心山峰姜桑拉姆峰，海拔6325米，经典路线经大本营往返主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "喜马拉雅中段的姜桑拉姆峰升至6325米，攀登须具备高海拔经验并办理正规许可。"
+    },
+    "jianmen-guan": {
+      "intro": "“蜀道难”的山川记忆凝在剑门关，鸟道环线穿过三国文化景观。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jiaoding-shan": {
+      "intro": "贡嘎群峰在轿顶山四周铺开，3552米开阔山脊提供一圈雪山全景。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "jiaozi-xueshan": {
+      "intro": "杜鹃花海与冰雪景观交替铺展，轿子雪山以4223米主峰立于昆明山野。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jietongsusong-feng": {
+      "intro": "喜马拉雅山脉东段核心山峰解同速松峰，海拔6240米，经典路线经大本营往返主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "喜马拉雅东段的解同速松峰升至6240米，攀登须具备高海拔经验并办理正规许可。"
+    },
+    "jigongshan": {
+      "intro": "民国风情建筑散落鸡公山间，这座传统避暑名山以完善步道连接报晓峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jiming-shan": {
+      "intro": "“塞外小泰山”鸡鸣山沉淀历史文化，玉皇顶步道可俯瞰下花园全景。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jinfo-shan": {
+      "intro": "喀斯特桌山地貌托起金佛山，世界自然遗产步道通向2238.2米风吹岭。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jinggang-shan": {
+      "intro": "红色革命记忆沉淀在井冈山，完善步道以五指峰环线串起景区山色。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [
+        {
+          "claim": "井冈山线路关联五指峰",
+          "basis": "needs_review",
+          "note": "简介已使用该世界知识关系，但冻结源未明确支持，需人工补证"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review"
+    },
+    "jingting-shan": {
+      "intro": "李白诗篇为敬亭山留下“江南诗山”之名，完善环线穿过324.1米山地。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jinlong-shan": {
+      "intro": "红叶点亮哈尔滨近郊金龙山，森林公园步道通向826米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jinyun-shan": {
+      "intro": "道教文化与自然保护区在缙云山相遇，城市步道环绕951米狮子峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jiucai-ling": {
+      "intro": "“湖南K2”韭菜岭穿过保护区山野，经典环线抵达2009.3米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jiucai-ping": {
+      "intro": "“贵州屋脊”韭菜坪铺展喀斯特石林与高山草甸，主峰升至2900.6米。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jiuding-shan": {
+      "intro": "高山花海与草甸铺开九顶山的川西景观，成熟路线抵达4989米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jiugongshan": {
+      "intro": "道教文化与避暑山色汇聚九宫山，完善步道通向1656.7米老鸦尖。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jiuhuashan": {
+      "intro": "地藏菩萨道场为九华山留下佛教底蕴，景区步道通往1342米十王峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jiulong-shan-zhejiang": {
+      "intro": "原始森林覆盖九龙山自然保护区，成熟路线通往1724.2米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jiushan-ding": {
+      "intro": "森林覆盖燕山余脉九山顶，成熟路线由常州村通向1078.5米天津最高峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jiuwan-shan": {
+      "intro": "原始森林藏于九万山自然保护区，保护区路线延伸至1693米无名主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "jizu-shan": {
+      "intro": "迦叶菩萨道场为鸡足山留下佛教底蕴，景区步道通向3248米金顶寺主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "junfeng-shan": {
+      "intro": "赣东最高峰军峰山立于森林公园，成熟路线由军溪村通向1760.9米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "kawagebo": {
+      "intro": "卡瓦格博峰位于云南省迪庆高山地带，是梅里雪山山系的冰雪主峰。",
+      "fact_fields": [
+        "primary_name",
+        "provinces"
+      ],
+      "added_claims": [
+        {
+          "claim": "卡瓦格博峰位于云南省迪庆高山地带，是梅里雪山山系的冰雪主峰。",
+          "basis": "needs_review",
+          "note": "梅里雪山主峰与迪庆位置关系来自本轮D节事实，待冻结一手出处"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review",
+      "s1_4_previous_intro": "卡瓦格博峰属于高海拔进阶目标，出发前需具备高海拔经验并办理正规手续。"
+    },
+    "kongtong-shan": {
+      "intro": "“中华道教第一山”崆峒山沉淀道教文化，景区步道通往2123.3米皇城主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "kongur-feng": {
+      "intro": "昆仑山最高峰公格尔峰，海拔7649米，也是帕米尔高原核心山峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "昆仑山最高峰公格尔峰升至7649米，技术攀登须取得官方许可。"
+    },
+    "kongur-jiubie-feng": {
+      "intro": "公格尔峰的姊妹峰公格尔九别峰，海拔7530米，经典路线为传统攀登路线。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "公格尔九别峰与公格尔峰并立，7530米技术攀登须取得官方许可。"
+    },
+    "kulagangri-feng": {
+      "intro": "山南最高峰库拉岗日峰，海拔7538米，也是藏区四大神山之一。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "藏区神山库拉岗日峰立于山南，7538米技术攀登须取得官方许可。"
+    },
+    "kunyushan": {
+      "intro": "全真派发源地昆嵛山立于胶东半岛，成熟路线通向922.8米泰礴顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "lafa-shan": {
+      "intro": "花岗岩奇洞塑造拉法山“关东奇山”景观，完善步道通往886.2米云罩峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "lang-shan-hunan": {
+      "intro": "丹霞地貌铺展崀山世界遗产景观，景区步道环绕818米辣椒峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "lang-shan-jiangsu": {
+      "intro": "大势至菩萨道场为狼山留下佛教底蕴，支云塔步道俯临江海景观。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "langya-shan-anhui": {
+      "intro": "《醉翁亭记》的文化记忆落在琅琊山，景区步道由山门通往南天门。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "langya-shan-hebei": {
+      "intro": "红色历史记忆沉淀在狼牙山，完善步道由景区通向1105米棋盘陀。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "laojunshan-henan": {
+      "intro": "金顶道观群铺展老君山道教景观，景区环线通向2217米马鬃岭。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "laoshan": {
+      "intro": "山海景观托起崂山这座海岸线第一高峰，巨峰环线穿行1132.7米山地。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "laotudingzi": {
+      "intro": "原生林覆盖辽宁第三高峰老秃顶子，成熟路线通向1325米保护区山巅。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "laoyacha-nao": {
+      "intro": "森林与高山草甸铺满老鸦岔垴，成熟路线抵达2413.8米河南最高峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "laoye-ling": {
+      "intro": "森林覆盖张广才岭核心老爷岭，成熟路线通向1284.7米吉林市最高峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "li-shan": {
+      "intro": "华清宫与西安事变记忆汇聚骊山，景区环线由山门延伸至烽火台。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "liang-shan-shandong": {
+      "intro": "《水浒传》的文化记忆落在水泊梁山，景区环线串起宋江寨山景。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "ling-shan-jiangsu": {
+      "intro": "灵山大佛为灵山留下佛教文化地标，完善环线穿行230.7米山地。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "ling-shan-jiangxi": {
+      "intro": "花岗岩环形峰林塑造灵山，道教名山步道环绕1496米天梯峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "lingtong-shan": {
+      "intro": "丹霞地貌与悬空寺奇观汇聚灵通山，完善步道通往1281.7米擎天峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "lionggongdao-zhufeng": {
+      "intro": "红色历史记忆沉淀在刘公岛，景区环线通向153.5米旗顶山主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "lishan-shunwang-ping": {
+      "intro": "华北最大高山草甸铺展在历山舜王坪，2358米中条山主峰立于保护区。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "liuding-shan": {
+      "intro": "高大释迦牟尼坐像构成六鼎山佛教文化景观，完善步道环绕803.6米山地。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "liupan-shan": {
+      "intro": "长征纪念地为六盘山留下红色记忆，森林公园步道通往2942米米缸山。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "longhu-shan": {
+      "intro": "道教文化与丹霞地貌交汇龙虎山，世界遗产步道环绕247.4米天门山。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "longxu-shan": {
+      "intro": "徽杭古道旁的花岗岩奇山构成龙须山，成熟环线由龙川村通往主峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "loushan-guan": {
+      "intro": "“娄山关大捷”的红色记忆留在娄山关，完善环线穿过1576米山地。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "lue-shan": {
+      "intro": "山西省境内的芦芽山，2739米高程勾勒出山西山地的起伏轮廓。",
+      "fact_fields": [
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "luofushan": {
+      "intro": "岭南第一山罗浮山，道教名山底蕴与完善步道一路相伴飞云顶。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "luozi-feng": {
+      "intro": "世界第四高峰洛子峰，海拔8516米，也是珠峰的姊妹峰，传统路线位于南坡。",
+      "fact_fields": [
+        "description",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "世界第四高峰洛子峰与珠峰并立，攀登须依托专业向导并取得国家级许可。"
+    },
+    "lushan": {
+      "intro": "世界文化遗产庐山承载深厚人文，牯岭镇步道通向1474米汉阳峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "lushan-shandong": {
+      "intro": "鲁中最高峰鲁山主峰，以森林与瀑布景观串起成熟的公园徒步线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "luzi-feng": {
+      "intro": "启孜峰姊妹峰鲁孜峰，海拔6154米，是技术型雪山，经典路线由羊八井经大本营往返主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "启孜峰姊妹峰鲁孜峰耸立至6154米，参与高海拔攀登须办理正规许可。"
+    },
+    "maiji-shan": {
+      "intro": "中国四大石窟之一坐落麦积山，世界文化遗产与完善步道在山间相接。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "makalu-feng": {
+      "intro": "世界第五高峰马卡鲁峰，海拔8463米，经典路线沿传统西北坡展开。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "世界第五高峰马卡鲁峰高达8463米，技术攀登须取得国家级登山许可。"
+    },
+    "mang-shan-beijing": {
+      "intro": "十三陵水库周边的蟒山，以完善步道连接森林公园正门与天池。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "mang-shan-hunan": {
+      "intro": "原始森林铺展莽山保护区，景区路线通向1902.3米猛坑石主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "mangdang-shan": {
+      "intro": "汉文化底蕴汇聚芒砀山，景区环线在完善步道间串起主峰风景。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "manhan-shan": {
+      "intro": "森林与峡谷交织蛮汉山，这座大青山姊妹峰保留着小众山野气息。",
+      "fact_fields": [
+        "description"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "mao-shan": {
+      "intro": "道教上清派发源地茅山，以大茅峰步道连接第一福地与第八洞天。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "maoer-shan-guangxi": {
+      "intro": "漓江源头所在的猫儿山，以2141.5米峰顶托起广西与华南高点。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "maoer-shan-jilin": {
+      "intro": "延吉城市山景收于帽儿山，完善步道通向俯瞰城市全景的峰顶。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "maya-xueshan": {
+      "intro": "祁连山东段的马牙雪山，以高山草甸和冰川景观铺开成熟徒步线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "meihua-shan-fujian": {
+      "intro": "华南虎原生地梅花山，保护区步道由景区延伸至1811米狗子脑。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "mengdagangri-feng": {
+      "intro": "喜马拉雅山脉东段核心山峰蒙达岗日峰，海拔6426米，经典路线经大本营往返主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "喜马拉雅山东段的蒙达岗日峰高达6426米，高海拔攀登须办理正规许可。"
+    },
+    "mian-shan": {
+      "intro": "清明文化发源地绵山，以悬空寺庙群和完善步道构成独特山景。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "miaofeng-shan": {
+      "intro": "京西民俗名山妙峰山，步道串联金顶娘娘庙与俯瞰北京的山景。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "mingsha-shan": {
+      "intro": "月牙泉依偎鸣沙山沙漠奇观，景区环线在沙丘间铺展开来。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "mingyue-shan": {
+      "intro": "温泉与山岳景观交汇明月山，月亮文化伴随步道通向太平山主峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "mogan-shan": {
+      "intro": "民国风情别墅掩映莫干山，这座避暑胜地以完善步道环抱塔山。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "mulan-shan": {
+      "intro": "木兰文化发源地木兰山，道教山景与近郊步道在582.1米峰顶相遇。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "muztagata-feng": {
+      "intro": "人称\"冰川之父\"的慕士塔格峰，7546米冰川漫坡，常作为高海拔登山的训练目标。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [
+        {
+          "claim": "常作为高海拔登山的训练目标",
+          "basis": "needs_review",
+          "note": "用户要求保留的S1.3表述，冻结description未提供出处"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review",
+      "s1_4_previous_intro": "人称\"冰川之父\"的慕士塔格峰，7546米冰川漫坡，常作为高海拔登山的训练目标，须官方许可。"
+    },
+    "namchabarwa": {
+      "intro": "南迦巴瓦峰位于西藏自治区，是喜马拉雅东段的高海拔冰雪山峰。",
+      "fact_fields": [
+        "primary_name",
+        "provinces"
+      ],
+      "added_claims": [
+        {
+          "claim": "南迦巴瓦峰位于西藏自治区，是喜马拉雅东段的高海拔冰雪山峰。",
+          "basis": "needs_review",
+          "note": "喜马拉雅东段的地貌定位待补冻结来源"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review",
+      "s1_4_previous_intro": "面向高海拔进阶攀登的南迦巴瓦峰，参与者须具备高海拔经验并依正规手续行动。"
+    },
+    "namunani-feng": {
+      "intro": "与冈仁波齐隔湖相望的阿里神山纳木那尼峰，海拔7694米，传统线路沿西坡展开。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "与冈仁波齐隔湖相望的纳木那尼峰，高达7694米，攀登须取得官方许可。"
+    },
+    "nanfeng-mian": {
+      "intro": "罗霄山脉核心南风面，以2120.4米峰顶和保护区山野构成成熟徒步线。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "nangong-shan": {
+      "intro": "道教名山南宫山，以喀斯特熔岩景观和完善步道串起金顶环线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "nanhuang-gudao-route": {
+      "intro": "千年南黄古道穿过红枫山景，前杨村至黄坦村串起华东赏秋路线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "nankun-shan": {
+      "intro": "森林与瀑布铺满南昆山，这座珠三角避暑地以步道环抱天堂顶。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "nanyandang-shan": {
+      "intro": "儒释道文化汇于南雁荡山，成熟景区路线由山间延伸至明王峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "nianbaoyuze": {
+      "intro": "年保玉则位于青海省，冰雪峰群与高原湖泊共同构成高原山地景观。",
+      "fact_fields": [
+        "primary_name",
+        "provinces"
+      ],
+      "added_claims": [
+        {
+          "claim": "年保玉则位于青海省，冰雪峰群与高原湖泊共同构成高原山地景观。",
+          "basis": "needs_review",
+          "note": "冰雪峰群与高原湖泊的地貌概括待补冻结来源"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review",
+      "s1_4_previous_intro": "面向高海拔进阶目标的年保玉则，参与者须具备高海拔经验并依正规手续行动。"
+    },
+    "ningjinkangsha-feng": {
+      "intro": "宁金抗沙峰是拉轨岗日山脉主峰，海拔7206米，传统线路沿南坡通向山峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "拉轨岗日主峰宁金抗沙峰高达7206米，技术攀登须取得官方许可。"
+    },
+    "niubei-shan": {
+      "intro": "贡嘎群峰全景铺展牛背山，这座3666米观景平台连接成熟徒步路线。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "nyainqentanglha": {
+      "intro": "念青唐古拉峰位于西藏自治区，是念青唐古拉山脉的高海拔冰雪山峰。",
+      "fact_fields": [
+        "primary_name",
+        "provinces"
+      ],
+      "added_claims": [
+        {
+          "claim": "念青唐古拉峰位于西藏自治区，是念青唐古拉山脉的高海拔冰雪山峰。",
+          "basis": "needs_review",
+          "note": "念青唐古拉山脉主峰关系待补冻结来源"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review",
+      "s1_4_previous_intro": "面向高海拔进阶攀登的念青唐古拉峰，参与者须具备高海拔经验并依正规手续行动。"
+    },
+    "paiya-shan": {
+      "intro": "花岗岩牙状峰林勾勒排牙山，这座深圳第三高峰串起成熟山野路线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "pan-shan": {
+      "intro": "京东第一山盘山承载深厚人文，完善步道从景区正门通向挂月峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "putuoshan-foding-shan": {
+      "intro": "观音道场普陀山佛顶山，以慧济寺步道连接291.3米海岛高点。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qian-shan": {
+      "intro": "花岗岩峰林铺展千山，佛道名山底蕴与景区环线共同通向仙人台。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qianfo-shan-sichuan": {
+      "intro": "绵阳最高峰千佛山立于保护区，成熟路线由安州区通向3033米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qianling-shan": {
+      "intro": "贵阳城市山景汇于黔灵山，公园步道串联弘福寺与1396米峰顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qiaogeli-feng-k2": {
+      "intro": "世界第二高峰乔戈里峰，8611米陡峭冰岩矗立于喀喇昆仑山脉。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qilianshan-tuanjie-feng": {
+      "intro": "祁连山脉最高峰团结峰，海拔5808米，传统线路连接肃北县与团结峰大本营。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "祁连山脉最高峰团结峰高达5808米，高海拔攀登须办理正规许可。"
+    },
+    "qingchengshan-laojun-ge": {
+      "intro": "青城天下幽，老君阁步道穿行道教名山，最终抵达1260米高处。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qinghaihu-nanshan": {
+      "intro": "青海湖全景在南山草甸间铺开，约3500米山脊连接成熟徒步路线。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qingliang-feng": {
+      "intro": "浙西最高峰清凉峰，以保护区山野和银龙坞环线承载华东经典穿越。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qingyuan-shan": {
+      "intro": "老君岩造像守望清源山，道教名山步道环抱498米城市峰景。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qingyun-shan-fujian": {
+      "intro": "峡谷与瀑布交织青云山，这座避暑景区以完善步道串起1130米山景。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qiniang-shan": {
+      "intro": "火山岩地貌勾勒七娘山，这座深圳第二高峰坐落于大鹏半岛核心。",
+      "fact_fields": [
+        "description",
+        "altitude"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qiongmugangri-feng": {
+      "intro": "穷母岗日峰位于念青唐古拉山脉西段，海拔7048米，是该山脉西段的核心山峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "念青唐古拉西段的穷母岗日峰高达7048米，技术攀登须取得官方许可。"
+    },
+    "qiyue-shan": {
+      "intro": "高山草甸与风车铺展齐岳山，这片南方大型山地草场串起成熟环线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qiyun-shan-anhui": {
+      "intro": "丹霞峰林托起齐云山，道教名山步道由景区正门通向585米高处。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qiyun-shan-jiangxi": {
+      "intro": "赣南最高峰齐云山，以2061.3米草甸山景承载保护区成熟徒步线。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "qizi-feng": {
+      "intro": "羊八井线路通向六千米级雪山启孜峰，海拔6206米，途中经过启孜峰大本营。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "羊八井线路通向启孜峰6206米雪线，高海拔攀登须具备经验并办理正规许可。"
+    },
+    "queer-shan": {
+      "intro": "以冰壁攀登著称的经典雪山雀儿山主峰，是川藏北线最高峰，海拔6168米。",
+      "fact_fields": [
+        "description",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "川藏北线最高峰雀儿山以冰壁攀登著称，技术攀登须配备专业向导并办理许可。"
+    },
+    "sanao-aotaiji": {
+      "intro": "三奥雪山主峰奥太基，海拔5286米，线路由黑水县城经大本营通往主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "三奥雪山主峰奥太基高达5286米，高海拔攀登须具备经验并办理正规许可。"
+    },
+    "sanao-aotaimei": {
+      "intro": "三奥雪山核心峰奥太美，海拔5257米，线路由黑水县城经大本营通往主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "三奥雪山核心奥太美耸立至5257米，高海拔攀登须具备经验并办理正规许可。"
+    },
+    "sanao-aotaina": {
+      "intro": "黑水县城线路通向三奥雪山奥太娜，峰顶海拔5210米，途中经过大本营。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "三奥雪山群中的奥太娜耸立至5210米，高海拔攀登须具备经验并办理正规许可。"
+    },
+    "sanbai-shan": {
+      "intro": "东江源头藏于三百山，景区环线在国家级风景区的完善步道间展开。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "sangdankangsang-feng": {
+      "intro": "桑丹康桑峰位于念青唐古拉山脉北段，海拔6590米，是藏区二十五座神山之一。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "念青唐古拉北段的桑丹康桑峰高达6590米，高海拔攀登须办理正规许可。"
+    },
+    "sanqingshan": {
+      "intro": "花岗岩峰林塑造三清山奇观，道教名山步道在世界自然遗产间延伸。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "sejila-shan": {
+      "intro": "南迦巴瓦峰景观铺展色季拉山，4728米山岳连接林芝成熟徒步线。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "shao-shan": {
+      "intro": "深厚历史意义汇于韶山，景区环线沿完善步道通向518.9米韶峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "she-shan": {
+      "intro": "上海最高峰佘山仅98.8米，森林公园步道环绕西佘山与天主教山景。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "shengtang-shan": {
+      "intro": "丹霞与云海环抱圣堂山，这座大瑶山主峰以1979米山景连接成熟路线。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "shennong-ding": {
+      "intro": "华中屋脊神农顶耸立至3106.2米，保护区成熟路线通向湖北最高点。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "shennongjia-laojun-shan": {
+      "intro": "原始森林包围神农架老君山，木鱼镇环线串起华中经典穿越山景。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "shennongshan": {
+      "intro": "白松岭景观铺展神农山，道教名山步道由景区正门通向紫金顶。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "shenxian-ju": {
+      "intro": "悬空栈道与如意桥横跨神仙居，丹霞景观沿景区环线层层展开。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "shigao-shan": {
+      "intro": "森林、瀑布与溶洞汇聚石膏山，这座避暑地以完善步道通向主峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "shika-xueshan": {
+      "intro": "香格里拉全景铺展石卡雪山，约4500米山岳由完善景区步道串联。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "shikeng-kong": {
+      "intro": "广东屋脊石坑崆高达1902米，南岭保护区路线穿过成熟山野。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "shishapangma-lenggang-feng": {
+      "intro": "希夏邦马峰的卫峰冷岗峰，海拔6225米，线路由聂拉木县经大本营通往主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "希夏邦马卫峰冷岗峰高达6225米，高海拔攀登须具备经验并办理正规许可。"
+    },
+    "shiwan-dashan": {
+      "intro": "热带季雨林覆盖十万大山，广西南部山脉沿保护区成熟路线延伸。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "shuangta-shan": {
+      "intro": "丹霞奇观塑造双塔山，承德城市山岳以完善步道串起景区环线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "shunan-zhuhai": {
+      "intro": "大片竹林铺满蜀南竹海，景区步道环绕观海楼与约千米山景。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "siguniang-dafeng": {
+      "intro": "海子沟线路通向四姑娘山大峰，峰顶海拔5025米，途中经过大峰大本营。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "海子沟深处的四姑娘山大峰，5025米开阔雪坡考验高海拔经验，攀登需正规手续。"
+    },
+    "siguniang-erfeng": {
+      "intro": "包含少量冰雪路段的四姑娘山二峰，海拔5276米，线路由日隆镇经海子沟和大本营通往主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "海子沟路线通向四姑娘山二峰5276米冰雪路段，参与者须具备高海拔经验并办理正规许可。"
+    },
+    "siguniang-luotuo-feng": {
+      "intro": "冰川与岩壁路段构成四姑娘山骆驼峰线路，海拔5484米，路线经长坪沟和大本营通往主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "冰川与岩壁构成四姑娘山骆驼峰，5484米技术路线须凭经验和正规许可参与。"
+    },
+    "siguniang-sanfeng": {
+      "intro": "攀岩路段构成四姑娘山三峰线路，海拔5355米，路线由日隆镇经海子沟和大本营通往主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "攀岩路段通向四姑娘山三峰，5355米高海拔技术路线须凭经验和正规许可参与。"
+    },
+    "siguniang-yaomei-feng": {
+      "intro": "“蜀山之后”四姑娘山幺妹峰是四川第二高峰，海拔6250米，也是中国技术型攀登标杆山峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "蜀山之后幺妹峰高达6250米，技术攀登须配备专业向导并取得官方许可。"
+    },
+    "simian-shan": {
+      "intro": "千瀑之乡四面山以森林与瀑布铺展景区，完善步道通向望乡台。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "siming-shan": {
+      "intro": "红枫铺满浙东四明山，森林公园环线串起1018米成熟徒步山景。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "siren-tong": {
+      "intro": "贡嘎雪山全景铺展四人同，这座3510米观景平台连接小众徒步与露营路线。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "songshan": {
+      "intro": "五岳中岳嵩山承载三教文化，世界文化遗产步道通向1491.7米峻极峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "sumu-shan": {
+      "intro": "大片人工林覆盖苏木山，高森林覆盖率与完善步道共同构成避暑山景。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "taibaishan": {
+      "intro": "秦岭主峰太白山托起陕西最高点，厚畛子路线通向3771.2米拔仙台。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "taimu-shan": {
+      "intro": "海上仙都太姥山以花岗岩峰林俯瞰山海，完善步道通向覆鼎峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "taishan": {
+      "intro": "五岳之首泰山承载双遗产底蕴，红门古道一路攀上1532.7米玉皇顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "taizi-jian": {
+      "intro": "高山草甸与云海铺展太子尖，浪广村至百丈岭串起浙西三尖徒步线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "tanglaangqu-feng": {
+      "intro": "念青唐古拉山脉核心峰唐拉昂曲，海拔6330米，线路由羊八井经大本营通往主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "念青唐古拉山脉核心雪峰唐拉昂曲，6330米攀登需高海拔经验与正规许可。"
+    },
+    "tianhua-shan": {
+      "intro": "人称“东北小黄山”的天华山，以峡谷和峰林夹出通往天台峰的石阶。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "tianjieshan": {
+      "intro": "回龙挂壁公路穿行南太行，天界山步道环绕1570米老爷顶展开。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "tianma-shan-shanghai": {
+      "intro": "护珠塔斜立于天马山林间，这座上海第二高峰适合沿环线悠然登临。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "tianmu-shan": {
+      "intro": "大树王国铺展天目山的森林气象，景区步道由山门通往1506米仙人顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "tianmushan-qijian-route": {
+      "intro": "七座山峰连成天目山七尖穿越线，是华东徒步拉练的经典长线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "tianping-shan": {
+      "intro": "层林秋色点亮天平山，这座赏枫名山以完善步道串起山顶环线。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "tiantaishan-huading-shan": {
+      "intro": "云锦杜鹃装点天台山华顶山，天台宗祖庭山色沿步道铺向1098米峰顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "tiantang-ding": {
+      "intro": "南昆山深处的天堂顶托起广州最高处，成熟山径通往1210米峰顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "tiantang-zhai": {
+      "intro": "皖鄂两省共同环抱天堂寨，未核入口的往返山线通往1729.13米高处。",
+      "fact_fields": [
+        "altitude",
+        "mountain_routes"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "tianzhushan-anhui": {
+      "intro": "花岗岩峰林塑出天柱山奇观，景区环线攀向1489.8米天柱峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "tonggong-jian": {
+      "intro": "高山草甸铺满浙西童公尖，浮桥村出发的环线串起三尖山色。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "tuo-liang": {
+      "intro": "密林、瀑布与溪流构成驼梁的清凉山景，前大地村山径通往2281米峰顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "tuomuer-feng": {
+      "intro": "天山山脉最高峰托木尔峰，海拔7443米，经典线路为托木尔峰传统路线。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "天山最高峰托木尔峰耸立至7443米，攀登须持官方许可并由专业团队保障。"
+    },
+    "wanfo-shan-anhui": {
+      "intro": "森林与瀑布铺展万佛山的大别山景致，成熟山径由景区通往老佛顶。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wangmang-ling": {
+      "intro": "红岩绝壁、云海与挂壁公路汇聚王莽岭，景区环线通往1732米高处。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wangmangling-xiyaigou-route": {
+      "intro": "挂壁公路与峡谷相伴，王莽岭至锡崖沟环线串起南太行经典山景。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wangwushan": {
+      "intro": "愚公移山故事落在王屋山，道教名山步道由景区通往1715.7米天坛峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wangxiang-yan": {
+      "intro": "悬空栈道贴着南太行峡谷延伸，王相岩步道通往约1600米峰顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wanxian-shan": {
+      "intro": "郭亮村挂壁公路刻入万仙山崖壁，经典环线沿南太行山色通往主峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wawu-shan": {
+      "intro": "桌山地貌托起瓦屋山，森林与瀑布环绕2830米兰溪主峰展开。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "weizhou-volcanic-landform-route": {
+      "intro": "海岛火山地貌沿涠洲岛游览线展开，景区正门环线串起开放游览路段。",
+      "fact_fields": [
+        "mountain_routes"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wudangshan": {
+      "intro": "道教古建与山色共同铺展武当山，景区步道由山门直抵金顶天柱峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wugongshan-guangdong": {
+      "intro": "高山草甸铺展武功山广东段，万时山环线沿平缓山脊通往三省界碑。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wugongshan-jiangxi": {
+      "intro": "高山草甸与云海铺满武功山脊，景区金顶和发云界穿越呈现两种山野尺度。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "wulao-feng": {
+      "intro": "丹霞山色与道教遗迹相映五老峰，景区步道由山门通往玉柱峰。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wuliang-shan": {
+      "intro": "冬樱装点无量山保护区，成熟山径由景东县延伸至3376米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wuling-shan": {
+      "intro": "京冀两地共同环抱雾灵山，北门与南门两条往返线分别通向2118米峰顶。",
+      "fact_fields": [
+        "altitude",
+        "mountain_routes"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wuling-shan-chongqing": {
+      "intro": "喀斯特山景与森林铺满武陵山，景区步道通向1980米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wumeng-shan": {
+      "intro": "云贵高原山脊在乌蒙山延展，威宁县往返线通向2857米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wutaishan": {
+      "intro": "佛教名山五台山托起华北屋脊，大朝台环线串联五座清凉台顶。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "generation_note": "ai_one_time_source_grounded",
+      "added_claims": []
+    },
+    "wutong-shan": {
+      "intro": "深圳城市天际由梧桐山抬高，经典山径通往943.7米大梧桐主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wuyue-zhai": {
+      "intro": "瀑布与森林铺展五岳寨的清凉山景，成熟步道由景区通往1945.6米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "wuzhi-shan": {
+      "intro": "热带原始林覆盖五指山，这座海南最高峰以二指主峰托起1867.1米岛屿天际。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xi-shan-yunnan": {
+      "intro": "滇池湖畔的西山如睡美人横卧昆明，龙门环线延伸至凌虚阁高处。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xiang-shan": {
+      "intro": "漫山红叶点亮北京香山，公园东门石阶一路通往557米香炉峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xiangbi-shan": {
+      "intro": "喀斯特山体塑成桂林城徽象鼻山，景区环线串起江畔与山顶景观。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xiangtang-shan": {
+      "intro": "古老石窟嵌入响堂山崖壁，文保山景沿完善步道延伸至891米峰顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xiannv-shan": {
+      "intro": "草甸与森林铺展仙女山，景区环线沿2033米高地展开四季山景。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xiaowutai-shan": {
+      "intro": "金莲花与高山草甸点亮小五台山，这座河北最高峰是华北经典穿越目的地。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xiaoxinganling-liangshui": {
+      "intro": "红松原生林覆盖小兴安岭凉水主峰，保护区山径穿行707.3米生态林海。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xiata-gudao-route": {
+      "intro": "冰川与森林相伴夏塔古道，这条天山经典徒步线延伸至约3600米高地。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xicheng-shan": {
+      "intro": "圣王坪草甸铺展析城山的喀斯特高地，小众环线串起1889.5米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xiling-xueshan": {
+      "intro": "西岭雪山位于四川省，冰雪山体与景区登山线构成成都西部的高山景观。",
+      "fact_fields": [
+        "primary_name",
+        "provinces"
+      ],
+      "added_claims": [
+        {
+          "claim": "西岭雪山位于四川省，冰雪山体与景区登山线构成成都西部的高山景观。",
+          "basis": "needs_review",
+          "note": "成都西部与冰雪山体地貌概括待补冻结来源"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review",
+      "s1_4_previous_intro": "成都群山之巅的西岭雪山，景区之外通往5364米主峰需高海拔经验与正规手续。"
+    },
+    "xiqiao-shan": {
+      "intro": "岭南山色与观音文化汇聚西樵山，景区环线沿完善步道通往大观音高处。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xixiabangma-feng": {
+      "intro": "唯一完全位于中国境内的八千米级极高峰希夏邦马峰，峰顶海拔8012米，传统线路沿南坡展开。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "中国境内的八千米高峰希夏邦马，8012米攀登须获国家许可并依靠专业向导与技术装备。"
+    },
+    "xuebao-ding": {
+      "intro": "岷山山脉主峰雪宝顶，海拔5588米，经典线路沿传统西壁路线展开。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "岷山主峰雪宝顶耸立至5588米，西壁攀登须由专业向导携技术装备并办理许可。"
+    },
+    "xuedou-shan": {
+      "intro": "弥勒道场坐落雪窦山，景区步道由山门环绕约800米妙高台展开。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xuefeng-shan": {
+      "intro": "森林山脊铺展湖南雪峰山，成熟山径由景区通往1934.3米苏宝顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "xuelong-bao": {
+      "intro": "冰川与岩壁路段构成雪隆包线路，峰顶海拔5527米，路线由孟屯河谷经大本营通往主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "冰川与岩壁交织雪隆包，5527米往返攀登需高海拔经验、正规许可与专业装备。"
+    },
+    "xueshan-zhang": {
+      "intro": "原始森林与高山草甸覆盖雪山嶂，沙口镇环线通往1379米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yading-xiannairi": {
+      "intro": "仙乃日位于四川省稻城亚丁，与央迈勇、夏诺多吉并列为三怙主神山。",
+      "fact_fields": [
+        "primary_name",
+        "provinces"
+      ],
+      "added_claims": [
+        {
+          "claim": "仙乃日位于四川省稻城亚丁，与央迈勇、夏诺多吉并列为三怙主神山。",
+          "basis": "needs_review",
+          "note": "三怙主神山关系来自本轮D节事实，待冻结公告或权威出处"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review",
+      "s1_4_previous_intro": "高海拔进阶目标仙乃日，行前须具备高海拔经验并办理正规手续。"
+    },
+    "yading-xianuoduoji": {
+      "intro": "夏诺多吉位于四川省稻城亚丁，与仙乃日、央迈勇并列为三怙主神山。",
+      "fact_fields": [
+        "primary_name",
+        "provinces"
+      ],
+      "added_claims": [
+        {
+          "claim": "夏诺多吉位于四川省稻城亚丁，与仙乃日、央迈勇并列为三怙主神山。",
+          "basis": "needs_review",
+          "note": "三怙主神山关系来自本轮D节事实，待冻结公告或权威出处"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review",
+      "s1_4_previous_intro": "高海拔进阶目标夏诺多吉，行前须具备高海拔经验并办理正规手续。"
+    },
+    "yading-yangmaiyong": {
+      "intro": "央迈勇位于四川省稻城亚丁，与仙乃日、夏诺多吉并列为三怙主神山。",
+      "fact_fields": [
+        "primary_name",
+        "provinces"
+      ],
+      "added_claims": [
+        {
+          "claim": "央迈勇位于四川省稻城亚丁，与仙乃日、夏诺多吉并列为三怙主神山。",
+          "basis": "needs_review",
+          "note": "三怙主神山关系来自本轮D节事实，待冻结公告或权威出处"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review",
+      "s1_4_previous_intro": "高海拔进阶目标央迈勇，行前须具备高海拔经验并办理正规手续。"
+    },
+    "yala-xueshan": {
+      "intro": "雅拉雪山位于四川省甘孜高原，冰雪主峰与高山峡谷构成山地景观。",
+      "fact_fields": [
+        "primary_name",
+        "provinces"
+      ],
+      "added_claims": [
+        {
+          "claim": "雅拉雪山位于四川省甘孜高原，冰雪主峰与高山峡谷构成山地景观。",
+          "basis": "needs_review",
+          "note": "甘孜高原与冰雪峡谷地貌概括待补冻结来源"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review",
+      "s1_4_previous_intro": "5820米雅拉雪山属于高海拔进阶目标，行前须有高海拔经验并办理正规手续。"
+    },
+    "yalongwan-canghai-lou": {
+      "intro": "热带森林覆盖亚龙湾山地，景区环线由山门通往约450米沧海楼主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yandangshan-zhejiang": {
+      "intro": "火山岩峰林塑出雁荡山奇景，灵峰山径通往1108米百岗尖。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yangcao-shan": {
+      "intro": "高山雪原铺展羊草山，雪乡至雪谷的经典穿越线贯穿冬季山野。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yaoshan-henan": {
+      "intro": "温泉与山岳风景汇聚尧山，景区步道由山门攀向2153.1米玉皇顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yi-shan": {
+      "intro": "花岗岩奇石构成峄山“岱南奇观”，景区山径通往582.8米玉皇顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yimengshan-guimeng": {
+      "intro": "世界地质公园山色汇聚沂蒙山龟蒙，景区步道通往1156米龟蒙顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yingge-ling": {
+      "intro": "热带原始林覆盖鹦哥岭，这座海南第二高峰以1811.6米主峰托起保护区山景。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yinna-shan": {
+      "intro": "灵光寺坐落阴那山间，粤东名山步道由景区通往1298米玉皇顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yintiao-ling": {
+      "intro": "原始森林覆盖重庆屋脊阴条岭，巫溪山径通往2796.8米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yishan-shandong": {
+      "intro": "五镇之首沂山承载古老山岳文化，景区步道通往1032米玉皇顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yiwulu-shan": {
+      "intro": "历史山色铺展医巫闾山，这座东北名山的步道通往866.6米望海峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yuanbao-shan": {
+      "intro": "原始森林覆盖元宝山，这座广西第二高峰由安陲乡山径通往2084.7米峰顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yubeng-route": {
+      "intro": "“不去天堂，就去雨崩”，神瀑往返线穿过雪山村落，呈现滇西北高山峡谷景观。",
+      "fact_fields": [
+        "description"
+      ],
+      "added_claims": [
+        {
+          "claim": "雨崩神瀑线为当前保留的开放参考路线",
+          "basis": "needs_review",
+          "note": "来自本轮E节通告口径，待冻结一手通告正文"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review"
+    },
+    "yuelu-shan": {
+      "intro": "岳麓书院坐落岳麓山间，长沙城市山径沿云麓宫环线穿行至300.8米高处。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yulong-xueshan": {
+      "intro": "玉龙雪山位于云南省，以扇子陡为代表高点，冰川与高山景观构成丽江雪山地标。",
+      "fact_fields": [
+        "primary_name",
+        "provinces"
+      ],
+      "added_claims": [
+        {
+          "claim": "玉龙雪山位于云南省，以扇子陡为代表高点，冰川与高山景观构成丽江雪山地标。",
+          "basis": "needs_review",
+          "note": "扇子陡代表高点与丽江地标表述来自已锁定实体纠偏，待补冻结来源"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review",
+      "s1_4_previous_intro": "玉龙雪山冰川公园景区线开放游览，景区之外的高海拔目标需经验与正规手续。"
+    },
+    "yunding-shan-fujian": {
+      "intro": "森林与峡谷环绕厦门云顶山，汪前村山径通往1175.2米城市最高处。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yunding-shan-shanxi": {
+      "intro": "草甸与森林铺展太原云顶山，娄烦县山径通往2708米城市最高峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yunlong-shan": {
+      "intro": "云龙山承载徐州城市文脉，景区环线由山门通往俯瞰云龙湖的观景台。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yunmeng-shan": {
+      "intro": "花岗岩峰林勾勒京郊云蒙山，成熟环线穿行1414米山地。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yuntai-shan-guizhou": {
+      "intro": "喀斯特地貌铺展贵州云台山，世界遗产山景沿完善步道连向1066米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yuntai-shan-henan": {
+      "intro": "丹霞峡谷塑出河南云台山，景区步道由山门通往1308米茱萸峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "yuzhu-feng": {
+      "intro": "青藏线旁冰川铺展，6178米玉珠峰常作为高海拔登山的训练目标。",
+      "fact_fields": [
+        "altitude",
+        "difficulty",
+        "mountain_routes"
+      ],
+      "added_claims": [
+        {
+          "claim": "常作为高海拔登山的训练目标",
+          "basis": "needs_review",
+          "note": "用户要求保留的S1.3表述，冻结description未提供出处"
+        }
+      ],
+      "generation_note": "ai_one_time_needs_review"
+    },
+    "yuzhu-yuxu-feng": {
+      "intro": "玉珠峰姊妹峰玉虚峰也是昆仑核心峰与藏区神山，海拔5933米，线路由格尔木经大本营通往主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "昆仑山脉核心雪峰玉虚峰耸立至5933米，攀登需高海拔经验与正规许可。"
+    },
+    "zhangjiajie-qixing-shan": {
+      "intro": "草甸与峡谷铺展张家界七星山，成熟山径由景区通往1528.6米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "zhangjiajie-tianmen-shan": {
+      "intro": "天门洞与悬空玻璃栈道塑出张家界天门山奇景，环线通往云梦仙顶。",
+      "fact_fields": [
+        "description",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "zhangshi-yan": {
+      "intro": "丹崖碧岭铺展嶂石岩砂岩地貌，景区山径通往1774米黄庵垴主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "zhangzi-feng": {
+      "intro": "珠峰北峰章子峰属于七千米级技术型雪山，海拔7543米，传统线路沿北坡展开。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "珠峰北侧的章子峰耸立至7543米，技术攀登须获官方许可并依靠专业团队与装备。"
+    },
+    "zhaogong-shan": {
+      "intro": "青城山脉主峰赵公山立于成都近郊，玉堂镇山径通往2434米峰顶。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "zhongnan-shan": {
+      "intro": "秦岭山脊与道教文化汇聚终南山，沣峪口山径通往2604米主峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "zhumulangma-beipo": {
+      "intro": "世界最高峰珠穆朗玛峰的北坡，峰顶海拔8848.86米，是喜马拉雅山脉主峰的传统攀登线路。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "世界最高峰珠穆朗玛耸立至8848.86米，北坡攀登须获国家许可并配专业团队与技术装备。"
+    },
+    "zhuoaoyou-feng": {
+      "intro": "世界第六高峰卓奥友峰属于八千米级雪山，海拔8201米，传统线路沿西北坡展开。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "difficulty",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded",
+      "s1_4_previous_intro": "世界第六高峰卓奥友峰高达8201米，西北坡攀登须获国家许可并依靠专业向导与技术装备。"
+    },
+    "zhuoer-shan": {
+      "intro": "丹霞与草原相映卓尔山，景区步道沿约3100米高地铺展开阔山景。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "zijin-shan-jiangsu": {
+      "intro": "中山陵与明孝陵坐落紫金山间，城市环线穿行森林直上448.9米头陀岭。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    },
+    "zu-shan": {
+      "intro": "花岗岩峰林与瀑布铺展祖山，景区东门环线通往1428米天女峰。",
+      "fact_fields": [
+        "description",
+        "altitude",
+        "classic_route"
+      ],
+      "added_claims": [],
+      "generation_note": "ai_one_time_source_grounded"
+    }
+  }
+}

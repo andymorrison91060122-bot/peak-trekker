@@ -1,0 +1,3409 @@
+{
+  "_meta": {
+    "source": "workflow wnu6qtea2 (classify→reconcile→adversarial-verify)",
+    "seed_catalog_sha256": "a9c733a12ab8ae51aa2d8f251f5bc93074124101a9a3cb5763eeeb60e42ccb03",
+    "seed_distance_sha256": "5228f072fadac773c0e75fe64f5e0177267889fce4471ef7faf057076923b04b",
+    "total_entities": 406,
+    "disposition_counts": {
+      "keep": 353,
+      "reject": 41,
+      "merge": 3,
+      "keep_route": 9
+    },
+    "entity_type_counts": {
+      "peak": 325,
+      "region_cluster": 41,
+      "massif_member": 31,
+      "route_corridor": 9
+    },
+    "survive": 362,
+    "removed": 44,
+    "massif_groups": {
+      "wutai": 1,
+      "hengshan": 1,
+      "changbaishan": 1,
+      "siguniang": 5,
+      "sanao": 3,
+      "gongga": 7,
+      "yala": 1,
+      "dangling": 2,
+      "yading": 3,
+      "kawagebo": 1,
+      "nyainqentanglha": 1,
+      "shishapangma": 1,
+      "namchabarwa": 1,
+      "yuzhu": 1,
+      "nianbaoyuze": 1,
+      "kongur": 1
+    },
+    "adversarial_verify_disputed": 0,
+    "same_name_kept": [
+      {
+        "name": "凤凰山",
+        "provinces": [
+          "辽宁省",
+          "黑龙江省",
+          "广东省"
+        ]
+      },
+      {
+        "name": "雾灵山",
+        "provinces": [
+          "北京市",
+          "河北省"
+        ]
+      },
+      {
+        "name": "云顶山",
+        "provinces": [
+          "山西省",
+          "福建省"
+        ]
+      },
+      {
+        "name": "灵山",
+        "provinces": [
+          "江苏省",
+          "江西省"
+        ]
+      },
+      {
+        "name": "大明山",
+        "provinces": [
+          "浙江省",
+          "广西壮族自治区"
+        ]
+      },
+      {
+        "name": "齐云山",
+        "provinces": [
+          "安徽省",
+          "江西省"
+        ]
+      },
+      {
+        "name": "天堂寨",
+        "provinces": [
+          "安徽省",
+          "湖北省"
+        ]
+      },
+      {
+        "name": "黄岗山",
+        "provinces": [
+          "福建省",
+          "江西省"
+        ]
+      }
+    ],
+    "note": "Claude 决策产物(判定层)。Phase 0 解析器消费此文件作为 canonical 处置真源;用户审核后可编辑 disposition/entity_type 再由 Codex 重跑。破坏性(reject/merge)经对抗复核 0 争议。"
+  },
+  "ledger": [
+    {
+      "canonical_key": "dongling-shan",
+      "primary_name": "东灵山",
+      "province": "北京市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "北京最高峰，单一峰顶，数据完整"
+    },
+    {
+      "canonical_key": "haituo-shan",
+      "primary_name": "海坨山",
+      "province": "北京市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一名峰，数据完整"
+    },
+    {
+      "canonical_key": "baihua-shan",
+      "primary_name": "百花山",
+      "province": "北京市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一峰顶，数据完整"
+    },
+    {
+      "canonical_key": "xiang-shan",
+      "primary_name": "香山",
+      "province": "北京市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "香炉峰单一峰顶"
+    },
+    {
+      "canonical_key": "yunmeng-shan",
+      "primary_name": "云蒙山",
+      "province": "北京市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一峰顶花岗岩峰林"
+    },
+    {
+      "canonical_key": "huangcao-liang",
+      "primary_name": "黄草梁",
+      "province": "北京市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "京西古道单一目的地峰"
+    },
+    {
+      "canonical_key": "fenghuang-tuo",
+      "primary_name": "凤凰坨",
+      "province": "北京市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一主峰"
+    },
+    {
+      "canonical_key": "beiling-shan",
+      "primary_name": "北灵山",
+      "province": "北京市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "东灵山姊妹峰但独立峰顶，各自保留"
+    },
+    {
+      "canonical_key": "huanghua-liang",
+      "primary_name": "黄花梁",
+      "province": "北京市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "京西高山草甸单一峰"
+    },
+    {
+      "canonical_key": "wuling-shan-beijing",
+      "primary_name": "雾灵山",
+      "province": "北京市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "燕山主峰；同名异山按省保留，与河北条目不合并"
+    },
+    {
+      "canonical_key": "mang-shan-beijing",
+      "primary_name": "蟒山",
+      "province": "北京市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "十三陵周边单一山岳"
+    },
+    {
+      "canonical_key": "miaofeng-shan",
+      "primary_name": "妙峰山",
+      "province": "北京市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "京西民俗名山单一峰顶"
+    },
+    {
+      "canonical_key": "pan-shan",
+      "primary_name": "盘山",
+      "province": "天津市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "挂月峰单一峰顶"
+    },
+    {
+      "canonical_key": "jiushan-ding",
+      "primary_name": "九山顶",
+      "province": "天津市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "天津最高峰，单一峰顶"
+    },
+    {
+      "canonical_key": "baxian-shan",
+      "primary_name": "八仙山",
+      "province": "天津市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "聚仙峰单一峰顶"
+    },
+    {
+      "canonical_key": "xiaowutai-shan",
+      "primary_name": "小五台山",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "河北最高峰"
+    },
+    {
+      "canonical_key": "tuo-liang",
+      "primary_name": "驼梁",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "晋冀交界单一名峰"
+    },
+    {
+      "canonical_key": "baishi-shan",
+      "primary_name": "白石山",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "白石顶单一峰顶"
+    },
+    {
+      "canonical_key": "langya-shan-hebei",
+      "primary_name": "狼牙山",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "棋盘陀主峰单一峰顶"
+    },
+    {
+      "canonical_key": "cha-shan",
+      "primary_name": "茶山",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "河北第二高峰"
+    },
+    {
+      "canonical_key": "wuyue-zhai",
+      "primary_name": "五岳寨",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一主峰森林公园"
+    },
+    {
+      "canonical_key": "zu-shan",
+      "primary_name": "祖山",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "天女峰单一峰顶"
+    },
+    {
+      "canonical_key": "jinshanling-cluster",
+      "primary_name": "金山岭长城周边山峰",
+      "province": "河北省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "wuling-shan-hebei",
+      "primary_name": "雾灵山",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "分片曾提议并入北京雾灵山，但雾灵山属绝不合并的同名异山清单，从严改keep按省保留",
+      "aliases": [
+        "密云雾灵山跨省本体"
+      ]
+    },
+    {
+      "canonical_key": "baicaopan",
+      "primary_name": "野三坡白草畔",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "白草畔单一主峰"
+    },
+    {
+      "canonical_key": "cangyan-shan",
+      "primary_name": "苍岩山",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "玉皇顶单一峰顶"
+    },
+    {
+      "canonical_key": "zhangshi-yan",
+      "primary_name": "嶂石岩",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "黄庵垴单一主峰"
+    },
+    {
+      "canonical_key": "xiangtang-shan",
+      "primary_name": "响堂山",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "石窟名山单一峰顶"
+    },
+    {
+      "canonical_key": "shuangta-shan",
+      "primary_name": "双塔山",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "承德丹霞单一山岳"
+    },
+    {
+      "canonical_key": "laozhanggou-cluster",
+      "primary_name": "老掌沟周边山峰",
+      "province": "河北省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "huapi-ling",
+      "primary_name": "桦皮岭",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "草原天路单一主峰"
+    },
+    {
+      "canonical_key": "jiming-shan",
+      "primary_name": "鸡鸣山",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "玉皇顶单一峰顶"
+    },
+    {
+      "canonical_key": "damao-shan",
+      "primary_name": "大茂山",
+      "province": "河北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "古北岳恒山单一主峰"
+    },
+    {
+      "canonical_key": "wutaishan-yedou-feng",
+      "primary_name": "五台山北台叶斗峰",
+      "province": "山西省",
+      "entity_type": "massif_member",
+      "massif_key": "wutai",
+      "disposition": "keep",
+      "reason": "五台山多峰山体具名主峰"
+    },
+    {
+      "canonical_key": "hengshan-tianfeng-ling",
+      "primary_name": "恒山天峰岭",
+      "province": "山西省",
+      "entity_type": "massif_member",
+      "massif_key": "hengshan",
+      "disposition": "keep",
+      "reason": "北岳恒山多峰山体具名主峰"
+    },
+    {
+      "canonical_key": "lue-shan",
+      "primary_name": "芦芽山",
+      "province": "山西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "太子殿主峰本体；管涔山主峰同海拔同坐标并入",
+      "merged_names": [
+        "管涔山主峰"
+      ]
+    },
+    {
+      "canonical_key": "wangmang-ling",
+      "primary_name": "王莽岭",
+      "province": "山西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "南太行单一名峰，与环线条目非同物"
+    },
+    {
+      "canonical_key": "mian-shan",
+      "primary_name": "绵山",
+      "province": "山西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "艾蒿坡主峰单一峰顶"
+    },
+    {
+      "canonical_key": "lishan-shunwang-ping",
+      "primary_name": "历山舜王坪",
+      "province": "山西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "中条山主峰舜王坪"
+    },
+    {
+      "canonical_key": "xicheng-shan",
+      "primary_name": "析城山",
+      "province": "山西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "圣王坪单一主峰"
+    },
+    {
+      "canonical_key": "beiwudang-shan",
+      "primary_name": "北武当山",
+      "province": "山西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "金顶单一峰顶"
+    },
+    {
+      "canonical_key": "wulao-feng",
+      "primary_name": "五老峰",
+      "province": "山西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "玉柱峰单一主峰"
+    },
+    {
+      "canonical_key": "guancen-shan",
+      "primary_name": "管涔山主峰",
+      "province": "山西省",
+      "entity_type": "peak",
+      "disposition": "merge",
+      "reason": "即芦芽山主峰，同海拔同坐标，并入 lue-shan"
+    },
+    {
+      "canonical_key": "wangmangling-xiyaigou-route",
+      "primary_name": "太行山王莽岭-锡崖沟环线",
+      "province": "山西省",
+      "entity_type": "route_corridor",
+      "disposition": "keep_route",
+      "reason": "环线徒步廊道，按线路型建模"
+    },
+    {
+      "canonical_key": "shigao-shan",
+      "primary_name": "石膏山",
+      "province": "山西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "森林公园单一主峰"
+    },
+    {
+      "canonical_key": "gua-shan",
+      "primary_name": "卦山",
+      "province": "山西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "佛教名山单一峰顶"
+    },
+    {
+      "canonical_key": "cang-shan",
+      "primary_name": "藏山",
+      "province": "山西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一峰顶名山；海拔泛化从严保留"
+    },
+    {
+      "canonical_key": "yunding-shan-shanxi",
+      "primary_name": "云顶山",
+      "province": "山西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "太原最高峰；同名异山按省保留"
+    },
+    {
+      "canonical_key": "huhe-bashige",
+      "primary_name": "呼和巴什格",
+      "province": "内蒙古自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "内蒙古最高峰狼山主峰"
+    },
+    {
+      "canonical_key": "huanggang-liang",
+      "primary_name": "黄岗梁",
+      "province": "内蒙古自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "大兴安岭最高峰单一主峰"
+    },
+    {
+      "canonical_key": "sumu-shan",
+      "primary_name": "苏木山",
+      "province": "内蒙古自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "黄石崖主峰单一峰顶"
+    },
+    {
+      "canonical_key": "daqing-shan",
+      "primary_name": "大青山主峰",
+      "province": "内蒙古自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "呼和浩特最高峰单一主峰"
+    },
+    {
+      "canonical_key": "arshan-tianchi-cluster",
+      "primary_name": "阿尔山天池周边山峰",
+      "province": "内蒙古自治区",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景点周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "huitengxile-huanghuagou",
+      "primary_name": "辉腾锡勒黄花沟主峰",
+      "province": "内蒙古自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "黄花沟单一主峰；海拔泛化从严保留"
+    },
+    {
+      "canonical_key": "manhan-shan",
+      "primary_name": "蛮汉山",
+      "province": "内蒙古自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "大青山姊妹峰但独立峰顶，各自保留"
+    },
+    {
+      "canonical_key": "hailaer-xishan",
+      "primary_name": "海拉尔西山国家森林公园主峰",
+      "province": "内蒙古自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "城市森林公园单一主峰"
+    },
+    {
+      "canonical_key": "gang-shan-liaoning",
+      "primary_name": "岗山",
+      "province": "辽宁省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一主峰，数据完整"
+    },
+    {
+      "canonical_key": "qian-shan",
+      "primary_name": "千山",
+      "province": "辽宁省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "仙人台主峰单一峰顶"
+    },
+    {
+      "canonical_key": "fenghuang-shan-liaoning",
+      "primary_name": "凤凰山",
+      "province": "辽宁省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "攒云峰主峰；同名异山按省保留"
+    },
+    {
+      "canonical_key": "yiwulu-shan",
+      "primary_name": "医巫闾山",
+      "province": "辽宁省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "望海峰主峰单一峰顶"
+    },
+    {
+      "canonical_key": "huabo-shan",
+      "primary_name": "花脖山",
+      "province": "辽宁省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "辽宁第二高峰单一主峰"
+    },
+    {
+      "canonical_key": "laotudingzi",
+      "primary_name": "老秃顶子",
+      "province": "辽宁省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "辽宁第三高峰单一主峰"
+    },
+    {
+      "canonical_key": "tianhua-shan",
+      "primary_name": "天华山",
+      "province": "辽宁省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "天台峰单一峰顶；海拔泛化从严保留"
+    },
+    {
+      "canonical_key": "guanmen-shan",
+      "primary_name": "关门山",
+      "province": "辽宁省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "枫叶名山单一主峰"
+    },
+    {
+      "canonical_key": "bijia-shan-liaoning",
+      "primary_name": "笔架山",
+      "province": "辽宁省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "渤海海岛单一山岳"
+    },
+    {
+      "canonical_key": "bingyugou-cluster",
+      "primary_name": "冰峪沟周边山峰",
+      "province": "辽宁省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "changbaishan-baiyun-feng",
+      "primary_name": "长白山白云峰",
+      "province": "吉林省",
+      "entity_type": "massif_member",
+      "massif_key": "changbaishan",
+      "disposition": "keep",
+      "reason": "长白山火山口环具名最高峰"
+    },
+    {
+      "canonical_key": "laoye-ling",
+      "primary_name": "老爷岭",
+      "province": "吉林省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "张广才岭单一峰顶"
+    },
+    {
+      "canonical_key": "liuding-shan",
+      "primary_name": "六鼎山",
+      "province": "吉林省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "佛教名山单一主峰"
+    },
+    {
+      "canonical_key": "lafa-shan",
+      "primary_name": "拉法山",
+      "province": "吉林省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "云罩峰为主峰"
+    },
+    {
+      "canonical_key": "longwanqun-cluster",
+      "primary_name": "龙湾群周边山峰",
+      "province": "吉林省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "火山湖群泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "jingyuetan-cluster",
+      "primary_name": "净月潭周边山峰",
+      "province": "吉林省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景区周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "maoer-shan-jilin",
+      "primary_name": "帽儿山",
+      "province": "吉林省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "延吉城市单一山岳"
+    },
+    {
+      "canonical_key": "beidahu-cluster",
+      "primary_name": "北大壶周边山峰",
+      "province": "吉林省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "滑雪场周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "datudingzi-shan",
+      "primary_name": "大秃顶子山",
+      "province": "黑龙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "黑龙江省最高峰单一主峰"
+    },
+    {
+      "canonical_key": "fenghuang-shan-heilongjiang",
+      "primary_name": "凤凰山",
+      "province": "黑龙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一主峰；同名异山按省保留"
+    },
+    {
+      "canonical_key": "dabai-shan",
+      "primary_name": "大白山",
+      "province": "黑龙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "大兴安岭北段最高峰"
+    },
+    {
+      "canonical_key": "erlong-shan",
+      "primary_name": "二龙山",
+      "province": "黑龙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "近郊单一山岳"
+    },
+    {
+      "canonical_key": "yangcao-shan",
+      "primary_name": "羊草山",
+      "province": "黑龙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "雪乡穿越线核心具名峰"
+    },
+    {
+      "canonical_key": "jingpohu-cluster",
+      "primary_name": "镜泊湖周边山峰",
+      "province": "黑龙江省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "湖区泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "wudalianchi-cluster",
+      "primary_name": "五大连池火山群",
+      "province": "黑龙江省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "火山锥群簇无单一峰顶"
+    },
+    {
+      "canonical_key": "jinlong-shan",
+      "primary_name": "金龙山",
+      "province": "黑龙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "哈尔滨近郊单一山岳"
+    },
+    {
+      "canonical_key": "maolangou-cluster",
+      "primary_name": "茅兰沟周边山峰",
+      "province": "黑龙江省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "峡谷景区泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "xiaoxinganling-liangshui",
+      "primary_name": "小兴安岭凉水主峰",
+      "province": "黑龙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "保护区单一主峰"
+    },
+    {
+      "canonical_key": "taishan-yuhuang-ding",
+      "primary_name": "泰山玉皇顶",
+      "province": "山东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "泰山主峰单一峰顶"
+    },
+    {
+      "canonical_key": "laoshan-jufeng",
+      "primary_name": "崂山巨峰",
+      "province": "山东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "海岸线第一高峰巨峰"
+    },
+    {
+      "canonical_key": "yimengshan-guimeng-ding",
+      "primary_name": "沂蒙山龟蒙顶",
+      "province": "山东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "龟蒙顶确定主峰"
+    },
+    {
+      "canonical_key": "yishan-yuhuang-ding",
+      "primary_name": "沂山玉皇顶",
+      "province": "山东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "沂山主峰玉皇顶"
+    },
+    {
+      "canonical_key": "kunyushan-taibo-ding",
+      "primary_name": "昆嵛山泰礴顶",
+      "province": "山东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "胶东半岛最高峰"
+    },
+    {
+      "canonical_key": "lushan-shandong",
+      "primary_name": "鲁山主峰",
+      "province": "山东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "鲁中最高峰单一主峰"
+    },
+    {
+      "canonical_key": "heban-shan",
+      "primary_name": "鹤伴山",
+      "province": "山东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "近郊单一山岳"
+    },
+    {
+      "canonical_key": "yi-shan",
+      "primary_name": "峄山",
+      "province": "山东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "玉皇顶为主峰"
+    },
+    {
+      "canonical_key": "liang-shan-shandong",
+      "primary_name": "水泊梁山",
+      "province": "山东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "梁山单一山岳"
+    },
+    {
+      "canonical_key": "lionggongdao-zhufeng",
+      "primary_name": "刘公岛主峰",
+      "province": "山东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "岛屿单一主峰旗顶山"
+    },
+    {
+      "canonical_key": "laoyacha-nao",
+      "primary_name": "老鸦岔垴",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "河南省最高峰小秦岭主峰"
+    },
+    {
+      "canonical_key": "songshan-junji-feng",
+      "primary_name": "嵩山峻极峰",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "中岳嵩山主峰"
+    },
+    {
+      "canonical_key": "laojunshan-mazong-ling",
+      "primary_name": "老君山马鬃岭",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "老君山主峰马鬃岭"
+    },
+    {
+      "canonical_key": "yuntaishan-zhuyu-feng-henan",
+      "primary_name": "云台山茱萸峰",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "云台山茱萸峰确定主峰"
+    },
+    {
+      "canonical_key": "yaoshan-yuhuang-ding",
+      "primary_name": "尧山玉皇顶",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "尧山主峰玉皇顶"
+    },
+    {
+      "canonical_key": "baiyunshan-yuhuang-ding-henan",
+      "primary_name": "白云山玉皇顶",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "洛阳白云山主峰，与黑龙江大白山异山"
+    },
+    {
+      "canonical_key": "wangwushan-tiantan-feng",
+      "primary_name": "王屋山天坛峰",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "王屋山主峰天坛峰"
+    },
+    {
+      "canonical_key": "jigongshan-baoxiao-feng",
+      "primary_name": "鸡公山报晓峰",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "鸡公山报晓峰确定主峰"
+    },
+    {
+      "canonical_key": "wanxian-shan",
+      "primary_name": "万仙山主峰",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "南太行单一主峰"
+    },
+    {
+      "canonical_key": "tianjieshan-laoye-ding",
+      "primary_name": "天界山老爷顶",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "天界山主峰老爷顶"
+    },
+    {
+      "canonical_key": "wangxiang-yan",
+      "primary_name": "太行大峡谷王相岩",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "具体景点有主峰往返线；海拔泛化从严保留"
+    },
+    {
+      "canonical_key": "baoquan-cluster",
+      "primary_name": "宝泉周边山峰",
+      "province": "河南省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "峡谷景区泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "huangbai-shan",
+      "primary_name": "黄柏山主峰",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "豫鄂交界单一主峰大牛山"
+    },
+    {
+      "canonical_key": "chaya-shan-tianmo-feng",
+      "primary_name": "嵖岈山天磨峰",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "嵖岈山主峰天磨峰"
+    },
+    {
+      "canonical_key": "mangdang-shan",
+      "primary_name": "芒砀山主峰",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一山岳主峰"
+    },
+    {
+      "canonical_key": "shennongshan-zijin-ding",
+      "primary_name": "神农山紫金顶",
+      "province": "河南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "神农山主峰紫金顶，与南京紫金山异山"
+    },
+    {
+      "canonical_key": "she-shan",
+      "primary_name": "佘山",
+      "province": "上海市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "上海最高峰西佘山"
+    },
+    {
+      "canonical_key": "tianma-shan-shanghai",
+      "primary_name": "天马山",
+      "province": "上海市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "上海第二高峰"
+    },
+    {
+      "canonical_key": "chen-shan",
+      "primary_name": "辰山",
+      "province": "上海市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一山岳有确定主峰"
+    },
+    {
+      "canonical_key": "huaguoshan-yunv-feng",
+      "primary_name": "花果山玉女峰",
+      "province": "江苏省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "江苏省最高峰玉女峰"
+    },
+    {
+      "canonical_key": "zijin-shan-jiangsu",
+      "primary_name": "紫金山",
+      "province": "江苏省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "南京头陀岭主峰"
+    },
+    {
+      "canonical_key": "mao-shan",
+      "primary_name": "茅山",
+      "province": "江苏省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "道教名山大茅峰"
+    },
+    {
+      "canonical_key": "tianping-shan",
+      "primary_name": "天平山",
+      "province": "江苏省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "苏州单一山岳"
+    },
+    {
+      "canonical_key": "ling-shan-jiangsu",
+      "primary_name": "灵山",
+      "province": "江苏省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "无锡灵山主峰；同名异山按省保留"
+    },
+    {
+      "canonical_key": "yunlong-shan",
+      "primary_name": "云龙山",
+      "province": "江苏省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "徐州城市单一山岳"
+    },
+    {
+      "canonical_key": "lang-shan-jiangsu",
+      "primary_name": "狼山",
+      "province": "江苏省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "佛教名山单一主峰"
+    },
+    {
+      "canonical_key": "huangmao-jian",
+      "primary_name": "黄茅尖",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "浙江省最高峰"
+    },
+    {
+      "canonical_key": "qingliang-feng",
+      "primary_name": "清凉峰",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "浙西最高峰"
+    },
+    {
+      "canonical_key": "baishan-zu",
+      "primary_name": "百山祖",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "浙江第二高峰"
+    },
+    {
+      "canonical_key": "tianmu-shan",
+      "primary_name": "天目山",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "仙人顶独立峰，与七尖穿越线不同实体"
+    },
+    {
+      "canonical_key": "yandangshan-baigang-jian",
+      "primary_name": "雁荡山百岗尖",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "具名主峰百岗尖"
+    },
+    {
+      "canonical_key": "mogan-shan",
+      "primary_name": "莫干山",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一山岳"
+    },
+    {
+      "canonical_key": "putuoshan-foding-shan",
+      "primary_name": "普陀山佛顶山",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "佛顶山确定峰顶"
+    },
+    {
+      "canonical_key": "daming-shan-zhejiang",
+      "primary_name": "大明山",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一主峰；同名异山按省保留"
+    },
+    {
+      "canonical_key": "dongbai-shan",
+      "primary_name": "东白山",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "浙中最高峰"
+    },
+    {
+      "canonical_key": "gongyu-yan",
+      "primary_name": "公盂岩",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一峰岩；海拔泛化从严保留"
+    },
+    {
+      "canonical_key": "shenxian-ju",
+      "primary_name": "神仙居",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一山岳景区主峰"
+    },
+    {
+      "canonical_key": "jianglang-shan",
+      "primary_name": "江郎山",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "丹霞奇峰三爿石"
+    },
+    {
+      "canonical_key": "tiantaishan-huading-shan",
+      "primary_name": "天台山华顶山",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "华顶山确定主峰"
+    },
+    {
+      "canonical_key": "nanyandang-shan",
+      "primary_name": "南雁荡山",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "明王峰为主峰"
+    },
+    {
+      "canonical_key": "siming-shan",
+      "primary_name": "四明山",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "浙东核心山岳单一主峰"
+    },
+    {
+      "canonical_key": "xuedou-shan",
+      "primary_name": "雪窦山",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一山岳；海拔泛化从严保留"
+    },
+    {
+      "canonical_key": "tianmushan-qijian-route",
+      "primary_name": "天目山七尖穿越线",
+      "province": "浙江省",
+      "entity_type": "route_corridor",
+      "disposition": "keep_route",
+      "reason": "连续7峰穿越廊道，按线路型建模"
+    },
+    {
+      "canonical_key": "zhexi-daxiagu-cluster",
+      "primary_name": "浙西大峡谷周边山峰",
+      "province": "浙江省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "taizi-jian",
+      "primary_name": "太子尖",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "浙西三尖之一独立峰顶"
+    },
+    {
+      "canonical_key": "baizhang-ling",
+      "primary_name": "百丈岭",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "浙西三尖之一独立峰顶"
+    },
+    {
+      "canonical_key": "tonggong-jian",
+      "primary_name": "童公尖",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "浙西三尖之一，与太子尖同高不同山"
+    },
+    {
+      "canonical_key": "daluo-shan",
+      "primary_name": "大罗山",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "温州城市山岳单一峰顶"
+    },
+    {
+      "canonical_key": "jiulong-shan-zhejiang",
+      "primary_name": "九龙山",
+      "province": "浙江省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "自然保护区单一主峰"
+    },
+    {
+      "canonical_key": "nanhuang-gudao-route",
+      "primary_name": "南黄古道沿线山峰",
+      "province": "浙江省",
+      "entity_type": "route_corridor",
+      "disposition": "keep_route",
+      "reason": "古道沿线徒步廊道，按线路型建模"
+    },
+    {
+      "canonical_key": "huihang-gudao-route",
+      "primary_name": "徽杭古道沿线山峰",
+      "province": "浙江省",
+      "entity_type": "route_corridor",
+      "disposition": "keep_route",
+      "reason": "经典古道廊道，按线路型建模"
+    },
+    {
+      "canonical_key": "huangshan-lianhua-feng",
+      "primary_name": "黄山莲花峰",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "安徽省最高峰黄山主峰"
+    },
+    {
+      "canonical_key": "baima-jian",
+      "primary_name": "白马尖",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "大别山最高峰"
+    },
+    {
+      "canonical_key": "jiuhuashan-shiwang-feng",
+      "primary_name": "九华山十王峰",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "九华山最高点十王峰"
+    },
+    {
+      "canonical_key": "tianzhushan-tianzhu-feng",
+      "primary_name": "天柱山天柱峰",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "天柱峰确定主峰"
+    },
+    {
+      "canonical_key": "qiyun-shan-anhui",
+      "primary_name": "齐云山",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "道教名山；同名异山按省保留"
+    },
+    {
+      "canonical_key": "langya-shan-anhui",
+      "primary_name": "琅琊山",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "文化名山单一峰顶（与狼牙山同音异山）"
+    },
+    {
+      "canonical_key": "jingting-shan",
+      "primary_name": "敬亭山",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "江南诗山单一峰顶"
+    },
+    {
+      "canonical_key": "tiantang-zhai-anhui",
+      "primary_name": "天堂寨",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "大别山核心山岳；同名异山按省保留"
+    },
+    {
+      "canonical_key": "wanfo-shan-anhui",
+      "primary_name": "万佛山",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "老佛顶为主峰"
+    },
+    {
+      "canonical_key": "guniu-jiang",
+      "primary_name": "牯牛降",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "自然保护区单一主峰"
+    },
+    {
+      "canonical_key": "longxu-shan",
+      "primary_name": "龙须山",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "花岗岩奇山单一主峰"
+    },
+    {
+      "canonical_key": "gechuan-jian",
+      "primary_name": "搁船尖",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "徽开古道核心单一主峰"
+    },
+    {
+      "canonical_key": "huangshan-xihai-route",
+      "primary_name": "黄山西海大峡谷环线",
+      "province": "安徽省",
+      "entity_type": "route_corridor",
+      "disposition": "keep_route",
+      "reason": "峡谷环线徒步廊道，按线路型建模"
+    },
+    {
+      "canonical_key": "bagong-shan",
+      "primary_name": "八公山",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "历史文化名山单一主峰"
+    },
+    {
+      "canonical_key": "caishi-ji",
+      "primary_name": "采石矶",
+      "province": "安徽省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "翠螺山主峰确定峰顶"
+    },
+    {
+      "canonical_key": "huanggang-shan-fujian",
+      "primary_name": "黄岗山",
+      "province": "福建省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "福建省最高峰武夷山脉主峰本体；同省武夷山主峰黄岗山并入",
+      "merged_names": [
+        "武夷山主峰黄岗山"
+      ]
+    },
+    {
+      "canonical_key": "daiyun-shan",
+      "primary_name": "戴云山",
+      "province": "福建省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "福建第二高峰单一主峰"
+    },
+    {
+      "canonical_key": "wuyishan-huanggang-merge",
+      "primary_name": "武夷山主峰黄岗山",
+      "province": "福建省",
+      "entity_type": "peak",
+      "disposition": "merge",
+      "reason": "与福建黄岗山同海拔同GPS同一物理峰，并入 huanggang-shan-fujian"
+    },
+    {
+      "canonical_key": "taimu-shan",
+      "primary_name": "太姥山",
+      "province": "福建省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "覆鼎峰为主峰"
+    },
+    {
+      "canonical_key": "qingyuan-shan",
+      "primary_name": "清源山",
+      "province": "福建省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "泉州道教名山单一主峰"
+    },
+    {
+      "canonical_key": "guanzhai-shan",
+      "primary_name": "冠豸山",
+      "province": "福建省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "丹霞名山单一主峰"
+    },
+    {
+      "canonical_key": "gu-shan-fujian",
+      "primary_name": "鼓山",
+      "province": "福建省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "屴崱峰为主峰，福州城市山岳"
+    },
+    {
+      "canonical_key": "qingyun-shan-fujian",
+      "primary_name": "青云山",
+      "province": "福建省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一山岳景区主峰"
+    },
+    {
+      "canonical_key": "yunding-shan-fujian",
+      "primary_name": "云顶山",
+      "province": "福建省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "厦门市最高峰；同名异山按省保留"
+    },
+    {
+      "canonical_key": "meihua-shan-fujian",
+      "primary_name": "梅花山",
+      "province": "福建省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "狗子脑主峰"
+    },
+    {
+      "canonical_key": "lingtong-shan",
+      "primary_name": "灵通山",
+      "province": "福建省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "擎天峰为主峰，丹霞名山"
+    },
+    {
+      "canonical_key": "baishuiyang-cluster",
+      "primary_name": "白水洋鸳鸯溪周边山峰",
+      "province": "福建省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "huanggang-shan-jiangxi",
+      "primary_name": "黄岗山",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "江西省最高峰旗舰；与福建黄岗山同界峰但同名异省从严各自保留",
+      "aliases": [
+        "武夷山脉界峰"
+      ]
+    },
+    {
+      "canonical_key": "dushu-jian",
+      "primary_name": "独竖尖",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "江西第二高峰"
+    },
+    {
+      "canonical_key": "nanfeng-mian",
+      "primary_name": "南风面",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "江西第三高峰罗霄核心"
+    },
+    {
+      "canonical_key": "lushan-hanyang-feng",
+      "primary_name": "庐山汉阳峰",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "庐山最高点汉阳峰"
+    },
+    {
+      "canonical_key": "sanqingshan-yujing-feng",
+      "primary_name": "三清山玉京峰",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "玉京峰确定主峰"
+    },
+    {
+      "canonical_key": "longhu-shan",
+      "primary_name": "龙虎山",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "天门山主峰，道教名山"
+    },
+    {
+      "canonical_key": "wugongshan-jinding-jiangxi",
+      "primary_name": "武功山金顶",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "金顶确定主峰，含景区线与徒步线"
+    },
+    {
+      "canonical_key": "mingyue-shan",
+      "primary_name": "明月山",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "太平山主峰"
+    },
+    {
+      "canonical_key": "jinggang-shan",
+      "primary_name": "井冈山",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "五指峰为主峰"
+    },
+    {
+      "canonical_key": "gui-feng",
+      "primary_name": "龟峰",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "骆驼峰为主峰，丹霞名山"
+    },
+    {
+      "canonical_key": "qiyun-shan-jiangxi",
+      "primary_name": "齐云山",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "赣南最高峰；同名异山按省保留"
+    },
+    {
+      "canonical_key": "junfeng-shan",
+      "primary_name": "军峰山",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "赣东最高峰"
+    },
+    {
+      "canonical_key": "dajue-shan",
+      "primary_name": "大觉山",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "大觉岩为主峰"
+    },
+    {
+      "canonical_key": "ling-shan-jiangxi",
+      "primary_name": "灵山",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "上饶天梯峰；同名异山按省保留"
+    },
+    {
+      "canonical_key": "sanbai-shan",
+      "primary_name": "三百山",
+      "province": "江西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "东江源头单一主峰"
+    },
+    {
+      "canonical_key": "shennong-ding",
+      "primary_name": "神农顶",
+      "province": "湖北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "华中最高峰单一峰顶"
+    },
+    {
+      "canonical_key": "wudangshan-tianzhu-feng",
+      "primary_name": "武当山天柱峰",
+      "province": "湖北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "武当山金顶主峰"
+    },
+    {
+      "canonical_key": "dabieshan-bodao-feng",
+      "primary_name": "大别山薄刀峰",
+      "province": "湖北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "大别山具名主峰"
+    },
+    {
+      "canonical_key": "tiantang-zhai-hubei",
+      "primary_name": "天堂寨",
+      "province": "湖北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "大别山单一主峰；同名异山按省保留"
+    },
+    {
+      "canonical_key": "shennongjia-laojun-shan",
+      "primary_name": "神农架老君山",
+      "province": "湖北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "神农架单一具名山峰"
+    },
+    {
+      "canonical_key": "jiugongshan-laoya-jian",
+      "primary_name": "九宫山老鸦尖",
+      "province": "湖北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "九宫山具名主峰"
+    },
+    {
+      "canonical_key": "dahong-shan",
+      "primary_name": "大洪山",
+      "province": "湖北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "宝珠峰主峰"
+    },
+    {
+      "canonical_key": "enshi-daxiagu-cluster",
+      "primary_name": "恩施大峡谷周边山峰",
+      "province": "湖北省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景区周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "luyuanping-cluster",
+      "primary_name": "鹿院坪周边山峰",
+      "province": "湖北省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景点周边泛化簇无确定峰顶"
+    },
+    {
+      "canonical_key": "pingshan-xiagu-cluster",
+      "primary_name": "屏山峡谷周边山峰",
+      "province": "湖北省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "峡谷景区泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "qiyue-shan",
+      "primary_name": "齐岳山",
+      "province": "湖北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "具名山地主峰"
+    },
+    {
+      "canonical_key": "mulan-shan",
+      "primary_name": "木兰山",
+      "province": "湖北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一具名山峰"
+    },
+    {
+      "canonical_key": "donghu-moshan",
+      "primary_name": "东湖磨山",
+      "province": "湖北省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "城市单一小山"
+    },
+    {
+      "canonical_key": "mingxianling-cluster",
+      "primary_name": "明显陵周边山峰",
+      "province": "湖北省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "皇陵周边泛化簇无山峰主体"
+    },
+    {
+      "canonical_key": "sanxiadaba-cluster",
+      "primary_name": "三峡大坝周边山峰",
+      "province": "湖北省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "水利景区周边泛化簇无确定峰顶"
+    },
+    {
+      "canonical_key": "huping-shan",
+      "primary_name": "壶瓶山",
+      "province": "湖南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "湖南最高峰单一峰顶"
+    },
+    {
+      "canonical_key": "jiucai-ling",
+      "primary_name": "韭菜岭",
+      "province": "湖南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "湖南第二高峰具名主峰"
+    },
+    {
+      "canonical_key": "hengshan-zhurong-feng",
+      "primary_name": "衡山祝融峰",
+      "province": "湖南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "南岳衡山主峰"
+    },
+    {
+      "canonical_key": "zhangjiajie-tianmen-shan",
+      "primary_name": "张家界天门山",
+      "province": "湖南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一具名山峰"
+    },
+    {
+      "canonical_key": "zhangjiajie-qixing-shan",
+      "primary_name": "张家界七星山",
+      "province": "湖南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "具名主峰"
+    },
+    {
+      "canonical_key": "yuelu-shan",
+      "primary_name": "岳麓山",
+      "province": "湖南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "城市单一具名山峰"
+    },
+    {
+      "canonical_key": "lang-shan-hunan",
+      "primary_name": "崀山",
+      "province": "湖南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "丹霞主峰辣椒峰"
+    },
+    {
+      "canonical_key": "mang-shan-hunan",
+      "primary_name": "莽山",
+      "province": "湖南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "猛坑石主峰"
+    },
+    {
+      "canonical_key": "bamian-shan",
+      "primary_name": "八面山",
+      "province": "湖南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "罗霄山脉具名主峰"
+    },
+    {
+      "canonical_key": "xuefeng-shan",
+      "primary_name": "雪峰山",
+      "province": "湖南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "苏宝顶主峰"
+    },
+    {
+      "canonical_key": "dawei-shan",
+      "primary_name": "大围山",
+      "province": "湖南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "七星岭主峰"
+    },
+    {
+      "canonical_key": "dongjianghu-cluster",
+      "primary_name": "东江湖周边山峰",
+      "province": "湖南省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "湖区景区周边泛化簇无确定峰顶"
+    },
+    {
+      "canonical_key": "fenghuang-gucheng-cluster",
+      "primary_name": "凤凰古城周边山峰",
+      "province": "湖南省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "古城景点周边泛化簇主体非山峰"
+    },
+    {
+      "canonical_key": "taohuayuan-cluster",
+      "primary_name": "桃花源周边山峰",
+      "province": "湖南省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "文化景区周边泛化簇无峰顶"
+    },
+    {
+      "canonical_key": "shao-shan",
+      "primary_name": "韶山",
+      "province": "湖南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "韶峰单一具名山峰"
+    },
+    {
+      "canonical_key": "shikeng-kong",
+      "primary_name": "石坑崆",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "广东最高峰单一峰顶"
+    },
+    {
+      "canonical_key": "chuandi-ding",
+      "primary_name": "船底顶",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "具名主峰，实体为峰"
+    },
+    {
+      "canonical_key": "tiantang-ding",
+      "primary_name": "天堂顶",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "广州最高峰南昆山主峰"
+    },
+    {
+      "canonical_key": "luofushan-feiyun-ding",
+      "primary_name": "罗浮山飞云顶",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "罗浮山主峰飞云顶"
+    },
+    {
+      "canonical_key": "danxiashan-bazhai",
+      "primary_name": "丹霞山巴寨",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "丹霞山具名主峰"
+    },
+    {
+      "canonical_key": "dadong-shan",
+      "primary_name": "大东山",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "具名主峰"
+    },
+    {
+      "canonical_key": "gouwei-zhang",
+      "primary_name": "狗尾嶂",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "广东第四高峰"
+    },
+    {
+      "canonical_key": "huangniu-shi",
+      "primary_name": "黄牛石",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "粤赣交界具名主峰"
+    },
+    {
+      "canonical_key": "xueshan-zhang",
+      "primary_name": "雪山嶂",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "英德具名主峰"
+    },
+    {
+      "canonical_key": "wugongshan-guangdong",
+      "primary_name": "武功山广东段",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "实为万时山三省界碑另一物理山体，与江西武功山非重复；海拔泛化从严保留"
+    },
+    {
+      "canonical_key": "xiqiao-shan",
+      "primary_name": "西樵山",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一具名山峰"
+    },
+    {
+      "canonical_key": "baiyun-shan-guangdong",
+      "primary_name": "白云山",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "广州摩星岭单一具名山峰"
+    },
+    {
+      "canonical_key": "guifeng-shan",
+      "primary_name": "圭峰山",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "江门单一具名山峰"
+    },
+    {
+      "canonical_key": "dinghu-shan",
+      "primary_name": "鼎湖山",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "鸡笼山主峰"
+    },
+    {
+      "canonical_key": "nankun-shan",
+      "primary_name": "南昆山",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "与天堂顶同属南昆山体疑近重复，从严各自保留"
+    },
+    {
+      "canonical_key": "wutong-shan",
+      "primary_name": "梧桐山",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "深圳最高峰"
+    },
+    {
+      "canonical_key": "qiniang-shan",
+      "primary_name": "七娘山",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "深圳第二高峰"
+    },
+    {
+      "canonical_key": "paiya-shan",
+      "primary_name": "排牙山",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "深圳第三高峰"
+    },
+    {
+      "canonical_key": "fenghuang-shan-guangdong",
+      "primary_name": "凤凰山",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "深圳望烟楼；同名异山按省保留"
+    },
+    {
+      "canonical_key": "yinna-shan",
+      "primary_name": "阴那山",
+      "province": "广东省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "粤东玉皇顶主峰"
+    },
+    {
+      "canonical_key": "maoer-shan-guangxi",
+      "primary_name": "猫儿山",
+      "province": "广西壮族自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "广西最高峰单一峰顶"
+    },
+    {
+      "canonical_key": "yuanbao-shan",
+      "primary_name": "元宝山",
+      "province": "广西壮族自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "广西第二高峰"
+    },
+    {
+      "canonical_key": "shengtang-shan",
+      "primary_name": "圣堂山",
+      "province": "广西壮族自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "大瑶山主峰"
+    },
+    {
+      "canonical_key": "daming-shan-guangxi",
+      "primary_name": "大明山",
+      "province": "广西壮族自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "南宁最高峰龙头峰；同名异山按省保留"
+    },
+    {
+      "canonical_key": "shiwan-dashan",
+      "primary_name": "十万大山",
+      "province": "广西壮族自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "薯莨岭主峰作单峰保留"
+    },
+    {
+      "canonical_key": "jiuwan-shan",
+      "primary_name": "九万山",
+      "province": "广西壮族自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "保护区主峰海拔明确"
+    },
+    {
+      "canonical_key": "darong-shan",
+      "primary_name": "大容山",
+      "province": "广西壮族自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "梅花顶主峰"
+    },
+    {
+      "canonical_key": "xiangbi-shan",
+      "primary_name": "象鼻山",
+      "province": "广西壮族自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "桂林城徽单一山峰；海拔泛化从严保留"
+    },
+    {
+      "canonical_key": "duxiu-feng",
+      "primary_name": "独秀峰",
+      "province": "广西壮族自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "桂林单一具名孤峰"
+    },
+    {
+      "canonical_key": "weizhoudao-huoshankou",
+      "primary_name": "涠洲岛火山口主峰",
+      "province": "广西壮族自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "火山岛单一具名主峰"
+    },
+    {
+      "canonical_key": "wuzhi-shan",
+      "primary_name": "五指山",
+      "province": "海南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "海南最高峰单一峰顶"
+    },
+    {
+      "canonical_key": "yingge-ling",
+      "primary_name": "鹦哥岭",
+      "province": "海南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "海南第二高峰"
+    },
+    {
+      "canonical_key": "jianfeng-ling",
+      "primary_name": "尖峰岭",
+      "province": "海南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "具名主峰"
+    },
+    {
+      "canonical_key": "diaoluo-shan",
+      "primary_name": "吊罗山",
+      "province": "海南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "三角山主峰"
+    },
+    {
+      "canonical_key": "yalongwan-canghai-lou",
+      "primary_name": "亚龙湾热带天堂森林公园主峰",
+      "province": "海南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "沧海楼主峰；海拔泛化从严保留"
+    },
+    {
+      "canonical_key": "gongga-shan",
+      "primary_name": "贡嘎雪山主峰",
+      "province": "四川省",
+      "entity_type": "peak",
+      "massif_key": "gongga",
+      "disposition": "keep",
+      "reason": "蜀山之王贡嘎山体主峰"
+    },
+    {
+      "canonical_key": "siguniang-yaomei-feng",
+      "primary_name": "四姑娘山幺妹峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "siguniang",
+      "disposition": "keep",
+      "reason": "四姑娘山体主峰"
+    },
+    {
+      "canonical_key": "genie-shan",
+      "primary_name": "格聂神山主峰",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "格聂神山单一主峰"
+    },
+    {
+      "canonical_key": "queer-shan",
+      "primary_name": "雀儿山主峰",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "川藏北线单一主峰"
+    },
+    {
+      "canonical_key": "siguniang-dafeng",
+      "primary_name": "四姑娘山大峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "siguniang",
+      "disposition": "keep",
+      "reason": "四姑娘多峰山体具名峰"
+    },
+    {
+      "canonical_key": "siguniang-erfeng",
+      "primary_name": "四姑娘山二峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "siguniang",
+      "disposition": "keep",
+      "reason": "四姑娘多峰山体具名峰"
+    },
+    {
+      "canonical_key": "siguniang-sanfeng",
+      "primary_name": "四姑娘山三峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "siguniang",
+      "disposition": "keep",
+      "reason": "四姑娘多峰山体具名峰"
+    },
+    {
+      "canonical_key": "siguniang-luotuo-feng",
+      "primary_name": "四姑娘山骆驼峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "siguniang",
+      "disposition": "keep",
+      "reason": "四姑娘山体长坪沟具名峰"
+    },
+    {
+      "canonical_key": "sanao-aotaina",
+      "primary_name": "三奥雪山奥太娜",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "sanao",
+      "disposition": "keep",
+      "reason": "三奥雪山多峰山体具名峰"
+    },
+    {
+      "canonical_key": "sanao-aotaiji",
+      "primary_name": "三奥雪山奥太基",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "sanao",
+      "disposition": "keep",
+      "reason": "三奥雪山主峰"
+    },
+    {
+      "canonical_key": "sanao-aotaimei",
+      "primary_name": "三奥雪山奥太美",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "sanao",
+      "disposition": "keep",
+      "reason": "三奥雪山多峰山体具名峰"
+    },
+    {
+      "canonical_key": "xuebao-ding",
+      "primary_name": "雪宝顶主峰",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "岷山山脉单一主峰"
+    },
+    {
+      "canonical_key": "duri-feng",
+      "primary_name": "都日峰",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一具名峰"
+    },
+    {
+      "canonical_key": "banji-feng",
+      "primary_name": "半脊峰",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一具名峰"
+    },
+    {
+      "canonical_key": "gongga-nama-feng",
+      "primary_name": "那玛峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "gongga",
+      "disposition": "keep",
+      "reason": "明标贡嘎卫峰"
+    },
+    {
+      "canonical_key": "gongga-tianhaizi-shan",
+      "primary_name": "田海子山主峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "gongga",
+      "disposition": "keep",
+      "reason": "明标贡嘎卫峰"
+    },
+    {
+      "canonical_key": "gongga-baihaizi-shan",
+      "primary_name": "白海子山主峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "gongga",
+      "disposition": "keep",
+      "reason": "明标贡嘎卫峰"
+    },
+    {
+      "canonical_key": "yala-weifeng",
+      "primary_name": "雅拉雪山卫峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "yala",
+      "disposition": "keep",
+      "reason": "雅拉雪山体卫峰"
+    },
+    {
+      "canonical_key": "dangling-xiaqiangla",
+      "primary_name": "党岭夏羌拉",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "dangling",
+      "disposition": "keep",
+      "reason": "党岭多峰区具名峰"
+    },
+    {
+      "canonical_key": "dangling-xiaqiangniea",
+      "primary_name": "党岭夏羌涅阿",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "dangling",
+      "disposition": "keep",
+      "reason": "党岭多峰区具名峰"
+    },
+    {
+      "canonical_key": "gongga-xiaogongga-feng",
+      "primary_name": "贡嘎小贡嘎峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "gongga",
+      "disposition": "keep",
+      "reason": "明标贡嘎卫峰"
+    },
+    {
+      "canonical_key": "gongga-leduomanyin-feng",
+      "primary_name": "贡嘎勒多曼因峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "gongga",
+      "disposition": "keep",
+      "reason": "明标贡嘎卫峰"
+    },
+    {
+      "canonical_key": "gongga-riwuqie-feng",
+      "primary_name": "贡嘎日乌且峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "gongga",
+      "disposition": "keep",
+      "reason": "明标贡嘎卫峰"
+    },
+    {
+      "canonical_key": "gongga-jiazi-feng",
+      "primary_name": "贡嘎嘉子峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "gongga",
+      "disposition": "keep",
+      "reason": "明标贡嘎卫峰"
+    },
+    {
+      "canonical_key": "yading-xiannairi",
+      "primary_name": "仙乃日卫峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "yading",
+      "disposition": "keep",
+      "reason": "稻城亚丁三神山之一"
+    },
+    {
+      "canonical_key": "yading-xianuoduoji",
+      "primary_name": "夏诺多吉卫峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "yading",
+      "disposition": "keep",
+      "reason": "稻城亚丁三神山之一"
+    },
+    {
+      "canonical_key": "yading-yangmaiyong",
+      "primary_name": "央迈勇卫峰",
+      "province": "四川省",
+      "entity_type": "massif_member",
+      "massif_key": "yading",
+      "disposition": "keep",
+      "reason": "稻城亚丁三神山之一"
+    },
+    {
+      "canonical_key": "xuelong-bao",
+      "primary_name": "雪隆包",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一具名峰"
+    },
+    {
+      "canonical_key": "niubei-shan",
+      "primary_name": "牛背山",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一观景峰顶"
+    },
+    {
+      "canonical_key": "siren-tong",
+      "primary_name": "四人同",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一观景峰顶"
+    },
+    {
+      "canonical_key": "dawagengza",
+      "primary_name": "达瓦更扎",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一观景峰顶；海拔泛化从严保留"
+    },
+    {
+      "canonical_key": "jiaoding-shan",
+      "primary_name": "轿顶山",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一观景峰顶"
+    },
+    {
+      "canonical_key": "zhaogong-shan",
+      "primary_name": "赵公山",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "青城山脉主峰"
+    },
+    {
+      "canonical_key": "qianfo-shan-sichuan",
+      "primary_name": "千佛山",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "绵阳最高峰单一峰顶"
+    },
+    {
+      "canonical_key": "jiuding-shan",
+      "primary_name": "九顶山",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一具名徒步峰"
+    },
+    {
+      "canonical_key": "jiaer-mengcuo",
+      "primary_name": "甲尔猛措",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "具名徒步目的地存疑保留；海拔泛化"
+    },
+    {
+      "canonical_key": "balang-shan",
+      "primary_name": "巴朗山",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一具名峰/垭口"
+    },
+    {
+      "canonical_key": "emeishan-wanfo-ding",
+      "primary_name": "峨眉山万佛顶",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "峨眉山主峰顶万佛顶"
+    },
+    {
+      "canonical_key": "qingchengshan-laojun-ge",
+      "primary_name": "青城山老君阁",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "青城山最高点老君阁"
+    },
+    {
+      "canonical_key": "xiling-xueshan",
+      "primary_name": "西岭雪山",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "成都第一高峰单一主峰"
+    },
+    {
+      "canonical_key": "wawu-shan",
+      "primary_name": "瓦屋山",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一桌山峰顶"
+    },
+    {
+      "canonical_key": "guangwu-shan",
+      "primary_name": "光雾山",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一具名峰"
+    },
+    {
+      "canonical_key": "jianmen-guan",
+      "primary_name": "剑门关",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "关隘型景区具名有主峰环线存疑保留；海拔泛化"
+    },
+    {
+      "canonical_key": "shunan-zhuhai",
+      "primary_name": "蜀南竹海",
+      "province": "四川省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "竹林景区无典型峰顶存疑保留；海拔泛化"
+    },
+    {
+      "canonical_key": "yintiao-ling",
+      "primary_name": "阴条岭",
+      "province": "重庆市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "重庆市最高峰单一峰顶"
+    },
+    {
+      "canonical_key": "jinfo-shan",
+      "primary_name": "金佛山",
+      "province": "重庆市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "喀斯特桌山单一峰顶"
+    },
+    {
+      "canonical_key": "simian-shan",
+      "primary_name": "四面山",
+      "province": "重庆市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一具名峰"
+    },
+    {
+      "canonical_key": "jinyun-shan",
+      "primary_name": "缙云山",
+      "province": "重庆市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "狮子峰单一具名峰"
+    },
+    {
+      "canonical_key": "xiannv-shan",
+      "primary_name": "仙女山",
+      "province": "重庆市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一草甸峰顶"
+    },
+    {
+      "canonical_key": "wuling-shan-chongqing",
+      "primary_name": "武陵山",
+      "province": "重庆市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一具名峰，与他省同名武陵山异山不重复"
+    },
+    {
+      "canonical_key": "heishan-gu",
+      "primary_name": "黑山谷",
+      "province": "重庆市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "峡谷型景区具名有主峰环线存疑保留；海拔泛化"
+    },
+    {
+      "canonical_key": "gele-shan",
+      "primary_name": "歌乐山",
+      "province": "重庆市",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "云顶寺单一具名峰"
+    },
+    {
+      "canonical_key": "jiucai-ping",
+      "primary_name": "韭菜坪",
+      "province": "贵州省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "贵州省最高峰单一峰顶"
+    },
+    {
+      "canonical_key": "fanjingshan-hongyun-jinding",
+      "primary_name": "梵净山红云金顶",
+      "province": "贵州省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "梵净山标志性峰顶"
+    },
+    {
+      "canonical_key": "qianling-shan",
+      "primary_name": "黔灵山",
+      "province": "贵州省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "贵阳城市核心山岳"
+    },
+    {
+      "canonical_key": "wumeng-shan",
+      "primary_name": "乌蒙山",
+      "province": "贵州省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "具名主峰有往返线单峰保留"
+    },
+    {
+      "canonical_key": "loushan-guan",
+      "primary_name": "娄山关",
+      "province": "贵州省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "关隘型景区具名有主峰环线存疑保留"
+    },
+    {
+      "canonical_key": "yuntai-shan-guizhou",
+      "primary_name": "云台山",
+      "province": "贵州省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一具名峰，与他省同名云台山异山不重复"
+    },
+    {
+      "canonical_key": "libo-zhangjiang-cluster",
+      "primary_name": "荔波樟江周边山峰",
+      "province": "贵州省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景点周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "qingyan-guzhen-cluster",
+      "primary_name": "青岩古镇周边山峰",
+      "province": "贵州省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景点周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "kawagebo-weifeng",
+      "primary_name": "卡瓦格博峰（卫峰）",
+      "province": "云南省",
+      "entity_type": "massif_member",
+      "massif_key": "kawagebo",
+      "disposition": "keep",
+      "reason": "梅里雪山主峰禁攀，此为具名卫峰"
+    },
+    {
+      "canonical_key": "haba-xueshan",
+      "primary_name": "哈巴雪山主峰",
+      "province": "云南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "单一确定峰顶独立雪山"
+    },
+    {
+      "canonical_key": "yulong-xueshan-xuebao-ding",
+      "primary_name": "玉龙雪山雪宝顶",
+      "province": "云南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "玉龙雪山具名峰顶；海拔泛化可识别单峰"
+    },
+    {
+      "canonical_key": "baima-xueshan-zhalaqueni-feng",
+      "primary_name": "白马雪山扎拉雀尼峰",
+      "province": "云南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "白马雪山主峰"
+    },
+    {
+      "canonical_key": "gaoligongshan-gawagapu-feng",
+      "primary_name": "高黎贡山嘎娃嘎普峰",
+      "province": "云南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "高黎贡山主峰"
+    },
+    {
+      "canonical_key": "cangshan-malong-feng",
+      "primary_name": "苍山马龙峰",
+      "province": "云南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "苍山主峰马龙峰"
+    },
+    {
+      "canonical_key": "jiaozi-xueshan",
+      "primary_name": "轿子雪山",
+      "province": "云南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "昆明最高峰独立峰"
+    },
+    {
+      "canonical_key": "jizu-shan",
+      "primary_name": "鸡足山",
+      "province": "云南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "佛教名山金顶主峰"
+    },
+    {
+      "canonical_key": "shika-xueshan",
+      "primary_name": "石卡雪山",
+      "province": "云南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "香格里拉单一主峰；海拔泛化可识别"
+    },
+    {
+      "canonical_key": "xi-shan-yunnan",
+      "primary_name": "西山",
+      "province": "云南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "昆明城市山岳单一峰顶，同名异山不重复"
+    },
+    {
+      "canonical_key": "hutiaoxia-gaolu-route",
+      "primary_name": "虎跳峡高路徒步线",
+      "province": "云南省",
+      "entity_type": "route_corridor",
+      "disposition": "keep_route",
+      "reason": "徒步穿越线，按线路型建模"
+    },
+    {
+      "canonical_key": "yubeng-route",
+      "primary_name": "雨崩徒步线",
+      "province": "云南省",
+      "entity_type": "route_corridor",
+      "disposition": "keep_route",
+      "reason": "神瀑冰湖环线徒步线路，按线路型建模"
+    },
+    {
+      "canonical_key": "ailao-shan",
+      "primary_name": "哀牢山",
+      "province": "云南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "自然保护区主峰单一峰顶"
+    },
+    {
+      "canonical_key": "wuliang-shan",
+      "primary_name": "无量山",
+      "province": "云南省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "自然保护区主峰单一峰顶"
+    },
+    {
+      "canonical_key": "shilin-cluster",
+      "primary_name": "石林",
+      "province": "云南省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "喀斯特石林景区无单一可攀登峰顶"
+    },
+    {
+      "canonical_key": "zhumulangma-beipo",
+      "primary_name": "珠穆朗玛峰北坡",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "世界最高峰北坡攀登对象"
+    },
+    {
+      "canonical_key": "xixiabangma-feng",
+      "primary_name": "希夏邦马峰主峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "境内唯一8000米级极高峰主峰"
+    },
+    {
+      "canonical_key": "zhuoaoyou-feng",
+      "primary_name": "卓奥友峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "世界第六高峰"
+    },
+    {
+      "canonical_key": "luozi-feng",
+      "primary_name": "洛子峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "世界第四高峰"
+    },
+    {
+      "canonical_key": "makalu-feng",
+      "primary_name": "马卡鲁峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "世界第五高峰"
+    },
+    {
+      "canonical_key": "zhangzi-feng",
+      "primary_name": "章子峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "珠峰北峰独立峰顶"
+    },
+    {
+      "canonical_key": "namunani-feng",
+      "primary_name": "纳木那尼峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "阿里神山单一峰顶"
+    },
+    {
+      "canonical_key": "ningjinkangsha-feng",
+      "primary_name": "宁金抗沙峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "拉轨岗日主峰"
+    },
+    {
+      "canonical_key": "kulagangri-feng",
+      "primary_name": "库拉岗日峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "山南最高峰"
+    },
+    {
+      "canonical_key": "gangpengqing-feng",
+      "primary_name": "岗彭庆峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "喜马拉雅西段单一山峰"
+    },
+    {
+      "canonical_key": "qiongmugangri-feng",
+      "primary_name": "穷母岗日峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "念青唐古拉西段单一山峰"
+    },
+    {
+      "canonical_key": "qizi-feng",
+      "primary_name": "启孜峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "入门6000米级独立雪山"
+    },
+    {
+      "canonical_key": "luzi-feng",
+      "primary_name": "鲁孜峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "启孜峰姊妹峰独立峰顶，非近重复"
+    },
+    {
+      "canonical_key": "tanglaangqu-feng",
+      "primary_name": "唐拉昂曲峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "念青唐古拉核心单一山峰"
+    },
+    {
+      "canonical_key": "sangdankangsang-feng",
+      "primary_name": "桑丹康桑峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "念青唐古拉北段单一山峰"
+    },
+    {
+      "canonical_key": "jiangsanglamu-feng",
+      "primary_name": "姜桑拉姆峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "喜马拉雅中段单一山峰"
+    },
+    {
+      "canonical_key": "nyainqentanglha-weifeng",
+      "primary_name": "念青唐古拉峰卫峰",
+      "province": "西藏自治区",
+      "entity_type": "massif_member",
+      "massif_key": "nyainqentanglha",
+      "disposition": "keep",
+      "reason": "主峰禁攀，此为具名卫峰"
+    },
+    {
+      "canonical_key": "shishapangma-lenggang-feng",
+      "primary_name": "冷岗峰",
+      "province": "西藏自治区",
+      "entity_type": "massif_member",
+      "massif_key": "shishapangma",
+      "disposition": "keep",
+      "reason": "希夏邦马峰卫峰具名成员"
+    },
+    {
+      "canonical_key": "mengdagangri-feng",
+      "primary_name": "蒙达岗日峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "喜马拉雅东段单一山峰"
+    },
+    {
+      "canonical_key": "jietongsusong-feng",
+      "primary_name": "解同速松峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "喜马拉雅东段单一山峰"
+    },
+    {
+      "canonical_key": "dalari-feng",
+      "primary_name": "打拉日峰",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "喜马拉雅中段单一山峰"
+    },
+    {
+      "canonical_key": "sejila-shan",
+      "primary_name": "色季拉山",
+      "province": "西藏自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "林芝核心山岳观景点"
+    },
+    {
+      "canonical_key": "namchabarwa-weifeng",
+      "primary_name": "南迦巴瓦峰卫峰",
+      "province": "西藏自治区",
+      "entity_type": "massif_member",
+      "massif_key": "namchabarwa",
+      "disposition": "keep",
+      "reason": "主峰禁攀，此为具名卫峰"
+    },
+    {
+      "canonical_key": "basongcuo-cluster",
+      "primary_name": "巴松措周边山峰",
+      "province": "西藏自治区",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景点周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "yaluzangbu-daxiagu-cluster",
+      "primary_name": "雅鲁藏布大峡谷周边山峰",
+      "province": "西藏自治区",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景点周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "gangrenboqi-cluster",
+      "primary_name": "冈仁波齐周边山峰",
+      "province": "西藏自治区",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "转山环线泛化簇无单一可攀登峰顶"
+    },
+    {
+      "canonical_key": "zhashilunbu-cluster",
+      "primary_name": "扎什伦布寺周边山峰",
+      "province": "西藏自治区",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "寺院周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "dazhao-si-cluster",
+      "primary_name": "大昭寺周边山峰",
+      "province": "西藏自治区",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "寺院周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "namucuo-cluster",
+      "primary_name": "纳木错周边山峰",
+      "province": "西藏自治区",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景点周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "yangzhuoyongcuo-cluster",
+      "primary_name": "羊卓雍措周边山峰",
+      "province": "西藏自治区",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景点周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "taibaishan-baxian-tai",
+      "primary_name": "太白山拔仙台",
+      "province": "陕西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "秦岭主峰拔仙台"
+    },
+    {
+      "canonical_key": "huashan-nanfeng",
+      "primary_name": "华山南峰",
+      "province": "陕西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "华山南峰具名主峰；库中无独立华山本体条目，暂保留待人工核",
+      "aliases": [
+        "华山"
+      ]
+    },
+    {
+      "canonical_key": "ao-shan",
+      "primary_name": "鳌山",
+      "province": "陕西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "秦岭第二高峰鳌太核心段"
+    },
+    {
+      "canonical_key": "zhongnan-shan",
+      "primary_name": "终南山",
+      "province": "陕西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "秦岭核心道教名山单一主峰"
+    },
+    {
+      "canonical_key": "li-shan",
+      "primary_name": "骊山",
+      "province": "陕西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "烽火台单一峰顶"
+    },
+    {
+      "canonical_key": "baota-shan",
+      "primary_name": "宝塔山",
+      "province": "陕西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "延安城市象征山岳"
+    },
+    {
+      "canonical_key": "nangong-shan",
+      "primary_name": "南宫山",
+      "province": "陕西省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "道教名山金顶主峰"
+    },
+    {
+      "canonical_key": "jinsixia-cluster",
+      "primary_name": "金丝峡周边山峰",
+      "province": "陕西省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景点周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "aerjin-shan",
+      "primary_name": "阿尔金山主峰",
+      "province": "甘肃省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "甘肃最高峰主峰单一峰顶"
+    },
+    {
+      "canonical_key": "kongtong-shan",
+      "primary_name": "崆峒山",
+      "province": "甘肃省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "道教名山皇城主峰"
+    },
+    {
+      "canonical_key": "maiji-shan",
+      "primary_name": "麦积山",
+      "province": "甘肃省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "石窟名山单一峰顶"
+    },
+    {
+      "canonical_key": "zhagana-cluster",
+      "primary_name": "扎尕那周边山峰",
+      "province": "甘肃省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景点周边泛化簇（大峪沟穿越）无单一峰顶"
+    },
+    {
+      "canonical_key": "guanegou-cluster",
+      "primary_name": "官鹅沟周边山峰",
+      "province": "甘肃省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景点周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "qilianshan-tuanjie-feng",
+      "primary_name": "祁连山团结峰",
+      "province": "甘肃省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "祁连山脉最高峰"
+    },
+    {
+      "canonical_key": "maya-xueshan",
+      "primary_name": "马牙雪山",
+      "province": "甘肃省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "祁连东段单一山岳主峰"
+    },
+    {
+      "canonical_key": "mingsha-shan",
+      "primary_name": "鸣沙山",
+      "province": "甘肃省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "沙漠奇观单一山体（月牙泉所在）有确定点位海拔，暂保留"
+    },
+    {
+      "canonical_key": "bukadaban-feng",
+      "primary_name": "布喀达坂峰",
+      "province": "青海省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "昆仑东段单一峰顶青海最高峰"
+    },
+    {
+      "canonical_key": "geladandong-feng",
+      "primary_name": "各拉丹冬峰",
+      "province": "青海省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "唐古拉山脉主峰长江源头"
+    },
+    {
+      "canonical_key": "yuzhu-feng-nanpo",
+      "primary_name": "玉珠峰南坡",
+      "province": "青海省",
+      "entity_type": "peak",
+      "massif_key": "yuzhu",
+      "disposition": "keep",
+      "reason": "与北坡同峰同点位仅坡向路线不同，破坏性从严各自保留标近重复",
+      "aliases": [
+        "玉珠峰"
+      ]
+    },
+    {
+      "canonical_key": "yuzhu-feng-beipo",
+      "primary_name": "玉珠峰北坡",
+      "province": "青海省",
+      "entity_type": "peak",
+      "massif_key": "yuzhu",
+      "disposition": "keep",
+      "reason": "与南坡同峰同点位仅坡向路线不同，破坏性从严各自保留标近重复",
+      "aliases": [
+        "玉珠峰"
+      ]
+    },
+    {
+      "canonical_key": "yuzhu-yuxu-feng",
+      "primary_name": "玉虚峰",
+      "province": "青海省",
+      "entity_type": "massif_member",
+      "massif_key": "yuzhu",
+      "disposition": "keep",
+      "reason": "玉珠峰姊妹峰，属玉珠峰山体独立具名峰"
+    },
+    {
+      "canonical_key": "animaqing-feng",
+      "primary_name": "阿尼玛卿峰",
+      "province": "青海省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "藏区四大神山之一昆仑东段主峰"
+    },
+    {
+      "canonical_key": "nianbaoyuze-weifeng",
+      "primary_name": "年保玉则卫峰",
+      "province": "青海省",
+      "entity_type": "massif_member",
+      "massif_key": "nianbaoyuze",
+      "disposition": "keep",
+      "reason": "主峰禁攀，卫峰为可攀具名峰"
+    },
+    {
+      "canonical_key": "gangshka-xuefeng",
+      "primary_name": "岗什卡雪峰",
+      "province": "青海省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "祁连东段最高峰入门级高海拔雪山"
+    },
+    {
+      "canonical_key": "zhuoer-shan",
+      "primary_name": "卓尔山",
+      "province": "青海省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "丹霞观光单峰；海拔泛化从严保留"
+    },
+    {
+      "canonical_key": "qinghaihu-nanshan",
+      "primary_name": "青海湖南山",
+      "province": "青海省",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "青海湖全景观景主峰；海拔泛化从严保留"
+    },
+    {
+      "canonical_key": "chaka-yanhu-cluster",
+      "primary_name": "茶卡盐湖周边山峰",
+      "province": "青海省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景点周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "taer-si-cluster",
+      "primary_name": "塔尔寺周边山峰",
+      "province": "青海省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "寺院景点周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "kanbula-cluster",
+      "primary_name": "坎布拉周边山峰",
+      "province": "青海省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "森林公园景区周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "guide-danxia-cluster",
+      "primary_name": "贵德丹霞周边山峰",
+      "province": "青海省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "地质公园景点周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "qilian-dacaoyuan-cluster",
+      "primary_name": "祁连大草原周边山峰",
+      "province": "青海省",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "草原景观周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "aobao-geda-merge",
+      "primary_name": "敖包疙瘩",
+      "province": "宁夏回族自治区",
+      "entity_type": "peak",
+      "disposition": "merge",
+      "reason": "即贺兰山主峰，同海拔同点位同一物理山体，并入 helan-shan"
+    },
+    {
+      "canonical_key": "helan-shan",
+      "primary_name": "贺兰山",
+      "province": "宁夏回族自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "宁夏核心山脉主体本体；敖包疙瘩并入",
+      "merged_names": [
+        "敖包疙瘩"
+      ]
+    },
+    {
+      "canonical_key": "liupan-shan",
+      "primary_name": "六盘山",
+      "province": "宁夏回族自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "米缸山主峰长征纪念地"
+    },
+    {
+      "canonical_key": "qiaogeli-feng-k2",
+      "primary_name": "乔戈里峰（K2）",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "世界第二高峰；缺经纬度保留但缺点位"
+    },
+    {
+      "canonical_key": "gasherbrum-1-feng",
+      "primary_name": "加舒尔布鲁木I峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "喀喇昆仑8000米级独立峰；缺点位保留"
+    },
+    {
+      "canonical_key": "broad-peak",
+      "primary_name": "布洛阿特峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "世界第十二高峰；缺点位保留"
+    },
+    {
+      "canonical_key": "gasherbrum-2-feng",
+      "primary_name": "加舒尔布鲁木II峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "世界第十三高峰；缺点位保留"
+    },
+    {
+      "canonical_key": "muztagata-feng",
+      "primary_name": "慕士塔格峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "冰川之父7000米级入门雪山；缺点位保留"
+    },
+    {
+      "canonical_key": "kongur-feng",
+      "primary_name": "公格尔峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "帕米尔核心主峰；缺点位保留"
+    },
+    {
+      "canonical_key": "kongur-jiubie-feng",
+      "primary_name": "公格尔九别峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "massif_member",
+      "massif_key": "kongur",
+      "disposition": "keep",
+      "reason": "公格尔峰姊妹峰属公格尔山体具名峰；缺点位"
+    },
+    {
+      "canonical_key": "tuomuer-feng",
+      "primary_name": "托木尔峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "天山最高峰；缺点位保留"
+    },
+    {
+      "canonical_key": "hantengeli-feng",
+      "primary_name": "汗腾格里峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "天山第二高峰；缺点位保留"
+    },
+    {
+      "canonical_key": "bogeda-feng",
+      "primary_name": "博格达峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "天山东段主峰新疆象征；缺点位保留"
+    },
+    {
+      "canonical_key": "tianshan-tianchi-cluster",
+      "primary_name": "天山天池周边山峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "5A景区周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "huoyan-shan",
+      "primary_name": "火焰山",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "peak",
+      "disposition": "keep",
+      "reason": "吐鲁番观光山体有确定峰顶点位"
+    },
+    {
+      "canonical_key": "kanasi-cluster",
+      "primary_name": "喀纳斯周边山峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "region_cluster",
+      "disposition": "reject",
+      "reason": "景区周边泛化簇无单一峰顶"
+    },
+    {
+      "canonical_key": "duku-gonglu-route",
+      "primary_name": "独库公路沿线山峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "route_corridor",
+      "disposition": "keep_route",
+      "reason": "公路沿线廊道式徒步线路，按线路型建模"
+    },
+    {
+      "canonical_key": "xiata-gudao-route",
+      "primary_name": "夏塔古道沿线山峰",
+      "province": "新疆维吾尔自治区",
+      "entity_type": "route_corridor",
+      "disposition": "keep_route",
+      "reason": "经典古道沿线廊道式线路，按线路型建模"
+    }
+  ]
+}

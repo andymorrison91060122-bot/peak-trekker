@@ -1,0 +1,226 @@
+{
+  "https://www.peakbagger.com/peak.aspx?pid=1687": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Soda Peak, Washington",
+    "page_latitude": 48.913385,
+    "page_longitude": -120.719705,
+    "verification_method": "browser_open_2026-07-26"
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1729": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Many Trails Peak, Washington",
+    "page_latitude": 48.851855,
+    "page_longitude": -120.468035,
+    "verification_method": "browser_open_2026-07-26"
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1705": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Tatie Peak, Washington",
+    "page_latitude": 48.697125,
+    "page_longitude": -120.702965,
+    "verification_method": "browser_open_2026-07-26"
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1693": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Shull Mountain, Washington",
+    "page_latitude": 48.857425,
+    "page_longitude": -120.774345,
+    "verification_method": "browser_open_2026-07-26"
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67273": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Campbell Butte, Oregon",
+    "page_latitude": 44.762352,
+    "page_longitude": -121.775551,
+    "verification_method": "browser_open_2026-07-26"
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67271": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Pyramid Butte, Oregon",
+    "page_latitude": 44.76162,
+    "page_longitude": -121.80014,
+    "verification_method": "browser_open_2026-07-26"
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67274": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1711": {
+    "http_status": null,
+    "reachable": false,
+    "error": "fetch failed",
+    "page_title": null,
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1681": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Hozomeen Mountain - South Peak, Washington",
+    "page_latitude": 48.972745,
+    "page_longitude": -120.997915,
+    "verification_method": "browser_open_2026-07-26"
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67302": {
+    "http_status": null,
+    "reachable": false,
+    "error": "fetch failed",
+    "page_title": null,
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67268": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67318": {
+    "http_status": null,
+    "reachable": false,
+    "error": "fetch failed",
+    "page_title": null,
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1684": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1708": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Majestic Mountain - South Peak, Washington",
+    "page_latitude": 48.680745,
+    "page_longitude": -120.797015,
+    "verification_method": "browser_open_2026-07-26"
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67321": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67291": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1696": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Devils Dome, Washington",
+    "page_latitude": 48.824045,
+    "page_longitude": -120.916815,
+    "verification_method": "browser_open_2026-07-26"
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1698": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/pass.aspx?passid=24697": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Peakbagger.com Error Page",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/pass.aspx?passid=24701": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Peakbagger.com Error Page",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1682": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Freezeout Mountain, Washington",
+    "page_latitude": 48.968775,
+    "page_longitude": -120.882455,
+    "verification_method": "browser_open_2026-07-26"
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1683": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Joker Mountain, Washington",
+    "page_latitude": 48.946355,
+    "page_longitude": -120.878675,
+    "verification_method": "browser_open_2026-07-26"
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67266": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1695": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=1726": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67283": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67284": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67285": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/peak.aspx?pid=67303": {
+    "http_status": 403,
+    "reachable": false,
+    "page_title": "Just a moment...",
+    "page_latitude": null,
+    "page_longitude": null
+  },
+  "https://www.peakbagger.com/pass.aspx?passid=24705": {
+    "http_status": 200,
+    "reachable": true,
+    "page_title": "Peakbagger.com Error Page",
+    "page_latitude": null,
+    "page_longitude": null
+  }
+}

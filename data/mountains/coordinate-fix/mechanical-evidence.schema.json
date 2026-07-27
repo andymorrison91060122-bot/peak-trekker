@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "peak-trekker.t13-mechanical-evidence.schema.json",
+  "title": "T13 mechanical coordinate evidence bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "effective_canonical_key",
+    "ledger",
+    "source_features",
+    "dem"
+  ],
+  "properties": {
+    "schema_version": { "const": "t13-mechanical-evidence-v1" },
+    "effective_canonical_key": { "type": "string", "minLength": 1 },
+    "ledger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_name",
+        "primary_summit",
+        "aliases",
+        "altitude_m",
+        "province_bbox",
+        "seed_coordinate"
+      ],
+      "properties": {
+        "primary_name": { "type": "string", "minLength": 1 },
+        "primary_summit": { "type": ["string", "null"], "minLength": 1 },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "altitude_m": { "type": "number" },
+        "province_bbox": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_id",
+            "min_latitude",
+            "max_latitude",
+            "min_longitude",
+            "max_longitude"
+          ],
+          "properties": {
+            "source_id": { "type": "string", "minLength": 1 },
+            "min_latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+            "max_latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+            "min_longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+            "max_longitude": { "type": "number", "minimum": -180, "maximum": 180 }
+          }
+        },
+        "seed_coordinate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["latitude", "longitude", "datum"],
+          "properties": {
+            "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+            "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+            "datum": { "const": "WGS-84" }
+          }
+        }
+      }
+    },
+    "source_features": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_family",
+          "source_id",
+          "latitude",
+          "longitude",
+          "latitude_literal",
+          "longitude_literal",
+          "datum",
+          "elevation_m",
+          "source_names"
+        ],
+        "properties": {
+          "source_family": { "type": "string", "minLength": 1 },
+          "source_id": { "type": "string", "minLength": 1 },
+          "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+          "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+          "latitude_literal": { "type": "string", "pattern": "^-?(?:0|[1-9][0-9]*)\\.[0-9]+$" },
+          "longitude_literal": { "type": "string", "pattern": "^-?(?:0|[1-9][0-9]*)\\.[0-9]+$" },
+          "datum": { "const": "WGS-84" },
+          "elevation_m": { "type": ["number", "null"] },
+          "source_names": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["field", "value"],
+              "properties": {
+                "field": { "type": "string", "minLength": 1 },
+                "value": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "dem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "horizontal_datum",
+        "vertical_datum",
+        "resolution_m",
+        "source_cas_sha256",
+        "adapter_version",
+        "samples_sha256",
+        "samples",
+        "surface_context"
+      ],
+      "properties": {
+        "dataset_id": { "const": "COP-DEM_GLO-30-DGED" },
+        "horizontal_datum": { "const": "WGS-84" },
+        "vertical_datum": { "const": "EGM2008" },
+        "resolution_m": { "const": 30 },
+        "source_cas_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "adapter_version": { "type": "string", "minLength": 1 },
+        "samples_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "samples": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "row",
+              "column",
+              "latitude",
+              "longitude",
+              "elevation_m",
+              "candidate_distance_m"
+            ],
+            "properties": {
+              "row": { "type": "integer", "minimum": 0 },
+              "column": { "type": "integer", "minimum": 0 },
+              "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+              "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+              "elevation_m": { "type": "number" },
+              "candidate_distance_m": { "type": "number", "minimum": 0, "maximum": 300 }
+            }
+          }
+        },
+        "surface_context": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "adapter_version",
+            "source_cas_sha256",
+            "parsed_sha256",
+            "derived"
+          ],
+          "properties": {
+            "adapter_version": { "const": "esa-worldcover-2021-v1" },
+            "source_cas_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "parsed_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "derived": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "adapter_version",
+                "dataset_id",
+                "source_sha256",
+                "candidate",
+                "radius_m",
+                "class_shares",
+                "class_counts",
+                "sample_count",
+                "surface_regime"
+              ],
+              "properties": {
+                "adapter_version": { "const": "esa-worldcover-2021-v1" },
+                "dataset_id": { "const": "ESA_WorldCover_10m_2021_v200" },
+                "source_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "candidate": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["latitude", "longitude", "datum"],
+                  "properties": {
+                    "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+                    "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+                    "datum": { "const": "WGS-84" }
+                  }
+                },
+                "radius_m": { "const": 300 },
+                "class_shares": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tree_cover",
+                    "vegetated_or_built",
+                    "bare_or_sparse",
+                    "snow_or_ice"
+                  ],
+                  "properties": {
+                    "tree_cover": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "vegetated_or_built": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "bare_or_sparse": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "snow_or_ice": { "type": "number", "minimum": 0, "maximum": 1 }
+                  }
+                },
+                "class_counts": {
+                  "type": "object",
+                  "additionalProperties": { "type": "integer", "minimum": 0 }
+                },
+                "sample_count": { "type": "integer", "minimum": 1 },
+                "surface_regime": {
+                  "enum": [
+                    "high_elevation_bare_or_snow",
+                    "low_elevation_tree_cover",
+                    "low_elevation_vegetated_or_built",
+                    "unknown_or_mixed"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

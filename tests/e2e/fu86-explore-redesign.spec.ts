@@ -123,7 +123,9 @@ async function collectCards(page: Page) {
     href: card.getAttribute('href'),
     difficulty: card.getAttribute('data-difficulty'),
     altitude: Number(card.getAttribute('data-altitude')),
-    filterLengthKm: Number(card.getAttribute('data-length-km')),
+    filterLengthKm: card.getAttribute('data-length-km') === null
+      ? null
+      : Number(card.getAttribute('data-length-km')),
     metricsVisible: Boolean(card.querySelector('[data-testid="explore-mountain-card-metrics"]')),
     heroBackground: getComputedStyle(card.querySelector<HTMLElement>('[data-testid="explore-mountain-card-cover"]')!).backgroundImage,
   })))

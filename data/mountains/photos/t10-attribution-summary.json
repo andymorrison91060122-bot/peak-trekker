@@ -1,0 +1,21 @@
+{
+  "candidate_images": 319,
+  "images": 519,
+  "recovered_candidate_rate": 0.10344827586206896,
+  "recovered_exact": 33,
+  "schema_version": "t10-attribution-summary-v1",
+  "unresolved": 286,
+  "unresolved_mountains": 193,
+  "unresolved_source_type_distribution": {
+    "Commons分类": 12,
+    "Commons检索": 9,
+    "EN词条": 2,
+    "Flickr/CC": 2,
+    "名搜": 59,
+    "地貌代表": 11,
+    "实地GPS": 44,
+    "词条图": 74,
+    "词条首图": 73
+  },
+  "user_supplied": 200
+}

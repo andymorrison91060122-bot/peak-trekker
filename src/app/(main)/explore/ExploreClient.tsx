@@ -25,6 +25,7 @@ import SectionHeader from '@/components/ui/SectionHeader'
 import { FilterIcon, SearchIcon } from '@/components/ui/Icons'
 import { getDifficultyLevelLabel } from '@/lib/license-ui'
 import { storePendingShareTemplate } from '@/lib/share-template-intent'
+import { getMountainDistanceKm, matchesMountainLengthBand } from '@/lib/mountain-route-display'
 import type { Mountain } from '@/types'
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 
@@ -77,10 +78,6 @@ function recordExploreReplayReasons(layer: ExploreReplayReasonLayer, reasons: Ex
 
 function sameExplorePosition(left: ExplorePosition | null, right: ExplorePosition) {
   return left?.lat === right.lat && left.lng === right.lng
-}
-
-function estimateLength(mountain: Mountain) {
-  return mountain.length_km ?? Number(Math.max(4.2, Math.min(26, mountain.altitude / 260)).toFixed(1))
 }
 
 function normalizeExploreSearchText(value: string) {
@@ -213,7 +210,7 @@ export default function ExploreClient({
     const withDistance = list.map((mountain) => ({
       mountain,
       distance: position ? haversine(position.lat, position.lng, mountain.latitude, mountain.longitude) : null,
-      length: estimateLength(mountain),
+      length: getMountainDistanceKm(mountain),
     }))
 
     return withDistance.sort((a, b) => {
@@ -245,11 +242,7 @@ export default function ExploreClient({
         (altitudeBand === 'mid' && mountain.altitude >= 2000 && mountain.altitude < 4000) ||
         (altitudeBand === 'high' && mountain.altitude >= 4000)
 
-      const matchesLength =
-        lengthBand === 'all' ||
-        (lengthBand === 'short' && length < 8) ||
-        (lengthBand === 'mid' && length >= 8 && length < 16) ||
-        (lengthBand === 'long' && length >= 16)
+      const matchesLength = matchesMountainLengthBand(length, lengthBand)
 
       return matchesTag && matchesDifficulty && matchesAltitude && matchesLength
     })

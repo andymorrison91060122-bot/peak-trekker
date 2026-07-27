@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createClient } from '@supabase/supabase-js'
+import { getMountainDistanceKm, matchesMountainLengthBand } from '../../src/lib/mountain-route-display'
 import {
   createGpsCheckinViaApi,
   createPngDataUrl,
@@ -621,10 +622,6 @@ async function collectArchiveTerminalState(page: Page) {
   }))
 }
 
-function estimateExploreLength(mountain: Pick<ExploreMountainEvidenceRow, 'altitude' | 'length_km'>) {
-  return mountain.length_km ?? Number(Math.max(4.2, Math.min(26, mountain.altitude / 260)).toFixed(1))
-}
-
 function exploreHaversine(lat1: number, lon1: number, lat2: number, lon2: number) {
   const radiusKm = 6371
   const dLat = ((lat2 - lat1) * Math.PI) / 180
@@ -639,7 +636,7 @@ async function fetchExploreEvidenceMountains() {
   const supabase = getSupabaseAdminClient()
   const { data, error } = await supabase
     .from('mountains')
-    .select('id, name, latitude, longitude, altitude, difficulty, checkin_count')
+    .select('id, name, latitude, longitude, altitude, difficulty, checkin_count, length_km')
     .eq('is_active', true)
     .order('checkin_count', { ascending: false })
     .limit(80)
@@ -1060,15 +1057,12 @@ function chooseEmptyExploreFilterCombo(rows: ExploreMountainEvidenceRow[]): Expl
   const altitudes = ['low', 'mid', 'high'] as const
   const lengths = ['short', 'mid', 'long'] as const
   const matches = (row: ExploreMountainEvidenceRow, combo: ExploreFilterCombo) => {
-    const length = estimateExploreLength(row)
+    const length = getMountainDistanceKm(row)
     const altitudeMatch =
       combo.altitude === 'low' ? row.altitude < 2000 :
         combo.altitude === 'mid' ? row.altitude >= 2000 && row.altitude < 4000 :
           row.altitude >= 4000
-    const lengthMatch =
-      combo.length === 'short' ? length < 8 :
-        combo.length === 'mid' ? length >= 8 && length < 16 :
-          length >= 16
+    const lengthMatch = matchesMountainLengthBand(length, combo.length)
     return row.difficulty === combo.difficulty && altitudeMatch && lengthMatch
   }
   for (const difficulty of difficulties) {

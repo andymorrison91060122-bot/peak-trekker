@@ -1,0 +1,303 @@
+{
+  "input_binding": {
+    "asset_sha256": "d3c3b5e5abcea38e8a6ec85bfc6db3aeabda35efff894ff13667922cb218db2a",
+    "manifest_sha256": "6dafe46780262cd404af0dee8e1c50a3e2fde50068f27c628273ccebc5e392ff"
+  },
+  "old_linked_objects": [
+    {
+      "effective_canonical_key": "gongga-jiazi-feng",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-jiazi-feng/01-gongga-jiazi-feng-7.jpg",
+      "storage_path": "catalog/gongga-jiazi-feng/01-gongga-jiazi-feng-7.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "09883181b58bb8eee31d9d622c2b228f960d24b4c400c4cdb755b249cc69cbc5",
+      "stored_size_bytes": 242472
+    },
+    {
+      "effective_canonical_key": "gongga-jiazi-feng",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-jiazi-feng/02-gongga-jiazi-feng-4.jpg",
+      "storage_path": "catalog/gongga-jiazi-feng/02-gongga-jiazi-feng-4.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "25460f39a92bbb77f3d79a94eca7043dd961d2fdd3817dc8e4ac0be910da21c5",
+      "stored_size_bytes": 209380
+    },
+    {
+      "effective_canonical_key": "gongga-riwuqie-feng",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-riwuqie-feng/01-gongga-riwuqie-feng-7.jpg",
+      "storage_path": "catalog/gongga-riwuqie-feng/01-gongga-riwuqie-feng-7.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "09883181b58bb8eee31d9d622c2b228f960d24b4c400c4cdb755b249cc69cbc5",
+      "stored_size_bytes": 242472
+    },
+    {
+      "effective_canonical_key": "gongga-riwuqie-feng",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-riwuqie-feng/02-gongga-riwuqie-feng-4.jpg",
+      "storage_path": "catalog/gongga-riwuqie-feng/02-gongga-riwuqie-feng-4.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "25460f39a92bbb77f3d79a94eca7043dd961d2fdd3817dc8e4ac0be910da21c5",
+      "stored_size_bytes": 209380
+    },
+    {
+      "effective_canonical_key": "gongga-xiaogongga-feng",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-xiaogongga-feng/01-gongga-xiaogongga-feng-3.jpg",
+      "storage_path": "catalog/gongga-xiaogongga-feng/01-gongga-xiaogongga-feng-3.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "31bf2f46722c8ad9a34ecc0c94f6c9f44e0b8ef282fd7c6f4380abea0629d2d4",
+      "stored_size_bytes": 331655
+    },
+    {
+      "effective_canonical_key": "gongga-xiaogongga-feng",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-xiaogongga-feng/02-gongga-xiaogongga-feng-1.jpg",
+      "storage_path": "catalog/gongga-xiaogongga-feng/02-gongga-xiaogongga-feng-1.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "f2c57943e486661b81229718935531bafd8d5ef45729c56e1f7c90f5c23be724",
+      "stored_size_bytes": 224653
+    },
+    {
+      "effective_canonical_key": "gongyu-yan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongyu-yan/01-gongyu-yan-8.jpg",
+      "storage_path": "catalog/gongyu-yan/01-gongyu-yan-8.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "826583cdb878c76e89b5340a515c28b5c176b027af128def4a5d34f60538119f",
+      "stored_size_bytes": 162460
+    },
+    {
+      "effective_canonical_key": "gongyu-yan",
+      "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongyu-yan/02-gongyu-yan-7.jpg",
+      "storage_path": "catalog/gongyu-yan/02-gongyu-yan-7.jpg",
+      "stored_mime": "image/jpeg",
+      "stored_sha256": "b3a8942931f05b80c9aa9a873c81ea617411bc82b06f5b0c0f8094cfe0f05fd2",
+      "stored_size_bytes": 187351
+    }
+  ],
+  "rows": [
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-jiazi-feng/01-gongga-jiazi-feng-7.jpg",
+      "effective_canonical_key": "gongga-jiazi-feng",
+      "gallery_images": [
+        "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-jiazi-feng/02-gongga-jiazi-feng-4.jpg"
+      ],
+      "id": "c4274999-5555-539d-8404-21baa066e174",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "09883181b58bb8eee31d9d622c2b228f960d24b4c400c4cdb755b249cc69cbc5",
+          "filename": "gongga-jiazi-feng_7.jpg",
+          "height": 853,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "09883181b58bb8eee31d9d622c2b228f960d24b4c400c4cdb755b249cc69cbc5",
+          "original_size_bytes": 242472,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-jiazi-feng/01-gongga-jiazi-feng-7.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/gongga-jiazi-feng/01-gongga-jiazi-feng-7.jpg",
+          "stored_size_bytes": 242472,
+          "width": 1280
+        },
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "25460f39a92bbb77f3d79a94eca7043dd961d2fdd3817dc8e4ac0be910da21c5",
+          "filename": "gongga-jiazi-feng_4.jpg",
+          "height": 853,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 2,
+          "original_file_sha256": "25460f39a92bbb77f3d79a94eca7043dd961d2fdd3817dc8e4ac0be910da21c5",
+          "original_size_bytes": 209380,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-jiazi-feng/02-gongga-jiazi-feng-4.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/gongga-jiazi-feng/02-gongga-jiazi-feng-4.jpg",
+          "stored_size_bytes": 209380,
+          "width": 1280
+        }
+      ],
+      "is_active": false,
+      "is_readable": false
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-riwuqie-feng/01-gongga-riwuqie-feng-7.jpg",
+      "effective_canonical_key": "gongga-riwuqie-feng",
+      "gallery_images": [
+        "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-riwuqie-feng/02-gongga-riwuqie-feng-4.jpg"
+      ],
+      "id": "47baf90a-7583-5a15-9b95-c1785564a5e9",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "09883181b58bb8eee31d9d622c2b228f960d24b4c400c4cdb755b249cc69cbc5",
+          "filename": "gongga-riwuqie-feng_7.jpg",
+          "height": 853,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "09883181b58bb8eee31d9d622c2b228f960d24b4c400c4cdb755b249cc69cbc5",
+          "original_size_bytes": 242472,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-riwuqie-feng/01-gongga-riwuqie-feng-7.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/gongga-riwuqie-feng/01-gongga-riwuqie-feng-7.jpg",
+          "stored_size_bytes": 242472,
+          "width": 1280
+        },
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "25460f39a92bbb77f3d79a94eca7043dd961d2fdd3817dc8e4ac0be910da21c5",
+          "filename": "gongga-riwuqie-feng_4.jpg",
+          "height": 853,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 2,
+          "original_file_sha256": "25460f39a92bbb77f3d79a94eca7043dd961d2fdd3817dc8e4ac0be910da21c5",
+          "original_size_bytes": 209380,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-riwuqie-feng/02-gongga-riwuqie-feng-4.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/gongga-riwuqie-feng/02-gongga-riwuqie-feng-4.jpg",
+          "stored_size_bytes": 209380,
+          "width": 1280
+        }
+      ],
+      "is_active": false,
+      "is_readable": false
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-xiaogongga-feng/01-gongga-xiaogongga-feng-3.jpg",
+      "effective_canonical_key": "gongga-xiaogongga-feng",
+      "gallery_images": [
+        "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-xiaogongga-feng/02-gongga-xiaogongga-feng-1.jpg"
+      ],
+      "id": "98df5d38-f934-5f79-88e9-21a429a0e650",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "31bf2f46722c8ad9a34ecc0c94f6c9f44e0b8ef282fd7c6f4380abea0629d2d4",
+          "filename": "gongga-xiaogongga-feng_3.jpg",
+          "height": 853,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "31bf2f46722c8ad9a34ecc0c94f6c9f44e0b8ef282fd7c6f4380abea0629d2d4",
+          "original_size_bytes": 331655,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-xiaogongga-feng/01-gongga-xiaogongga-feng-3.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/gongga-xiaogongga-feng/01-gongga-xiaogongga-feng-3.jpg",
+          "stored_size_bytes": 331655,
+          "width": 1280
+        },
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "f2c57943e486661b81229718935531bafd8d5ef45729c56e1f7c90f5c23be724",
+          "filename": "gongga-xiaogongga-feng_1.jpg",
+          "height": 853,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 2,
+          "original_file_sha256": "f2c57943e486661b81229718935531bafd8d5ef45729c56e1f7c90f5c23be724",
+          "original_size_bytes": 224653,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongga-xiaogongga-feng/02-gongga-xiaogongga-feng-1.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/gongga-xiaogongga-feng/02-gongga-xiaogongga-feng-1.jpg",
+          "stored_size_bytes": 224653,
+          "width": 1280
+        }
+      ],
+      "is_active": false,
+      "is_readable": false
+    },
+    {
+      "cover_image": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongyu-yan/01-gongyu-yan-8.jpg",
+      "effective_canonical_key": "gongyu-yan",
+      "gallery_images": [
+        "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongyu-yan/02-gongyu-yan-7.jpg"
+      ],
+      "id": "19696a91-5693-553b-9331-395523164dc5",
+      "image_is_illustrative": false,
+      "image_license_manifest": [
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "826583cdb878c76e89b5340a515c28b5c176b027af128def4a5d34f60538119f",
+          "filename": "gongyu-yan_8.jpg",
+          "height": 960,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 1,
+          "original_file_sha256": "826583cdb878c76e89b5340a515c28b5c176b027af128def4a5d34f60538119f",
+          "original_size_bytes": 162460,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongyu-yan/01-gongyu-yan-8.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/gongyu-yan/01-gongyu-yan-8.jpg",
+          "stored_size_bytes": 162460,
+          "width": 1280
+        },
+        {
+          "attribution_text": null,
+          "author": null,
+          "compressed": false,
+          "file_sha256": "b3a8942931f05b80c9aa9a873c81ea617411bc82b06f5b0c0f8094cfe0f05fd2",
+          "filename": "gongyu-yan_7.jpg",
+          "height": 960,
+          "is_illustrative": false,
+          "license_id": null,
+          "license_url": null,
+          "mime_type": "image/jpeg",
+          "order": 2,
+          "original_file_sha256": "b3a8942931f05b80c9aa9a873c81ea617411bc82b06f5b0c0f8094cfe0f05fd2",
+          "original_size_bytes": 187351,
+          "provider": "candidate_unknown",
+          "public_url": "https://mngofocdsmqrqimsdyzf.supabase.co/storage/v1/object/public/mountain-media/catalog/gongyu-yan/02-gongyu-yan-7.jpg",
+          "review_status": "unresolved_license_backtrace",
+          "source_url": null,
+          "storage_path": "catalog/gongyu-yan/02-gongyu-yan-7.jpg",
+          "stored_size_bytes": 187351,
+          "width": 1280
+        }
+      ],
+      "is_active": false,
+      "is_readable": false
+    }
+  ],
+  "schema_version": "t11-image-sync-snapshot-v1"
+}

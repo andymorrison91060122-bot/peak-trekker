@@ -1,0 +1,41 @@
+{
+  "schema_version": "d10-route-note-overrides-v1",
+  "rows": [
+    {
+      "effective_canonical_key": "kawagebo",
+      "route_note": "卡瓦格博峰至今无人登顶；现行通告对相关区域实施禁入管理，因此无公开攀登路线。"
+    },
+    {
+      "effective_canonical_key": "namchabarwa",
+      "route_note": "南迦巴瓦峰攀登难度极高，现有资料不足以确认长期开放状态；当前无可核实的公开攀登路线。"
+    },
+    {
+      "effective_canonical_key": "nianbaoyuze",
+      "route_note": "年保玉则景区自2018年4月起停止接待，现有资料未显示已恢复开放，因此无公开攀登路线。"
+    },
+    {
+      "effective_canonical_key": "nyainqentanglha",
+      "route_note": "念青唐古拉峰攀登难度高，现有资料不足以确认长期开放状态；当前无可核实的公开攀登路线。"
+    },
+    {
+      "effective_canonical_key": "yading-xiannairi",
+      "route_note": "仙乃日位于亚丁国家级自然保护区，历次公告明确相关未开发未开放区域禁止擅自进入，因此无公开攀登路线。"
+    },
+    {
+      "effective_canonical_key": "yading-xianuoduoji",
+      "route_note": "夏诺多吉位于亚丁国家级自然保护区，历次公告明确相关未开发未开放区域禁止擅自进入，因此无公开攀登路线。"
+    },
+    {
+      "effective_canonical_key": "yading-yangmaiyong",
+      "route_note": "央迈勇位于亚丁国家级自然保护区，历次公告明确相关未开发未开放区域禁止擅自进入，因此无公开攀登路线。"
+    },
+    {
+      "effective_canonical_key": "yala-xueshan",
+      "route_note": "雅拉雪山主峰至今无人登顶，现有资料不足以确认长期开放状态；当前无公开攀登路线。"
+    },
+    {
+      "effective_canonical_key": "yulong-xueshan",
+      "route_note": "玉龙县现行通告禁止进入海拔3500米以上区域开展徒步、登山和探险，因此主峰无公开攀登路线。"
+    }
+  ]
+}

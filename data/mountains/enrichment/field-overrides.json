@@ -1,0 +1,813 @@
+{
+  "schema_version": 1,
+  "frozen_inputs": {
+    "ledger/effective_canonicals.jsonl": "5fe0f8fcc4154f10c014cfee79c6b57b6582eed77f9b0445c72ddfd593da4294",
+    "ledger/entity-semantics.jsonl": "45e8685f42968cedfa6b3f7adbb998c5cdbe28af74b823b77975be838aa0cd8a"
+  },
+  "coordinates": {
+    "bogeda-feng": {
+      "latitude": 43.793232,
+      "longitude": 88.344441,
+      "source_id": "gns:bogeda-feng",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI 12181329",
+      "chosen_ufi": 12181329,
+      "chosen_uni": 15043820,
+      "chosen_name": "博格达峰",
+      "chosen_designation": "PK",
+      "selection_reason": "matches known summit ≈43.80N,88.34E/5445m; rejected -1899019 @15.9km east",
+      "multi_candidate": true,
+      "candidate_spread_m": 15911,
+      "candidates": [
+        {
+          "ufi": -1899019,
+          "uni": 15052134,
+          "full_name": "博格达峰",
+          "all_names": "N:1:BOGDAFENG;||N:2:BOGEDAFENG;||NS:999:博格达峰;||V:999:GORATOPOTARAULIE;||V:999:POKOTOFENG;||V:999:POKOTASHANFENG;||V:999:POKOTASHAN;||V:999:POKOTAFENG;||V:999:GODSMOUNTAIN;||V:999:BOGUDOYAMA;||V:999:TOPOTARUAURIEYAMA;||V:999:BOGDOUULA;||V:999:GORABOGDOULA;||V:999:GORABOGDOOLA;||V:999:BOGDO;||V:999:GORABOGDAULA;||V:999:MOUNTBOGDAOLA;||V:999:BOGUDOSHAN;||V:999:TOPOTARUAURIESHAN;||V:999:TOPOTARAULIYE;",
+          "desig_cd": "PK",
+          "adm1": "CN-XJ",
+          "cc_ft": "CHN",
+          "latitude": 43.75,
+          "longitude": 88.533333,
+          "nt": "NS",
+          "lang_cd": "zho",
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1404259200000,
+          "mod_dt_nm": 1546905600000,
+          "coordinate_precision": 6
+        },
+        {
+          "ufi": 12181329,
+          "uni": 15043820,
+          "full_name": "博格达峰",
+          "all_names": "N:1:BOGEDAFENG;||NS:999:博格达峰;",
+          "desig_cd": "PK",
+          "adm1": "CN-XJ",
+          "cc_ft": "CHN",
+          "latitude": 43.793232,
+          "longitude": 88.344441,
+          "nt": "NS",
+          "lang_cd": "zho",
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1545091200000,
+          "mod_dt_nm": 1545091200000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "新疆维吾尔自治区"
+        ],
+        "bbox_source_id": "province-bbox-v1:xinjiang"
+      }
+    },
+    "broad-peak": {
+      "latitude": 35.810927,
+      "longitude": 76.568086,
+      "source_id": "gns:broad-peak",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI -3414670",
+      "chosen_ufi": -3414670,
+      "chosen_uni": -4851284,
+      "chosen_name": "Broad Peak",
+      "chosen_designation": "MT",
+      "selection_reason": "only eligible in-province peak candidate",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [
+        {
+          "ufi": -3414670,
+          "uni": -4851284,
+          "full_name": "Broad Peak",
+          "all_names": "N:1:BROADPEAK;||N:999:BROADFENG;",
+          "desig_cd": "MT",
+          "adm1": "S1-000",
+          "cc_ft": "CHN,PAK",
+          "latitude": 35.810927,
+          "longitude": 76.568086,
+          "nt": "N",
+          "lang_cd": null,
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1539907200000,
+          "mod_dt_nm": 746841600000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "新疆维吾尔自治区"
+        ],
+        "bbox_source_id": "province-bbox-v1:xinjiang"
+      }
+    },
+    "gasherbrum-1-feng": {
+      "latitude": 35.724925,
+      "longitude": 76.697502,
+      "source_id": "gns:gasherbrum-1-feng",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI -3414673",
+      "chosen_ufi": -3414673,
+      "chosen_uni": -4851288,
+      "chosen_name": "Gasherbrum I",
+      "chosen_designation": "MT",
+      "selection_reason": "only eligible in-province peak candidate",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [
+        {
+          "ufi": -3414673,
+          "uni": -4851288,
+          "full_name": "Gasherbrum I",
+          "all_names": "N:1:GASHERBRUMMOUNTAIN;||N:999:GASHERBRUMSHAN;||V:999:GASHERBRUMI;",
+          "desig_cd": "MT",
+          "adm1": "S1-000",
+          "cc_ft": "CHN,PAK",
+          "latitude": 35.724925,
+          "longitude": 76.697502,
+          "nt": "V",
+          "lang_cd": null,
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1532995200000,
+          "mod_dt_nm": 1532995200000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "新疆维吾尔自治区"
+        ],
+        "bbox_source_id": "province-bbox-v1:xinjiang"
+      }
+    },
+    "gasherbrum-2-feng": {
+      "latitude": 35.759071,
+      "longitude": 76.65375,
+      "source_id": "gns:gasherbrum-2-feng",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI -3414674",
+      "chosen_ufi": -3414674,
+      "chosen_uni": -4851290,
+      "chosen_name": "Gasherbrum II",
+      "chosen_designation": "MT",
+      "selection_reason": "only eligible in-province peak candidate",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [
+        {
+          "ufi": -3414674,
+          "uni": -4851290,
+          "full_name": "Gasherbrum II",
+          "all_names": "N:1:GASHERBRUMII;||N:999:GASHERBRUMIIFENG;",
+          "desig_cd": "MT",
+          "adm1": "S1-000",
+          "cc_ft": "CHN,PAK",
+          "latitude": 35.759071,
+          "longitude": 76.65375,
+          "nt": "N",
+          "lang_cd": null,
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1470960000000,
+          "mod_dt_nm": 1470960000000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "新疆维吾尔自治区"
+        ],
+        "bbox_source_id": "province-bbox-v1:xinjiang"
+      }
+    },
+    "hantengeli-feng": {
+      "latitude": 42.213292,
+      "longitude": 80.175985,
+      "source_id": "gns:hantengeli-feng",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI 351689",
+      "chosen_ufi": 351689,
+      "chosen_uni": 16667714,
+      "chosen_name": "汗腾格里峰",
+      "chosen_designation": "PK",
+      "selection_reason": "only eligible in-province peak candidate",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [
+        {
+          "ufi": 351689,
+          "uni": 16667714,
+          "full_name": "汗腾格里峰",
+          "all_names": "N:1:PIKKHANTENGRI;||N:2:HANTENGRIFENG;||NS:999:ПИКХАНТЕНГРИ;||V:999:KHANTENGRYPEAK;||V:999:KANTOOPEAK;||V:999:KHANTANGIRISHYNGY;||V:999:KANTOOCHOKUSU;||V:999:PIKKANTOO;||V:999:HANTENGGELIFENG;||VS:999:汗腾格里峰;||VS:999:ХАНТӘҢІРІШЫҢЫ;",
+          "desig_cd": "PK",
+          "adm1": "S1-000",
+          "cc_ft": "CHN,KAZ,KGZ",
+          "latitude": 42.213292,
+          "longitude": 80.175985,
+          "nt": "VS",
+          "lang_cd": "zho",
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1579651200000,
+          "mod_dt_nm": 1579651200000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "新疆维吾尔自治区"
+        ],
+        "bbox_source_id": "province-bbox-v1:xinjiang"
+      }
+    },
+    "kawagebo": {
+      "latitude": 28.440043,
+      "longitude": 98.687263,
+      "source_id": "gns:kawagebo",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI 10418730",
+      "chosen_ufi": 10418730,
+      "chosen_uni": 10912895,
+      "chosen_name": "卡瓦格博峰",
+      "chosen_designation": "PK",
+      "selection_reason": "only eligible in-province peak candidate",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [
+        {
+          "ufi": 10418730,
+          "uni": 10912895,
+          "full_name": "卡瓦格博峰",
+          "all_names": "N:1:KAGEBOFENG;||NS:999:卡格博峰;||V:999:KAWAGEBOFENG;||V:999:KAWAKARPO;||VS:999:卡瓦格博峰;",
+          "desig_cd": "PK",
+          "adm1": "CN-YN",
+          "cc_ft": "CHN",
+          "latitude": 28.440043,
+          "longitude": 98.687263,
+          "nt": "VS",
+          "lang_cd": null,
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1232582400000,
+          "mod_dt_nm": 1232582400000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "云南省"
+        ],
+        "bbox_source_id": "province-bbox-v1:yunnan"
+      }
+    },
+    "kongur-feng": {
+      "latitude": 38.579444,
+      "longitude": 75.315278,
+      "source_id": "gns:kongur-feng",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI -1913682",
+      "chosen_ufi": -1913682,
+      "chosen_uni": 20401576,
+      "chosen_name": "公格尔山",
+      "chosen_designation": "MT",
+      "selection_reason": "only eligible in-province peak candidate",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [
+        {
+          "ufi": -1913682,
+          "uni": 20401576,
+          "full_name": "公格尔山",
+          "all_names": "N:1:QONGURTAGH;||N:2:GONGGEERSHAN;||NS:999:公格尔山;||NS:999:قوڭۇرتاغ;||V:999:KUNGKOERHSHAN;||V:999:KOUNGOUR;||V:999:QUNGUR;||V:999:GORAKONGUR;||V:999:KONGURSHAN;||V:999:QUNGAR;||V:999:KUNGURDEBA;||V:999:KUNGUR;",
+          "desig_cd": "MT",
+          "adm1": "CN-XJ",
+          "cc_ft": "CHN",
+          "latitude": 38.579444,
+          "longitude": 75.315278,
+          "nt": "NS",
+          "lang_cd": "zho",
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1702906124000,
+          "mod_dt_nm": 1645660800000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "新疆维吾尔自治区"
+        ],
+        "bbox_source_id": "province-bbox-v1:xinjiang"
+      }
+    },
+    "kongur-jiubie-feng": {
+      "latitude": 38.666667,
+      "longitude": 75.166667,
+      "source_id": "gns:kongur-jiubie-feng",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI -1913683",
+      "chosen_ufi": -1913683,
+      "chosen_uni": 20401600,
+      "chosen_name": "公格尔山九别峰",
+      "chosen_designation": "PK",
+      "selection_reason": "only eligible in-province peak candidate",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [
+        {
+          "ufi": -1913683,
+          "uni": 20401600,
+          "full_name": "公格尔山九别峰",
+          "all_names": "N:1:KONGURTOBEFENG;||V:999:GONGGEERSHANJIUBIEFENG;||VS:999:公格尔山九别峰;",
+          "desig_cd": "PK",
+          "adm1": "CN-XJ",
+          "cc_ft": "CHN",
+          "latitude": 38.666667,
+          "longitude": 75.166667,
+          "nt": "VS",
+          "lang_cd": "zho",
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1646006400000,
+          "mod_dt_nm": 1646697600000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "新疆维吾尔自治区"
+        ],
+        "bbox_source_id": "province-bbox-v1:xinjiang"
+      }
+    },
+    "muztagata-feng": {
+      "latitude": 38.283333,
+      "longitude": 75.116667,
+      "source_id": "gns:muztagata-feng",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI -1919183",
+      "chosen_ufi": -1919183,
+      "chosen_uni": 20401528,
+      "chosen_name": "慕士塔格峰",
+      "chosen_designation": "PK",
+      "selection_reason": "only eligible in-province peak candidate",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [
+        {
+          "ufi": -1919183,
+          "uni": 20401528,
+          "full_name": "慕士塔格峰",
+          "all_names": "N:1:MUZTAGATA;||N:2:MUSHITAGEFENG;||NS:999:慕士塔格峰;||V:999:MUSTAGHATA;||V:999:MUSTAGATA;||V:999:MUSSUTAKOSHAN;||V:999:MUZTAGHATA;||V:999:MOUZTAGHATA;||V:999:GORAMAZTAGATA;||V:999:MUZTAGHATACHOQQISI;||V:999:MUSHIHTAKOSHAN;||V:999:GORAMUZTAGATA;||V:999:GORAMUTYAGATA;||VS:999:مۇزتاغئاتاچوققىسى;",
+          "desig_cd": "PK",
+          "adm1": "CN-XJ",
+          "cc_ft": "CHN",
+          "latitude": 38.283333,
+          "longitude": 75.116667,
+          "nt": "NS",
+          "lang_cd": "zho",
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1646006400000,
+          "mod_dt_nm": 1645574400000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "新疆维吾尔自治区"
+        ],
+        "bbox_source_id": "province-bbox-v1:xinjiang"
+      }
+    },
+    "namchabarwa": {
+      "latitude": 29.666667,
+      "longitude": 95.166667,
+      "source_id": "gns:namchabarwa",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI -1919263",
+      "chosen_ufi": -1919263,
+      "chosen_uni": 13177652,
+      "chosen_name": "南迦巴瓦",
+      "chosen_designation": "PK",
+      "selection_reason": "only eligible in-province peak candidate",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [
+        {
+          "ufi": -1919263,
+          "uni": 13177652,
+          "full_name": "南迦巴瓦",
+          "all_names": "N:1:NAMJAGBARWA;||N:2:NANJIABAWA;||NS:999:南迦巴瓦;||V:999:NAMUCHAPAWASHAN;||V:999:NAMUCHOPAERHWASHAN;||V:999:NAMCHABARWA;||V:999:NAMJAGBARWAFENG;||V:999:NAMUCHOPAERHWA;||V:999:NAMUCHEPAERHWA;",
+          "desig_cd": "PK",
+          "adm1": "CN-XZ",
+          "cc_ft": "CHN",
+          "latitude": 29.666667,
+          "longitude": 95.166667,
+          "nt": "NS",
+          "lang_cd": "zho",
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1315440000000,
+          "mod_dt_nm": 1315440000000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "西藏自治区"
+        ],
+        "bbox_source_id": "province-bbox-v1:xizang"
+      }
+    },
+    "nianbaoyuze": {
+      "latitude": 33.28,
+      "longitude": 101.14,
+      "source_id": "curated:claude-canonical-six-v1",
+      "extraction_path": "coordinates.nianbaoyuze",
+      "chosen_ufi": null,
+      "chosen_uni": null,
+      "chosen_name": "年保玉则",
+      "chosen_designation": null,
+      "selection_reason": "claude_curated; GNS无峰顶候选; 低风险字段(不显示); 非verified",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [],
+      "curated": true,
+      "gns_no_candidate_source_id": "gns:nianbaoyuze",
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "青海省"
+        ],
+        "bbox_source_id": "province-bbox-v1:qinghai"
+      }
+    },
+    "nyainqentanglha": {
+      "latitude": 30.383333,
+      "longitude": 90.566667,
+      "source_id": "gns:nyainqentanglha",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI -1920535",
+      "chosen_ufi": -1920535,
+      "chosen_uni": -2664727,
+      "chosen_name": "Nyainqêntanglha Feng",
+      "chosen_designation": "MT",
+      "selection_reason": "only eligible in-province peak candidate",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [
+        {
+          "ufi": -1920535,
+          "uni": -2664727,
+          "full_name": "Nyainqêntanglha Feng",
+          "all_names": "N:1:NYAINQENTANGLHAFENG;||V:999:TANGKULACHUFENG;||V:999:NIENCHINGTANGKULASHAN;||V:999:NIENCHINGTANGKULAFENG;",
+          "desig_cd": "MT",
+          "adm1": "CN-XZ",
+          "cc_ft": "CHN",
+          "latitude": 30.383333,
+          "longitude": 90.566667,
+          "nt": "N",
+          "lang_cd": "bod",
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 760406400000,
+          "mod_dt_nm": 746841600000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "西藏自治区"
+        ],
+        "bbox_source_id": "province-bbox-v1:xizang"
+      }
+    },
+    "qiaogeli-feng-k2": {
+      "latitude": 35.88159,
+      "longitude": 76.512927,
+      "source_id": "gns:qiaogeli-feng-k2",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI -3414780",
+      "chosen_ufi": -3414780,
+      "chosen_uni": -4851480,
+      "chosen_name": "K2",
+      "chosen_designation": "MT",
+      "selection_reason": "only eligible in-province peak candidate",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [
+        {
+          "ufi": -3414780,
+          "uni": -4851480,
+          "full_name": "K2",
+          "all_names": "N:1:MOUNTKc;||N:999:QOGIRFENG;||V:999:Kc;||V:999:MOUNTGODWINAUSTEN;||V:999:CHOGORI;",
+          "desig_cd": "MT",
+          "adm1": "S1-000",
+          "cc_ft": "CHN,PAK",
+          "latitude": 35.88159,
+          "longitude": 76.512927,
+          "nt": "V",
+          "lang_cd": null,
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1539907200000,
+          "mod_dt_nm": 1539907200000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "新疆维吾尔自治区"
+        ],
+        "bbox_source_id": "province-bbox-v1:xinjiang"
+      }
+    },
+    "tuomuer-feng": {
+      "latitude": 42.037094,
+      "longitude": 80.116439,
+      "source_id": "gns:tuomuer-feng",
+      "extraction_path": "ArcGIS features grouped by UFI; chosen UFI -2983485",
+      "chosen_ufi": -2983485,
+      "chosen_uni": 16665573,
+      "chosen_name": "托木尔峰",
+      "chosen_designation": "PK",
+      "selection_reason": "only eligible in-province peak candidate",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [
+        {
+          "ufi": -2983485,
+          "uni": 16665573,
+          "full_name": "托木尔峰",
+          "all_names": "N:1:PIKPOBEDY;||N:2:TOMURFENG;||N:3:TUOMUERFENG;||N:999:JENGISHCHOKUSU;||NS:999:托木尔峰;||NS:999:ПИКПОБЕДЫ;||V:999:HSINTENGKOLIFENG;||V:999:JENGISHPEAK;||V:999:POBEDAPEAK;||V:999:VICTORYPEAK;||V:999:PEAKPOBEDA;||V:999:SHENGLIFENG;||V:999:HSINHANTENGKOLIFENG;",
+          "desig_cd": "PK",
+          "adm1": "S1-000",
+          "cc_ft": "CHN,KGZ",
+          "latitude": 42.037094,
+          "longitude": 80.116439,
+          "nt": "NS",
+          "lang_cd": "zho",
+          "term_dt_f": null,
+          "term_dt_n": null,
+          "mod_dt_ft": 1604620800000,
+          "mod_dt_nm": 1604620800000,
+          "coordinate_precision": 6
+        }
+      ],
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "新疆维吾尔自治区"
+        ],
+        "bbox_source_id": "province-bbox-v1:xinjiang"
+      }
+    },
+    "yading-xiannairi": {
+      "latitude": 28.39,
+      "longitude": 100.33,
+      "source_id": "curated:claude-canonical-six-v1",
+      "extraction_path": "coordinates.yading-xiannairi",
+      "chosen_ufi": null,
+      "chosen_uni": null,
+      "chosen_name": "仙乃日",
+      "chosen_designation": null,
+      "selection_reason": "claude_curated; GNS无峰顶候选; 低风险字段(不显示); 非verified",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [],
+      "curated": true,
+      "gns_no_candidate_source_id": "gns:yading-xiannairi",
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "四川省"
+        ],
+        "bbox_source_id": "province-bbox-v1:sichuan"
+      }
+    },
+    "yading-xianuoduoji": {
+      "latitude": 28.43,
+      "longitude": 100.36,
+      "source_id": "curated:claude-canonical-six-v1",
+      "extraction_path": "coordinates.yading-xianuoduoji",
+      "chosen_ufi": null,
+      "chosen_uni": null,
+      "chosen_name": "夏诺多吉",
+      "chosen_designation": null,
+      "selection_reason": "claude_curated; GNS无峰顶候选; 低风险字段(不显示); 非verified",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [],
+      "curated": true,
+      "gns_no_candidate_source_id": "gns:yading-xianuoduoji",
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "四川省"
+        ],
+        "bbox_source_id": "province-bbox-v1:sichuan"
+      }
+    },
+    "yading-yangmaiyong": {
+      "latitude": 28.33,
+      "longitude": 100.31,
+      "source_id": "curated:claude-canonical-six-v1",
+      "extraction_path": "coordinates.yading-yangmaiyong",
+      "chosen_ufi": null,
+      "chosen_uni": null,
+      "chosen_name": "央迈勇",
+      "chosen_designation": null,
+      "selection_reason": "claude_curated; GNS无峰顶候选; 低风险字段(不显示); 非verified",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [],
+      "curated": true,
+      "gns_no_candidate_source_id": "gns:yading-yangmaiyong",
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "四川省"
+        ],
+        "bbox_source_id": "province-bbox-v1:sichuan"
+      }
+    },
+    "yala-xueshan": {
+      "latitude": 30.72,
+      "longitude": 101.47,
+      "source_id": "curated:claude-canonical-six-v1",
+      "extraction_path": "coordinates.yala-xueshan",
+      "chosen_ufi": null,
+      "chosen_uni": null,
+      "chosen_name": "雅拉雪山",
+      "chosen_designation": null,
+      "selection_reason": "claude_curated; GNS无峰顶候选; 低风险字段(不显示); 非verified",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [],
+      "curated": true,
+      "gns_no_candidate_source_id": "gns:yala-xueshan",
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "四川省"
+        ],
+        "bbox_source_id": "province-bbox-v1:sichuan"
+      }
+    },
+    "yulong-xueshan": {
+      "latitude": 27.1,
+      "longitude": 100.18,
+      "source_id": "curated:claude-canonical-six-v1",
+      "extraction_path": "coordinates.yulong-xueshan",
+      "chosen_ufi": null,
+      "chosen_uni": null,
+      "chosen_name": "扇子陡",
+      "chosen_designation": null,
+      "selection_reason": "claude_curated; GNS无峰顶候选; 低风险字段(不显示); 非verified",
+      "multi_candidate": false,
+      "candidate_spread_m": 0,
+      "candidates": [],
+      "curated": true,
+      "gns_no_candidate_source_id": "gns:yulong-xueshan",
+      "province_bbox_sanity": {
+        "passed": true,
+        "matched_provinces": [
+          "云南省"
+        ],
+        "bbox_source_id": "province-bbox-v1:yunnan"
+      }
+    }
+  },
+  "lengths": {},
+  "altitudes": {
+    "kawagebo": {
+      "value_m": 6740,
+      "source_id": "authority:sport-kawagebo",
+      "extraction_path": "HTML text: 最高的卡格博峰（海拔6740米）"
+    },
+    "namchabarwa": {
+      "value_m": 7782,
+      "source_id": "authority:sport-mountain-grade-standard",
+      "extraction_path": "PDF mountain list: 南迦巴瓦峰（7782米）"
+    },
+    "nianbaoyuze": {
+      "value_m": 5369,
+      "source_id": "authority:qinghai-nianbaoyuze",
+      "extraction_path": "HTML paragraph: 年保玉则...海拔5369米"
+    },
+    "nyainqentanglha": {
+      "value_m": 7162,
+      "source_id": "authority:sport-mountain-grade-standard",
+      "extraction_path": "PDF mountain list: 念青唐古拉峰（7162米）"
+    },
+    "yulong-xueshan": {
+      "value_m": 5590.2,
+      "source_id": "authority:yunnan-yulong-2025-survey",
+      "extraction_path": "HTML title/body: 5590.2米！玉龙雪山高程这样测定"
+    }
+  },
+  "altitude_conflicts": {
+    "aerjin-shan": {
+      "seed_value_m": 5828,
+      "reference_value_m": 5798,
+      "provenance_id": "manual-conflict:aerjin-shan:altitude:s1.3",
+      "source_name": "甘肃官方资料（用户裁定，原文待后续冻结）",
+      "reason": "冻结 seed 为 5828m，用户提供的甘肃官方值为 5798m；本轮不选边，effective altitude 留空并进入冲突复核"
+    },
+    "yading-xiannairi": {
+      "conflict_values_m": [
+        5998.5,
+        6032
+      ],
+      "existing_reference_value_m": 6032,
+      "existing_source_id": "authority:sichuan-yading",
+      "new_reference_value_m": 5998.5,
+      "provenance_id": "manual-conflict:yading-xiannairi:altitude:s1.4",
+      "source_name": "自然资源部2023-10公布值（用户提供，原文待一手核实）",
+      "reason": "既有四川资料值 6032m 与用户提供的自然资源部2023-10值 5998.5m 冲突；本轮不选边，effective altitude 留空并登记人工核原文待办"
+    },
+    "yading-yangmaiyong": {
+      "conflict_values_m": [
+        5958,
+        6033
+      ],
+      "existing_reference_value_m": 5958,
+      "existing_source_id": "authority:sichuan-yading",
+      "new_reference_value_m": 6033,
+      "provenance_id": "manual-conflict:yading-yangmaiyong:altitude:s1.4",
+      "source_name": "自然资源部2023-10公布值（用户提供，原文待一手核实）",
+      "reason": "既有四川资料值 5958m 与用户提供的自然资源部2023-10值 6033m 冲突；本轮不选边，effective altitude 留空并登记人工核原文待办"
+    },
+    "yading-xianuoduoji": {
+      "conflict_values_m": [
+        5951.3,
+        5958
+      ],
+      "existing_reference_value_m": 5958,
+      "existing_source_id": "authority:sichuan-yading",
+      "new_reference_value_m": 5951.3,
+      "provenance_id": "manual-conflict:yading-xianuoduoji:altitude:s1.4",
+      "source_name": "自然资源部2023-10公布值（用户提供，原文待一手核实）",
+      "reason": "既有四川资料值 5958m 与用户提供的自然资源部2023-10值 5951.3m 冲突；本轮不选边，effective altitude 留空并登记人工核原文待办"
+    }
+  },
+  "route_binding_overrides": {
+    "kawagebo": [
+      {
+        "route_label": "面茨姆峰卫峰大本营线",
+        "semantic": "round_trip",
+        "km": 20,
+        "aspect": "卫峰",
+        "binding_status": "satellite_peak",
+        "binding_target": "面茨姆峰卫峰",
+        "source_raw": "雨崩村-面茨姆峰卫峰大本营往返20km"
+      }
+    ],
+    "yading-xiannairi": [
+      {
+        "route_label": "亚丁卫峰大本营线",
+        "semantic": "round_trip",
+        "km": 16,
+        "aspect": "卫峰",
+        "binding_status": "unbound",
+        "binding_target": null,
+        "source_raw": "亚丁村-大本营-卫峰往返16km"
+      }
+    ],
+    "yading-yangmaiyong": [
+      {
+        "route_label": "亚丁卫峰大本营线",
+        "semantic": "round_trip",
+        "km": 15,
+        "aspect": "卫峰",
+        "binding_status": "unbound",
+        "binding_target": null,
+        "source_raw": "亚丁村-大本营-卫峰往返15km"
+      }
+    ],
+    "yading-xianuoduoji": [
+      {
+        "route_label": "亚丁卫峰大本营线",
+        "semantic": "round_trip",
+        "km": 15,
+        "aspect": "卫峰",
+        "binding_status": "unbound",
+        "binding_target": null,
+        "source_raw": "亚丁村-大本营-卫峰往返15km"
+      }
+    ]
+  },
+  "review_flags": {
+    "gongga-baihaizi-shan": [
+      {
+        "status": "needs_review",
+        "field": "identity",
+        "reason": "白海子山主峰（5924m）与公开徒步目的地/湖泊“白海子”存在同名歧义；本轮不改现值，后续需人工核定实体身份。"
+      }
+    ]
+  }
+}

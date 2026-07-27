@@ -28,6 +28,7 @@ export async function GET(
       .from('mountains')
       .select('id, latitude, longitude, weather_priority_tier, weather_enabled')
       .eq('id', mountainId)
+      .eq('is_active', true)
       .maybeSingle()
 
     if (error) {

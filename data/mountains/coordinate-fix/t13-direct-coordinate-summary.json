@@ -1,0 +1,449 @@
+{
+  "schema_version": "t13-direct-coordinate-summary-v1",
+  "generated_at": "2026-07-25T21:46:50.858Z",
+  "method": "one-time direct lookup; no cache/adapter/gold-set/DEM gate",
+  "datum_rule": "WGS-84 only",
+  "source_endpoints": {
+    "OpenStreetMap": "https://overpass-api.de/api/interpreter",
+    "Wikidata": "https://www.wikidata.org/w/api.php",
+    "Wikipedia": "https://zh.wikipedia.org/w/api.php",
+    "GNS/NGA": "https://geonames.nga.mil/geonames/GNSData/China.zip",
+    "province_reverse_check": "https://nominatim.openstreetmap.org/reverse"
+  },
+  "total": 359,
+  "resolved": 124,
+  "unresolved": 235,
+  "unresolved_reason_counts": {
+    "no_exact_peak_candidate_found": 101,
+    "province_mismatch": 66,
+    "source_elevation_missing": 63,
+    "coordinate_precision_below_4dp": 28,
+    "source_elevation_mismatch": 24,
+    "route_corridor_has_no_single_summit": 11,
+    "candidate_country_inconsistent": 10,
+    "ledger_altitude_missing_for_check": 3
+  },
+  "difficulty_resolution": {
+    "advanced": {
+      "total": 43,
+      "resolved": 9,
+      "rate": 0.2093
+    },
+    "intermediate": {
+      "total": 133,
+      "resolved": 55,
+      "rate": 0.4135
+    },
+    "beginner": {
+      "total": 151,
+      "resolved": 51,
+      "rate": 0.3377
+    },
+    "expert": {
+      "total": 32,
+      "resolved": 9,
+      "rate": 0.2813
+    }
+  },
+  "resolved_source_counts": {
+    "OpenStreetMap": 122,
+    "Wikidata": 2
+  },
+  "large_displacements_over_50km": [
+    {
+      "effective_canonical_key": "baizhang-ling",
+      "mountain_name": "百丈岭",
+      "displacement_km": 299.24,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "banji-feng",
+      "mountain_name": "半脊峰",
+      "displacement_km": 57.044,
+      "status": "resolved"
+    },
+    {
+      "effective_canonical_key": "baxian-shan",
+      "mountain_name": "八仙山",
+      "displacement_km": 1812.305,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "beiling-shan",
+      "mountain_name": "北灵山",
+      "displacement_km": 546.319,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "beiwudang-shan",
+      "mountain_name": "北武当山",
+      "displacement_km": 264.321,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "bijia-shan-liaoning",
+      "mountain_name": "笔架山",
+      "displacement_km": 2011.176,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "cang-shan",
+      "mountain_name": "藏山",
+      "displacement_km": 825.62,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "dabai-shan",
+      "mountain_name": "大白山",
+      "displacement_km": 3001.741,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "dadong-shan",
+      "mountain_name": "大东山",
+      "displacement_km": 365.54,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "dahong-shan",
+      "mountain_name": "大洪山",
+      "displacement_km": 525.418,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "daluo-shan",
+      "mountain_name": "大罗山",
+      "displacement_km": 270.434,
+      "status": "resolved"
+    },
+    {
+      "effective_canonical_key": "damao-shan",
+      "mountain_name": "大茂山",
+      "displacement_km": 1974.322,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "daming-shan-guangxi",
+      "mountain_name": "大明山",
+      "displacement_km": 1011.16,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "daming-shan-zhejiang",
+      "mountain_name": "大明山",
+      "displacement_km": 2140.975,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "daqing-shan",
+      "mountain_name": "大青山主峰",
+      "displacement_km": 89,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "dawei-shan",
+      "mountain_name": "大围山",
+      "displacement_km": 1207.924,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "duri-feng",
+      "mountain_name": "都日峰",
+      "displacement_km": 1261.603,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "erlong-shan",
+      "mountain_name": "二龙山",
+      "displacement_km": 2368.688,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "fenghuang-shan-guangdong",
+      "mountain_name": "凤凰山",
+      "displacement_km": 74.13,
+      "status": "resolved"
+    },
+    {
+      "effective_canonical_key": "fenghuang-shan-heilongjiang",
+      "mountain_name": "凤凰山",
+      "displacement_km": 2359.557,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "fenghuang-shan-liaoning",
+      "mountain_name": "凤凰山",
+      "displacement_km": 781.878,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "gang-shan-liaoning",
+      "mountain_name": "岗山",
+      "displacement_km": 993.497,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "gu-shan-fujian",
+      "mountain_name": "鼓山",
+      "displacement_km": 1269.653,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "gua-shan",
+      "mountain_name": "卦山",
+      "displacement_km": 1398.048,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "guanmen-shan",
+      "mountain_name": "关门山",
+      "displacement_km": 1664.889,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "gui-feng",
+      "mountain_name": "龟峰",
+      "displacement_km": 272.359,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "huoyan-shan",
+      "mountain_name": "火焰山",
+      "displacement_km": 2221.123,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "jinlong-shan",
+      "mountain_name": "金龙山",
+      "displacement_km": 1902.588,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "laojunshan-henan",
+      "mountain_name": "老君山",
+      "displacement_km": 1387.639,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "laotudingzi",
+      "mountain_name": "老秃顶子",
+      "displacement_km": 131.089,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "ling-shan-jiangsu",
+      "mountain_name": "灵山",
+      "displacement_km": 571.89,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "ling-shan-jiangxi",
+      "mountain_name": "灵山",
+      "displacement_km": 102.088,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "liuding-shan",
+      "mountain_name": "六鼎山",
+      "displacement_km": 206.713,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "longhu-shan",
+      "mountain_name": "龙虎山",
+      "displacement_km": 701.292,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "lushan-shandong",
+      "mountain_name": "鲁山主峰",
+      "displacement_km": 1162.79,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "mao-shan",
+      "mountain_name": "茅山",
+      "displacement_km": 952.283,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "mian-shan",
+      "mountain_name": "绵山",
+      "displacement_km": 123.018,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "mingyue-shan",
+      "mountain_name": "明月山",
+      "displacement_km": 1430.1,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "mogan-shan",
+      "mountain_name": "莫干山",
+      "displacement_km": 1245.057,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "pan-shan",
+      "mountain_name": "盘山",
+      "displacement_km": 1659.516,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "qianfo-shan-sichuan",
+      "mountain_name": "千佛山",
+      "displacement_km": 1481.555,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "qingyun-shan-fujian",
+      "mountain_name": "青云山",
+      "displacement_km": 1687.981,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "qizi-feng",
+      "mountain_name": "启孜峰",
+      "displacement_km": 2863.462,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "sanbai-shan",
+      "mountain_name": "三百山",
+      "displacement_km": 2046.912,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "sangdankangsang-feng",
+      "mountain_name": "桑丹康桑峰",
+      "displacement_km": 85.746,
+      "status": "resolved"
+    },
+    {
+      "effective_canonical_key": "shao-shan",
+      "mountain_name": "韶山",
+      "displacement_km": 879.901,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "she-shan",
+      "mountain_name": "佘山",
+      "displacement_km": 105.202,
+      "status": "resolved"
+    },
+    {
+      "effective_canonical_key": "shuangta-shan",
+      "mountain_name": "双塔山",
+      "displacement_km": 558.363,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "siguniang-dafeng",
+      "mountain_name": "四姑娘山大峰",
+      "displacement_km": 3365.105,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "siguniang-erfeng",
+      "mountain_name": "四姑娘山二峰",
+      "displacement_km": 1269.381,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "siguniang-sanfeng",
+      "mountain_name": "四姑娘山三峰",
+      "displacement_km": 1657.399,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "simian-shan",
+      "mountain_name": "四面山",
+      "displacement_km": 823.194,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "tianhua-shan",
+      "mountain_name": "天华山",
+      "displacement_km": 2805.61,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "tianping-shan",
+      "mountain_name": "天平山",
+      "displacement_km": 254.97,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "tiantang-ding",
+      "mountain_name": "天堂顶",
+      "displacement_km": 183.588,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "wugongshan-jiangxi",
+      "mountain_name": "武功山",
+      "displacement_km": 1076.475,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "wuling-shan-chongqing",
+      "mountain_name": "武陵山",
+      "displacement_km": 1510.608,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "wumeng-shan",
+      "mountain_name": "乌蒙山",
+      "displacement_km": 54.341,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "wutaishan",
+      "mountain_name": "五台山",
+      "displacement_km": 700.844,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "xi-shan-yunnan",
+      "mountain_name": "西山",
+      "displacement_km": 478.164,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "xiang-shan",
+      "mountain_name": "香山",
+      "displacement_km": 1271.604,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "xiangbi-shan",
+      "mountain_name": "象鼻山",
+      "displacement_km": 2744.095,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "xiannv-shan",
+      "mountain_name": "仙女山",
+      "displacement_km": 272.944,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "xuefeng-shan",
+      "mountain_name": "雪峰山",
+      "displacement_km": 930.048,
+      "status": "unresolved"
+    },
+    {
+      "effective_canonical_key": "yaoshan-henan",
+      "mountain_name": "尧山",
+      "displacement_km": 58.022,
+      "status": "resolved"
+    }
+  ],
+  "acquisition_limitations": [
+    "Wikidata and Wikipedia public APIs rate-limited part of the one-time run with HTTP 429.",
+    "Two Overpass batches ended with HTTP 504/429 after limited retries.",
+    "No second collection pass was run; affected rows remain unresolved."
+  ]
+}

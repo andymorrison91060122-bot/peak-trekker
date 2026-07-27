@@ -1,0 +1,20 @@
+{
+  "canonical_rows": 359,
+  "covers": 359,
+  "created_storage_paths": 519,
+  "d10_route_notes": 9,
+  "flags_unchanged": true,
+  "gallery_images": 160,
+  "gallery_rows": 141,
+  "illustrative_rows": 159,
+  "license_entries": 519,
+  "preexisting_matching_storage_paths": 0,
+  "preexisting_storage_objects_unchanged": 11,
+  "schema_version": "t10-ingest-summary-v1",
+  "storage_bytes_download_verified": 293012636,
+  "storage_catalog_exact_match": null,
+  "storage_catalog_exact_match_note": "not re-enumerated; expected sidecar paths were downloaded and byte-verified",
+  "storage_expected_paths_download_verified": true,
+  "storage_paths_download_verified": 519,
+  "storage_paths_verified": 519
+}

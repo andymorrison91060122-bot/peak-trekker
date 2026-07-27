@@ -1,0 +1,84 @@
+{
+  "schema_version": "t13-batch-a-41-validation-v1",
+  "generated_at": "2026-07-26T12:46:34.614Z",
+  "total": 41,
+  "decisions": {
+    "可采用": 0,
+    "需外部补正": 24,
+    "拒收": 17
+  },
+  "pseudo_precision": {
+    "single_axis_arcsecond": 1,
+    "decimal_off_grid": 17,
+    "two_axis_arcsecond": 13,
+    "mixed_arcminute_arcsecond_or_decimal": 4,
+    "two_axis_arcminute": 6
+  },
+  "datum": {
+    "existing_resolved_overlap_count": 2,
+    "existing_resolved_overlap_keys": [
+      "gongga-shan",
+      "jiucai-ping"
+    ],
+    "verdicts": {
+      "wgs84_leaning_but_above_50m_gate": 4,
+      "likely_wgs84": 11,
+      "indeterminate": 6,
+      "unverified_no_reference": 20
+    }
+  },
+  "source_verification": {
+    "reachable_wrong_entity_or_coordinate": 14,
+    "unreachable": 16,
+    "reachable_wrong_object": 2,
+    "unverifiable_no_machine_link": 8,
+    "unavailable_or_deleted_object": 1
+  },
+  "peakbagger_pages_attempted": 30,
+  "peakbagger_pages_reachable": 14,
+  "peakbagger_pages_reachable_wrong": 14,
+  "remaining_query_batches": {
+    "total": 202,
+    "ordinary": 176,
+    "route_or_area": 26,
+    "files": [
+      {
+        "file": "ordinary-batch-01.txt",
+        "kind": "ordinary",
+        "count": 40
+      },
+      {
+        "file": "ordinary-batch-02.txt",
+        "kind": "ordinary",
+        "count": 40
+      },
+      {
+        "file": "ordinary-batch-03.txt",
+        "kind": "ordinary",
+        "count": 40
+      },
+      {
+        "file": "ordinary-batch-04.txt",
+        "kind": "ordinary",
+        "count": 40
+      },
+      {
+        "file": "ordinary-batch-05.txt",
+        "kind": "ordinary",
+        "count": 16
+      },
+      {
+        "file": "route-area-batch-01.txt",
+        "kind": "route_or_area",
+        "count": 26
+      }
+    ]
+  },
+  "boundaries": {
+    "production_writes": 0,
+    "coordinate_imports": 0,
+    "migration_applies": 0,
+    "runtime_changes": 0,
+    "pushes": 0
+  }
+}

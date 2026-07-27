@@ -1,0 +1,2160 @@
+{
+  "schema_version": 1,
+  "source_input_sha256": "eb10851857d007139dd6c50d20963f1076fbdf90726724335f17e691f190a767",
+  "by_effective_canonical_key": {
+    "aerjin-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "ailao-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "animaqing-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "ao-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "bagong-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "baicaopan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "baihua-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "baima-jian": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "baima-xueshan-zhalaqueni-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "baishan-zu": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "baishi-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "baiyun-shan-guangdong": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "baiyun-shan-luoyang": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "baizhang-ling": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "balang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "bamian-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "banji-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "baota-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "baxian-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "beiling-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "beiwudang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "bijia-shan-liaoning": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "bogeda-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "broad-peak": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "bukadaban-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "caishi-ji": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "cang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "cangshan-yunnan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "cangyan-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "cha-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "changbaishan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "chaya-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "chen-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "chuandi-ding": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "dabai-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "dabieshan-bodao-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "dadong-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "dahong-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "daiyun-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "dajue-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "dalari-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "daluo-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "damao-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "daming-shan-guangxi": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "daming-shan-zhejiang": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "dangling-xiaqiangla": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "dangling-xiaqiangniea": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "danxiashan-bazhai": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "daqing-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "darong-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "datudingzi-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "dawagengza": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "dawei-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "diaoluo-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "dinghu-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "dongbai-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "donghu-moshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "dongling-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "duku-gonglu-route": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "duri-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "dushu-jian": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "duxiu-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "emeishan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "erlong-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "fanjingshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "fenghuang-shan-guangdong": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "fenghuang-shan-heilongjiang": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "fenghuang-shan-liaoning": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "fenghuang-tuo": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "gang-shan-liaoning": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "gangpengqing-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gangrenboqi-cluster": {
+      "status": "pilgrimage_only",
+      "closed_basis": "religious",
+      "access_source": "源数据明写「主峰禁止攀登，转山路线成熟」；无任何成功登顶记录；外转52-57km(起点口径差)",
+      "access_note": "仅保留转山线路；主峰无成功登顶记录，当地视为神山。外转里程因起点口径不同约52–57km。"
+    },
+    "gangshka-xuefeng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gaoligongshan-gawagapu-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gasherbrum-1-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gasherbrum-2-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gechuan-jian": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "geladandong-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gele-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "genie-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gongga-baihaizi-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gongga-jiazi-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gongga-leduomanyin-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gongga-nama-feng": {
+      "status": "unknown",
+      "closed_basis": null,
+      "access_source": "官方口径自相矛盾，证据不足：①康定市教体局2026-04-21答复称那玛峰位于贡嘎山自然保护区核心区、不符合开放条件（康定市仅乌库楚、雅姆雪山两座6/1起开放）；②2025-11-15康定市公告点名封闭、恢复开放另行公告，且无任何解除公告；③但2025-09甘孜州教体局曾称「那玛峰是个开放区域」。两说冲突且均为官方，故不选边。",
+      "access_note": "现有官方信息对那玛峰开放状态表述不一致，本轮不选边，出行前应核对当地最新公告。"
+    },
+    "gongga-riwuqie-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gongga-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gongga-tianhaizi-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gongga-xiaogongga-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "gongyu-yan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "gouwei-zhang": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "gu-shan-fujian": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "gua-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "guangwu-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "guanmen-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "guanzhai-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "gui-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "guifeng-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "guniu-jiang": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "haba-xueshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "hailaer-xishan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "haituo-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "hantengeli-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "heban-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "heishan-gu": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "helan-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "hengshan-hunan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "hengshan-shanxi": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huabo-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huaguoshan-jiangsu": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huangbai-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huangcao-liang": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huanggang-liang": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huanggang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huanghua-liang": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huangmao-jian": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huangniu-shi": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huangshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huangshan-xihai-route": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huapi-ling": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huashan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huhe-bashige": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huihang-gudao-route": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huitengxile-huanghuagou": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huoyan-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "huping-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "hutiaoxia-gaolu-route": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiaer-mengcuo": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jianfeng-ling": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jianglang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiangsanglamu-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "jianmen-guan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiaoding-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiaozi-xueshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jietongsusong-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "jigongshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiming-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jinfo-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jinggang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jingting-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jinlong-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jinyun-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiucai-ling": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiucai-ping": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiuding-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiugongshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiuhuashan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiulong-shan-zhejiang": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiushan-ding": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jiuwan-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "jizu-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "junfeng-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "kawagebo": {
+      "status": "closed",
+      "closed_basis": "both",
+      "access_source": "德钦县2025-10-14四部门通告 + 梅里雪山国家公园2026-04-30禁入通告；未登峰(1987-1996九次尝试全败)；藏区八大神山之首",
+      "access_note": "卡瓦格博峰至今无人登顶；德钦县及梅里雪山国家公园现行通告对相关区域实施禁入管理。"
+    },
+    "kongtong-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "kongur-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "kongur-jiubie-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "kulagangri-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "kunyushan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "lafa-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "lang-shan-hunan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "lang-shan-jiangsu": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "langya-shan-anhui": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "langya-shan-hebei": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "laojunshan-henan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "laoshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "laotudingzi": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "laoyacha-nao": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "laoye-ling": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "li-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "liang-shan-shandong": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "ling-shan-jiangsu": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "ling-shan-jiangxi": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "lingtong-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "lionggongdao-zhufeng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "lishan-shunwang-ping": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "liuding-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "liupan-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "longhu-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "longxu-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "loushan-guan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "lue-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "luofushan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "luozi-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "lushan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "lushan-shandong": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "luzi-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "maiji-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "makalu-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "mang-shan-beijing": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "mang-shan-hunan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "mangdang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "manhan-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "mao-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "maoer-shan-guangxi": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "maoer-shan-jilin": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "maya-xueshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "meihua-shan-fujian": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "mengdagangri-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "mian-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "miaofeng-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "mingsha-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "mingyue-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "mogan-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "mulan-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "muztagata-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "namchabarwa": {
+      "status": "unknown",
+      "closed_basis": null,
+      "access_source": "证据不足：无成文禁令，但主峰长期无人可登（属难度问题，非准入）",
+      "access_note": "现有资料不足以确定长期开放状态；南迦巴瓦峰攀登难度极高，出行前应核对当地最新公告。"
+    },
+    "namunani-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "nanfeng-mian": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "nangong-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "nanhuang-gudao-route": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "nankun-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "nanyandang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "nianbaoyuze": {
+      "status": "closed",
+      "closed_basis": "regulation",
+      "access_source": "2018-04起景区全域停止接待至今未复开；三江源国家级自然保护区核心区",
+      "access_note": "年保玉则景区自2018年4月起停止接待，现有资料未显示已恢复开放。"
+    },
+    "ningjinkangsha-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "niubei-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "nyainqentanglha": {
+      "status": "unknown",
+      "closed_basis": null,
+      "access_source": "证据不足：无成文禁令，但主峰长期无人可登（属难度问题，非准入）",
+      "access_note": "现有资料不足以确定长期开放状态；念青唐古拉峰攀登难度高，出行前应核对当地最新公告。"
+    },
+    "paiya-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "pan-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "putuoshan-foding-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qian-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qianfo-shan-sichuan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qianling-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qiaogeli-feng-k2": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "qilianshan-tuanjie-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "qingchengshan-laojun-ge": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qinghaihu-nanshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qingliang-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qingyuan-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qingyun-shan-fujian": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qiniang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qiongmugangri-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "qiyue-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qiyun-shan-anhui": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qiyun-shan-jiangxi": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "qizi-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "queer-shan": {
+      "status": "closed",
+      "closed_basis": "regulation",
+      "access_source": "甘孜州教育和体育局+四川省登山户外运动协会《关于禁止雀儿山攀登的公告》2024-05-17（公章原件）：自2020年因安全问题关闭以来至今未向社会开放一切登山活动，严禁未经批准擅自进入雀儿山区域进行登山活动",
+      "access_note": "雀儿山自2020年关闭，2024年公告称尚未向社会开放登山活动。"
+    },
+    "sanao-aotaiji": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "sanao-aotaimei": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "sanao-aotaina": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "sanbai-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "sangdankangsang-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "sanqingshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "sejila-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "shao-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "she-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "shengtang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "shennong-ding": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "shennongjia-laojun-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "shennongshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "shenxian-ju": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "shigao-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "shika-xueshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "shikeng-kong": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "shishapangma-lenggang-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "shiwan-dashan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "shuangta-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "shunan-zhuhai": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "siguniang-dafeng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "siguniang-erfeng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "siguniang-luotuo-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "siguniang-sanfeng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "siguniang-yaomei-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "simian-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "siming-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "siren-tong": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "songshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "sumu-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "taibaishan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "taimu-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "taishan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "taizi-jian": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tanglaangqu-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "tianhua-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tianjieshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tianma-shan-shanghai": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tianmu-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tianmushan-qijian-route": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tianping-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tiantaishan-huading-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tiantang-ding": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tiantang-zhai": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tianzhushan-anhui": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tonggong-jian": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tuo-liang": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "tuomuer-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "wanfo-shan-anhui": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wangmang-ling": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wangmangling-xiyaigou-route": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wangwushan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wangxiang-yan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wanxian-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wawu-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "weizhou-volcanic-landform-route": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wudangshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wugongshan-guangdong": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wugongshan-jiangxi": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wulao-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wuliang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wuling-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wuling-shan-chongqing": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wumeng-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wutaishan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wutong-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wuyue-zhai": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "wuzhi-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xi-shan-yunnan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xiang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xiangbi-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xiangtang-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xiannv-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xiaowutai-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xiaoxinganling-liangshui": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xiata-gudao-route": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xicheng-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xiling-xueshan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "国家级风景名胜区，景区段常规开放",
+      "access_note": null
+    },
+    "xiqiao-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xixiabangma-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "xuebao-ding": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "xuedou-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xuefeng-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "xuelong-bao": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "xueshan-zhang": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yading-xiannairi": {
+      "status": "closed",
+      "closed_basis": "both",
+      "access_source": "亚丁国家级自然保护区禁入公告(2019-06/2023-09/2024-09/2025-11-17标题含「登山」)；属未公布山峰；三怙主神山",
+      "access_note": "仙乃日位于亚丁国家级自然保护区，历次公告明确相关未开发未开放区域禁止擅自进入。"
+    },
+    "yading-xianuoduoji": {
+      "status": "closed",
+      "closed_basis": "both",
+      "access_source": "亚丁国家级自然保护区禁入公告（2019-06/2023-09/2024-09/2025-11-17）；属未公布山峰；三怙主神山",
+      "access_note": "夏诺多吉位于亚丁国家级自然保护区，历次公告明确相关未开发未开放区域禁止擅自进入。"
+    },
+    "yading-yangmaiyong": {
+      "status": "closed",
+      "closed_basis": "both",
+      "access_source": "亚丁国家级自然保护区禁入公告（2019-06/2023-09/2024-09/2025-11-17）；属未公布山峰；三怙主神山",
+      "access_note": "央迈勇位于亚丁国家级自然保护区，历次公告明确相关未开发未开放区域禁止擅自进入。"
+    },
+    "yala-xueshan": {
+      "status": "unknown",
+      "closed_basis": null,
+      "access_source": "证据不足：无成文禁令，但主峰长期无人可登（属难度问题，非准入）",
+      "access_note": "雅拉雪山主峰至今无人登顶，现有资料不足以确定长期开放状态。"
+    },
+    "yalongwan-canghai-lou": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yandangshan-zhejiang": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yangcao-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yaoshan-henan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yi-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yimengshan-guimeng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yingge-ling": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yinna-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yintiao-ling": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yishan-shandong": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yiwulu-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yuanbao-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yubeng-route": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yuelu-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yulong-xueshan": {
+      "status": "closed",
+      "closed_basis": "regulation",
+      "access_source": "玉龙纳西族自治县人民政府2026-01-07通告：禁3500m以上区域徒步/登山/探险；主峰5596m必然覆盖",
+      "access_note": "玉龙县2026年1月7日通告禁止进入海拔3500米以上区域开展徒步、登山和探险。"
+    },
+    "yunding-shan-fujian": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yunding-shan-shanxi": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yunlong-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yunmeng-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yuntai-shan-guizhou": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yuntai-shan-henan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "yuzhu-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "青海省登山管理暂行办法(省政府令22号/2020年125号修订)；国家登山训练基地；攀登大会已办23届",
+      "access_note": null
+    },
+    "yuzhu-yuxu-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "zhangjiajie-qixing-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "zhangjiajie-tianmen-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "zhangshi-yan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "zhangzi-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "zhaogong-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "zhongnan-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "zhumulangma-beipo": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "zhuoaoyou-feng": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：源数据明写可办理/需登山许可",
+      "access_note": null
+    },
+    "zhuoer-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "zijin-shan-jiangsu": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    },
+    "zu-shan": {
+      "status": "open",
+      "closed_basis": null,
+      "access_source": "seed：景区步道/成熟徒步线",
+      "access_note": null
+    }
+  }
+}

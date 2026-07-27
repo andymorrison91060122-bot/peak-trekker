@@ -1321,6 +1321,7 @@ export async function POST(request: NextRequest) {
       .from('mountains')
       .select('id')
       .eq('id', mountainId)
+      .eq('is_active', true)
       .single()
 
     if (mountainError || !mountain) {

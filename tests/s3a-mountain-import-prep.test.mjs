@@ -30,7 +30,7 @@ const migrationB = fs.readFileSync(
   'utf8'
 )
 const activationRouteNoteMigration = fs.readFileSync(
-  'supabase/migrations/20260728090000_s3a_activation_route_note_and_altitude_provenance.sql',
+  'supabase/migrations/20260727184640_s3a_activation_route_note_and_altitude_provenance.sql',
   'utf8'
 )
 const importConfirmRoute = fs.readFileSync('src/app/api/import/confirm/route.ts', 'utf8')

@@ -28,6 +28,10 @@ export type Mountain = {
   elevation_gain_m?: number | null
   estimated_duration?: string | null
   estimated_duration_min?: number | null
+  estimated_duration_minutes?: number | null
+  access_status?: 'open' | 'closed' | 'unknown' | 'pilgrimage_only' | null
+  access_note?: string | null
+  risk_note?: string | null
   route_preview_image_url?: string | null
   poi_summary?: string[] | null
   approach_radius_m?: number | null

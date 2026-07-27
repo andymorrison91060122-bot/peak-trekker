@@ -9,7 +9,7 @@ type ExploreCardMeta = {
   province: string
   difficulty: string
   altitude: number
-  lengthKm: number
+  lengthKm: number | null
   licenseLevel: string
   heroImageCount: number
 }
@@ -34,7 +34,9 @@ async function getExploreCardMeta(page: Page): Promise<ExploreCardMeta[]> {
       province: (card.getAttribute('data-province') ?? '').trim(),
       difficulty: (card.getAttribute('data-difficulty') ?? '').trim(),
       altitude: Number(card.getAttribute('data-altitude') ?? '0'),
-      lengthKm: Number(card.getAttribute('data-length-km') ?? '0'),
+      lengthKm: card.getAttribute('data-length-km') === null
+        ? null
+        : Number(card.getAttribute('data-length-km')),
       licenseLevel: (card.getAttribute('data-license-level') ?? '').trim(),
       heroImageCount: Number(card.getAttribute('data-hero-image-count') ?? '0'),
     })).filter((card) => card.href.startsWith('/mountain/'))
@@ -253,8 +255,9 @@ test('explore advanced filters combine correctly for real mountain results', asy
   await dismissActivationChecklistIfPresent(page)
   await expect(page.getByText('找山出发')).toBeVisible()
 
-  const [candidate] = await getExploreCardMeta(page)
+  const candidate = (await getExploreCardMeta(page)).find((card) => card.lengthKm !== null)
   expect(candidate).toBeTruthy()
+  if (!candidate || candidate.lengthKm === null) throw new Error('Expected a mountain with a real route length')
 
   const searchInput = page.getByPlaceholder('搜山名、地区、海拔')
   await searchInput.fill(candidate.province)
@@ -271,6 +274,7 @@ test('explore advanced filters combine correctly for real mountain results', asy
     expect(card.difficulty).toBe(candidate.difficulty)
 
     const altitudeBand = altitudeFilterFor(card.altitude).value
+    if (card.lengthKm === null) throw new Error('Length-filtered results must have real route lengths')
     const lengthBand = lengthFilterFor(card.lengthKm).value
 
     expect(altitudeBand).toBe(altitudeFilterFor(candidate.altitude).value)

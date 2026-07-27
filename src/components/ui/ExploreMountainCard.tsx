@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { FocusEvent, PointerEvent } from 'react'
 import { DEFAULT_MOUNTAIN_COVER_URL } from '@/lib/default-media'
 import { getMountainDetailHeroImages, getMountainHeroImage } from '@/lib/mountain-media'
+import { getEstimatedDurationRange, getMountainDistanceKm } from '@/lib/mountain-route-display'
 import type { Mountain } from '@/types'
 
 type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
@@ -31,9 +32,9 @@ export default function ExploreMountainCard({
     | 'gallery_images'
     | 'galleryImages'
     | 'length_km'
-    | 'estimated_duration'
+    | 'estimated_duration_minutes'
   >
-  filterLengthKm: number
+  filterLengthKm: number | null
   mountPending: boolean
 }) {
   const heroImage = getMountainHeroImage(mountain)
@@ -46,9 +47,11 @@ export default function ExploreMountainCard({
       ? mountain.difficulty
       : 'beginner'
   const difficultyLabel = normalizedDifficulty === 'beginner' ? '入门线' : '进阶线'
+  const displayLengthKm = getMountainDistanceKm(mountain)
+  const durationRange = getEstimatedDurationRange(mountain)
   const realMeta = [
-    mountain.length_km != null && mountain.length_km > 0 ? `${mountain.length_km}km` : null,
-    mountain.estimated_duration?.trim() || null,
+    displayLengthKm === null ? null : `${displayLengthKm}km`,
+    durationRange,
   ].filter((value): value is string => Boolean(value))
 
   return (
@@ -58,7 +61,7 @@ export default function ExploreMountainCard({
       data-province={mountain.province}
       data-difficulty={mountain.difficulty}
       data-altitude={mountain.altitude}
-      data-length-km={filterLengthKm}
+      data-length-km={filterLengthKm ?? undefined}
       data-license-level={mountain.min_license}
       data-hero-image-count={heroImageCount}
       data-explore-mount-state={mountPending ? 'pending' : undefined}

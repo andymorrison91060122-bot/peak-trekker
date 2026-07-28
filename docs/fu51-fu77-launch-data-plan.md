@@ -2,7 +2,7 @@
 
 - 建档：2026-07-24
 - 更新：2026-07-28
-- 状态：T1–T11、T13 与 Migration B 已完成；T12 待生产人工验收
+- 状态：T1–T13、Migration B 与 T12 均已完成；v1 山峰数据上线主线已收口，Part 2 待后续规划
 - 单一事实源：
   - 清洗账本：`data/mountains/ledger/effective_canonicals.jsonl`（359 实体）
   - 内容补全：`data/mountains/ledger/effective-canonical-enrichment.jsonl`
@@ -18,6 +18,8 @@
 
 ### 🔑 铁律：上线是最后一道门
 **flip `is_active` 是整个计划的最后一步，不是过程中发生的事。** 现在所有工作 = 把数据/内容按计划做完；做完 + 用户验收 PASS 才谈上线。绝不 70% 就推。"分档"只发生在全部内容任务完成之后，决定哪些达标的先公开——不提前放任何一座。
+
+> **终态（2026-07-28）**：上述门禁已执行。359 个 canonical 中 342 座 active，17 座 coordinate-blocked 保持不公开；全表 readable total=345，activation guard violations=0。T12 用户生产人工验收 PASS，v1 上线主线据此收口。
 
 ### 已锁（用户已确认）
 - ✅ **基线 = 359 实体**。对账已过：0 座 keep 丢失、0 孤儿；剔除的 41 座全是"景区周边泛化簇无单一峰顶"，合并的全是"子峰并入母山"（已批准政策）。
@@ -37,7 +39,7 @@
 ### 已锁（S1.1/S1.2 顾问审核后追加）
 - ✅ **D5 距离=源里"最长/最代表"路线**（路线身份绑定：名+距离+语义同源，禁独立拼接）。五台山=大朝台环线50km、武功山=发云界穿越18km、西岭雪山=登山线25km。source_class=`seed_claimed_platform_source`（平台声称·未逐山核验）。
 - ✅ **D6 时长=山地粗估 2.0 km/h**（含爬升/台阶/人流；10km→5h），封顶 ≤8h（>16km 视多日→null），仅 beginner/intermediate + 往返/环线。**非真轨迹耗时**。
-- ✅ **D7 真距离+真耗时+轨迹留 Part2**：从两步路/六只脚一次性取（同时也是轨迹/点位来源 T14）。峨眉全程、华山自古一条路等"源天花板"届时补真值。
+- ✅ **D7 真距离+真耗时+轨迹留 Part2**：从两步路/六只脚一次性取（同时也是轨迹/点位来源 P2-2）。峨眉全程、华山自古一条路等"源天花板"届时补真值。
 - ✅ **D8 简介声音**：钩子先行（人文/地位/景观）、海拔嵌入不领头、禁元语言、禁给偏远小山编造别名/典故；仅公认名山可补公认人文。
 - 📌 **T11 注意**：359 风险为难度分级模板底稿，T11 不得算作"逐山专属风险已审"。9 座禁攀/未登峰已在 D10 写入诚实的「无公开攀登路线」说明，不以虚构路线补空值；是否进入首发仍由 T11 按准入状态与完整门禁裁定。
 
@@ -130,8 +132,8 @@
   - 18 行 legacy reconciliation 保留生产原坐标；导入采用 `effective_canonical_key` 幂等 upsert。
 - [x] **Migration B activation guard**
   - 文件：`supabase/migrations/20260727165934_s3a_mountain_activation_guard_r5.sql`（与生产 ledger 版本对齐）。
-  - 状态：未 apply；须在内容验收与激活前独立执行 precheck，当前不得提前部署。
-- [x] **T9b UI 诚实显示（去假公式兜底）** — ✅ 用户 2026-07-27 视觉验收 PASS；commit `c9c17cd`（未 push）
+  - 状态：已 apply + 回读通过；apply 前 15 条 active 行 blockers=0，apply 后 function 与 `BEFORE INSERT OR UPDATE` trigger 均存在，终态 activation guard violations=0。
+- [x] **T9b UI 诚实显示（去假公式兜底）** — ✅ 用户 2026-07-27 视觉验收 PASS；commit `c9c17cd` 已随 PR #51 合入上线主线
   - 状态：代码、focused tests、375px 证据与用户视觉验收均完成。
   - 四格 StatTile 不删：距离仅用真实 `length_km`，NULL=`--`；爬升仅 beginner/intermediate 显系数估算并标「估算」；时长仅用 `estimated_duration_minutes` 生成整小时区间；三类缺值均不挂 count-up。
   - Explore 长度筛选只用真实非 expert 距离；NULL/expert 只留在「全部」，不归入短/中/长；难度 chip 仍只由 difficulty 驱动。
@@ -178,13 +180,16 @@
   - **分批激活**：排除既有 15 座后，按 checkpoint 执行 `1 + 19 + 307`，累计新增 327，最终 canonical active/readable `342/342`；全表 active/readable `342/345`（额外 3 条为历史保链 legacy）。阶段 1 阿尔金山主峰、阶段 2 首尾哀牢山/笔架山生产详情均 HTTP 200 且 HTML 含山名。
   - **最终分布**：难度 beginner 148 / intermediate 129 / advanced 34 / expert 31；准入 open 330 / closed 7 / unknown 4 / pilgrimage_only 1；trigger + §12 违规 0。17 座 D11 均 blocked、exposed=0。
   - **证据**：`data/mountains/t11-altitude-overrides.json`、`data/mountains/t11-quality-decisions.jsonl`、`data/mountains/t11-activation-snapshot.json`、`data/mountains/t11-activation-checkpoint.json`、`data/mountains/t11-activation-summary.json`、`data/mountains/photos/t11-image-sync-assets.jsonl`、`data/mountains/photos/t11-image-sync-snapshot.json`、`data/mountains/photos/t11-image-sync-checkpoint.json`、`data/mountains/photos/t11-image-sync-summary.json`；执行脚本为 `scripts/mountains/t11-quality-activation.mjs` 与 `scripts/mountains/t11-image-sync.mjs`。
-- [ ] **T12 生产验收（用户人工 + Claude 一手核）**
-  - DoD：抽样 N 座详情页/卡片截图：真距离(非公式)、真简介、风险/路线非空壳、无假数字；用户 PASS。
+- [x] **T12 生产验收（用户人工）** — ✅ 用户 2026-07-28 生产人工验收 PASS
+  - DoD：抽样详情页/卡片确认真距离（非公式）、真简介、风险/路线非空壳、无假数字；用户 PASS。
+  - 发布证据：PR #52；merge `fcc2f8328e9d4ce65bacc672973523fc2a9c12e6`；Vercel production deployment `dpl_6E2sRWWunjNjFXaP7ENnpU88diYj` READY；production alias `https://peak-trekker.vercel.app`。
+  - 生产 smoke 摘要：Explore 与山峰详情主链路已进入 READY deployment，用户在生产环境完成视觉与体验复核并判定 PASS；终态对账为 canonical 359 / active 342 / readable total 345 / coordinate-blocked 17 / guard violations 0。
 
 ### Part 2 — 增强（不阻塞 v1，Part 1 收口后排）
-- [ ] **T13 天气分层 + cron**：按名气/海拔定 `weather_priority_tier`（S/A/B/C）；挂 Vercel cron 打 `/api/weather/refresh-batch`（需 `WEATHER_REFRESH_SECRET`；QWeather key 可选，无则走免费 Open-Meteo）。
-- [ ] **T14 轨迹/点位渠道评估**：评估两步路 / 六只脚 作为 `mountain_waypoints`+路线图来源（可行性/合规/抽取成本），先出评估再定做不做。
-- [ ] **T15 深度内容迭代**：简介扩写至 spec 60–120 字、真风险、真点位——按覆盖优先序（省域锚点/常搜/高视觉/新手友好/代表高海拔）分批。
+- [ ] **P2-1 天气分层 + cron**：按名气/海拔定 `weather_priority_tier`（S/A/B/C）；挂 Vercel cron 打 `/api/weather/refresh-batch`（需 `WEATHER_REFRESH_SECRET`；QWeather key 可选，无则走免费 Open-Meteo）。尚未实施。
+- [ ] **P2-2 两步路 / 六只脚轨迹与点位**：评估并规划两步路 / 六只脚的真实轨迹、真距离、真耗时、`mountain_waypoints` 与路线参考导入（含可行性、合规与抽取成本）；当前待规划、未实施。
+- [ ] **P2-3 per-mountain PMTiles**：仅在仍有独立产品价值时，评估全量生成与上传 pipeline；当前未实施，不作为 v1 已完成能力。
+- [ ] **P2-4 深度内容与剩余图片署名**：简介扩写至 spec 60–120 字、逐山真风险/真点位，并继续处理尚未闭环的图片署名；按覆盖优先序分批，当前未完成。
 
 ---
 

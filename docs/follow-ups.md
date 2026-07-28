@@ -2,18 +2,18 @@
 
 > **单一 source of truth** · 跨 sprint / 跨对话的项目状态门户  
 > 每个 sprint 启动/收尾必须更新本文档
-> Last Updated: 2026-07-21 · 最新版本记录: v0.114
+> Last Updated: 2026-07-28 · 最新版本记录: v0.115
 
 ---
 
 ## 项目交接段（新对话/新接手者必读）
 
 ### 当前 main HEAD
-`1cf112d3f88cf9fed9f1e6397630600329652069`（Merge P3 清尾轮 · 2026-07-21）
+`fcc2f8328e9d4ce65bacc672973523fc2a9c12e6`（PR #52 · FU-51/FU-77 v1 山峰数据上线主线收口 · 2026-07-28）
 > ⚠️ 此值每次 sprint merge 后必须由 Codex 同步更新
 
 ### 当前 Sprint
-无进行中（P3 清尾轮已上线关闭；下一 sprint 待定）
+无进行中（FU-51/FU-77 v1 山峰数据上线主线已收口；Part 2 待规划）
 
 ### 关键文档地图
 | 文档 | 用途 |
@@ -97,22 +97,24 @@
 
 ### FU-51 · 上线前山峰信息完整性 + 天气 tier 分级 + 刷新逻辑联合校验
 
-- **优先级**: P1（上线门禁项 — 阻塞正式上线，但当前阶段不实施）
-- **归属阶段**: 上线准备 / 阶段 6
-- **状态**: 🟢 active
+- **优先级**: P1（Part 2；不再阻塞 v1）
+- **归属阶段**: v1 后增强 / Part 2
+- **状态**: 🟢 active（v1 数据主线已收口，剩余 weather tier / cron）
 
-**背景**: 当前阶段山峰数据 (mountains 表) 处于待完善状态，每座山的 `weather_priority_tier` 级别未根据真实热度数据分配（FU-50 Phase 4 验收时所有 20 座山均为 tier=C 默认值，未做合理分级）。FU-50 Phase 4 验收前讨论中明确：当前不纠结 tier 准确性，作为上线前联合校验项处理。
+**v1 数据主线收口（2026-07-28）**: 359 canonical 已完成内容入库与分档，342 active、17 coordinate-blocked 不公开、全表 readable total=345、activation guard violations=0；T12 用户生产人工验收 PASS。FU-51 不关闭，后续仅承接 weather tier、cron、缓存/刷新监控等 Part 2 scope。
+
+**历史背景（FU-50 Phase 4 时）**: FU 登记时山峰数据 (mountains 表) 处于待完善状态，每座山的 `weather_priority_tier` 级别未根据真实热度数据分配（当时 20 座山均为 tier=C 默认值，未做合理分级）。FU-50 Phase 4 验收前讨论中明确：当时不纠结 tier 准确性，后续作为联合校验项处理。
 
 后端 cache + tier 逻辑已就绪（FU-48 / FU-50 验证）:
 - src/lib/weather/weather-core.ts TIER_CONFIG (S/A/B/C 1h/6h/24h/24h 刷新)
 - mountains 表 weather_priority_tier 字段
 - weather_cache 表 + stale-while-revalidate 策略
 
-但 tier 实际分配 + 数据完整性 + 监控未做。
+v1 数据完整性已完成；tier 实际分配、cron 与监控仍未做，留在 Part 2。
 
 **联合校验三项**:
 
-1. **山峰信息完整性 audit**:
+1. **山峰信息完整性 audit（v1 已完成）**:
    - 所有 mountains 行核心字段非空: latitude / longitude / altitude / difficulty / min_license / description / cover_image
    - 跑 SQL audit 报告缺字段山峰清单
    - 运营 / admin 补录缺失字段
@@ -152,23 +154,30 @@
 - 不动 TIER_CONFIG 阈值（docs §9.3 已锁定）
 - 不重写 QWeather adapter
 
-**实施时机**: 不立即启动，作为上线门禁项跟踪。所有功能性 sprint 完成 / 接近上线时启动。
+**实施时机**: v1 上线后按 Part 2 单独规划；当前未实施，不再作为 v1 上线门禁。
 
 ---
 
 ### FU-77 · 300 山峰物料 pipeline
 
-- **优先级**: P1
-- **归属阶段**: 上线前数据物料
-- **状态**: 🟢 active
+- **优先级**: P1（Part 2）
+- **归属阶段**: v1 后数据物料增强
+- **状态**: 🟢 active（v1 数据主线已收口，剩余 Part 2）
 
-**范围**: 300 山数据 / 物料生产（spec = `docs/mountain-content-spec.md`）。
+**范围**: 359 canonical 山峰数据 / 物料生产（spec = `docs/mountain-content-spec.md`）。
+
+**v1 数据主线收口（2026-07-28）**: canonical 359 / active 342 / coordinate-blocked 17 的生产终态已完成，PR #52 merge `fcc2f8328e9d4ce65bacc672973523fc2a9c12e6`、deployment `dpl_6E2sRWWunjNjFXaP7ENnpU88diYj` READY，用户生产人工验收 PASS。FU-77 保持 active，不把 Part 2 误记为已完成。
+
+**Part 2 剩余 scope（均未实施）**:
+- 两步路 / 六只脚真实轨迹、真距离/耗时、`mountain_waypoints` 与路线参考的评估、规划和导入。
+- per-mountain PMTiles 全量 pipeline（仅在仍有独立产品价值时继续）。
+- 深度内容与剩余图片署名闭环。
 
 **显式子项**:
-- (a) `mountains` 上下线状态管理：schema 状态字段 + admin 开关，C 档山峰可前端隐藏。
-- (b) 风险提示 / 路线参考专用字段：spec 必填，现无字段。
+- (a) `mountains` 上下线状态管理：schema 状态字段 + admin 开关，C 档山峰可前端隐藏。**v1 已完成**。
+- (b) 风险提示 / 路线参考专用字段：spec 必填。**v1 已完成**。
 - (c) per-mountain PMTiles 全量生成 + 上传 pipeline：归属自 2026-06-12 起划入 FU-77，FU-51 条目已解除 FU-47 close 时的委托。
-- (d) 吸收 FU-16 坐标精度审计：原 FU-16 关闭，随 300 山统一验收。
+- (d) 吸收 FU-16 坐标精度审计：原 FU-16 关闭，随 359 canonical 统一验收。**v1 已完成分档；17 座 coordinate-blocked 保持不公开**。
 - (e) 山峰「节点」功能（登山口 / 营地，backlog）数据先行在此；FU-6 `mountain_requests` 审核 / 上新流程（backlog）按申请量触发。
 
 ---
@@ -1844,6 +1853,8 @@ Codex 在视觉验证通过、merge 前必须执行：
 ---
 
 ## 版本记录
+
+**v0.115 — 2026-07-28**: FU-51/FU-77 v1 山峰数据上线主线 docs-only 收口。T12 用户生产人工验收 PASS；PR #52 / merge `fcc2f8328e9d4ce65bacc672973523fc2a9c12e6` / Vercel deployment `dpl_6E2sRWWunjNjFXaP7ENnpU88diYj` READY。终态 canonical 359 / active 342 / coordinate-blocked 17 / readable total 345 / activation guard violations 0。FU-51/FU-77 均保持 Active，剩余 weather tier + cron、两步路/六只脚轨迹与 `mountain_waypoints`、PMTiles 价值复核、深度内容/剩余图片署名归 Part 2，均未实施。Active 5 → 5 · Closed 106 → 106 · Deferred 10 → 10。
 
 **v0.114 — 2026-07-21**: P3 清尾轮上线 · PR #50 / merge `1cf112d3f88cf9fed9f1e6397630600329652069` / Vercel prod deploy READY,用户真机验收通过。FU-107→Closed、FU-118(新登记)→Closed、FU-119(新登记)→Closed、FU-106(mono-film 修)→Deferred、FU-108→Deferred、FU-83→Deferred。Active 9→5 · Closed 103→106 · Deferred 7→10。
 

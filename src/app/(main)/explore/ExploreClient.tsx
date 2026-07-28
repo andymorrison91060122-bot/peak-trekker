@@ -33,6 +33,8 @@ gsap.registerPlugin(useGSAP)
 
 const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 const QUICK_TAGS = ['附近', '入门线', '进阶线', '5000m+'] as const
+const EXPLORE_BATCH_SIZE = 12
+const EXPLORE_BATCH_PRELOAD_OFFSET = 2
 
 type ExploreReplayReason = 'geo' | 'tag' | 'advancedFilter' | 'search'
 type ExploreReplayReasonLayer = 'queuedReasons' | 'firedReplayReasons'
@@ -146,6 +148,8 @@ export default function ExploreClient({
   const positionRef = useRef<ExplorePosition | null>(cachedExplorePosition)
   const lastVisibleFirst4IdsRef = useRef<string[]>([])
   const mountTimelineRef = useRef<gsap.core.Timeline | null>(null)
+  const loadMoreSentinelRef = useRef<HTMLSpanElement | null>(null)
+  const batchAdvancePendingRef = useRef(false)
   const [search, setSearch] = useState('')
   const [tag, setTag] = useState<(typeof QUICK_TAGS)[number]>('附近')
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -252,6 +256,22 @@ export default function ExploreClient({
     () => filtered.map(({ mountain }) => mountain.id).join('|'),
     [filtered],
   )
+  const [batchState, setBatchState] = useState({
+    resultKey: filteredMountainSignature,
+    count: Math.min(EXPLORE_BATCH_SIZE, filtered.length),
+  })
+  const visibleCount = batchState.resultKey === filteredMountainSignature
+    ? Math.min(batchState.count, filtered.length)
+    : Math.min(EXPLORE_BATCH_SIZE, filtered.length)
+  const visibleResults = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount],
+  )
+  const canLoadMore = visibleCount < filtered.length
+  const loadMoreTriggerIndex = Math.max(
+    0,
+    visibleResults.length - EXPLORE_BATCH_PRELOAD_OFFSET - 1,
+  )
   const activeFilterCount = [difficulty, altitudeBand, lengthBand].filter((value) => value !== 'all').length
   const hasSearchQuery = search.trim() !== ''
   const searchHasNoRawMatches = hasSearchQuery && rawSearchMatches.length === 0
@@ -263,6 +283,39 @@ export default function ExploreClient({
   const previousExploreResultKindRef = useRef<ExploreResultKind>(exploreResultKind)
   const previousSearchRef = useRef(search)
   const previousFilteredMountainSignatureRef = useRef(filteredMountainSignature)
+
+  useEffect(() => {
+    batchAdvancePendingRef.current = false
+    setBatchState({
+      resultKey: filteredMountainSignature,
+      count: Math.min(EXPLORE_BATCH_SIZE, filtered.length),
+    })
+  }, [filtered.length, filteredMountainSignature])
+
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current
+    if (!sentinel || !canLoadMore) return
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return
+      if (batchAdvancePendingRef.current) return
+      batchAdvancePendingRef.current = true
+      observer.unobserve(sentinel)
+      setBatchState((current) => {
+        const currentCount = current.resultKey === filteredMountainSignature
+          ? current.count
+          : Math.min(EXPLORE_BATCH_SIZE, filtered.length)
+        return {
+          resultKey: filteredMountainSignature,
+          count: Math.min(filtered.length, currentCount + EXPLORE_BATCH_SIZE),
+        }
+      })
+    }, { rootMargin: '400px 0px', threshold: 0 })
+    observer.observe(sentinel)
+    return () => {
+      observer.disconnect()
+      batchAdvancePendingRef.current = false
+    }
+  }, [canLoadMore, filtered.length, filteredMountainSignature, visibleCount])
 
   useEffect(() => {
     const video = sceneVideoRef.current
@@ -1111,18 +1164,26 @@ export default function ExploreClient({
             />
           ) : (
             <div
+              data-testid="explore-mountain-list"
+              data-explore-visible-count={visibleResults.length}
               style={{
                 display: 'grid',
                 gap: 'var(--space-3)',
                 minWidth: 0,
               }}
             >
-              {filtered.map(({ mountain, length }, index) => (
+              {visibleResults.map(({ mountain, length }, index) => (
                 <ExploreMountainCard
                   key={mountain.id}
                   mountain={mountain}
                   filterLengthKm={length}
                   mountPending={index < 4 && !mountSettledRef.current}
+                  imagePriority={index < 2}
+                  loadMoreSentinelRef={
+                    canLoadMore && index === loadMoreTriggerIndex
+                      ? loadMoreSentinelRef
+                      : undefined
+                  }
                 />
               ))}
             </div>

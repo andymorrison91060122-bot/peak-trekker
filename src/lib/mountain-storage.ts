@@ -1,3 +1,8 @@
+import {
+  deriveExploreMountainThumbnailUrl,
+  EXPLORE_THUMBNAIL_VERSION,
+} from './explore-thumbnail-runtime.js'
+
 export const MOUNTAIN_MEDIA_BUCKET = 'mountain-media'
 
 export const ALLOWED_MOUNTAIN_COVER_TYPES = [
@@ -9,6 +14,7 @@ export const ALLOWED_MOUNTAIN_COVER_TYPES = [
 export const MAX_MOUNTAIN_COVER_SIZE_BYTES = 8 * 1024 * 1024
 
 export const MOUNTAIN_MEDIA_CACHE_CONTROL = '31536000'
+export { EXPLORE_THUMBNAIL_VERSION }
 
 export const ALLOWED_MOUNTAIN_GALLERY_TYPES = ALLOWED_MOUNTAIN_COVER_TYPES
 
@@ -95,4 +101,9 @@ export function parseMountainMediaObjectPathFromPublicUrl(url: string) {
   } catch {
     return null
   }
+}
+
+export function getExploreMountainThumbnailUrl(url: string | null | undefined) {
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  return deriveExploreMountainThumbnailUrl(url, baseUrl)
 }

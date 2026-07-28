@@ -5,7 +5,6 @@ import { createTestEmail, registerFreshUser } from './community.helpers'
 
 const OUTPUT_DIR = join(process.cwd(), 'output/fu86-explore-acceptance')
 const VIDEO_DIR = join(OUTPUT_DIR, 'videos')
-const STORAGE_STATE = join(OUTPUT_DIR, 'fu86-storage-state.json')
 const ROUND1_DIR = join(OUTPUT_DIR, 'acceptance-round-1')
 const ROUND1_VIDEO_DIR = join(ROUND1_DIR, 'videos')
 const ROUND1_STORAGE_STATE = join(ROUND1_DIR, 'fu86-round1-storage-state.json')
@@ -24,7 +23,28 @@ type ConsoleEntry = {
 }
 
 async function prepareContext(context: BrowserContext) {
-  await context.route('**/api/analytics/event', (route) => route.fulfill({ status: 204, body: '' }))
+  await context.route('**/*', async (route) => {
+    const request = route.request()
+    const method = request.method().toUpperCase()
+    const pathname = new URL(request.url()).pathname
+    if (pathname === '/api/analytics/event') {
+      await route.fulfill({ status: 204, body: '' })
+      return
+    }
+    if (pathname.startsWith('/api/weather/')) {
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'weather stubbed for read-only FU-86 evidence' }),
+      })
+      return
+    }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      await route.abort('blockedbyclient')
+      return
+    }
+    await route.continue()
+  })
   await context.addInitScript(() => {
     localStorage.setItem('peak_trekker_intro_seen', '2026-v2')
     localStorage.setItem('peak_trekker_province_draft', '青海')
@@ -127,7 +147,9 @@ async function collectCards(page: Page) {
       ? null
       : Number(card.getAttribute('data-length-km')),
     metricsVisible: Boolean(card.querySelector('[data-testid="explore-mountain-card-metrics"]')),
-    heroBackground: getComputedStyle(card.querySelector<HTMLElement>('[data-testid="explore-mountain-card-cover"]')!).backgroundImage,
+    heroSrc: card.querySelector<HTMLImageElement>('[data-testid="explore-mountain-card-cover-image"]')?.currentSrc ?? null,
+    heroAlt: card.querySelector<HTMLImageElement>('[data-testid="explore-mountain-card-cover-image"]')?.alt ?? null,
+    heroLoading: card.querySelector<HTMLImageElement>('[data-testid="explore-mountain-card-cover-image"]')?.loading ?? null,
   })))
 }
 
@@ -164,24 +186,14 @@ async function clickChipAndCollect(page: Page, label: '附近' | '入门线' | '
   return { label, immediate, mid, final, cards: await collectCards(page) }
 }
 
-test('FU-86 Explore V2 Scene Panel focused production evidence', async ({ browser, page, baseURL }) => {
+test('FU-86 Explore V2 Scene Panel focused production evidence', async ({ browser, baseURL }) => {
   test.setTimeout(300_000)
   if (!baseURL) throw new Error('FU-86 requires Playwright baseURL.')
   await mkdir(OUTPUT_DIR, { recursive: true })
   await mkdir(VIDEO_DIR, { recursive: true })
 
-  await page.route('**/api/analytics/event', (route) => route.fulfill({ status: 204, body: '' }))
-  await registerFreshUser(page, baseURL, {
-    returnTo: '/explore',
-    email: createTestEmail('fu86'),
-    username: `fu86-${Date.now()}`,
-    province: '青海',
-  })
-  await page.context().storageState({ path: STORAGE_STATE })
-
   const normalContext = await browser.newContext({
     baseURL,
-    storageState: STORAGE_STATE,
     viewport: { width: 375, height: 812 },
     recordVideo: { dir: VIDEO_DIR, size: { width: 375, height: 812 } },
     reducedMotion: 'no-preference',
@@ -251,12 +263,30 @@ test('FU-86 Explore V2 Scene Panel focused production evidence', async ({ browse
 
   const productionCards = await collectCards(normalPage)
   expect(productionCards.length).toBeGreaterThan(0)
-  expect(productionCards.every((card) => card.metricsVisible === false)).toBe(true)
+  expect(productionCards.some((card) => card.metricsVisible)).toBe(true)
+  expect(
+    productionCards
+      .filter((card) => card.metricsVisible)
+      .every((card) => card.lengthKm !== null),
+  ).toBe(true)
   await expect.poll(() => normalPage.locator('[data-testid="explore-mountain-card-cover"]').evaluateAll((covers) => (
-    covers.every((cover) => (
-      !cover.querySelector('img')
-      && getComputedStyle(cover).backgroundImage.includes('default-mountain-cover.png')
-    ))
+    covers.every((cover, index) => {
+      const image = cover.querySelector<HTMLImageElement>('[data-testid="explore-mountain-card-cover-image"]')
+      const card = cover.closest<HTMLElement>('[data-testid="explore-mountain-card"]')
+      const currentSourceIsValid = index < 2
+        ? image?.currentSrc.includes('/thumb-v1-')
+        : !image?.currentSrc || image.currentSrc.includes('/thumb-v1-')
+      return Boolean(
+        image
+        && image.alt.trim().length > 0
+        && currentSourceIsValid
+        && image.loading === (index < 2 ? 'eager' : 'lazy')
+        && image.dataset.thumbnailSource === 'thumb-v1'
+        && image.dataset.fallbackAttempted !== 'true'
+        && card?.getBoundingClientRect().height === 186
+        && image.getBoundingClientRect().height === cover.getBoundingClientRect().height
+      )
+    })
   ))).toBe(true)
 
   const chipEvidence = []
@@ -294,7 +324,9 @@ test('FU-86 Explore V2 Scene Panel focused production evidence', async ({ browse
   expect(provinceOpacityTrace.every((opacity) => opacity >= 0.99)).toBe(true)
 
   await importButton.dispatchEvent('pointerdown', { pointerType: 'touch', bubbles: true })
-  await normalPage.waitForTimeout(220)
+  await expect.poll(async () => Number(
+    (await readPressState(normalPage, '[data-explore-pathway-button="导入记录"]')).promptOpacity,
+  )).toBeCloseTo(1, 2)
   const pointerPressed = await readPressState(normalPage, '[data-explore-pathway-button="导入记录"]')
   const pointerScreenshot = join(OUTPUT_DIR, 'explore-v2-import-pointer-pressed-375.png')
   await normalPage.screenshot({ path: pointerScreenshot })
@@ -330,8 +362,8 @@ test('FU-86 Explore V2 Scene Panel focused production evidence', async ({ browse
   await normalPage.mouse.down()
   await normalPage.mouse.move(leaveBox.x + leaveBox.width + 24, leaveBox.y + leaveBox.height + 24)
   expect((await readPressState(normalPage, '[data-explore-pathway-button="导入记录"]')).active).toBe(false)
-  await expect.poll(async () => (await readPressState(normalPage, '[data-explore-pathway-button="导入记录"]')).scaleX).toBeCloseTo(1, 2)
   await normalPage.mouse.up()
+  await expect.poll(async () => (await readPressState(normalPage, '[data-explore-pathway-button="导入记录"]')).scaleX).toBeCloseTo(1, 2)
   await importButton.focus()
   await importButton.dispatchEvent('pointerdown', { pointerType: 'touch', bubbles: true })
   await importButton.evaluate((element) => (element as HTMLElement).blur())
@@ -353,7 +385,6 @@ test('FU-86 Explore V2 Scene Panel focused production evidence', async ({ browse
 
   const reducedContext = await browser.newContext({
     baseURL,
-    storageState: STORAGE_STATE,
     viewport: { width: 375, height: 812 },
     reducedMotion: 'reduce',
   })
@@ -400,7 +431,6 @@ test('FU-86 Explore V2 Scene Panel focused production evidence', async ({ browse
 
   const rejectedContext = await browser.newContext({
     baseURL,
-    storageState: STORAGE_STATE,
     viewport: { width: 375, height: 812 },
     reducedMotion: 'no-preference',
   })

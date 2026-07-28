@@ -431,6 +431,7 @@ function HeroSection({
       {hasImages ? (
         <div
           data-testid="mountain-hero-carousel"
+          data-active-index={activeIndex}
           onScroll={(event) => {
             const width = event.currentTarget.clientWidth || 1
             setActiveIndex(Math.round(event.currentTarget.scrollLeft / width))
@@ -471,9 +472,11 @@ function HeroSection({
       ) : null}
       <div
         aria-hidden
+        data-testid="mountain-hero-scrim"
         style={{
           position: 'absolute',
           inset: 0,
+          pointerEvents: 'none',
           background:
             'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 55%, transparent) 0%, transparent 40%, color-mix(in srgb, var(--color-surface) 88%, transparent) 100%)',
         }}
@@ -482,9 +485,11 @@ function HeroSection({
         <div
           data-mountain-hero-visual
           aria-hidden
+          data-testid="mountain-hero-empty-decoration"
           style={{
             position: 'absolute',
             inset: 0,
+            pointerEvents: 'none',
             background:
               'radial-gradient(circle at 72% 18%, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 30%), linear-gradient(160deg, transparent 0%, color-mix(in srgb, var(--color-on-surface) 5%, transparent) 100%)',
           }}
@@ -493,11 +498,12 @@ function HeroSection({
       {heroImages.length > 1 ? (
         <div
           aria-hidden
+          data-testid="mountain-hero-indicator"
           style={{
             position: 'absolute',
             left: 0,
             right: 0,
-            bottom: 116,
+            bottom: 5,
             display: 'flex',
             justifyContent: 'center',
             gap: 6,
@@ -507,6 +513,7 @@ function HeroSection({
           {heroImages.map((image, index) => (
             <span
               key={`dot-${image}-${index}`}
+              data-testid="mountain-hero-dot"
               style={{
                 width: index === activeIndex ? 14 : 6,
                 height: 6,
@@ -523,6 +530,7 @@ function HeroSection({
       ) : null}
 
       <div
+        data-testid="mountain-hero-toolbar"
         style={{
           position: 'absolute',
           top: 0,

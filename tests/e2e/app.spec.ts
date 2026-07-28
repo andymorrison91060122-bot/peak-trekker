@@ -1,4 +1,6 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type CDPSession, type Page } from '@playwright/test'
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import {
   createHistoricalCheckinViaApi,
   registerFreshUser as registerFreshUserViaHelper,
@@ -19,6 +21,128 @@ type TrekMountainMeta = {
   latitude: number
   longitude: number
   altitude: number
+}
+
+type NetworkRequestRecord = {
+  method: string
+  url: string
+  disposition: 'allowed' | 'blocked' | 'stubbed'
+}
+
+async function installReadOnlyNetworkGuard(page: Page) {
+  const records: NetworkRequestRecord[] = []
+  const mutationMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
+
+  await page.context().route('**/*', async (route) => {
+    const request = route.request()
+    const method = request.method().toUpperCase()
+    const url = new URL(request.url())
+
+    if (url.pathname === '/api/analytics/event') {
+      records.push({ method, url: request.url(), disposition: 'stubbed' })
+      await route.fulfill({ status: 204 })
+      return
+    }
+
+    if (url.pathname.startsWith('/api/weather/')) {
+      records.push({ method, url: request.url(), disposition: 'stubbed' })
+      await route.fulfill({
+        status: 503,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'weather stubbed for read-only carousel test' }),
+      })
+      return
+    }
+
+    if (mutationMethods.has(method)) {
+      records.push({ method, url: request.url(), disposition: 'blocked' })
+      await route.abort('blockedbyclient')
+      return
+    }
+
+    await route.continue()
+  })
+
+  return records
+}
+
+async function dispatchHorizontalTouchSwipe({
+  page,
+  client,
+}: {
+  page: Page
+  client: CDPSession
+}) {
+  const carousel = page.getByTestId('mountain-hero-carousel')
+  const box = await carousel.boundingBox()
+  expect(box).not.toBeNull()
+  if (!box) throw new Error('Expected carousel bounding box.')
+
+  const start = {
+    x: box.x + box.width * 0.82,
+    y: box.y + box.height * 0.5,
+  }
+  const endX = box.x + box.width * 0.18
+  const hitTarget = await page.evaluate(({ x, y }) => {
+    const carouselNode = document.querySelector<HTMLElement>('[data-testid="mountain-hero-carousel"]')
+    const hitNode = document.elementFromPoint(x, y)
+    return {
+      tagName: hitNode?.tagName ?? null,
+      withinCarousel: Boolean(carouselNode && hitNode && carouselNode.contains(hitNode)),
+      ariaHiddenAncestor: Boolean(hitNode?.closest('[aria-hidden="true"]')),
+      testId: hitNode?.getAttribute('data-testid') ?? null,
+      activeIndex: carouselNode?.getAttribute('data-active-index') ?? null,
+    }
+  }, start)
+
+  expect(
+    hitTarget.withinCarousel,
+    `Touch hit target must be a carousel descendant: ${JSON.stringify(hitTarget)}`,
+  ).toBe(true)
+  expect(
+    hitTarget.ariaHiddenAncestor,
+    `Touch hit target must not be inside an aria-hidden decoration: ${JSON.stringify(hitTarget)}`,
+  ).toBe(false)
+
+  await client.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ ...start, radiusX: 2, radiusY: 2, force: 1, id: 1 }],
+  })
+  for (let step = 1; step <= 12; step += 1) {
+    await client.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{
+        x: start.x + ((endX - start.x) * step) / 12,
+        y: start.y,
+        radiusX: 2,
+        radiusY: 2,
+        force: 1,
+        id: 1,
+      }],
+    })
+    await page.waitForTimeout(20)
+  }
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+
+  return hitTarget
+}
+
+async function expectCarouselSnap(page: Page, targetIndex: number) {
+  const carousel = page.getByTestId('mountain-hero-carousel')
+  await expect.poll(
+    () => carousel.getAttribute('data-active-index'),
+    { timeout: 5_000 },
+  ).toBe(String(targetIndex))
+  await expect.poll(async () => carousel.evaluate((node, index) => {
+    return Math.abs(node.scrollLeft - node.clientWidth * index)
+  }, targetIndex), { timeout: 5_000 }).toBeLessThanOrEqual(2)
+
+  const samples: number[] = []
+  for (let sample = 0; sample < 3; sample += 1) {
+    samples.push(await carousel.evaluate((node) => node.scrollLeft))
+    await page.waitForTimeout(100)
+  }
+  expect(Math.max(...samples) - Math.min(...samples)).toBeLessThanOrEqual(2)
 }
 
 function createTestEmail() {
@@ -360,34 +484,80 @@ test('mountain detail prioritizes recording CTA and removes the dead favorite ac
   }
 })
 
-test('mountain detail hero uses a lightweight multi-image carousel when mountain photos are available', async ({ page }) => {
-  await completeProvinceOnboarding(page)
-  await dismissActivationChecklistIfPresent(page)
-  await page.goto('/explore')
-  const cards = await getExploreCardMeta(page)
-  const candidate = cards.find((card) => card.heroImageCount > 0) ?? cards[0]
-  expect(candidate).toBeTruthy()
-
-  await page.goto(candidate.href, { waitUntil: 'domcontentloaded' })
-
-  const carousel = page.getByTestId('mountain-hero-carousel')
-  if (candidate.heroImageCount === 0) {
-    await expect(carousel).toHaveCount(0)
-    await expect(page.getByText('山峰简介')).toBeVisible()
-    await expect(page.getByText('山峰图集')).toHaveCount(0)
-    return
+test('mountain detail hero uses a lightweight multi-image carousel when mountain photos are available', async ({ page }, testInfo) => {
+  const threeImageMountain = {
+    href: '/mountain/906ee700-5779-5370-8cbe-780797a82f8d',
+    heroImageCount: 3,
+  }
+  const twoImageMountain = {
+    href: '/mountain/216508c9-ffca-4164-8010-534d8650ee64',
+    heroImageCount: 2,
+  }
+  const evidenceDir = join(
+    process.cwd(),
+    'output/mountain-carousel-hotfix-acceptance/carousel',
+  )
+  await mkdir(evidenceDir, { recursive: true })
+  await page.setViewportSize({ width: 375, height: 812 })
+  const networkRecords = await installReadOnlyNetworkGuard(page)
+  const touchTrace: unknown[] = []
+  const client = await page.context().newCDPSession(page)
+  await client.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 })
+  const waitForSlideImage = async (carousel: ReturnType<Page['getByTestId']>, index: number) => {
+    await expect.poll(() => carousel.locator('img').nth(index).evaluate((image) => (
+      image.complete && image.naturalWidth > 0
+    ))).toBe(true)
   }
 
-  await expect(carousel).toBeVisible()
-  await expect(carousel.locator(':scope > div')).toHaveCount(candidate.heroImageCount)
+  try {
+    await page.goto(threeImageMountain.href, { waitUntil: 'domcontentloaded' })
+    const threeImageCarousel = page.getByTestId('mountain-hero-carousel')
+    await expect(threeImageCarousel).toBeVisible()
+    await expect(threeImageCarousel.locator(':scope > div')).toHaveCount(threeImageMountain.heroImageCount)
+    await expect(threeImageCarousel).toHaveAttribute('data-active-index', '0')
+    await expect(page.getByTestId('mountain-hero-dot')).toHaveCount(threeImageMountain.heroImageCount)
+    await waitForSlideImage(threeImageCarousel, 0)
+    await page.screenshot({ path: join(evidenceDir, 'three-image-index-0.png') })
+    touchTrace.push(await dispatchHorizontalTouchSwipe({ page, client }))
+    await expectCarouselSnap(page, 1)
+    await waitForSlideImage(threeImageCarousel, 1)
+    await page.screenshot({ path: join(evidenceDir, 'three-image-index-1.png') })
+    touchTrace.push(await dispatchHorizontalTouchSwipe({ page, client }))
+    await expectCarouselSnap(page, 2)
+    await waitForSlideImage(threeImageCarousel, 2)
+    await page.screenshot({ path: join(evidenceDir, 'three-image-index-2.png') })
 
-  if (candidate.heroImageCount > 1) {
-    await carousel.evaluate((node) => {
-      node.scrollTo({ left: node.clientWidth, behavior: 'auto' })
+    await page.goto(twoImageMountain.href, { waitUntil: 'domcontentloaded' })
+    const twoImageCarousel = page.getByTestId('mountain-hero-carousel')
+    await expect(twoImageCarousel).toBeVisible()
+    await expect(twoImageCarousel.locator(':scope > div')).toHaveCount(2)
+    await expect(page.getByTestId('mountain-hero-dot')).toHaveCount(2)
+    await expect(twoImageCarousel).toHaveAttribute('data-active-index', '0')
+    touchTrace.push(await dispatchHorizontalTouchSwipe({ page, client }))
+    await expectCarouselSnap(page, 1)
+    touchTrace.push(await dispatchHorizontalTouchSwipe({ page, client }))
+    await expectCarouselSnap(page, 1)
+    await expect(twoImageCarousel).not.toHaveAttribute('data-active-index', '2')
+
+    const undeclaredMutations = networkRecords.filter((record) => (
+      record.disposition === 'blocked'
+    ))
+    expect(undeclaredMutations).toEqual([])
+    await expect(page.getByText('山峰图集')).toHaveCount(0)
+  } finally {
+    await writeFile(
+      join(evidenceDir, 'touch-trace.json'),
+      `${JSON.stringify(touchTrace, null, 2)}\n`,
+    )
+    await writeFile(
+      join(evidenceDir, 'network-requests.json'),
+      `${JSON.stringify(networkRecords, null, 2)}\n`,
+    )
+    await testInfo.attach('carousel-network-requests', {
+      body: Buffer.from(JSON.stringify(networkRecords, null, 2)),
+      contentType: 'application/json',
     })
   }
-
-  await expect(page.getByText('山峰图集')).toHaveCount(0)
 })
 
 test('targeted trek flow requires explicit mountain confirmation before recording starts', async ({ page }) => {

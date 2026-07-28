@@ -1,8 +1,10 @@
 import Link from 'next/link'
-import type { FocusEvent, PointerEvent } from 'react'
-import { DEFAULT_MOUNTAIN_COVER_URL } from '@/lib/default-media'
+import { useEffect, useRef, useState } from 'react'
+import type { FocusEvent, PointerEvent, Ref } from 'react'
+import { EXPLORE_MOUNTAIN_COVER_FALLBACK_URL } from '@/lib/default-media'
 import { getMountainDetailHeroImages, getMountainHeroImage } from '@/lib/mountain-media'
 import { getEstimatedDurationRange, getMountainDistanceKm } from '@/lib/mountain-route-display'
+import { getExploreMountainThumbnailUrl } from '@/lib/mountain-storage'
 import type { Mountain } from '@/types'
 
 type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
@@ -19,6 +21,8 @@ export default function ExploreMountainCard({
   mountain,
   filterLengthKm,
   mountPending,
+  imagePriority,
+  loadMoreSentinelRef,
 }: {
   mountain: Pick<
     Mountain,
@@ -36,11 +40,15 @@ export default function ExploreMountainCard({
   >
   filterLengthKm: number | null
   mountPending: boolean
+  imagePriority: boolean
+  loadMoreSentinelRef?: Ref<HTMLSpanElement>
 }) {
   const heroImage = getMountainHeroImage(mountain)
-  const coverBackgroundImage = heroImage
-    ? `url(${JSON.stringify(heroImage)}), url(${JSON.stringify(DEFAULT_MOUNTAIN_COVER_URL)})`
-    : `url(${JSON.stringify(DEFAULT_MOUNTAIN_COVER_URL)})`
+  const thumbnailImage =
+    getExploreMountainThumbnailUrl(heroImage) ?? EXPLORE_MOUNTAIN_COVER_FALLBACK_URL
+  const coverImageRef = useRef<HTMLImageElement | null>(null)
+  const [hasEnteredImageLoadRange, setHasEnteredImageLoadRange] = useState(false)
+  const shouldLoadImage = imagePriority || hasEnteredImageLoadRange
   const heroImageCount = getMountainDetailHeroImages(mountain, 3).length
   const normalizedDifficulty =
     mountain.difficulty === 'intermediate' || mountain.difficulty === 'advanced' || mountain.difficulty === 'expert'
@@ -54,6 +62,18 @@ export default function ExploreMountainCard({
     durationRange,
   ].filter((value): value is string => Boolean(value))
 
+  useEffect(() => {
+    const image = coverImageRef.current
+    if (!image || hasEnteredImageLoadRange) return
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return
+      setHasEnteredImageLoadRange(true)
+      observer.disconnect()
+    }, { rootMargin: '600px 0px', threshold: 0 })
+    observer.observe(image)
+    return () => observer.disconnect()
+  }, [hasEnteredImageLoadRange])
+
   return (
     <Link
       href={`/mountain/${mountain.id}`}
@@ -65,8 +85,23 @@ export default function ExploreMountainCard({
       data-license-level={mountain.min_license}
       data-hero-image-count={heroImageCount}
       data-explore-mount-state={mountPending ? 'pending' : undefined}
-      style={{ textDecoration: 'none', display: 'block' }}
+      style={{ textDecoration: 'none', display: 'block', position: 'relative' }}
     >
+      {loadMoreSentinelRef ? (
+        <span
+          ref={loadMoreSentinelRef}
+          data-testid="explore-load-more-sentinel"
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: 1,
+            height: 1,
+            pointerEvents: 'none',
+          }}
+        />
+      ) : null}
       <article
         className="surface-card explore-card pt-pressable-card"
         onPointerDown={markPressFallback}
@@ -78,8 +113,33 @@ export default function ExploreMountainCard({
         <div
           className="explore-card__cover"
           data-testid="explore-mountain-card-cover"
-          style={{ backgroundImage: coverBackgroundImage }}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            ref={coverImageRef}
+            className="explore-card__cover-image"
+            data-testid="explore-mountain-card-cover-image"
+            data-thumbnail-source={thumbnailImage.includes('/thumb-v1-') ? 'thumb-v1' : 'fallback'}
+            data-image-load-state={shouldLoadImage ? 'requested' : 'deferred'}
+            src={shouldLoadImage ? thumbnailImage : undefined}
+            alt={mountain.name}
+            width={960}
+            height={520}
+            loading={imagePriority ? 'eager' : 'lazy'}
+            fetchPriority={imagePriority ? 'high' : 'auto'}
+            decoding="async"
+            onError={(event) => {
+              const image = event.currentTarget
+              if (image.dataset.fallbackAttempted === 'true') {
+                image.dataset.coverFailed = 'true'
+                image.style.visibility = 'hidden'
+                return
+              }
+              image.dataset.fallbackAttempted = 'true'
+              image.dataset.thumbnailSource = 'fallback'
+              image.src = EXPLORE_MOUNTAIN_COVER_FALLBACK_URL
+            }}
+          />
           <div className="explore-card__scrim" aria-hidden="true" />
         </div>
 

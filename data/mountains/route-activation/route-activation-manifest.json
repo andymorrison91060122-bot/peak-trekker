@@ -1,0 +1,931 @@
+{
+  "activation_rows": [
+    {
+      "access_status": "closed",
+      "activation_decision": "activate_readable_with_warning",
+      "compare_and_swap": {
+        "expected_current": {
+          "effective_canonical_key": "aotai-traverse-route",
+          "id": "3aedd9bb-19f7-5b49-a899-b9595aa29002",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      "current": {
+        "entity_type": "route_corridor",
+        "id": "3aedd9bb-19f7-5b49-a899-b9595aa29002",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false
+      },
+      "difficulty": "expert",
+      "effective_canonical_key": "aotai-traverse-route",
+      "geometry": {
+        "empty_state_copy": "可先查看路线说明与风险提示，具体行程请使用专业户外导航工具。",
+        "empty_state_title": "暂未收录参考轨迹",
+        "geometry_id": null,
+        "point_count": 0,
+        "segment_count": 0,
+        "status": "missing"
+      },
+      "id": "3aedd9bb-19f7-5b49-a899-b9595aa29002",
+      "primary_name": "鳌太线",
+      "readiness": {
+        "access_note": "鳌太穿越处于持续禁止非法穿越和重点整治范围；本条目仅用于封闭警示与历史路线认知。 以当地最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "readiness_hash": "2a4e8dfef25a20ff9f78e3280a532354",
+        "risk_note_ready": true,
+        "route_note_ready": true
+      },
+      "route_highpoint_m": 3771.2,
+      "target": {
+        "entity_type": "route_corridor",
+        "id": "3aedd9bb-19f7-5b49-a899-b9595aa29002",
+        "is_active": true,
+        "is_readable": true,
+        "weather_enabled": false
+      }
+    },
+    {
+      "access_status": "closed",
+      "activation_decision": "activate_readable_with_warning",
+      "compare_and_swap": {
+        "expected_current": {
+          "effective_canonical_key": "bogeda-grand-loop-route",
+          "id": "01c780c1-5d04-5ff6-816d-1cb3a3e89753",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      "current": {
+        "entity_type": "route_corridor",
+        "id": "01c780c1-5d04-5ff6-816d-1cb3a3e89753",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false
+      },
+      "difficulty": "expert",
+      "effective_canonical_key": "bogeda-grand-loop-route",
+      "geometry": {
+        "empty_state_copy": "可先查看路线说明与风险提示，具体行程请使用专业户外导航工具。",
+        "empty_state_title": "暂未收录参考轨迹",
+        "geometry_id": null,
+        "point_count": 0,
+        "segment_count": 0,
+        "status": "missing"
+      },
+      "id": "01c780c1-5d04-5ff6-816d-1cb3a3e89753",
+      "primary_name": "博格达大环线",
+      "readiness": {
+        "access_note": "产品裁定保留博格达大环线关闭警示；官方资料证明保护区核心区禁入、缓冲区禁止旅游，但具体线路版本与保护区边界仍待取得轨迹后核对。 以当地最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "readiness_hash": "e2c95dbacbca947a0187ea1bec2039f4",
+        "risk_note_ready": true,
+        "route_note_ready": true
+      },
+      "route_highpoint_m": null,
+      "target": {
+        "entity_type": "route_corridor",
+        "id": "01c780c1-5d04-5ff6-816d-1cb3a3e89753",
+        "is_active": true,
+        "is_readable": true,
+        "weather_enabled": false
+      }
+    },
+    {
+      "access_status": "unknown",
+      "activation_decision": "activate_readable_route",
+      "compare_and_swap": {
+        "expected_current": {
+          "effective_canonical_key": "everest-east-kama-valley-route",
+          "id": "ab65bafe-b7a5-516c-bef8-e6efbb8cc7ff",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      "current": {
+        "entity_type": "route_corridor",
+        "id": "ab65bafe-b7a5-516c-bef8-e6efbb8cc7ff",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false
+      },
+      "difficulty": "advanced",
+      "effective_canonical_key": "everest-east-kama-valley-route",
+      "geometry": {
+        "empty_state_copy": null,
+        "empty_state_title": null,
+        "geometry_id": "21596c67-fe44-5129-a850-0009761ca8c2",
+        "point_count": 393,
+        "segment_count": 1,
+        "status": "trace_only"
+      },
+      "id": "ab65bafe-b7a5-516c-bef8-e6efbb8cc7ff",
+      "primary_name": "珠峰东坡嘎玛沟",
+      "readiness": {
+        "access_note": "官方文旅资料长期介绍嘎玛沟徒步线路，但边境、高海拔和季节性管理要求可能调整；以定日县及属地最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "readiness_hash": "4a5ad1f5fb852d6e277cac09d2da9704",
+        "risk_note_ready": true,
+        "route_note_ready": true
+      },
+      "route_highpoint_m": 5350,
+      "target": {
+        "entity_type": "route_corridor",
+        "id": "ab65bafe-b7a5-516c-bef8-e6efbb8cc7ff",
+        "is_active": true,
+        "is_readable": true,
+        "weather_enabled": false
+      }
+    },
+    {
+      "access_status": "unknown",
+      "activation_decision": "activate_readable_route",
+      "compare_and_swap": {
+        "expected_current": {
+          "effective_canonical_key": "genie-south-route",
+          "id": "39b87b29-be32-546e-b1c4-6cb7c993e86c",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      "current": {
+        "entity_type": "route_corridor",
+        "id": "39b87b29-be32-546e-b1c4-6cb7c993e86c",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false
+      },
+      "difficulty": "advanced",
+      "effective_canonical_key": "genie-south-route",
+      "geometry": {
+        "empty_state_copy": null,
+        "empty_state_title": null,
+        "geometry_id": "86c377b7-b635-53dd-83fe-84e9e544a9a3",
+        "point_count": 68,
+        "segment_count": 1,
+        "status": "map"
+      },
+      "id": "39b87b29-be32-546e-b1c4-6cb7c993e86c",
+      "primary_name": "格聂南线",
+      "readiness": {
+        "access_note": "公开平台存在不同版本的格聂南线轨迹，但徒步线与车辆线口径混杂；具体可通行区段以当地最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "readiness_hash": "478e0a084b28b9615b0867f8f06800cd",
+        "risk_note_ready": true,
+        "route_note_ready": true
+      },
+      "route_highpoint_m": 4470,
+      "target": {
+        "entity_type": "route_corridor",
+        "id": "39b87b29-be32-546e-b1c4-6cb7c993e86c",
+        "is_active": true,
+        "is_readable": true,
+        "weather_enabled": false
+      }
+    },
+    {
+      "access_status": "unknown",
+      "activation_decision": "activate_readable_route",
+      "compare_and_swap": {
+        "expected_current": {
+          "effective_canonical_key": "gongga-grand-loop-route",
+          "id": "eca11851-2fe2-5417-b938-a45201282ed6",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      "current": {
+        "entity_type": "route_corridor",
+        "id": "eca11851-2fe2-5417-b938-a45201282ed6",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false
+      },
+      "difficulty": "advanced",
+      "effective_canonical_key": "gongga-grand-loop-route",
+      "geometry": {
+        "empty_state_copy": null,
+        "empty_state_title": null,
+        "geometry_id": "d9984023-d6b6-5b27-be7d-0b21696cb3a4",
+        "point_count": 393,
+        "segment_count": 1,
+        "status": "trace_only"
+      },
+      "id": "eca11851-2fe2-5417-b938-a45201282ed6",
+      "primary_name": "贡嘎大环线",
+      "readiness": {
+        "access_note": "公开平台存在多条历史与近期轨迹，但未找到足以确认全线当前开放的统一官方公告；以属地最新管理要求为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "readiness_hash": "d6d35292fa0b2384ece94fb797098a55",
+        "risk_note_ready": true,
+        "route_note_ready": true
+      },
+      "route_highpoint_m": 4914,
+      "target": {
+        "entity_type": "route_corridor",
+        "id": "eca11851-2fe2-5417-b938-a45201282ed6",
+        "is_active": true,
+        "is_readable": true,
+        "weather_enabled": false
+      }
+    },
+    {
+      "access_status": "unknown",
+      "activation_decision": "activate_readable_route",
+      "compare_and_swap": {
+        "expected_current": {
+          "effective_canonical_key": "kanas-hemu-traverse-route",
+          "id": "e461af81-2f6a-5631-8dc4-23eaef276ff4",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      "current": {
+        "entity_type": "route_corridor",
+        "id": "e461af81-2f6a-5631-8dc4-23eaef276ff4",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false
+      },
+      "difficulty": "intermediate",
+      "effective_canonical_key": "kanas-hemu-traverse-route",
+      "geometry": {
+        "empty_state_copy": null,
+        "empty_state_title": null,
+        "geometry_id": "18f70a02-59eb-5686-bcef-1a73ea36430d",
+        "point_count": 156,
+        "segment_count": 1,
+        "status": "trace_only"
+      },
+      "id": "e461af81-2f6a-5631-8dc4-23eaef276ff4",
+      "primary_name": "喀纳斯—禾木穿越线",
+      "readiness": {
+        "access_note": "公开平台存在白哈巴、喀纳斯、禾木之间的多种穿越组合，当前统一线路版本与开放边界未核定；以景区最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "readiness_hash": "013c21ee946827588103fa008f2cea8e",
+        "risk_note_ready": true,
+        "route_note_ready": true
+      },
+      "route_highpoint_m": null,
+      "target": {
+        "entity_type": "route_corridor",
+        "id": "e461af81-2f6a-5631-8dc4-23eaef276ff4",
+        "is_active": true,
+        "is_readable": true,
+        "weather_enabled": false
+      }
+    },
+    {
+      "access_status": "restricted",
+      "activation_decision": "activate_readable_with_warning",
+      "compare_and_swap": {
+        "expected_current": {
+          "effective_canonical_key": "kulagangri-trek-route",
+          "id": "f7dc99ae-67af-58a8-8ab1-45a4d7fce00d",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      "current": {
+        "entity_type": "route_corridor",
+        "id": "f7dc99ae-67af-58a8-8ab1-45a4d7fce00d",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false
+      },
+      "difficulty": "advanced",
+      "effective_canonical_key": "kulagangri-trek-route",
+      "geometry": {
+        "empty_state_copy": null,
+        "empty_state_title": null,
+        "geometry_id": "6bf757d1-ae4d-5dcd-aece-b6b8e344b87d",
+        "point_count": 168,
+        "segment_count": 1,
+        "status": "map"
+      },
+      "id": "f7dc99ae-67af-58a8-8ab1-45a4d7fce00d",
+      "primary_name": "库拉岗日徒步线",
+      "readiness": {
+        "access_note": "公开资料曾记录线路开放与临时关闭，当前连续开放状态未核定；出行前须确认山南市及属地最新公告。",
+        "cover_ready": true,
+        "description_ready": true,
+        "readiness_hash": "4f5c5274251b245c2b63fe53acdf30da",
+        "risk_note_ready": true,
+        "route_note_ready": true
+      },
+      "route_highpoint_m": null,
+      "target": {
+        "entity_type": "route_corridor",
+        "id": "f7dc99ae-67af-58a8-8ab1-45a4d7fce00d",
+        "is_active": true,
+        "is_readable": true,
+        "weather_enabled": false
+      }
+    },
+    {
+      "access_status": "unknown",
+      "activation_decision": "activate_readable_route",
+      "compare_and_swap": {
+        "expected_current": {
+          "effective_canonical_key": "luoke-route",
+          "id": "8670bd70-7784-5294-a413-b976d51c2647",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      "current": {
+        "entity_type": "route_corridor",
+        "id": "8670bd70-7784-5294-a413-b976d51c2647",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false
+      },
+      "difficulty": "advanced",
+      "effective_canonical_key": "luoke-route",
+      "geometry": {
+        "empty_state_copy": null,
+        "empty_state_title": null,
+        "geometry_id": "e8c1875b-336b-5b2b-a87e-155b42b07977",
+        "point_count": 355,
+        "segment_count": 1,
+        "status": "map"
+      },
+      "id": "8670bd70-7784-5294-a413-b976d51c2647",
+      "primary_name": "洛克线",
+      "readiness": {
+        "access_note": "公开平台存在洛克线用户轨迹，但不同穿越版本与亚丁保护区管理边界需单独核实；以沿线属地最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "readiness_hash": "959bad19b13467cfa18d99cb06e04649",
+        "risk_note_ready": true,
+        "route_note_ready": true
+      },
+      "route_highpoint_m": null,
+      "target": {
+        "entity_type": "route_corridor",
+        "id": "8670bd70-7784-5294-a413-b976d51c2647",
+        "is_active": true,
+        "is_readable": true,
+        "weather_enabled": false
+      }
+    },
+    {
+      "access_status": "unknown",
+      "activation_decision": "activate_readable_route",
+      "compare_and_swap": {
+        "expected_current": {
+          "effective_canonical_key": "motuo-trek-route",
+          "id": "8972353d-ef10-5faf-a352-8f8987c7d4de",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      "current": {
+        "entity_type": "route_corridor",
+        "id": "8972353d-ef10-5faf-a352-8f8987c7d4de",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false
+      },
+      "difficulty": "advanced",
+      "effective_canonical_key": "motuo-trek-route",
+      "geometry": {
+        "empty_state_copy": null,
+        "empty_state_title": null,
+        "geometry_id": "22985080-d20f-56c2-b64d-bc70a048aa3c",
+        "point_count": 586,
+        "segment_count": 1,
+        "status": "map"
+      },
+      "id": "8972353d-ef10-5faf-a352-8f8987c7d4de",
+      "primary_name": "墨脱徒步线",
+      "readiness": {
+        "access_note": "官方历史资料显示路线受季节、道路和地质灾害影响会临时关闭；当前开放区段必须以墨脱县及沿线最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "readiness_hash": "493607ef4a7133d4877c2567c197af3c",
+        "risk_note_ready": true,
+        "route_note_ready": true
+      },
+      "route_highpoint_m": null,
+      "target": {
+        "entity_type": "route_corridor",
+        "id": "8972353d-ef10-5faf-a352-8f8987c7d4de",
+        "is_active": true,
+        "is_readable": true,
+        "weather_enabled": false
+      }
+    },
+    {
+      "access_status": "unknown",
+      "activation_decision": "activate_readable_route",
+      "compare_and_swap": {
+        "expected_current": {
+          "effective_canonical_key": "siguniang-changping-bipeng-route",
+          "id": "8874b9ed-e531-5690-bc49-a61594a3423c",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      "current": {
+        "entity_type": "route_corridor",
+        "id": "8874b9ed-e531-5690-bc49-a61594a3423c",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false
+      },
+      "difficulty": "advanced",
+      "effective_canonical_key": "siguniang-changping-bipeng-route",
+      "geometry": {
+        "empty_state_copy": null,
+        "empty_state_title": null,
+        "geometry_id": "1c99c1b2-47b2-5047-9f74-ab9249672be3",
+        "point_count": 175,
+        "segment_count": 1,
+        "status": "map"
+      },
+      "id": "8874b9ed-e531-5690-bc49-a61594a3423c",
+      "primary_name": "四姑娘山长坪沟—毕棚沟穿越线",
+      "readiness": {
+        "access_note": "景区公开资料确认穿越活动须按规定办理入园与户外活动手续；具体开放区段以四姑娘山景区最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "readiness_hash": "f13e922c75b38ee6aa58ca2a89b53584",
+        "risk_note_ready": true,
+        "route_note_ready": true
+      },
+      "route_highpoint_m": 4660,
+      "target": {
+        "entity_type": "route_corridor",
+        "id": "8874b9ed-e531-5690-bc49-a61594a3423c",
+        "is_active": true,
+        "is_readable": true,
+        "weather_enabled": false
+      }
+    },
+    {
+      "access_status": "closed",
+      "activation_decision": "activate_readable_with_warning",
+      "compare_and_swap": {
+        "expected_current": {
+          "effective_canonical_key": "wusun-ancient-trail-route",
+          "id": "98786a61-8c62-5c36-84bb-c9c09a518394",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      "current": {
+        "entity_type": "route_corridor",
+        "id": "98786a61-8c62-5c36-84bb-c9c09a518394",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false
+      },
+      "difficulty": "advanced",
+      "effective_canonical_key": "wusun-ancient-trail-route",
+      "geometry": {
+        "empty_state_copy": null,
+        "empty_state_title": null,
+        "geometry_id": "cf7e49b4-e88f-5857-9616-f5412e0e45df",
+        "point_count": 600,
+        "segment_count": 8,
+        "status": "trace_only"
+      },
+      "id": "98786a61-8c62-5c36-84bb-c9c09a518394",
+      "primary_name": "乌孙古道",
+      "readiness": {
+        "access_note": "新疆体育局 2025-09-29 通知封闭乌孙古道等 14 条古道，2026-06 官方信息仍处于评估启动阶段；未见重新开放公告，本条目仅作关闭警示与历史路线参考。 以当地最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "readiness_hash": "3767a66570d894ee0d3de102601ae8d3",
+        "risk_note_ready": true,
+        "route_note_ready": true
+      },
+      "route_highpoint_m": 3841,
+      "target": {
+        "entity_type": "route_corridor",
+        "id": "98786a61-8c62-5c36-84bb-c9c09a518394",
+        "is_active": true,
+        "is_readable": true,
+        "weather_enabled": false
+      }
+    }
+  ],
+  "apply_plan": {
+    "apply_supported": false,
+    "gangrenboqi_compare_and_swap": {
+      "expected_current": {
+        "access_status": "pilgrimage_only",
+        "altitude": 4000,
+        "altitude_m_exact": 4000,
+        "entity_type": "mountain",
+        "id": "137df8c2-10cd-5705-b65a-60a904744246",
+        "is_active": true,
+        "is_readable": true,
+        "name": "冈仁波齐周边山峰",
+        "weather_enabled": true
+      },
+      "set": {
+        "access_status": "pilgrimage_only",
+        "altitude": 6656,
+        "altitude_m_exact": 6656,
+        "entity_type": "mountain",
+        "id": "137df8c2-10cd-5705-b65a-60a904744246",
+        "is_active": true,
+        "is_readable": true,
+        "name": "冈仁波齐",
+        "weather_enabled": true
+      }
+    },
+    "reason": "Candidate package only. Future production apply must compare-and-swap against a fresh live snapshot.",
+    "route_compare_and_swap": [
+      {
+        "effective_canonical_key": "aotai-traverse-route",
+        "expected_current": {
+          "entity_type": "route_corridor",
+          "id": "3aedd9bb-19f7-5b49-a899-b9595aa29002",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "entity_type": "route_corridor",
+          "id": "3aedd9bb-19f7-5b49-a899-b9595aa29002",
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      {
+        "effective_canonical_key": "bogeda-grand-loop-route",
+        "expected_current": {
+          "entity_type": "route_corridor",
+          "id": "01c780c1-5d04-5ff6-816d-1cb3a3e89753",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "entity_type": "route_corridor",
+          "id": "01c780c1-5d04-5ff6-816d-1cb3a3e89753",
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      {
+        "effective_canonical_key": "everest-east-kama-valley-route",
+        "expected_current": {
+          "entity_type": "route_corridor",
+          "id": "ab65bafe-b7a5-516c-bef8-e6efbb8cc7ff",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "entity_type": "route_corridor",
+          "id": "ab65bafe-b7a5-516c-bef8-e6efbb8cc7ff",
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      {
+        "effective_canonical_key": "genie-south-route",
+        "expected_current": {
+          "entity_type": "route_corridor",
+          "id": "39b87b29-be32-546e-b1c4-6cb7c993e86c",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "entity_type": "route_corridor",
+          "id": "39b87b29-be32-546e-b1c4-6cb7c993e86c",
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      {
+        "effective_canonical_key": "gongga-grand-loop-route",
+        "expected_current": {
+          "entity_type": "route_corridor",
+          "id": "eca11851-2fe2-5417-b938-a45201282ed6",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "entity_type": "route_corridor",
+          "id": "eca11851-2fe2-5417-b938-a45201282ed6",
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      {
+        "effective_canonical_key": "kanas-hemu-traverse-route",
+        "expected_current": {
+          "entity_type": "route_corridor",
+          "id": "e461af81-2f6a-5631-8dc4-23eaef276ff4",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "entity_type": "route_corridor",
+          "id": "e461af81-2f6a-5631-8dc4-23eaef276ff4",
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      {
+        "effective_canonical_key": "kulagangri-trek-route",
+        "expected_current": {
+          "entity_type": "route_corridor",
+          "id": "f7dc99ae-67af-58a8-8ab1-45a4d7fce00d",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "entity_type": "route_corridor",
+          "id": "f7dc99ae-67af-58a8-8ab1-45a4d7fce00d",
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      {
+        "effective_canonical_key": "luoke-route",
+        "expected_current": {
+          "entity_type": "route_corridor",
+          "id": "8670bd70-7784-5294-a413-b976d51c2647",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "entity_type": "route_corridor",
+          "id": "8670bd70-7784-5294-a413-b976d51c2647",
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      {
+        "effective_canonical_key": "motuo-trek-route",
+        "expected_current": {
+          "entity_type": "route_corridor",
+          "id": "8972353d-ef10-5faf-a352-8f8987c7d4de",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "entity_type": "route_corridor",
+          "id": "8972353d-ef10-5faf-a352-8f8987c7d4de",
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      {
+        "effective_canonical_key": "siguniang-changping-bipeng-route",
+        "expected_current": {
+          "entity_type": "route_corridor",
+          "id": "8874b9ed-e531-5690-bc49-a61594a3423c",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "entity_type": "route_corridor",
+          "id": "8874b9ed-e531-5690-bc49-a61594a3423c",
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      },
+      {
+        "effective_canonical_key": "wusun-ancient-trail-route",
+        "expected_current": {
+          "entity_type": "route_corridor",
+          "id": "98786a61-8c62-5c36-84bb-c9c09a518394",
+          "is_active": false,
+          "is_readable": false,
+          "weather_enabled": false
+        },
+        "set": {
+          "entity_type": "route_corridor",
+          "id": "98786a61-8c62-5c36-84bb-c9c09a518394",
+          "is_active": true,
+          "is_readable": true,
+          "weather_enabled": false
+        }
+      }
+    ]
+  },
+  "apply_supported": false,
+  "baseline_origin_main": "9599933b191448c5fca3f8f91f1ec30960bf2cbb",
+  "blockers": [
+    {
+      "effective_canonical_key": "langta-ancient-trail-route",
+      "next_action": "drop_from_v1_activation_keep_cover_held",
+      "primary_name": "狼塔古道",
+      "reason_code": "missing_reliable_wgs84_area_coordinate_and_track"
+    }
+  ],
+  "counts": {
+    "after": {
+      "active": 353,
+      "readable": 356,
+      "route_corridor_active": 20,
+      "route_corridor_readable": 20,
+      "total": 373
+    },
+    "before": {
+      "active": 342,
+      "readable": 345,
+      "route_corridor_active": 9,
+      "route_corridor_readable": 9,
+      "total": 373
+    },
+    "delta": {
+      "active": 11,
+      "readable": 11,
+      "route_corridor_active": 11,
+      "route_corridor_readable": 11,
+      "total": 0
+    }
+  },
+  "excluded": {
+    "decision": "excluded_from_v1_activation",
+    "effective_canonical_key": "langta-ancient-trail-route",
+    "held_cover_count": 1,
+    "note": "Do not import, activate, or fabricate coordinates for Langta in v1.",
+    "reason_code": "missing_reliable_wgs84_area_coordinate_and_track"
+  },
+  "gangrenboqi_update": {
+    "bound_geometry": {
+      "display_mode": "map",
+      "geometry_count": 1,
+      "geometry_id": "59a0e0db-fed5-513d-b220-e8134840b39a"
+    },
+    "cross_check": [
+      {
+        "altitude_m": 6656,
+        "authority_level": "regional_government",
+        "published_at": "2023-07-14",
+        "publisher": "阿里地区行政公署 / 阿里地区旅游发展局",
+        "reason": "地区行政公署公开景区简介，同样陈述冈仁波齐海拔6656米。",
+        "title": "阿里地区A级景区简介",
+        "url": "https://www.al.gov.cn/info/1056/46686.htm"
+      }
+    ],
+    "current": {
+      "access_status": "pilgrimage_only",
+      "altitude": 4000,
+      "altitude_m_exact": 4000,
+      "entity_type": "mountain",
+      "id": "137df8c2-10cd-5705-b65a-60a904744246",
+      "is_active": true,
+      "is_readable": true,
+      "name": "冈仁波齐周边山峰",
+      "weather_enabled": true
+    },
+    "current_product_conflict": {
+      "note": "当前生产值更像转山区域参考，不得继续冒充山峰海拔。",
+      "production_altitude_m": 4000,
+      "production_name": "冈仁波齐周边山峰"
+    },
+    "effective_canonical_key": "gangrenboqi-cluster",
+    "estimated_ascent_hidden_reason": "pilgrimage_only_no_verified_route_ascent",
+    "existing_semantic_proposal": {
+      "proposal_type": "correct_existing_entity_semantics_and_bind_route",
+      "proposed_route_aliases": [
+        "冈仁波齐转山线",
+        "冈仁波齐外转线"
+      ],
+      "proposed_route_name": "冈仁波齐转山环线"
+    },
+    "id": "137df8c2-10cd-5705-b65a-60a904744246",
+    "selected_source": {
+      "altitude_m": 6656,
+      "authority_level": "county_government",
+      "primary_name": "冈仁波齐",
+      "published_at": "2025-07-09",
+      "publisher": "阿里地区普兰县人民政府",
+      "selection_reason": "县级政府原始页面直接以冈仁波齐景点条目陈述海拔6656米。",
+      "title": "普兰县旅游景区（景点）解说词",
+      "url": "https://www.pulan.gov.cn/info/2671/179661.htm"
+    },
+    "target": {
+      "access_status": "pilgrimage_only",
+      "altitude": 6656,
+      "altitude_m_exact": 6656,
+      "entity_type": "mountain",
+      "id": "137df8c2-10cd-5705-b65a-60a904744246",
+      "is_active": true,
+      "is_readable": true,
+      "name": "冈仁波齐",
+      "weather_enabled": true
+    }
+  },
+  "readiness": {
+    "all_guard_ready": true,
+    "blockers": null,
+    "guard_ready_count": 11,
+    "guard_total": 11
+  },
+  "schema_version": "route-activation-candidate-v1",
+  "source_sha256": {
+    "existingUpdates": "7a83e88414ff44138929979e39f9a82424f29a1e11656ffdc77f844203307120",
+    "gangrenboqiAltitude": "de41146f0c19d076372d5739c96fa6ffc6445e2607c5042b08106834f3853548",
+    "productionSnapshot": "c300b44fb18eb9f2602a44bdf9f4c0c14f7f7c609c6a199afd8682cabfa76191",
+    "routeContent": "fefb072d776d033833a1a1ee62836ff93bdcc499ddee709437cd77408902f581",
+    "routeCovers": "9733218984620bb35be874cfbd571720b748ca08e8edeae65ca683f6dd457f40",
+    "routeGeometry": "a1bd5e9efd151f4908c0a4f180221986dd165e93e57c1b8079595435c93d906e"
+  },
+  "visual_targets": {
+    "closed_without_geometry": "aotai-traverse-route",
+    "complete_map_route": "genie-south-route",
+    "gangrenboqi": "gangrenboqi-cluster",
+    "trace_only_route": "gongga-grand-loop-route"
+  }
+}

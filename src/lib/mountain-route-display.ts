@@ -49,12 +49,15 @@ export function getEstimatedAscentMeters({
   difficulty,
   altitude,
   entity_type,
+  access_status,
 }: {
   difficulty: MountainDifficulty
   altitude: number
   entity_type?: MountainEntityType | null
+  access_status?: MountainAccessStatus | null
 }) {
   if (entity_type === 'route_corridor') return null
+  if (access_status === 'pilgrimage_only') return null
   if (difficulty === 'advanced' || difficulty === 'expert') return null
   if (!Number.isFinite(altitude) || altitude <= 0) return null
   return Math.max(320, Math.round(altitude * 0.68))

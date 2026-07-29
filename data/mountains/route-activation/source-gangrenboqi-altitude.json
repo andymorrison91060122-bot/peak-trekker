@@ -1,0 +1,29 @@
+{
+  "schema_version": "gangrenboqi-altitude-source-v1",
+  "selected": {
+    "primary_name": "冈仁波齐",
+    "altitude_m": 6656,
+    "authority_level": "county_government",
+    "title": "普兰县旅游景区（景点）解说词",
+    "publisher": "阿里地区普兰县人民政府",
+    "url": "https://www.pulan.gov.cn/info/2671/179661.htm",
+    "published_at": "2025-07-09",
+    "selection_reason": "县级政府原始页面直接以冈仁波齐景点条目陈述海拔6656米。"
+  },
+  "cross_check": [
+    {
+      "altitude_m": 6656,
+      "authority_level": "regional_government",
+      "title": "阿里地区A级景区简介",
+      "publisher": "阿里地区行政公署 / 阿里地区旅游发展局",
+      "url": "https://www.al.gov.cn/info/1056/46686.htm",
+      "published_at": "2023-07-14",
+      "reason": "地区行政公署公开景区简介，同样陈述冈仁波齐海拔6656米。"
+    }
+  ],
+  "current_product_conflict": {
+    "production_altitude_m": 4000,
+    "production_name": "冈仁波齐周边山峰",
+    "note": "当前生产值更像转山区域参考，不得继续冒充山峰海拔。"
+  }
+}

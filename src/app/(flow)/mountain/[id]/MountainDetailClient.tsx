@@ -84,6 +84,7 @@ function getRouteFacts(mountain: Mountain) {
       ? null
       : getEstimatedAscentMeters({
           altitude,
+          access_status: mountain.access_status,
           difficulty: mountain.difficulty,
           entity_type: mountain.entity_type,
         }),

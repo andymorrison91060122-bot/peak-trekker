@@ -32,6 +32,12 @@ test('ascent estimates only beginner and intermediate mountains', () => {
   assert.equal(getEstimatedAscentMeters({ difficulty: 'expert', altitude: 7546 }), null)
   assert.equal(getEstimatedAscentMeters({
     difficulty: 'intermediate',
+    altitude: 6656,
+    entity_type: 'mountain',
+    access_status: 'pilgrimage_only',
+  }), null)
+  assert.equal(getEstimatedAscentMeters({
+    difficulty: 'intermediate',
     altitude: 3000,
     entity_type: 'route_corridor',
   }), null)

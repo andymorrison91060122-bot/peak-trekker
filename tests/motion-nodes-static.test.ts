@@ -454,7 +454,7 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.doesNotMatch(exploreClient, /const QUICK_TAGS = [^\n]*(本省热门|无需执照|高海拔|长线)/)
     assert.match(exploreClient, /tag === '入门线'[\s\S]*mountain\.difficulty === 'beginner'/)
     assert.match(exploreClient, /tag === '进阶线'[\s\S]*mountain\.difficulty !== 'beginner'/)
-    assert.match(exploreClient, /mountain\.altitude >= 5000/)
+    assert.match(exploreClient, /displayAltitude !== null && displayAltitude >= 5000/)
 
     assert.match(exploreClient, /<section[\s\S]{0,260}className="explore-scene-panel"[\s\S]{0,260}data-explore-motion="pathways"/)
     assert.match(exploreClient, /data-explore-mount-state="pending"/)
@@ -524,7 +524,8 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(exploreClient, /const hasSearchQuery = search\.trim\(\) !== ''/)
     assert.match(exploreClient, /function normalizeExploreSearchText\(value: string\)/)
     assert.match(exploreClient, /const rawSearchMatches = useMemo\(/)
-    assert.match(exploreClient, /const altitude = String\(mountain\.altitude\)/)
+    assert.match(exploreClient, /const displayAltitude = getMountainDisplayAltitude\(mountain\)/)
+    assert.match(exploreClient, /const altitudeTerms = displayAltitude === null/)
     assert.match(exploreClient, /mountain\.name/)
     assert.match(exploreClient, /mountain\.province/)
     assert.match(exploreClient, /const searchHasNoRawMatches = hasSearchQuery && rawSearchMatches\.length === 0/)
@@ -922,7 +923,7 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
 
     assert.match(mountainDetailClient, /import EmptyState from '@\/components\/ui\/EmptyState'/)
     assert.doesNotMatch(mountainDetailClient, /function EmptyModuleCard/)
-    assert.match(mountainDetailClient, /<EmptyState[\s\S]*data-mountain-route-card[\s\S]*title="路线参考图暂时不可用"[\s\S]*copy="地图服务没有响应，你仍可以查看关键点位与海拔信息。"/)
+    assert.match(mountainDetailClient, /<EmptyState[\s\S]*data-mountain-route-card[\s\S]*title="暂未收录参考轨迹"[\s\S]*copy="可先查看路线说明与风险提示，具体行程请使用专业户外导航工具。"/)
 
     assert.match(faqClient, /import EmptyState from '@\/components\/ui\/EmptyState'/)
     assert.match(faqClient, /<EmptyState[\s\S]{0,120}data-testid="faq-search-empty"[\s\S]{0,120}icon=\{<SearchIcon size=\{22\} \/>\}[\s\S]*title="没有找到"[\s\S]*提交反馈/)

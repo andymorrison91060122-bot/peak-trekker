@@ -240,6 +240,7 @@ export async function POST(request: NextRequest) {
       .from('mountains')
       .select('*')
       .eq('is_active', true)
+      .eq('entity_type', 'mountain')
       .order('checkin_count', { ascending: false })
 
     if (error) {
@@ -321,9 +322,10 @@ export async function POST(request: NextRequest) {
     if (mountainId) {
       const { data: mountain, error } = await supabase
         .from('mountains')
-        .select('id')
+        .select('id, entity_type')
         .eq('id', mountainId)
         .eq('is_active', true)
+        .eq('entity_type', 'mountain')
         .single()
       if (error || !mountain) {
         if (error) logTrekActionFailure('validate start mountain failed', error)
@@ -1319,9 +1321,10 @@ export async function POST(request: NextRequest) {
 
     const { data: mountain, error: mountainError } = await supabase
       .from('mountains')
-      .select('id')
+      .select('id, entity_type')
       .eq('id', mountainId)
       .eq('is_active', true)
+      .eq('entity_type', 'mountain')
       .single()
 
     if (mountainError || !mountain) {

@@ -25,7 +25,11 @@ import SectionHeader from '@/components/ui/SectionHeader'
 import { FilterIcon, SearchIcon } from '@/components/ui/Icons'
 import { getDifficultyLevelLabel } from '@/lib/license-ui'
 import { storePendingShareTemplate } from '@/lib/share-template-intent'
-import { getMountainDistanceKm, matchesMountainLengthBand } from '@/lib/mountain-route-display'
+import {
+  getMountainDisplayAltitude,
+  getMountainDistanceKm,
+  matchesMountainLengthBand,
+} from '@/lib/mountain-route-display'
 import type { Mountain } from '@/types'
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 
@@ -90,15 +94,20 @@ function mountainMatchesExploreSearch(mountain: Mountain, rawQuery: string) {
   const query = normalizeExploreSearchText(rawQuery)
   if (!query) return true
 
-  const altitude = String(mountain.altitude)
+  const displayAltitude = getMountainDisplayAltitude(mountain)
+  const altitudeTerms = displayAltitude === null
+    ? []
+    : [
+        String(displayAltitude),
+        `${displayAltitude}m`,
+        `${displayAltitude}米`,
+        `海拔${displayAltitude}m`,
+        `海拔${displayAltitude}米`,
+      ]
   return [
     mountain.name,
     mountain.province,
-    altitude,
-    `${altitude}m`,
-    `${altitude}米`,
-    `海拔${altitude}m`,
-    `海拔${altitude}米`,
+    ...altitudeTerms,
   ].some((value) => normalizeExploreSearchText(value).includes(query))
 }
 
@@ -230,6 +239,7 @@ export default function ExploreClient({
 
   const filtered = useMemo(() => {
     return rawSearchMatches.filter(({ mountain, length }) => {
+      const displayAltitude = getMountainDisplayAltitude(mountain)
       const matchesTag =
         tag === '附近'
           ? true
@@ -237,14 +247,14 @@ export default function ExploreClient({
             ? mountain.difficulty === 'beginner'
             : tag === '进阶线'
               ? mountain.difficulty !== 'beginner'
-              : mountain.altitude >= 5000
+              : displayAltitude !== null && displayAltitude >= 5000
 
       const matchesDifficulty = difficulty === 'all' || mountain.difficulty === difficulty
       const matchesAltitude =
         altitudeBand === 'all' ||
-        (altitudeBand === 'low' && mountain.altitude < 2000) ||
-        (altitudeBand === 'mid' && mountain.altitude >= 2000 && mountain.altitude < 4000) ||
-        (altitudeBand === 'high' && mountain.altitude >= 4000)
+        (altitudeBand === 'low' && displayAltitude !== null && displayAltitude < 2000) ||
+        (altitudeBand === 'mid' && displayAltitude !== null && displayAltitude >= 2000 && displayAltitude < 4000) ||
+        (altitudeBand === 'high' && displayAltitude !== null && displayAltitude >= 4000)
 
       const matchesLength = matchesMountainLengthBand(length, lengthBand)
 

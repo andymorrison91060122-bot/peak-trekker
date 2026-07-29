@@ -3,7 +3,11 @@ import { useEffect, useRef, useState } from 'react'
 import type { FocusEvent, PointerEvent, Ref } from 'react'
 import { EXPLORE_MOUNTAIN_COVER_FALLBACK_URL } from '@/lib/default-media'
 import { getMountainDetailHeroImages, getMountainHeroImage } from '@/lib/mountain-media'
-import { getEstimatedDurationRange, getMountainDistanceKm } from '@/lib/mountain-route-display'
+import {
+  getEstimatedDurationRange,
+  getMountainDisplayAltitude,
+  getMountainDistanceKm,
+} from '@/lib/mountain-route-display'
 import { getExploreMountainThumbnailUrl } from '@/lib/mountain-storage'
 import type { Mountain } from '@/types'
 
@@ -29,6 +33,8 @@ export default function ExploreMountainCard({
     | 'id'
     | 'name'
     | 'altitude'
+    | 'entity_type'
+    | 'route_highpoint_m'
     | 'province'
     | 'difficulty'
     | 'min_license'
@@ -56,6 +62,7 @@ export default function ExploreMountainCard({
       : 'beginner'
   const difficultyLabel = normalizedDifficulty === 'beginner' ? '入门线' : '进阶线'
   const displayLengthKm = getMountainDistanceKm(mountain)
+  const displayAltitude = getMountainDisplayAltitude(mountain)
   const durationRange = getEstimatedDurationRange(mountain)
   const realMeta = [
     displayLengthKm === null ? null : `${displayLengthKm}km`,
@@ -80,7 +87,7 @@ export default function ExploreMountainCard({
       data-testid="explore-mountain-card"
       data-province={mountain.province}
       data-difficulty={mountain.difficulty}
-      data-altitude={mountain.altitude}
+      data-altitude={displayAltitude ?? undefined}
       data-length-km={filterLengthKm ?? undefined}
       data-license-level={mountain.min_license}
       data-hero-image-count={heroImageCount}
@@ -145,7 +152,9 @@ export default function ExploreMountainCard({
 
         <div className="explore-card__body" data-testid="explore-mountain-card-body">
           <div className="explore-card__altitude" data-testid="explore-mountain-card-altitude">
-            <span aria-hidden="true">▲</span> {mountain.altitude.toLocaleString()}m
+            <span aria-hidden="true">▲</span>{' '}
+            {mountain.entity_type === 'route_corridor' ? '最高海拔 ' : ''}
+            {displayAltitude === null ? '--' : `${displayAltitude.toLocaleString()}m`}
           </div>
           <div className="explore-card__topline" data-testid="explore-mountain-card-topline">
             <div className="explore-card__title">{mountain.name}</div>

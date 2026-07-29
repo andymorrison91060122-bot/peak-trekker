@@ -6,6 +6,8 @@ export type Province = {
   active_users: number
 }
 
+export type MountainEntityType = 'mountain' | 'route_corridor'
+
 export type Mountain = {
   id: string
   name: string
@@ -29,7 +31,10 @@ export type Mountain = {
   estimated_duration?: string | null
   estimated_duration_min?: number | null
   estimated_duration_minutes?: number | null
-  access_status?: 'open' | 'closed' | 'unknown' | 'pilgrimage_only' | null
+  entity_type?: MountainEntityType
+  aliases?: string[] | null
+  route_highpoint_m?: number | null
+  access_status?: 'open' | 'restricted' | 'closed' | 'unknown' | 'pilgrimage_only' | null
   access_note?: string | null
   risk_note?: string | null
   route_preview_image_url?: string | null

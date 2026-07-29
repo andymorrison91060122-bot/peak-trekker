@@ -6,6 +6,7 @@ import { listFeaturedPostsByMountain } from '@/lib/community-server'
 import { listProfileTrips } from '@/lib/profile-records-server'
 import { buildLicenseProgressSummary } from '@/lib/license-progress'
 import { isFeatureEnabled } from '@/lib/feature-flags'
+import { normalizeApprovedRouteGeometry } from '@/lib/mountain-route-geometry'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
 import type { Waypoint } from '@/lib/waypoints'
 import MountainDetailClient from './MountainDetailClient'
@@ -35,12 +36,41 @@ async function loadFeaturedPosts(
 }
 
 type MountainDetailSearchParams = {
-  fu47bRouteMock?: string | string[]
-  fu47bMapError?: string | string[]
+  routeGeometryFixture?: string | string[]
 }
 
-function searchFlag(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] === '1' : value === '1'
+function buildRouteGeometryQaFixture(
+  mountainId: string,
+  value: string | string[] | undefined,
+) {
+  const fixture = Array.isArray(value) ? value[0] : value
+  if (fixture !== 'trace') return null
+
+  const coordinates = [
+    [
+      [80.147, 42.733, 2180],
+      [80.091, 42.681, 2460],
+      [79.984, 42.612, 3020],
+    ],
+    [
+      [79.984, 42.612, 3020],
+      [79.842, 42.493, 3510],
+      [79.712, 42.371, 2890],
+    ],
+  ]
+
+  return normalizeApprovedRouteGeometry({
+    id: 'qa-trace',
+    mountain_id: mountainId,
+    simplified_geometry: {
+      type: 'MultiLineString',
+      coordinates,
+    },
+    display_mode: 'trace_only',
+    review_status: 'approved',
+    point_count: coordinates.reduce((sum, line) => sum + line.length, 0),
+    segment_count: coordinates.length,
+  })
 }
 
 export default async function MountainDetailPage({
@@ -52,14 +82,13 @@ export default async function MountainDetailPage({
 }) {
   const { id } = await params
   const resolvedSearchParams = searchParams ? await searchParams : {}
-  const routeMockEnabled = process.env.NODE_ENV !== 'production' && searchFlag(resolvedSearchParams.fu47bRouteMock)
-  const forceRouteMapError = process.env.NODE_ENV !== 'production' && searchFlag(resolvedSearchParams.fu47bMapError)
+  const routeGeometryFixture = resolvedSearchParams.routeGeometryFixture
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const [mountainRes, profileRes, waypointsRes, profileTrips] = await Promise.all([
+  const [mountainRes, profileRes, waypointsRes, profileTrips, routeGeometryRes] = await Promise.all([
     supabase.from('mountains').select('*').eq('id', id).single(),
     user
       ? supabase.from('profiles').select('license_level').eq('id', user.id).single()
@@ -68,10 +97,22 @@ export default async function MountainDetailPage({
     user
       ? listProfileTrips({ supabase, userId: user.id }).catch(() => [])
       : Promise.resolve([]),
+    supabase
+      .from('mountain_route_geometries')
+      .select('id, mountain_id, simplified_geometry, display_mode, review_status, point_count, segment_count')
+      .eq('mountain_id', id)
+      .eq('review_status', 'approved')
+      .maybeSingle(),
   ])
 
   const mountain = mountainRes.data as Mountain | null
   if (!mountain) notFound()
+  const routeGeometry = process.env.ENABLE_QA_TEST_HELPERS === 'true'
+    ? buildRouteGeometryQaFixture(id, routeGeometryFixture)
+        ?? (routeGeometryRes.error ? null : normalizeApprovedRouteGeometry(routeGeometryRes.data))
+    : routeGeometryRes.error
+      ? null
+      : normalizeApprovedRouteGeometry(routeGeometryRes.data)
 
   const featuredPosts = isFeatureEnabled('COMMUNITY_ENABLED')
     ? await loadFeaturedPosts(supabase, mountain.id)
@@ -87,10 +128,9 @@ export default async function MountainDetailPage({
       })}
       requiresLogin={!user}
       waypoints={sortWaypointsByElevation(waypointsRes)}
+      routeGeometry={routeGeometry}
       featuredPosts={featuredPosts}
       heroImages={getMountainDetailHeroImages(mountain, 6)}
-      routeMockEnabled={routeMockEnabled}
-      forceRouteMapError={forceRouteMapError}
     />
   )
 }

@@ -22,7 +22,7 @@ test('mountain detail uses the shared honest route display contract', () => {
 })
 
 test('non-open access state uses the existing decision rows and disables trek entry', () => {
-  assert.match(mountainDetail, /getMountainAccessDisplay\(mountain\.access_status\)/)
+  assert.match(mountainDetail, /getMountainAccessDisplay\(mountain\.access_status, mountain\.entity_type\)/)
   assert.match(mountainDetail, /mountain\.access_note\?\.trim\(\)/)
   assert.match(mountainDetail, /accessDisplay\.canStartTrek \? \(/)
   assert.match(mountainDetail, /<PrimaryButton[\s\S]*disabled[\s\S]*\{accessDisplay\.ctaLabel\}/)
@@ -45,7 +45,7 @@ test('Mountain keeps legacy fields and adds the imported display fields', () => 
   assert.match(mountainTypes, /estimated_duration\?: string \| null/)
   assert.match(mountainTypes, /estimated_duration_min\?: number \| null/)
   assert.match(mountainTypes, /estimated_duration_minutes\?: number \| null/)
-  assert.match(mountainTypes, /access_status\?: 'open' \| 'closed' \| 'unknown' \| 'pilgrimage_only' \| null/)
+  assert.match(mountainTypes, /access_status\?: 'open' \| 'restricted' \| 'closed' \| 'unknown' \| 'pilgrimage_only' \| null/)
   assert.match(mountainTypes, /access_note\?: string \| null/)
   assert.match(mountainTypes, /risk_note\?: string \| null/)
 })

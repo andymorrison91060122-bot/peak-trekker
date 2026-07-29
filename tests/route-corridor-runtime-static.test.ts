@@ -60,6 +60,21 @@ test('migration stores reviewed simplified geometry without exposing a raw objec
   assert.match(migration, /mountain\.is_readable = true/)
 })
 
+test('route geometry grants expose read-only Data API access to clients', () => {
+  assert.match(
+    migration,
+    /REVOKE ALL ON TABLE public\.mountain_route_geometries FROM anon, authenticated;/,
+  )
+  assert.match(
+    migration,
+    /GRANT SELECT ON TABLE public\.mountain_route_geometries TO anon, authenticated;/,
+  )
+  assert.match(
+    migration,
+    /GRANT ALL ON TABLE public\.mountain_route_geometries TO service_role;/,
+  )
+})
+
 test('activation guard requires shared content but altitude only for mountains', () => {
   assert.match(migration, /NEW\.entity_type = 'mountain' AND NEW\.altitude IS NULL/)
   assert.match(migration, /NEW\.is_readable IS DISTINCT FROM true/)

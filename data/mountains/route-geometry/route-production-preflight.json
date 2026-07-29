@@ -823,9 +823,9 @@
     }
   },
   "input": {
-    "migration_sha256": "de54290a94f0c23dd9d107b03b94116e965a143f86f1654dafa26ebfe34b5fb8",
-    "plan_sha256": "cba4c97a29721bd8c2c9ffb412296a97479023fa664e287c6eb1c6782bf82dba",
-    "snapshot_sha256": "4488916bb63be58ed19ee404722204d0896de13cb0ca1152382a605ee303010d"
+    "migration_sha256": "e9becd44ea6c44fa3167b3dc1ec4aa758c156c30bc3500b253b26cbec77250e9",
+    "plan_sha256": "5108ad5f99ab9e084170e0ef6c19c54ea0f1f9120122f96dbab636b363a74505",
+    "snapshot_sha256": "b4754a0317cda053eda8ebfbfddfa12871484a974162008726130ad3118df6c8"
   },
   "legacy_routes": [
     {
@@ -901,8 +901,6 @@
   ],
   "read_metrics": {
     "database_queries": 1,
-    "database_query_attempts": 2,
-    "failed_database_queries": 1,
     "planned_storage_paths_checked": 104,
     "storage_object_downloads": 0
   },

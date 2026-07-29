@@ -49,7 +49,7 @@ const EXPECTED_STAGE3_SHA256 = Object.freeze({
 })
 
 const EXPECTED_STAGE2_MIGRATION_SHA256 =
-  'de54290a94f0c23dd9d107b03b94116e965a143f86f1654dafa26ebfe34b5fb8'
+  'e9becd44ea6c44fa3167b3dc1ec4aa758c156c30bc3500b253b26cbec77250e9'
 
 const EXPECTED_FROZEN_INPUTS = Object.freeze({
   effective_canonicals:

@@ -63383,7 +63383,7 @@
     "stage2_migration": {
       "apply_in_this_stage": false,
       "path": "supabase/migrations/20260730110000_p2_route_corridor_runtime.sql",
-      "sha256": "de54290a94f0c23dd9d107b03b94116e965a143f86f1654dafa26ebfe34b5fb8",
+      "sha256": "e9becd44ea6c44fa3167b3dc1ec4aa758c156c30bc3500b253b26cbec77250e9",
       "status": "required_not_applied"
     },
     "storage_buckets": {

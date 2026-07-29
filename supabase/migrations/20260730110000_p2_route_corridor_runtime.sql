@@ -149,6 +149,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS mountain_route_geometries_one_approved_per_mou
 
 ALTER TABLE public.mountain_route_geometries ENABLE ROW LEVEL SECURITY;
 
+REVOKE ALL ON TABLE public.mountain_route_geometries FROM anon, authenticated;
+GRANT SELECT ON TABLE public.mountain_route_geometries TO anon, authenticated;
+GRANT ALL ON TABLE public.mountain_route_geometries TO service_role;
+
 DROP POLICY IF EXISTS mountain_route_geometries_select_reviewed
   ON public.mountain_route_geometries;
 CREATE POLICY mountain_route_geometries_select_reviewed

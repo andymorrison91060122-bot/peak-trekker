@@ -101,9 +101,9 @@ function completeSnapshot(overrides = {}) {
     captured_at: '2026-07-30T00:00:00.000Z',
     project_ref: 'fixture',
     plan_sha256:
-      'cba4c97a29721bd8c2c9ffb412296a97479023fa664e287c6eb1c6782bf82dba',
+      '5108ad5f99ab9e084170e0ef6c19c54ea0f1f9120122f96dbab636b363a74505',
     migration_sha256:
-      'de54290a94f0c23dd9d107b03b94116e965a143f86f1654dafa26ebfe34b5fb8',
+      'e9becd44ea6c44fa3167b3dc1ec4aa758c156c30bc3500b253b26cbec77250e9',
     read_metrics: {
       database_queries: 1,
       object_downloads: 0,

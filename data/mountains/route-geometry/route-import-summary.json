@@ -1,0 +1,66 @@
+{
+  "artifact_sha256": {
+    "existing-entity-updates.jsonl": "7a83e88414ff44138929979e39f9a82424f29a1e11656ffdc77f844203307120",
+    "route-content-import.jsonl": "fefb072d776d033833a1a1ee62836ff93bdcc499ddee709437cd77408902f581",
+    "route-cover-import.jsonl": "9733218984620bb35be874cfbd571720b748ca08e8edeae65ca683f6dd457f40",
+    "route-geometry-import.jsonl": "a1bd5e9efd151f4908c0a4f180221986dd165e93e57c1b8079595435c93d906e",
+    "route-import-blockers.csv": "5516eb701f76ed51adfe7faf4cb40bf8f93298e7973575e5eb1cb47c98da917d",
+    "route-import-review.md": "3fcebac03113f64934e02210ec6e556d9146f8c713f223cf1e64650bc35ee08c"
+  },
+  "association_updates": {
+    "count": 2,
+    "gangrenboqi_altitude_resolution": "needs_product_decision",
+    "keys": [
+      "gangrenboqi-cluster",
+      "hutiaoxia-gaolu-route"
+    ]
+  },
+  "blockers": {
+    "hard_blocker_count": 1,
+    "keys": [
+      "langta-ancient-trail-route"
+    ]
+  },
+  "content": {
+    "blocked": 1,
+    "count": 12,
+    "no_track_keys": [
+      "aotai-traverse-route",
+      "bogeda-grand-loop-route",
+      "langta-ancient-trail-route"
+    ],
+    "ready": 11
+  },
+  "covers": {
+    "attachment_count": 16,
+    "gangrenboqi_candidates_excluded": 2,
+    "project_count": 12
+  },
+  "frozen_inputs": {
+    "effective_canonicals": "5fe0f8fcc4154f10c014cfee79c6b57b6582eed77f9b0445c72ddfd593da4294",
+    "enrichment": "b3f43ef40e009c35ee1ca96aed9d55038afe4eb76a39b9c7bb37f2e4404cfee5",
+    "entity_semantics": "45e8685f42968cedfa6b3f7adbb998c5cdbe28af74b823b77975be838aa0cd8a"
+  },
+  "geometry": {
+    "count": 74,
+    "display_mode": {
+      "map": 70,
+      "trace_only": 4
+    },
+    "geo_conflicts": 0
+  },
+  "product_metrics_overwritten": 0,
+  "production_side_effects": {
+    "database_writes": 0,
+    "migration_applied": false,
+    "storage_writes": 0
+  },
+  "schema_version": "route-data-import-summary-v1",
+  "source_manifest": {
+    "attachment_bytes": 72270202,
+    "attachment_count": 92,
+    "coordinator_source_manifest_sha256": "c434e0042e83ece7be424f33916dca70b053a69f8d3fc902dbeb4d1af81caf84",
+    "durable_manifest_sha256": "303750dc20b01e354e82cc998b476dfeafe697d7090b5c04ebf0d5d3069f64b4"
+  },
+  "status": "candidate_review_package_only"
+}

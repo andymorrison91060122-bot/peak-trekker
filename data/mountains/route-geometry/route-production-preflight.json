@@ -1,0 +1,1559 @@
+{
+  "blockers": [],
+  "gangrenboqi": {
+    "held": true,
+    "production_current": {
+      "access_status": "pilgrimage_only",
+      "aliases": null,
+      "altitude": 4000,
+      "effective_canonical_key": "gangrenboqi-cluster",
+      "entity_type": null,
+      "id": "137df8c2-10cd-5705-b65a-60a904744246",
+      "is_active": true,
+      "is_readable": true,
+      "length_km": 52,
+      "name": "冈仁波齐周边山峰",
+      "weather_enabled": true
+    }
+  },
+  "hutiaoxia": {
+    "expected_current": {
+      "aliases": null,
+      "effective_canonical_key": "hutiaoxia-gaolu-route",
+      "id": "9bef8995-54c4-5e7a-8b38-4342bb818faf",
+      "length_km": 22
+    },
+    "status": "expected_current_complete"
+  },
+  "identity": {
+    "existing_geometry_parents": {
+      "expected": 65,
+      "matched": 65,
+      "mismatched": 0,
+      "rows": [
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "animaqing-feng",
+              "id": "c0da290e-c8ff-5d7b-9312-eed9eb890b68"
+            }
+          ],
+          "effective_canonical_key": "animaqing-feng",
+          "id": "c0da290e-c8ff-5d7b-9312-eed9eb890b68",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "ao-shan",
+              "id": "85736b13-17b9-5f2a-a6f1-6d69b48a68fb"
+            }
+          ],
+          "effective_canonical_key": "ao-shan",
+          "id": "85736b13-17b9-5f2a-a6f1-6d69b48a68fb",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "baiyun-shan-guangdong",
+              "id": "5b138f45-4320-5401-8483-142d575348ed"
+            }
+          ],
+          "effective_canonical_key": "baiyun-shan-guangdong",
+          "id": "5b138f45-4320-5401-8483-142d575348ed",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "cangshan-yunnan",
+              "id": "881d244d-28a0-5530-a923-4bd870a36008"
+            }
+          ],
+          "effective_canonical_key": "cangshan-yunnan",
+          "id": "881d244d-28a0-5530-a923-4bd870a36008",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "changbaishan",
+              "id": "8bd407d5-7058-55a6-92bf-254407896d44"
+            }
+          ],
+          "effective_canonical_key": "changbaishan",
+          "id": "8bd407d5-7058-55a6-92bf-254407896d44",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "chuandi-ding",
+              "id": "01d426e4-957f-5a7e-8a37-7d7a1b30ab11"
+            }
+          ],
+          "effective_canonical_key": "chuandi-ding",
+          "id": "01d426e4-957f-5a7e-8a37-7d7a1b30ab11",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "dawagengza",
+              "id": "ce6ab5df-7ec8-549b-a683-3c994b46f14a"
+            }
+          ],
+          "effective_canonical_key": "dawagengza",
+          "id": "ce6ab5df-7ec8-549b-a683-3c994b46f14a",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "emeishan",
+              "id": "f52bd0d3-2331-4404-b522-aaca38dff872"
+            }
+          ],
+          "effective_canonical_key": "emeishan",
+          "id": "f52bd0d3-2331-4404-b522-aaca38dff872",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "fanjingshan",
+              "id": "c8a60f16-8e6d-58ef-8d2e-9fd9c897c7da"
+            }
+          ],
+          "effective_canonical_key": "fanjingshan",
+          "id": "c8a60f16-8e6d-58ef-8d2e-9fd9c897c7da",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "gangrenboqi-cluster",
+              "id": "137df8c2-10cd-5705-b65a-60a904744246"
+            }
+          ],
+          "effective_canonical_key": "gangrenboqi-cluster",
+          "id": "137df8c2-10cd-5705-b65a-60a904744246",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "genie-shan",
+              "id": "f4a2b9ea-0f18-593c-9344-ba70402f6122"
+            }
+          ],
+          "effective_canonical_key": "genie-shan",
+          "id": "f4a2b9ea-0f18-593c-9344-ba70402f6122",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "haba-xueshan",
+              "id": "105a965a-146c-55b8-8016-b8ed1cf371fd"
+            }
+          ],
+          "effective_canonical_key": "haba-xueshan",
+          "id": "105a965a-146c-55b8-8016-b8ed1cf371fd",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "hengshan-hunan",
+              "id": "37310f46-6e5b-55f3-b920-4f0d05cfaf51"
+            }
+          ],
+          "effective_canonical_key": "hengshan-hunan",
+          "id": "37310f46-6e5b-55f3-b920-4f0d05cfaf51",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "huangshan",
+              "id": "404add39-6b3f-4180-988e-4d67e09993b3"
+            }
+          ],
+          "effective_canonical_key": "huangshan",
+          "id": "404add39-6b3f-4180-988e-4d67e09993b3",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "huangshan-xihai-route",
+              "id": "b161109e-0a15-5b94-865a-83688cf240ff"
+            }
+          ],
+          "effective_canonical_key": "huangshan-xihai-route",
+          "id": "b161109e-0a15-5b94-865a-83688cf240ff",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "huashan",
+              "id": "216508c9-ffca-4164-8010-534d8650ee64"
+            }
+          ],
+          "effective_canonical_key": "huashan",
+          "id": "216508c9-ffca-4164-8010-534d8650ee64",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "huihang-gudao-route",
+              "id": "ea3a8ceb-8c3f-5857-bb14-49ae38b85387"
+            }
+          ],
+          "effective_canonical_key": "huihang-gudao-route",
+          "id": "ea3a8ceb-8c3f-5857-bb14-49ae38b85387",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "hutiaoxia-gaolu-route",
+              "id": "9bef8995-54c4-5e7a-8b38-4342bb818faf"
+            }
+          ],
+          "effective_canonical_key": "hutiaoxia-gaolu-route",
+          "id": "9bef8995-54c4-5e7a-8b38-4342bb818faf",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "jiaozi-xueshan",
+              "id": "46b79d42-6d66-5b25-acde-1a951f619f20"
+            }
+          ],
+          "effective_canonical_key": "jiaozi-xueshan",
+          "id": "46b79d42-6d66-5b25-acde-1a951f619f20",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "jinfo-shan",
+              "id": "679fbd75-d337-537e-a5d9-fcff93d5a1e3"
+            }
+          ],
+          "effective_canonical_key": "jinfo-shan",
+          "id": "679fbd75-d337-537e-a5d9-fcff93d5a1e3",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "jinggang-shan",
+              "id": "0617faa6-b503-5946-a7b3-4b23ac6497c9"
+            }
+          ],
+          "effective_canonical_key": "jinggang-shan",
+          "id": "0617faa6-b503-5946-a7b3-4b23ac6497c9",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "jiuhuashan",
+              "id": "209d2411-0adb-5a2d-9fb4-3331c6ef8168"
+            }
+          ],
+          "effective_canonical_key": "jiuhuashan",
+          "id": "209d2411-0adb-5a2d-9fb4-3331c6ef8168",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "jizu-shan",
+              "id": "f2fce76a-16f6-58b8-bf73-bcb0f48fd890"
+            }
+          ],
+          "effective_canonical_key": "jizu-shan",
+          "id": "f2fce76a-16f6-58b8-bf73-bcb0f48fd890",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "kongtong-shan",
+              "id": "085bcac9-4cfb-5ad2-a37e-8b96e30d16b3"
+            }
+          ],
+          "effective_canonical_key": "kongtong-shan",
+          "id": "085bcac9-4cfb-5ad2-a37e-8b96e30d16b3",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "laojunshan-henan",
+              "id": "99d08c60-4bd5-506a-ba7e-4c2cf3536fc8"
+            }
+          ],
+          "effective_canonical_key": "laojunshan-henan",
+          "id": "99d08c60-4bd5-506a-ba7e-4c2cf3536fc8",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "laoshan",
+              "id": "9d1c2097-c6be-5b11-a216-cb0f16bd80c6"
+            }
+          ],
+          "effective_canonical_key": "laoshan",
+          "id": "9d1c2097-c6be-5b11-a216-cb0f16bd80c6",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "longhu-shan",
+              "id": "5f4a6634-518a-5fdd-a386-f90f70c90a70"
+            }
+          ],
+          "effective_canonical_key": "longhu-shan",
+          "id": "5f4a6634-518a-5fdd-a386-f90f70c90a70",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "luofushan",
+              "id": "378865aa-6bb3-59f4-a562-9790301b81bf"
+            }
+          ],
+          "effective_canonical_key": "luofushan",
+          "id": "378865aa-6bb3-59f4-a562-9790301b81bf",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "lushan",
+              "id": "00c9e27c-bfa7-54aa-851a-3b2a000453fe"
+            }
+          ],
+          "effective_canonical_key": "lushan",
+          "id": "00c9e27c-bfa7-54aa-851a-3b2a000453fe",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "mingsha-shan",
+              "id": "49708ab0-678e-5091-94c6-93da38a84ecc"
+            }
+          ],
+          "effective_canonical_key": "mingsha-shan",
+          "id": "49708ab0-678e-5091-94c6-93da38a84ecc",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "nanhuang-gudao-route",
+              "id": "ac451f22-b67d-559c-9d41-f1c17430f5a1"
+            }
+          ],
+          "effective_canonical_key": "nanhuang-gudao-route",
+          "id": "ac451f22-b67d-559c-9d41-f1c17430f5a1",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "niubei-shan",
+              "id": "dfc9c5cf-de64-55a1-a03f-0998c7525a24"
+            }
+          ],
+          "effective_canonical_key": "niubei-shan",
+          "id": "dfc9c5cf-de64-55a1-a03f-0998c7525a24",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "qingchengshan-laojun-ge",
+              "id": "6ff72663-9948-5fca-b7e4-3d9cd3485a2b"
+            }
+          ],
+          "effective_canonical_key": "qingchengshan-laojun-ge",
+          "id": "6ff72663-9948-5fca-b7e4-3d9cd3485a2b",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "qiniang-shan",
+              "id": "7445af32-4acd-53b5-b69a-304befc928dc"
+            }
+          ],
+          "effective_canonical_key": "qiniang-shan",
+          "id": "7445af32-4acd-53b5-b69a-304befc928dc",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "sanqingshan",
+              "id": "1797b683-d7e2-59d9-aef6-766fd8b93232"
+            }
+          ],
+          "effective_canonical_key": "sanqingshan",
+          "id": "1797b683-d7e2-59d9-aef6-766fd8b93232",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "shennong-ding",
+              "id": "b733089f-cc28-43f1-a87a-d691f24134c8"
+            }
+          ],
+          "effective_canonical_key": "shennong-ding",
+          "id": "b733089f-cc28-43f1-a87a-d691f24134c8",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "siguniang-dafeng",
+              "id": "0aadeada-8780-5696-b78e-0c68e12892e4"
+            }
+          ],
+          "effective_canonical_key": "siguniang-dafeng",
+          "id": "0aadeada-8780-5696-b78e-0c68e12892e4",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "siguniang-erfeng",
+              "id": "4d878960-614e-547a-a756-6beb0ecac728"
+            }
+          ],
+          "effective_canonical_key": "siguniang-erfeng",
+          "id": "4d878960-614e-547a-a756-6beb0ecac728",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "siguniang-sanfeng",
+              "id": "6eca150a-d2cc-59fb-b145-b517b182b0c4"
+            }
+          ],
+          "effective_canonical_key": "siguniang-sanfeng",
+          "id": "6eca150a-d2cc-59fb-b145-b517b182b0c4",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "songshan",
+              "id": "c3455346-3f62-4d4b-9ccc-ac83e9babdfc"
+            }
+          ],
+          "effective_canonical_key": "songshan",
+          "id": "c3455346-3f62-4d4b-9ccc-ac83e9babdfc",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "taibaishan",
+              "id": "54e34177-d7b0-56e6-a0b4-ba78bd6662b8"
+            }
+          ],
+          "effective_canonical_key": "taibaishan",
+          "id": "54e34177-d7b0-56e6-a0b4-ba78bd6662b8",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "taimu-shan",
+              "id": "e1dc9bd5-962a-5def-abe6-f105d1d12ad5"
+            }
+          ],
+          "effective_canonical_key": "taimu-shan",
+          "id": "e1dc9bd5-962a-5def-abe6-f105d1d12ad5",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "taishan",
+              "id": "11e9d0e9-8355-41b4-bc15-0b7e99d43c96"
+            }
+          ],
+          "effective_canonical_key": "taishan",
+          "id": "11e9d0e9-8355-41b4-bc15-0b7e99d43c96",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "tianmushan-qijian-route",
+              "id": "22ce192f-2ed0-51ea-a9ed-cb1316edf390"
+            }
+          ],
+          "effective_canonical_key": "tianmushan-qijian-route",
+          "id": "22ce192f-2ed0-51ea-a9ed-cb1316edf390",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "tiantang-ding",
+              "id": "7f68fbbb-dca7-5e32-a164-88122245f34a"
+            }
+          ],
+          "effective_canonical_key": "tiantang-ding",
+          "id": "7f68fbbb-dca7-5e32-a164-88122245f34a",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "tianzhushan-anhui",
+              "id": "519be38c-3469-5711-8579-38900fb09593"
+            }
+          ],
+          "effective_canonical_key": "tianzhushan-anhui",
+          "id": "519be38c-3469-5711-8579-38900fb09593",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "wangmangling-xiyaigou-route",
+              "id": "ce502992-951c-5ca9-9762-e64806d13e06"
+            }
+          ],
+          "effective_canonical_key": "wangmangling-xiyaigou-route",
+          "id": "ce502992-951c-5ca9-9762-e64806d13e06",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "wawu-shan",
+              "id": "41ea337f-a854-527c-8646-bdf94295bd0c"
+            }
+          ],
+          "effective_canonical_key": "wawu-shan",
+          "id": "41ea337f-a854-527c-8646-bdf94295bd0c",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "wudangshan",
+              "id": "4d1a818b-8038-49d1-a173-a58e8c76801c"
+            }
+          ],
+          "effective_canonical_key": "wudangshan",
+          "id": "4d1a818b-8038-49d1-a173-a58e8c76801c",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "wugongshan-jiangxi",
+              "id": "452df493-a66a-58e3-863d-98f1261f9eed"
+            }
+          ],
+          "effective_canonical_key": "wugongshan-jiangxi",
+          "id": "452df493-a66a-58e3-863d-98f1261f9eed",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "wutaishan",
+              "id": "9d7abd84-3eac-4472-8ba5-4c4ee6bab226"
+            }
+          ],
+          "effective_canonical_key": "wutaishan",
+          "id": "9d7abd84-3eac-4472-8ba5-4c4ee6bab226",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "wutong-shan",
+              "id": "29197762-6ef4-5178-aa9a-6aae1880e1f3"
+            }
+          ],
+          "effective_canonical_key": "wutong-shan",
+          "id": "29197762-6ef4-5178-aa9a-6aae1880e1f3",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "wuzhi-shan",
+              "id": "69a80272-f101-50b9-9d96-601643e0d3fb"
+            }
+          ],
+          "effective_canonical_key": "wuzhi-shan",
+          "id": "69a80272-f101-50b9-9d96-601643e0d3fb",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "xiang-shan",
+              "id": "d0d648e8-8367-56e7-905a-05d9ccb2ebe9"
+            }
+          ],
+          "effective_canonical_key": "xiang-shan",
+          "id": "d0d648e8-8367-56e7-905a-05d9ccb2ebe9",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "xiaowutai-shan",
+              "id": "73f40f92-ec89-5304-8534-68c5afa2f49e"
+            }
+          ],
+          "effective_canonical_key": "xiaowutai-shan",
+          "id": "73f40f92-ec89-5304-8534-68c5afa2f49e",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "xiata-gudao-route",
+              "id": "1de95e43-3ab5-5211-909c-613242d0a3eb"
+            }
+          ],
+          "effective_canonical_key": "xiata-gudao-route",
+          "id": "1de95e43-3ab5-5211-909c-613242d0a3eb",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "xiling-xueshan",
+              "id": "050c112a-fbd9-5fa5-8634-2f7e7cc8bdd4"
+            }
+          ],
+          "effective_canonical_key": "xiling-xueshan",
+          "id": "050c112a-fbd9-5fa5-8634-2f7e7cc8bdd4",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "yandangshan-zhejiang",
+              "id": "9c8848e9-6e18-4883-b8da-475699c7c856"
+            }
+          ],
+          "effective_canonical_key": "yandangshan-zhejiang",
+          "id": "9c8848e9-6e18-4883-b8da-475699c7c856",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "yubeng-route",
+              "id": "9866f074-c1ce-521e-b688-c87ec241320d"
+            }
+          ],
+          "effective_canonical_key": "yubeng-route",
+          "id": "9866f074-c1ce-521e-b688-c87ec241320d",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "yuelu-shan",
+              "id": "f0f02cef-6b71-50c3-9355-fca37e0fa5d5"
+            }
+          ],
+          "effective_canonical_key": "yuelu-shan",
+          "id": "f0f02cef-6b71-50c3-9355-fca37e0fa5d5",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "yuntai-shan-henan",
+              "id": "5df8948e-51ec-5a26-8abc-bf0bc58f11fe"
+            }
+          ],
+          "effective_canonical_key": "yuntai-shan-henan",
+          "id": "5df8948e-51ec-5a26-8abc-bf0bc58f11fe",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "yuzhu-feng",
+              "id": "0e505233-567b-596b-8bb6-88dc14cac0c8"
+            }
+          ],
+          "effective_canonical_key": "yuzhu-feng",
+          "id": "0e505233-567b-596b-8bb6-88dc14cac0c8",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "zhangjiajie-tianmen-shan",
+              "id": "44d40dcd-f1d0-47af-98bb-154505a72fa5"
+            }
+          ],
+          "effective_canonical_key": "zhangjiajie-tianmen-shan",
+          "id": "44d40dcd-f1d0-47af-98bb-154505a72fa5",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "zhongnan-shan",
+              "id": "17b60f43-3c47-5c4f-96c9-1c28cd9cf6f0"
+            }
+          ],
+          "effective_canonical_key": "zhongnan-shan",
+          "id": "17b60f43-3c47-5c4f-96c9-1c28cd9cf6f0",
+          "status": "matched"
+        },
+        {
+          "actual": [
+            {
+              "effective_canonical_key": "zijin-shan-jiangsu",
+              "id": "49e54c1f-1903-51a5-bc52-7bd3ddeda2af"
+            }
+          ],
+          "effective_canonical_key": "zijin-shan-jiangsu",
+          "id": "49e54c1f-1903-51a5-bc52-7bd3ddeda2af",
+          "status": "matched"
+        }
+      ]
+    },
+    "new_route_identities": {
+      "absent": 11,
+      "expected": 11,
+      "present": 0,
+      "rows": [
+        {
+          "actual": [],
+          "effective_canonical_key": "aotai-traverse-route",
+          "id": "3aedd9bb-19f7-5b49-a899-b9595aa29002",
+          "status": "absent"
+        },
+        {
+          "actual": [],
+          "effective_canonical_key": "bogeda-grand-loop-route",
+          "id": "01c780c1-5d04-5ff6-816d-1cb3a3e89753",
+          "status": "absent"
+        },
+        {
+          "actual": [],
+          "effective_canonical_key": "everest-east-kama-valley-route",
+          "id": "ab65bafe-b7a5-516c-bef8-e6efbb8cc7ff",
+          "status": "absent"
+        },
+        {
+          "actual": [],
+          "effective_canonical_key": "genie-south-route",
+          "id": "39b87b29-be32-546e-b1c4-6cb7c993e86c",
+          "status": "absent"
+        },
+        {
+          "actual": [],
+          "effective_canonical_key": "gongga-grand-loop-route",
+          "id": "eca11851-2fe2-5417-b938-a45201282ed6",
+          "status": "absent"
+        },
+        {
+          "actual": [],
+          "effective_canonical_key": "kanas-hemu-traverse-route",
+          "id": "e461af81-2f6a-5631-8dc4-23eaef276ff4",
+          "status": "absent"
+        },
+        {
+          "actual": [],
+          "effective_canonical_key": "kulagangri-trek-route",
+          "id": "f7dc99ae-67af-58a8-8ab1-45a4d7fce00d",
+          "status": "absent"
+        },
+        {
+          "actual": [],
+          "effective_canonical_key": "luoke-route",
+          "id": "8670bd70-7784-5294-a413-b976d51c2647",
+          "status": "absent"
+        },
+        {
+          "actual": [],
+          "effective_canonical_key": "motuo-trek-route",
+          "id": "8972353d-ef10-5faf-a352-8f8987c7d4de",
+          "status": "absent"
+        },
+        {
+          "actual": [],
+          "effective_canonical_key": "siguniang-changping-bipeng-route",
+          "id": "8874b9ed-e531-5690-bc49-a61594a3423c",
+          "status": "absent"
+        },
+        {
+          "actual": [],
+          "effective_canonical_key": "wusun-ancient-trail-route",
+          "id": "98786a61-8c62-5c36-84bb-c9c09a518394",
+          "status": "absent"
+        }
+      ]
+    }
+  },
+  "input": {
+    "migration_sha256": "de54290a94f0c23dd9d107b03b94116e965a143f86f1654dafa26ebfe34b5fb8",
+    "plan_sha256": "cba4c97a29721bd8c2c9ffb412296a97479023fa664e287c6eb1c6782bf82dba",
+    "snapshot_sha256": "4488916bb63be58ed19ee404722204d0896de13cb0ca1152382a605ee303010d"
+  },
+  "legacy_routes": [
+    {
+      "effective_canonical_key": "duku-gonglu-route",
+      "entity_type": null,
+      "found": true,
+      "id": "c64bf308-2843-58f6-b1e1-07c8b4726544",
+      "weather_enabled": true
+    },
+    {
+      "effective_canonical_key": "huangshan-xihai-route",
+      "entity_type": null,
+      "found": true,
+      "id": "b161109e-0a15-5b94-865a-83688cf240ff",
+      "weather_enabled": true
+    },
+    {
+      "effective_canonical_key": "huihang-gudao-route",
+      "entity_type": null,
+      "found": true,
+      "id": "ea3a8ceb-8c3f-5857-bb14-49ae38b85387",
+      "weather_enabled": true
+    },
+    {
+      "effective_canonical_key": "hutiaoxia-gaolu-route",
+      "entity_type": null,
+      "found": true,
+      "id": "9bef8995-54c4-5e7a-8b38-4342bb818faf",
+      "weather_enabled": true
+    },
+    {
+      "effective_canonical_key": "nanhuang-gudao-route",
+      "entity_type": null,
+      "found": true,
+      "id": "ac451f22-b67d-559c-9d41-f1c17430f5a1",
+      "weather_enabled": true
+    },
+    {
+      "effective_canonical_key": "tianmushan-qijian-route",
+      "entity_type": null,
+      "found": true,
+      "id": "22ce192f-2ed0-51ea-a9ed-cb1316edf390",
+      "weather_enabled": true
+    },
+    {
+      "effective_canonical_key": "wangmangling-xiyaigou-route",
+      "entity_type": null,
+      "found": true,
+      "id": "ce502992-951c-5ca9-9762-e64806d13e06",
+      "weather_enabled": true
+    },
+    {
+      "effective_canonical_key": "weizhou-volcanic-landform-route",
+      "entity_type": null,
+      "found": true,
+      "id": "80ea01e1-1b61-5860-a5df-64c2186e686f",
+      "weather_enabled": true
+    },
+    {
+      "effective_canonical_key": "xiata-gudao-route",
+      "entity_type": null,
+      "found": true,
+      "id": "1de95e43-3ab5-5211-909c-613242d0a3eb",
+      "weather_enabled": true
+    },
+    {
+      "effective_canonical_key": "yubeng-route",
+      "entity_type": null,
+      "found": true,
+      "id": "9866f074-c1ce-521e-b688-c87ec241320d",
+      "weather_enabled": true
+    }
+  ],
+  "read_metrics": {
+    "database_queries": 1,
+    "database_query_attempts": 2,
+    "failed_database_queries": 1,
+    "planned_storage_paths_checked": 104,
+    "storage_object_downloads": 0
+  },
+  "ready_for_separate_apply_plan": true,
+  "required_actions": [
+    "review_and_apply_stage2_migration_separately",
+    "create_missing_storage_bucket_separately"
+  ],
+  "schema": {
+    "missing_mountain_columns": [
+      "aliases",
+      "entity_type"
+    ],
+    "mountains_contract": "missing_pre_migration",
+    "route_geometry_rls": false,
+    "route_geometry_table": "missing_pre_migration",
+    "stage2_migration": "not_applied"
+  },
+  "schema_version": "route-production-preflight-v1",
+  "storage": {
+    "absent": 30,
+    "bucket_missing": 74,
+    "different_sha": 0,
+    "planned": 104,
+    "rows": [
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "bdcd3ee2219f35dc16cd4832ea06b7922e918762b2f0dfc905a3abaa94310c78",
+        "object_path": "catalog/aotai-traverse-route/01-user-supplied-bdcd3ee2219f.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "3a9dc3b2babb2d9c6ba5f4b1644081c77d0bbbc71f9ddbf149b849ffb0660889",
+        "object_path": "catalog/aotai-traverse-route/thumb-v1-01-user-supplied-bdcd3ee2219f.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "00d31ed6eb097661b2854e4abf48f3a5c9528a25e04375395776c9bf1a0a0634",
+        "object_path": "catalog/bogeda-grand-loop-route/01-user-supplied-00d31ed6eb09.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "34b0f20545e1695624e988506faec666e85779a416aae93b8afb1efc818a62c4",
+        "object_path": "catalog/bogeda-grand-loop-route/02-user-supplied-34b0f20545e1.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "57cef15d140bfc7542f651140db6a0db5cde9fff80bca479b5bba4ffe7c2e288",
+        "object_path": "catalog/bogeda-grand-loop-route/thumb-v1-01-user-supplied-00d31ed6eb09.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "207e481e080a2ba09a11bff6a743e845f5ec1c66a3066827f650dc4e0392ae77",
+        "object_path": "catalog/bogeda-grand-loop-route/thumb-v1-02-user-supplied-34b0f20545e1.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "ddbe8ea3925b69d67b41f2ed29dcd84f76a344c08b11a94d64613e48dd817fc2",
+        "object_path": "catalog/everest-east-kama-valley-route/01-user-supplied-ddbe8ea3925b.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "b076b37a14321e699c4135a35ae546a22d0b6689910e4a70f142fde4fc2b015f",
+        "object_path": "catalog/everest-east-kama-valley-route/thumb-v1-01-user-supplied-ddbe8ea3925b.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "679fb994a3b74a3da163c516be39b5daf8d0eac82d5767ab471c2b9d0390eaae",
+        "object_path": "catalog/genie-south-route/01-user-supplied-679fb994a3b7.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "f7dd32173ccde6f436aab6b1fbb998e09f891b22f5528f276672cac5d1e9159c",
+        "object_path": "catalog/genie-south-route/02-user-supplied-f7dd32173ccd.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "c26626b28cbdffb149fcfa34cd9ffa796e61a8654cb98f52ca8381361560842f",
+        "object_path": "catalog/genie-south-route/thumb-v1-01-user-supplied-679fb994a3b7.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "61f487d4f7d8218033fdee25ee3430f4c382770fc631558289da0315583ada73",
+        "object_path": "catalog/genie-south-route/thumb-v1-02-user-supplied-f7dd32173ccd.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "e30abd595caf590fad742d65d7f0192e5df76a2b85387a91500663342814e79e",
+        "object_path": "catalog/gongga-grand-loop-route/01-user-supplied-e30abd595caf.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "fc2a5962afe0f740b80d9a6e4b6b703a6e54707938e2c03786f356efc47353b7",
+        "object_path": "catalog/gongga-grand-loop-route/thumb-v1-01-user-supplied-e30abd595caf.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "fe807dcf5ccd4537657d57960ce1b09dc745f4795a15515086889fc8a319281d",
+        "object_path": "catalog/kanas-hemu-traverse-route/01-user-supplied-fe807dcf5ccd.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "27a0c7f082e901c5159bf3520534710d741eb212cd382233260846b2e554236c",
+        "object_path": "catalog/kanas-hemu-traverse-route/thumb-v1-01-user-supplied-fe807dcf5ccd.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "5df51d6183d685a9769e332f78990a7d2e2c565d619ffb6f155851e71b96fc6b",
+        "object_path": "catalog/kulagangri-trek-route/01-user-supplied-5df51d6183d6.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "c962f10abe33dd6a6296da3bd39af0a10b11e35c06725cba27f4ecbaf6393c59",
+        "object_path": "catalog/kulagangri-trek-route/02-user-supplied-c962f10abe33.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "154a87886eeb5495c69ecf39427e835aadf92d208edbe16f24df0decb46e950b",
+        "object_path": "catalog/kulagangri-trek-route/thumb-v1-01-user-supplied-5df51d6183d6.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "2d2b8eb6d1c0aaaf33cb76549533abf93887b752866f4eeb558449c9400d5ee8",
+        "object_path": "catalog/kulagangri-trek-route/thumb-v1-02-user-supplied-c962f10abe33.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "5afe28fbc1a575f80cb2e723c1f382923d7f627f63f5163f00a019fa5c738b15",
+        "object_path": "catalog/luoke-route/01-user-supplied-5afe28fbc1a5.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "96da3fa467f10388feaf0a2c8322e3ebd6a2698b76c96051fb31dfcafda263ff",
+        "object_path": "catalog/luoke-route/thumb-v1-01-user-supplied-5afe28fbc1a5.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "b79664bf0009e10aaae6b642c2236fef3cf06598d3a6a1172ade0dc76225876f",
+        "object_path": "catalog/motuo-trek-route/01-user-supplied-b79664bf0009.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "2de26c8c8747b76455c3a1462623f3245da30a91e9c4d74fc2c3b53f5938e4a0",
+        "object_path": "catalog/motuo-trek-route/thumb-v1-01-user-supplied-b79664bf0009.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "81e1b99f5a3237b97ab7b3575612a804dc41bafa2094c7f81451463dd1b74de6",
+        "object_path": "catalog/siguniang-changping-bipeng-route/01-user-supplied-81e1b99f5a32.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "11351b876fadc9262250e44de8a9f2b0cfd554d5851f682b167489c56befca57",
+        "object_path": "catalog/siguniang-changping-bipeng-route/thumb-v1-01-user-supplied-81e1b99f5a32.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "54e48409f7722d85ce5efa5f4594bd564c71eec92930e4f0973f3440d24061f7",
+        "object_path": "catalog/wusun-ancient-trail-route/01-user-supplied-54e48409f772.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "ff4f50b0dd440f9a57b049081ba9f678032c85ea2f37ebb7e5e03ee4dfecde03",
+        "object_path": "catalog/wusun-ancient-trail-route/02-user-supplied-ff4f50b0dd44.png",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "dbf5ac960fa273388f658d4439a28fac7aa69491f54bd17b0332e6182004fb33",
+        "object_path": "catalog/wusun-ancient-trail-route/thumb-v1-01-user-supplied-54e48409f772.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-media",
+        "expected_sha256": "c61f9eb507f076b75c78c6322234cc495d40980ad210103bf0f35bb250508756",
+        "object_path": "catalog/wusun-ancient-trail-route/thumb-v1-02-user-supplied-ff4f50b0dd44.webp",
+        "status": "absent"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "5ab1f56810df4147881ab2fb538e944bd73d8eef414b88b15f533f8865dd4a99",
+        "object_path": "source/animaqing-feng/5ab1f56810df4147881ab2fb538e944bd73d8eef414b88b15f533f8865dd4a99.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "4931d6eb63cdc5b42712babce9cf2415f6d2c8a0c838c824d5a83ba89a48bc42",
+        "object_path": "source/ao-shan/4931d6eb63cdc5b42712babce9cf2415f6d2c8a0c838c824d5a83ba89a48bc42.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "3a756f4c5d9d9e72c261675a8eb95e9fc424a1b04cb0a6681fab977976d4a5a2",
+        "object_path": "source/baiyun-shan-guangdong/3a756f4c5d9d9e72c261675a8eb95e9fc424a1b04cb0a6681fab977976d4a5a2.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "39d6f2d68771a9cb1402bb9b2ce51acc5668bfadb9a9b90eda5e36b9f30dbe23",
+        "object_path": "source/cangshan-yunnan/39d6f2d68771a9cb1402bb9b2ce51acc5668bfadb9a9b90eda5e36b9f30dbe23.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "134495bed54a70a6a40f61bed18e727a738184600869aa21c64ced39b0968998",
+        "object_path": "source/changbaishan/134495bed54a70a6a40f61bed18e727a738184600869aa21c64ced39b0968998.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "14be9cb79657133a7614c5137687adbc3100db2950bd3ccce8b017be9f8ff566",
+        "object_path": "source/chuandi-ding/14be9cb79657133a7614c5137687adbc3100db2950bd3ccce8b017be9f8ff566.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "783f94f05b4c28a8a6521cebbb4dc2c26f4e9560c07634a803752601ff15a7b1",
+        "object_path": "source/dawagengza/783f94f05b4c28a8a6521cebbb4dc2c26f4e9560c07634a803752601ff15a7b1.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "ac2ddcc65e84f05033c9d0e916da31ec160d00f802e475b1c7560f6463d2edbb",
+        "object_path": "source/emeishan/ac2ddcc65e84f05033c9d0e916da31ec160d00f802e475b1c7560f6463d2edbb.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "7c6f3526649a8bbfc37b8678ee92d71679d1a50f8fc0b839974cf355b2a3688a",
+        "object_path": "source/everest-east-kama-valley-route/7c6f3526649a8bbfc37b8678ee92d71679d1a50f8fc0b839974cf355b2a3688a.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "29c84238f22f9bf54fe2e02d904b210e84b8f29ded89f000e961a7095910d5ae",
+        "object_path": "source/fanjingshan/29c84238f22f9bf54fe2e02d904b210e84b8f29ded89f000e961a7095910d5ae.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "6b032904b9fde31af788fadf7509577c36fc5dc820ef5971699852f464eb218e",
+        "object_path": "source/gangrenboqi-cluster/6b032904b9fde31af788fadf7509577c36fc5dc820ef5971699852f464eb218e.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "6338efb28cc01acecd01a7ded44142450fb5d606278192d4a7ecab0f5cc4008b",
+        "object_path": "source/genie-shan/6338efb28cc01acecd01a7ded44142450fb5d606278192d4a7ecab0f5cc4008b.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "4b4ab0ee8958d4f66879488b807573d43ebe03846f382903d614a2d142c8c605",
+        "object_path": "source/genie-south-route/4b4ab0ee8958d4f66879488b807573d43ebe03846f382903d614a2d142c8c605.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "837b7c2fa76d497b7a43428b01ec21b69be7077ce6f1eb38f1ce55385d1ac2f8",
+        "object_path": "source/gongga-grand-loop-route/837b7c2fa76d497b7a43428b01ec21b69be7077ce6f1eb38f1ce55385d1ac2f8.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "cd0b11bfe8bf96c4921fbd7e305129f60168363b9492986451e091de0b83b693",
+        "object_path": "source/haba-xueshan/cd0b11bfe8bf96c4921fbd7e305129f60168363b9492986451e091de0b83b693.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "4f16f4e45a8f16bddee38c76d4f4b67d36308ee574b45d3148c32397fbee1eb3",
+        "object_path": "source/hengshan-hunan/4f16f4e45a8f16bddee38c76d4f4b67d36308ee574b45d3148c32397fbee1eb3.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "a3e2554c13f97158158209d9ea0c2421d1268df165e204d7b07ef2afdeb74753",
+        "object_path": "source/huangshan-xihai-route/a3e2554c13f97158158209d9ea0c2421d1268df165e204d7b07ef2afdeb74753.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "dd1fdf2188f6d29db251724520a1411f9e4f7240545f3765b6399aa359edf095",
+        "object_path": "source/huangshan/dd1fdf2188f6d29db251724520a1411f9e4f7240545f3765b6399aa359edf095.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "71e216e9f1fb28df73f3eeed03180a1cabe906bf9e03623adc55a0c39ad1223b",
+        "object_path": "source/huashan/71e216e9f1fb28df73f3eeed03180a1cabe906bf9e03623adc55a0c39ad1223b.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "0a7fda19d86e437edec1ddb6ce5324eedb66bfd4184af8798eb0d7eef8ba16cb",
+        "object_path": "source/huihang-gudao-route/0a7fda19d86e437edec1ddb6ce5324eedb66bfd4184af8798eb0d7eef8ba16cb.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "6b6989f58aae81830dbe93b84b4e6484f547aa007e1fea9f8f5dd0ddca8b268f",
+        "object_path": "source/hutiaoxia-gaolu-route/6b6989f58aae81830dbe93b84b4e6484f547aa007e1fea9f8f5dd0ddca8b268f.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "f8a3eb6395ee4562648ba2821a8e5b61fd1bbb798573f1c624773729f1c92a8a",
+        "object_path": "source/jiaozi-xueshan/f8a3eb6395ee4562648ba2821a8e5b61fd1bbb798573f1c624773729f1c92a8a.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "64e0570c4126c54f6c084fad8a534b15b7d738e57cdbb19ae475ffdd76aa1dd9",
+        "object_path": "source/jinfo-shan/64e0570c4126c54f6c084fad8a534b15b7d738e57cdbb19ae475ffdd76aa1dd9.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "e712866e5e8fbe072f081ce5e726e25fcb5f1d34b0b7014e7ed68a194739bd89",
+        "object_path": "source/jinggang-shan/e712866e5e8fbe072f081ce5e726e25fcb5f1d34b0b7014e7ed68a194739bd89.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "10bb71813950cc8034a6a9c9cbf7cb47d138bced994a9789fb091cae8fb2eba6",
+        "object_path": "source/jiuhuashan/10bb71813950cc8034a6a9c9cbf7cb47d138bced994a9789fb091cae8fb2eba6.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "dac7f3a603c930b270872592ae1495bb0cc9030ce896479c3c5e711f904d8792",
+        "object_path": "source/jizu-shan/dac7f3a603c930b270872592ae1495bb0cc9030ce896479c3c5e711f904d8792.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "3f8041d656889d959f7b3c3b64ee4552ea49e2f60eb2c3fb199e974ec284dbe5",
+        "object_path": "source/kanas-hemu-traverse-route/3f8041d656889d959f7b3c3b64ee4552ea49e2f60eb2c3fb199e974ec284dbe5.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "2d4ae7bad78f4ced1eb57e898d6e6599d105e499894129e1ce430f3330906649",
+        "object_path": "source/kongtong-shan/2d4ae7bad78f4ced1eb57e898d6e6599d105e499894129e1ce430f3330906649.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "f2760d5046f15b5b58cd8006d9ff8dadaa84fe26079ab90f75a0c26c64c8f24b",
+        "object_path": "source/kulagangri-trek-route/f2760d5046f15b5b58cd8006d9ff8dadaa84fe26079ab90f75a0c26c64c8f24b.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "8dfeb5edd93e911f0c24f74bcba115b887615bb06fbeadd5fdc857421371739d",
+        "object_path": "source/laojunshan-henan/8dfeb5edd93e911f0c24f74bcba115b887615bb06fbeadd5fdc857421371739d.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "58a0f916e6e2413995e7bae704008d885b502e0e947a1115f83e03490a5a6bdd",
+        "object_path": "source/laoshan/58a0f916e6e2413995e7bae704008d885b502e0e947a1115f83e03490a5a6bdd.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "e5e2bcbfcabe37e447c9104cd8d81936d28f6573828d3f487dfe0345d542468f",
+        "object_path": "source/longhu-shan/e5e2bcbfcabe37e447c9104cd8d81936d28f6573828d3f487dfe0345d542468f.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "aee2d90ebdc53bd917c86bea214935ba477d2ba4668b2cbb7946ae08c14b7832",
+        "object_path": "source/luofushan/aee2d90ebdc53bd917c86bea214935ba477d2ba4668b2cbb7946ae08c14b7832.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "ba790335b3d954754a98a55c664b91942f2087612b0396cb077f75a36b4e9599",
+        "object_path": "source/luoke-route/ba790335b3d954754a98a55c664b91942f2087612b0396cb077f75a36b4e9599.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "7ea3ed0a4f370820ed9f93c66b0af6af25ce9cbdbcc7a1a7771f252d68739e2a",
+        "object_path": "source/lushan/7ea3ed0a4f370820ed9f93c66b0af6af25ce9cbdbcc7a1a7771f252d68739e2a.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "57a464c0ab21c76596532d51c072014213e19c55df2ebee6b4d76e932ef77f84",
+        "object_path": "source/mingsha-shan/57a464c0ab21c76596532d51c072014213e19c55df2ebee6b4d76e932ef77f84.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "830943c8d24428713921669857e9e292cb4326f88a3da4ed26d5dbf78e38281b",
+        "object_path": "source/motuo-trek-route/830943c8d24428713921669857e9e292cb4326f88a3da4ed26d5dbf78e38281b.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "4b4e39754593cbf0de08a333ad4def3ed3b1d3d46edae265689b0878fefebac8",
+        "object_path": "source/nanhuang-gudao-route/4b4e39754593cbf0de08a333ad4def3ed3b1d3d46edae265689b0878fefebac8.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "40223a5a7e8b42b53c5210bc423ac5f1a158cb3727f6ba33141518cd6854f6e4",
+        "object_path": "source/niubei-shan/40223a5a7e8b42b53c5210bc423ac5f1a158cb3727f6ba33141518cd6854f6e4.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "6a53630b87e2a527952a1957c9e192014e9c4fe1055f24f269c75b33f36b600c",
+        "object_path": "source/qingchengshan-laojun-ge/6a53630b87e2a527952a1957c9e192014e9c4fe1055f24f269c75b33f36b600c.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "9047b30a1f54ce76a866a04b0b8780419ccfaa3825d1c955b3292cd720830422",
+        "object_path": "source/qiniang-shan/9047b30a1f54ce76a866a04b0b8780419ccfaa3825d1c955b3292cd720830422.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "4e7a6874c6b726c181d89443f1478d6dc6b10ebb7707e327b64e78c48416361c",
+        "object_path": "source/sanqingshan/4e7a6874c6b726c181d89443f1478d6dc6b10ebb7707e327b64e78c48416361c.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "9093e58f8837ad1bc5fe65405a7351e0cee449078ff87c173de06bbf3c2d7e30",
+        "object_path": "source/shennong-ding/9093e58f8837ad1bc5fe65405a7351e0cee449078ff87c173de06bbf3c2d7e30.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "4303a4133b1de081bf13c47ecfe13bab111b451ebabe8b6684e7ace288f0d99c",
+        "object_path": "source/siguniang-changping-bipeng-route/4303a4133b1de081bf13c47ecfe13bab111b451ebabe8b6684e7ace288f0d99c.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "8fb97d40f8443be5da61606f9f993d30823a65811c6ec07561e8a8291a335930",
+        "object_path": "source/siguniang-dafeng/8fb97d40f8443be5da61606f9f993d30823a65811c6ec07561e8a8291a335930.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "bd0a6f64dff23edd4553ab36ad5f90684a8dfb06ca1aefbe063914a2f2bd0754",
+        "object_path": "source/siguniang-erfeng/bd0a6f64dff23edd4553ab36ad5f90684a8dfb06ca1aefbe063914a2f2bd0754.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "41b4e367ef162c21ac1f1f024957ae6d1b18419fed2fa07035bc1669b5a21db1",
+        "object_path": "source/siguniang-sanfeng/41b4e367ef162c21ac1f1f024957ae6d1b18419fed2fa07035bc1669b5a21db1.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "76afb0f4776ab32b39353f60ca855ac054a73fe8864d2ba93e5f4ac9bd0620d9",
+        "object_path": "source/songshan/76afb0f4776ab32b39353f60ca855ac054a73fe8864d2ba93e5f4ac9bd0620d9.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "b0fbfe9b1cdfa1cadcfeb8e628ae9968f71e1b70c803ce97164d96bdc77908ba",
+        "object_path": "source/taibaishan/b0fbfe9b1cdfa1cadcfeb8e628ae9968f71e1b70c803ce97164d96bdc77908ba.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "8d4f4d4706547ced8ebd6225d51811de3857feea8d012d62ba720f280117e74d",
+        "object_path": "source/taimu-shan/8d4f4d4706547ced8ebd6225d51811de3857feea8d012d62ba720f280117e74d.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "159b55eedaf28c3fd8d547cb30d4497df8ed70a6b0e0068b740effb81e08ae07",
+        "object_path": "source/taishan/159b55eedaf28c3fd8d547cb30d4497df8ed70a6b0e0068b740effb81e08ae07.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "637c7c340df293dec516e27b7e8405bdc2ce7b5fbfd44a2e9e94e3e76e04841a",
+        "object_path": "source/tianmushan-qijian-route/637c7c340df293dec516e27b7e8405bdc2ce7b5fbfd44a2e9e94e3e76e04841a.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "3c3ddab9766f3cb90f6cd5abf584dc6b7a36785c2c836eb077b0de608789dfc4",
+        "object_path": "source/tiantang-ding/3c3ddab9766f3cb90f6cd5abf584dc6b7a36785c2c836eb077b0de608789dfc4.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "e22078bb25c10504d21304afb1b10bdc81b8d66d2c611407b2c0e8533f66bb8b",
+        "object_path": "source/tianzhushan-anhui/e22078bb25c10504d21304afb1b10bdc81b8d66d2c611407b2c0e8533f66bb8b.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "e1493fc020342d1a2e7621f8378bb6b430b69376228c07c028170e4ff5554a71",
+        "object_path": "source/wangmangling-xiyaigou-route/e1493fc020342d1a2e7621f8378bb6b430b69376228c07c028170e4ff5554a71.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "4d2acf1a3e85047c37e9d2a973ec8d58eac39f9e5a92d8ce7be5c287f99d96e9",
+        "object_path": "source/wawu-shan/4d2acf1a3e85047c37e9d2a973ec8d58eac39f9e5a92d8ce7be5c287f99d96e9.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "e09f1863fb5d7421ee0a210d7ec1438b95f5d4a40e5970e6aebbfa1cc63aa98d",
+        "object_path": "source/wudangshan/e09f1863fb5d7421ee0a210d7ec1438b95f5d4a40e5970e6aebbfa1cc63aa98d.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "97564bc1d6489df463542909a719b0d830174864a8fc55c68494aeafac698e09",
+        "object_path": "source/wugongshan-jiangxi/97564bc1d6489df463542909a719b0d830174864a8fc55c68494aeafac698e09.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "c17d63eb6febfceabbebb20ebeb8cc7a26fee48b017e071818e61e3848ead434",
+        "object_path": "source/wusun-ancient-trail-route/c17d63eb6febfceabbebb20ebeb8cc7a26fee48b017e071818e61e3848ead434.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "70aa28da428138bf759a523e3ff7420c849966c016be068b91e2b080b41cd1dc",
+        "object_path": "source/wutaishan/70aa28da428138bf759a523e3ff7420c849966c016be068b91e2b080b41cd1dc.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "ca4c5b95078098a804291f431f233dd1c9e527a9b8b75028712e5e845973b013",
+        "object_path": "source/wutong-shan/ca4c5b95078098a804291f431f233dd1c9e527a9b8b75028712e5e845973b013.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "7a9bba8f503b8469c90b86795a15ec2875c7bf35b422a81b788758abe51161a0",
+        "object_path": "source/wuzhi-shan/7a9bba8f503b8469c90b86795a15ec2875c7bf35b422a81b788758abe51161a0.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "7615d545157daa349d5b0699facda900151cf7f98dd7d0fde820768b37490813",
+        "object_path": "source/xiang-shan/7615d545157daa349d5b0699facda900151cf7f98dd7d0fde820768b37490813.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "f1f0f48fd48a43e1df9c7332e4e565b5d4b93f6fa133bbe879d4c5f403cff4db",
+        "object_path": "source/xiaowutai-shan/f1f0f48fd48a43e1df9c7332e4e565b5d4b93f6fa133bbe879d4c5f403cff4db.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "1c6f9d679c7eadd44f3b584f275f1d01adf9fbd9f52a478bea2fa082ef50ee0c",
+        "object_path": "source/xiata-gudao-route/1c6f9d679c7eadd44f3b584f275f1d01adf9fbd9f52a478bea2fa082ef50ee0c.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "f48160866840ab75db53f9a222eed2582fb046fe10b85baaa6d2fb3f0b95eefe",
+        "object_path": "source/xiling-xueshan/f48160866840ab75db53f9a222eed2582fb046fe10b85baaa6d2fb3f0b95eefe.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "5a7593c5b45bcb0d5b108df4109e9249f8f6929926ab3e308635f0791b8a3d8a",
+        "object_path": "source/yandangshan-zhejiang/5a7593c5b45bcb0d5b108df4109e9249f8f6929926ab3e308635f0791b8a3d8a.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "15bea98ab4317d039dd705ffedce3085585e4fbc06d077cbe0976d8b5575db49",
+        "object_path": "source/yubeng-route/15bea98ab4317d039dd705ffedce3085585e4fbc06d077cbe0976d8b5575db49.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "5a2d788f0bb3635dd0530e97ce16b002f91c09df8212c97b27c83d7e371ca0af",
+        "object_path": "source/yuelu-shan/5a2d788f0bb3635dd0530e97ce16b002f91c09df8212c97b27c83d7e371ca0af.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "cebeb0bbdf60eda836de036042778b5e9bb9f7179854a1e822a645f4d0c6099f",
+        "object_path": "source/yuntai-shan-henan/cebeb0bbdf60eda836de036042778b5e9bb9f7179854a1e822a645f4d0c6099f.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "998866decefa6ae91848dccf95fbd1671b1f438bc6394586858ea9ca7f8c9563",
+        "object_path": "source/yuzhu-feng/998866decefa6ae91848dccf95fbd1671b1f438bc6394586858ea9ca7f8c9563.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "057c10dcd718725033a877139a38340d4a054c6cc59ac17d5fdc1d750fc382ea",
+        "object_path": "source/zhangjiajie-tianmen-shan/057c10dcd718725033a877139a38340d4a054c6cc59ac17d5fdc1d750fc382ea.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "3a97add9e0316c00770a585a0ce92bf057d0333bec48f3de2d37fb8741ecd13c",
+        "object_path": "source/zhongnan-shan/3a97add9e0316c00770a585a0ce92bf057d0333bec48f3de2d37fb8741ecd13c.kml",
+        "status": "bucket_missing"
+      },
+      {
+        "bucket": "mountain-route-source",
+        "expected_sha256": "62fbc40aee8d77ba6a716bd9eed2c65446874af2981e3c9e4330f7a769d1810a",
+        "object_path": "source/zijin-shan-jiangsu/62fbc40aee8d77ba6a716bd9eed2c65446874af2981e3c9e4330f7a769d1810a.kml",
+        "status": "bucket_missing"
+      }
+    ],
+    "same_sha": 0,
+    "sha_evidence_missing": 0
+  }
+}

@@ -50,6 +50,12 @@ function formatInteger(value: number) {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(Math.round(value))
 }
 
+function formatSummitLabel(altitude: number | null) {
+  return typeof altitude === 'number' && Number.isFinite(altitude)
+    ? `顶峰 ${formatInteger(altitude)}m`
+    : '顶峰'
+}
+
 function isValidCoordinate(point: { lat: number; lng: number }) {
   return (
     Number.isFinite(point.lat) &&
@@ -166,7 +172,7 @@ function updateTrekGeoJsonLayers({
   const summitFeature = {
     type: 'Feature' as const,
     geometry: { type: 'Point' as const, coordinates: [mountain.longitude, mountain.latitude] },
-    properties: { label: `顶峰 ${formatInteger(mountain.altitude)}m` },
+    properties: { label: formatSummitLabel(mountain.altitude) },
   }
   const sampledTrack = sampleTrackPoints(trackPoints)
   const trackFeatures = sampledTrack.length >= 2

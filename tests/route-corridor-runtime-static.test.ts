@@ -9,6 +9,8 @@ const types = read('../src/types/index.ts')
 const routeDisplay = read('../src/lib/mountain-route-display.ts')
 const verifyHelpers = read('../src/lib/trek-verify-helpers.ts')
 const trekActions = read('../src/app/api/trek/actions/route.ts')
+const trekClient = read('../src/app/(flow)/trek/TrekClient.tsx')
+const trekReferenceMap = read('../src/components/map/TrekReferenceMap.tsx')
 const detailPage = read('../src/app/(flow)/mountain/[id]/page.tsx')
 const detailClient = read('../src/app/(flow)/mountain/[id]/MountainDetailClient.tsx')
 const exploreClient = read('../src/app/(main)/explore/ExploreClient.tsx')
@@ -69,6 +71,7 @@ test('activation guard requires shared content but altitude only for mountains',
 
 test('Mountain and route display contracts are entity-aware and include restricted', () => {
   assert.match(types, /export type MountainEntityType = 'mountain' \| 'route_corridor'/)
+  assert.match(types, /export type Mountain = \{[\s\S]*?altitude: number \| null/)
   assert.match(types, /entity_type\?: MountainEntityType/)
   assert.match(types, /aliases\?: string\[\] \| null/)
   assert.match(types, /route_highpoint_m\?: number \| null/)
@@ -76,6 +79,26 @@ test('Mountain and route display contracts are entity-aware and include restrict
   assert.match(routeDisplay, /getMountainAccessDisplay\([\s\S]*entityType/)
   assert.match(routeDisplay, /entityType === 'route_corridor'/)
   assert.match(routeDisplay, /ctaLabel: '参考路线仅供查看'/)
+})
+
+test('route corridors disable weather storage and never render mountain weather', () => {
+  assert.match(
+    migration,
+    /SET entity_type = 'route_corridor',\s*weather_enabled = false/,
+  )
+  assert.match(migration, /actual_weather_disabled_count INTEGER/)
+  assert.match(
+    migration,
+    /effective_canonical_key = ANY\(legacy_route_keys\)[\s\S]*entity_type = 'route_corridor'[\s\S]*weather_enabled = false/,
+  )
+  assert.match(
+    detailClient,
+    /function hasMountainWeatherTarget\([\s\S]*?mountain\.entity_type !== 'route_corridor'[\s\S]*?typeof mountain\.altitude === 'number'/,
+  )
+  assert.match(
+    detailClient,
+    /const weatherMountain = hasMountainWeatherTarget\(mountain\) \? mountain : null[\s\S]*?\{weatherMountain \? \([\s\S]*?<WeatherSection mountain=\{weatherMountain\} \/>[\s\S]*?\) : null\}/,
+  )
 })
 
 test('all verification selectors and queries fail closed to mountain entities', () => {
@@ -90,6 +113,19 @@ test('all verification selectors and queries fail closed to mountain entities', 
   assert.match(listBlock, /\.eq\('entity_type', 'mountain'\)/)
   assert.match(startBlock, /\.select\('id, entity_type'\)[\s\S]*\.eq\('entity_type', 'mountain'\)/)
   assert.match(historicalBlock, /\.select\('id, entity_type'\)[\s\S]*\.eq\('entity_type', 'mountain'\)/)
+  assert.match(
+    trekClient,
+    /function isTrekMountain\([\s\S]*mountain\.entity_type !== 'route_corridor'[\s\S]*typeof mountain\.altitude === 'number'[\s\S]*Number\.isFinite\(mountain\.altitude\)/,
+  )
+  assert.match(
+    trekClient,
+    /setMountains\(activeMountains\.filter\(isTrekMountain\)\)/,
+  )
+  assert.doesNotMatch(trekClient, /mountain\.altitude!/)
+  assert.match(
+    trekReferenceMap,
+    /function formatSummitLabel\(altitude: number \| null\)[\s\S]*: '顶峰'/,
+  )
 })
 
 test('detail runtime removes hand-written routes and shows the honest no-geometry state', () => {

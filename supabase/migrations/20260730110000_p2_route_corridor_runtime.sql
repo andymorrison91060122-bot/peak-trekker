@@ -38,6 +38,7 @@ DECLARE
   existing_count INTEGER;
   updated_count INTEGER;
   actual_route_count INTEGER;
+  actual_weather_disabled_count INTEGER;
 BEGIN
   SELECT COUNT(*)
   INTO existing_count
@@ -52,9 +53,13 @@ BEGIN
   END IF;
 
   UPDATE public.mountains
-  SET entity_type = 'route_corridor'
+  SET entity_type = 'route_corridor',
+      weather_enabled = false
   WHERE effective_canonical_key = ANY(legacy_route_keys)
-    AND entity_type IS DISTINCT FROM 'route_corridor';
+    AND (
+      entity_type IS DISTINCT FROM 'route_corridor'
+      OR weather_enabled IS DISTINCT FROM false
+    );
 
   GET DIAGNOSTICS updated_count = ROW_COUNT;
   IF updated_count < 0 OR updated_count > expected_count THEN
@@ -72,6 +77,20 @@ BEGIN
     RAISE EXCEPTION
       'route corridor backfill postcheck expected 10, found %',
       actual_route_count;
+  END IF;
+
+  SELECT COUNT(*)
+  INTO actual_weather_disabled_count
+  FROM public.mountains
+  WHERE effective_canonical_key = ANY(legacy_route_keys)
+    AND entity_type = 'route_corridor'
+    AND weather_enabled = false;
+
+  IF actual_weather_disabled_count <> expected_count THEN
+    RAISE EXCEPTION
+      'route corridor weather backfill postcheck expected %, found %',
+      expected_count,
+      actual_weather_disabled_count;
   END IF;
 
   IF EXISTS (

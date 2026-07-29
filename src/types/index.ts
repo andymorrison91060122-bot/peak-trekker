@@ -11,7 +11,7 @@ export type MountainEntityType = 'mountain' | 'route_corridor'
 export type Mountain = {
   id: string
   name: string
-  altitude: number
+  altitude: number | null
   province: string
   province_code: string
   difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert'

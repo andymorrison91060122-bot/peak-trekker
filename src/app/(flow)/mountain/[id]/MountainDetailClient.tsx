@@ -69,10 +69,24 @@ type MountainDetailClientProps = {
   heroImages: string[]
 }
 
+function hasMountainWeatherTarget(
+  mountain: Mountain,
+): mountain is Mountain & { altitude: number } {
+  return mountain.entity_type !== 'route_corridor'
+    && typeof mountain.altitude === 'number'
+}
+
 function getRouteFacts(mountain: Mountain) {
+  const altitude = mountain.altitude
   return {
     length: getMountainDistanceKm(mountain),
-    gain: getEstimatedAscentMeters(mountain),
+    gain: altitude === null
+      ? null
+      : getEstimatedAscentMeters({
+          altitude,
+          difficulty: mountain.difficulty,
+          entity_type: mountain.entity_type,
+        }),
     duration: getEstimatedDurationRange(mountain),
   }
 }
@@ -1057,6 +1071,7 @@ export default function MountainDetailClient({
   const motionScopeRef = useRef<HTMLDivElement | null>(null)
   const routeFacts = getRouteFacts(mountain)
   const displayAltitude = getMountainDisplayAltitude(mountain)
+  const weatherMountain = hasMountainWeatherTarget(mountain) ? mountain : null
   const communityEnabled = isFeatureEnabled('COMMUNITY_ENABLED')
   const [licenseSheetOpen, setLicenseSheetOpen] = useState(false)
 
@@ -1417,9 +1432,11 @@ export default function MountainDetailClient({
         onShowLicenseSheet={() => setLicenseSheetOpen(true)}
       />
 
-      <div data-mountain-motion="weather">
-        <WeatherSection mountain={mountain} />
-      </div>
+      {weatherMountain ? (
+        <div data-mountain-motion="weather">
+          <WeatherSection mountain={weatherMountain} />
+        </div>
+      ) : null}
       <div data-mountain-motion="route" data-mountain-motion-mode="fade">
         <RouteReferenceSection routeGeometry={routeGeometry} />
       </div>

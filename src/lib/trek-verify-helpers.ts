@@ -58,8 +58,8 @@ export type TrekVerifyFailureReason =
 export const TREK_VERIFY_SESSION_SELECT =
   'id, user_id, mountain_id, status, started_at, track_points, track_summary, distance_m, ascent_m, descent_m, max_altitude_m'
 
-const MOUNTAIN_VERIFY_SELECT_FULL = 'id, name, altitude, latitude, longitude, difficulty, summit_radius_m, province'
-const MOUNTAIN_VERIFY_SELECT_FALLBACK = 'id, name, altitude, latitude, longitude, difficulty, province'
+const MOUNTAIN_VERIFY_SELECT_FULL = 'id, name, altitude, latitude, longitude, difficulty, summit_radius_m, province, entity_type'
+const MOUNTAIN_VERIFY_SELECT_FALLBACK = 'id, name, altitude, latitude, longitude, difficulty, province, entity_type'
 
 function normalizeMountainRecord(value: unknown) {
   if (Array.isArray(value)) return (value[0] ?? null) as VerifyMountain | null
@@ -76,6 +76,7 @@ export async function fetchMountainForVerification(supabase: ServerSupabaseClien
     .select(MOUNTAIN_VERIFY_SELECT_FULL)
     .eq('id', mountainId)
     .eq('is_active', true)
+    .eq('entity_type', 'mountain')
     .single()) as {
     data: VerifyMountain | null
     error: { message?: string | null } | null
@@ -91,6 +92,7 @@ export async function fetchMountainForVerification(supabase: ServerSupabaseClien
       .select(MOUNTAIN_VERIFY_SELECT_FALLBACK)
       .eq('id', mountainId)
       .eq('is_active', true)
+      .eq('entity_type', 'mountain')
       .single()) as {
       data: VerifyMountain | null
       error: { message?: string | null } | null
@@ -107,7 +109,8 @@ export async function listActiveMountainsForVerification(supabase: ServerSupabas
   let result = (await supabase
     .from('mountains')
     .select(MOUNTAIN_VERIFY_SELECT_FULL)
-    .eq('is_active', true)) as {
+    .eq('is_active', true)
+    .eq('entity_type', 'mountain')) as {
     data: VerifyMountain[] | null
     error: { message?: string | null } | null
   }
@@ -119,7 +122,8 @@ export async function listActiveMountainsForVerification(supabase: ServerSupabas
     result = (await supabase
       .from('mountains')
       .select(MOUNTAIN_VERIFY_SELECT_FALLBACK)
-      .eq('is_active', true)) as {
+      .eq('is_active', true)
+      .eq('entity_type', 'mountain')) as {
       data: VerifyMountain[] | null
       error: { message?: string | null } | null
     }

@@ -1,0 +1,4 @@
+"effective_canonical_key","action","blocker_code","reason"
+"langta-ancient-trail-route","hold_content","missing_required_area_coordinate","missing reliable WGS84 area coordinate"
+"langta-ancient-trail-route","hold_cover","parent_content_blocked","cover remains in candidate package until parent content is ready"
+"gangrenboqi-cluster","hold_existing_update","separate_product_decision_required","product_semantics_and_altitude_require_separate_decision"

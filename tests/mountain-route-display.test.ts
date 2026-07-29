@@ -5,6 +5,7 @@ import {
   getEstimatedAscentMeters,
   getEstimatedDurationRange,
   getMountainAccessDisplay,
+  getMountainDisplayAltitude,
   getMountainDistanceKm,
   matchesMountainLengthBand,
 } from '../src/lib/mountain-route-display.ts'
@@ -29,6 +30,11 @@ test('ascent estimates only beginner and intermediate mountains', () => {
   assert.equal(getEstimatedAscentMeters({ difficulty: 'intermediate', altitude: 100 }), 320)
   assert.equal(getEstimatedAscentMeters({ difficulty: 'advanced', altitude: 5590 }), null)
   assert.equal(getEstimatedAscentMeters({ difficulty: 'expert', altitude: 7546 }), null)
+  assert.equal(getEstimatedAscentMeters({
+    difficulty: 'intermediate',
+    altitude: 3000,
+    entity_type: 'route_corridor',
+  }), null)
 })
 
 test('duration reads minutes only and renders a whole-hour envelope', () => {
@@ -90,6 +96,39 @@ test('access display fails closed when status is missing or invalid', () => {
   })
   assert.equal(getMountainAccessDisplay(undefined).status, 'unknown')
   assert.equal(getMountainAccessDisplay('unexpected').ctaLabel, '开放状态待确认')
+})
+
+test('route corridors remain view-only regardless of access status', () => {
+  assert.deepEqual(getMountainAccessDisplay('open', 'route_corridor'), {
+    status: 'open',
+    suitabilityLabel: '参考路线',
+    ctaLabel: '参考路线仅供查看',
+    canStartTrek: false,
+  })
+  assert.deepEqual(getMountainAccessDisplay('restricted', 'mountain'), {
+    status: 'restricted',
+    suitabilityLabel: '准入条件待确认',
+    ctaLabel: '请先确认准入条件',
+    canStartTrek: false,
+  })
+})
+
+test('route corridors display only an explicit route highpoint and never reuse mountain altitude', () => {
+  assert.equal(getMountainDisplayAltitude({
+    entity_type: 'route_corridor',
+    altitude: 5590,
+    route_highpoint_m: 4420,
+  }), 4420)
+  assert.equal(getMountainDisplayAltitude({
+    entity_type: 'route_corridor',
+    altitude: 5590,
+    route_highpoint_m: null,
+  }), null)
+  assert.equal(getMountainDisplayAltitude({
+    entity_type: 'mountain',
+    altitude: 2155,
+    route_highpoint_m: 999,
+  }), 2155)
 })
 
 test('advanced risk copy stays complete and always contains both mandatory warnings', () => {

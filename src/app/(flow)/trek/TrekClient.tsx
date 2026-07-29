@@ -80,6 +80,16 @@ import type { Mountain, User } from '@/types'
 
 gsap.registerPlugin(useGSAP)
 
+type TrekMountain = Mountain & { altitude: number }
+
+function isTrekMountain(value: unknown): value is TrekMountain {
+  if (!value || typeof value !== 'object') return false
+  const mountain = value as Partial<Mountain>
+  return mountain.entity_type !== 'route_corridor'
+    && typeof mountain.altitude === 'number'
+    && Number.isFinite(mountain.altitude)
+}
+
 type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
 
 function markPressFallback(event: PointerEvent<HTMLElement>) {
@@ -323,7 +333,7 @@ function staleTrekHoursIdle(session: TrekAnalyticsLocalSession, now = Date.now()
   return Math.max(0, (now - lastActivity) / (1000 * 60 * 60))
 }
 
-function buildFu47cMapGps(mountain: Mountain | null, mock: Fu47cGpsMock | null): GpsState {
+function buildFu47cMapGps(mountain: TrekMountain | null, mock: Fu47cGpsMock | null): GpsState {
   if (!mountain || !mock) return null
   const weak = mock === 'weak'
   const live = mock === 'live' || mock === 'offline'
@@ -335,7 +345,7 @@ function buildFu47cMapGps(mountain: Mountain | null, mock: Fu47cGpsMock | null):
   }
 }
 
-function buildFu47cMapTrack(mountain: Mountain | null, mock: Fu47cGpsMock | null): TrackPoint[] {
+function buildFu47cMapTrack(mountain: TrekMountain | null, mock: Fu47cGpsMock | null): TrackPoint[] {
   if (!mountain || (mock !== 'live' && mock !== 'offline')) return []
   const startedAt = Date.now() - 90_000
   return Array.from({ length: 8 }, (_, index) => {
@@ -462,10 +472,10 @@ export default function TrekClient({
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [distanceKm, setDistanceKm] = useState(0)
   const [ascentM, setAscentM] = useState(0)
-  const [mountains, setMountains] = useState<Mountain[]>([])
+  const [mountains, setMountains] = useState<TrekMountain[]>([])
   const [selectedMountainId, setSelectedMountainId] = useState(targetMountainId ?? '')
   const [confirmedMountainId, setConfirmedMountainId] = useState<string | null>(null)
-  const [nearbyMountain, setNearbyMountain] = useState<Mountain | null>(null)
+  const [nearbyMountain, setNearbyMountain] = useState<TrekMountain | null>(null)
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null)
   const [checkinNote, setCheckinNote] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -619,7 +629,8 @@ export default function TrekClient({
             throw new Error(String(data?.error ?? 'mountains fetch failed'))
           }
           if (!cancelled) {
-            setMountains((data?.mountains ?? []) as Mountain[])
+            const activeMountains = Array.isArray(data?.mountains) ? data.mountains : []
+            setMountains(activeMountains.filter(isTrekMountain))
           }
           return
         } catch {
@@ -983,7 +994,7 @@ export default function TrekClient({
 
   const checkNearby = useCallback((lat: number, lng: number) => {
     const candidates = targetMountain ? [targetMountain] : []
-    let matched: Mountain | null = null
+    let matched: TrekMountain | null = null
     let closestDistance = Number.POSITIVE_INFINITY
 
     for (const mountain of candidates) {

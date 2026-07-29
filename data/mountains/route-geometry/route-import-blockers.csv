@@ -1,0 +1,2 @@
+effective_canonical_key,primary_name,severity,blocker_code,resolution
+langta-ancient-trail-route,狼塔古道,hard_blocker,missing_required_area_coordinate,provide a reviewed WGS84 route-area coordinate before import

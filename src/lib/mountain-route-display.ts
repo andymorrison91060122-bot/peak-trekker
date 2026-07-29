@@ -1,11 +1,26 @@
+import type { MountainEntityType } from '@/types'
+
 export type MountainDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'expert'
-export type MountainAccessStatus = 'open' | 'closed' | 'unknown' | 'pilgrimage_only'
+export type MountainAccessStatus = 'open' | 'restricted' | 'closed' | 'unknown' | 'pilgrimage_only'
 export type MountainLengthBand = 'all' | 'short' | 'mid' | 'long'
 
 const REQUIRED_RISK_WARNINGS = [
   '自然保护区核心区及未开发未开放区域禁止擅自进入',
   '开放范围以当地最新公告为准',
 ] as const
+
+export function getMountainDisplayAltitude({
+  altitude,
+  entity_type,
+  route_highpoint_m,
+}: {
+  altitude?: number | null
+  entity_type?: MountainEntityType | null
+  route_highpoint_m?: number | null
+}) {
+  const value = entity_type === 'route_corridor' ? route_highpoint_m : altitude
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
+}
 
 export function getMountainDistanceKm({
   difficulty,
@@ -33,10 +48,13 @@ export function matchesMountainLengthBand(
 export function getEstimatedAscentMeters({
   difficulty,
   altitude,
+  entity_type,
 }: {
   difficulty: MountainDifficulty
   altitude: number
+  entity_type?: MountainEntityType | null
 }) {
+  if (entity_type === 'route_corridor') return null
   if (difficulty === 'advanced' || difficulty === 'expert') return null
   if (!Number.isFinite(altitude) || altitude <= 0) return null
   return Math.max(320, Math.round(altitude * 0.68))
@@ -62,11 +80,23 @@ export function getEstimatedDurationRange({
   return `${lowerHours}~${lowerHours + 1}h`
 }
 
-export function getMountainAccessDisplay(value: string | null | undefined) {
+export function getMountainAccessDisplay(
+  value: string | null | undefined,
+  entityType: MountainEntityType = 'mountain',
+) {
   const status: MountainAccessStatus =
-    value === 'open' || value === 'closed' || value === 'pilgrimage_only'
+    value === 'open' || value === 'restricted' || value === 'closed' || value === 'pilgrimage_only'
       ? value
       : 'unknown'
+
+  if (entityType === 'route_corridor') {
+    return {
+      status,
+      suitabilityLabel: '参考路线',
+      ctaLabel: '参考路线仅供查看',
+      canStartTrek: false,
+    }
+  }
 
   if (status === 'open') {
     return {
@@ -82,6 +112,15 @@ export function getMountainAccessDisplay(value: string | null | undefined) {
       status,
       suitabilityLabel: '当前不开放',
       ctaLabel: '暂不开放攀登',
+      canStartTrek: false,
+    }
+  }
+
+  if (status === 'restricted') {
+    return {
+      status,
+      suitabilityLabel: '准入条件待确认',
+      ctaLabel: '请先确认准入条件',
       canStartTrek: false,
     }
   }

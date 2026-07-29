@@ -1,9 +1,7 @@
 'use client'
 
 import {
-  useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type FocusEvent,
@@ -14,11 +12,8 @@ import {
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
-import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
 import type { Waypoint, WaypointType } from '@/lib/waypoints'
-import { getRouteSegments, type RouteSegment } from '@/lib/mountain-route-segments'
-import { getMountainPmtilesAsset, type MapTileAsset } from '@/lib/map/map-assets'
 import { getDifficultySuitabilityCopy } from '@/lib/license-ui'
 import { BackIcon, CheckIcon, MoreIcon, PinIcon, ShareIcon, WarnIcon } from '@/components/ui/Icons'
 import { HelpTrigger } from '@/components/help/HelpTrigger'
@@ -32,7 +27,6 @@ import SanitizedMountainDescription, {
   stripTagsForFallback,
 } from '@/components/mountain/SanitizedMountainDescription'
 import LicenseProgressSheet from '@/components/profile/LicenseProgressSheet'
-import PmtilesSnapshotMap from '@/components/map/PmtilesSnapshotMap'
 import type { LicenseProgressSummary } from '@/lib/license-progress'
 import { formatMotionCountValue, formatMotionInteger as formatInteger, parseMotionTokenSeconds } from '@/lib/motion-count-format'
 import { trackEvent } from '@/lib/analytics/client'
@@ -44,8 +38,13 @@ import {
   getEstimatedAscentMeters,
   getEstimatedDurationRange,
   getMountainAccessDisplay,
+  getMountainDisplayAltitude,
   getMountainDistanceKm,
 } from '@/lib/mountain-route-display'
+import {
+  buildRouteTraceViewModel,
+  type MountainRouteGeometry,
+} from '@/lib/mountain-route-geometry'
 
 gsap.registerPlugin(useGSAP)
 
@@ -59,92 +58,42 @@ function clearPressFallback(event: PressFallbackEvent) {
   delete event.currentTarget.dataset.ptPressActive
 }
 
-type RouteWaypoint = Waypoint & {
-  latitude?: number
-  longitude?: number
-}
-
 type MountainDetailClientProps = {
   mountain: Mountain
   userLicense: User['license_level']
   licenseProgress: LicenseProgressSummary
   requiresLogin: boolean
   waypoints: Waypoint[]
+  routeGeometry: MountainRouteGeometry | null
   featuredPosts: CommunityPostViewModel[]
   heroImages: string[]
-  routeMockEnabled: boolean
-  forceRouteMapError: boolean
+}
+
+function hasMountainWeatherTarget(
+  mountain: Mountain,
+): mountain is Mountain & { altitude: number } {
+  return mountain.entity_type !== 'route_corridor'
+    && typeof mountain.altitude === 'number'
 }
 
 function getRouteFacts(mountain: Mountain) {
+  const altitude = mountain.altitude
   return {
     length: getMountainDistanceKm(mountain),
-    gain: getEstimatedAscentMeters(mountain),
+    gain: altitude === null
+      ? null
+      : getEstimatedAscentMeters({
+          altitude,
+          difficulty: mountain.difficulty,
+          entity_type: mountain.entity_type,
+        }),
     duration: getEstimatedDurationRange(mountain),
   }
 }
 
-function buildFu47bMockWaypoints(mountain: Mountain): RouteWaypoint[] {
-  const createdAt = '2026-05-28T00:00:00.000Z'
-  const baseAltitude = Math.max(240, Math.round(mountain.altitude * 0.46))
-  const ridgeAltitude = Math.max(baseAltitude + 120, Math.round(mountain.altitude * 0.72))
-  const shoulderAltitude = Math.max(ridgeAltitude + 120, Math.round(mountain.altitude * 0.88))
-
-  return [
-    {
-      id: 'fu47b-mock-gate',
-      mountain_id: mountain.id,
-      type: 'transport',
-      name: '登山口',
-      description: '本地视觉样例点位',
-      elevation: baseAltitude,
-      sort_order: 1,
-      created_at: createdAt,
-      latitude: 34.52962,
-      longitude: 110.09221,
-    },
-    {
-      id: 'fu47b-mock-ridge',
-      mountain_id: mountain.id,
-      type: 'viewpoint',
-      name: '山脊视野点',
-      description: '本地视觉样例点位',
-      elevation: ridgeAltitude,
-      sort_order: 2,
-      created_at: createdAt,
-      latitude: 34.50984,
-      longitude: 110.08058,
-    },
-    {
-      id: 'fu47b-mock-shoulder',
-      mountain_id: mountain.id,
-      type: 'danger',
-      name: '陡坡过渡',
-      description: '本地视觉样例点位',
-      elevation: shoulderAltitude,
-      sort_order: 3,
-      created_at: createdAt,
-      latitude: 34.4959,
-      longitude: 110.08776,
-    },
-    {
-      id: 'fu47b-mock-summit',
-      mountain_id: mountain.id,
-      type: 'viewpoint',
-      name: '山顶',
-      description: '本地视觉样例点位',
-      elevation: mountain.altitude,
-      sort_order: 4,
-      created_at: createdAt,
-      latitude: mountain.latitude,
-      longitude: mountain.longitude,
-    },
-  ]
-}
-
 function getSeasonDecision(mountain: Mountain) {
   const currentMonth = new Date().getMonth() + 1
-  const highAltitude = mountain.altitude >= 4000
+  const highAltitude = (getMountainDisplayAltitude(mountain) ?? 0) >= 4000
   const inWindow = highAltitude
     ? currentMonth === 10 || currentMonth === 11
     : currentMonth >= 4 && currentMonth <= 10
@@ -616,19 +565,22 @@ function DecisionSection({
 }) {
   const season = getSeasonDecision(mountain)
   const suitabilityCopy = getDifficultySuitabilityCopy(mountain.difficulty)
-  const accessDisplay = getMountainAccessDisplay(mountain.access_status)
+  const accessDisplay = getMountainAccessDisplay(mountain.access_status, mountain.entity_type)
+  const isRoute = mountain.entity_type === 'route_corridor'
   const riskCopy = buildMountainRiskCopy(mountain.difficulty, mountain.risk_note)
   const accessCopy = mountain.access_note?.trim() || (
     accessDisplay.status === 'closed'
-      ? '该山峰当前不开放，请勿擅自进入。开放范围以当地最新公告为准。'
+      ? `${isRoute ? '该路线' : '该山峰'}当前不开放，请勿擅自进入。开放范围以当地最新公告为准。`
       : accessDisplay.status === 'pilgrimage_only'
         ? '这里只开放转山环线，不提供登顶引导。请遵守当地管理要求。'
-        : '当前开放状态尚未核实，请在出发前查询当地最新公告。'
+        : isRoute && accessDisplay.status === 'open'
+          ? '该路线仅作行程参考，出发前仍需使用专业户外导航并复核当地最新路况。'
+          : `${isRoute ? '路线' : '山峰'}开放状态尚未核实，请在出发前查询当地最新公告。`
   )
 
   return (
     <section data-testid="mountain-decision-section" data-mountain-motion="decision">
-      <SectionHeader title="这座山适不适合你" />
+      <SectionHeader title={mountain.entity_type === 'route_corridor' ? '这条路线适不适合你' : '这座山适不适合你'} />
       <div style={{ padding: '0 var(--space-4)' }}>
         {accessDisplay.canStartTrek ? (
           <div data-mountain-motion-child="decision-advisory" style={{ marginBottom: 'var(--space-3)' }}>
@@ -687,7 +639,13 @@ function DecisionSection({
   )
 }
 
-function DescriptionSection({ description }: { description: string | null | undefined }) {
+function DescriptionSection({
+  description,
+  entityType,
+}: {
+  description: string | null | undefined
+  entityType: Mountain['entity_type']
+}) {
   const html = description ?? ''
   const fallbackText = stripTagsForFallback(html).trim()
 
@@ -695,7 +653,7 @@ function DescriptionSection({ description }: { description: string | null | unde
 
   return (
     <section data-testid="mountain-description-section" data-mountain-motion="description">
-      <SectionHeader title="山峰简介" />
+      <SectionHeader title={entityType === 'route_corridor' ? '路线简介' : '山峰简介'} />
       <div style={{ padding: '0 var(--space-4)' }}>
         <div
           data-mountain-motion-child="description-card"
@@ -833,122 +791,10 @@ function WaypointSection({
   )
 }
 
-function RouteFootnote({ children }: { children: ReactNode }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 'var(--space-2)',
-        marginTop: 'var(--space-3)',
-        padding: '8px 10px',
-        borderTop: '1px solid var(--color-outline)',
-        color: 'var(--color-on-surface-variant)',
-        fontFamily: 'var(--font-mono)',
-        fontSize: 'var(--font-label-s-size)',
-        lineHeight: 'var(--font-label-s-line)',
-        fontWeight: 500,
-      }}
-    >
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden style={{ flexShrink: 0 }}>
-        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-        <path d="M12 8v5M12 16.5v.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      </svg>
-      <span>{children}</span>
-    </div>
-  )
-}
-
-function RouteTextFallback({ segments }: { segments: RouteSegment[] }) {
-  return (
-    <section id="route" data-testid="mountain-route-section">
-      <SectionHeader
-        title="路线参考"
-        right={
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: 'var(--font-label-s-size)',
-              lineHeight: 'var(--font-label-s-line)',
-              fontWeight: 500,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-            }}
-          >
-            仅文字版本
-          </span>
-        }
-      />
-      <div style={{ padding: '0 var(--space-4)' }}>
-        <div
-          data-mountain-route-card
-          style={{
-            background: 'var(--color-surface-variant)',
-            border: '1px solid var(--color-outline)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '14px 14px 6px',
-          }}
-        >
-          {segments.map((segment, index) => (
-            <div
-              key={`${segment.altitude}-${segment.title}`}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '64px minmax(0, 1fr)',
-                gap: 'var(--space-3)',
-                padding: '8px 0',
-                borderBottom: index === segments.length - 1 ? 'none' : '1px solid var(--color-outline)',
-              }}
-            >
-              <div
-                style={{
-                  color: 'var(--color-warning)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--font-label-m-size)',
-                  lineHeight: 'var(--font-label-m-line)',
-                  fontWeight: 500,
-                  fontVariantNumeric: 'tabular-nums',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {formatInteger(segment.altitude)}m
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div
-                  style={{
-                    color: 'var(--color-on-surface)',
-                    fontSize: 'var(--font-title-m-size)',
-                    lineHeight: 'var(--font-title-m-line)',
-                    fontWeight: 'var(--font-title-m-weight)',
-                  }}
-                >
-                  {segment.title}
-                </div>
-                <div
-                  style={{
-                    marginTop: 2,
-                    color: 'var(--color-on-surface-variant)',
-                    fontSize: 'var(--font-body-m-size)',
-                    lineHeight: 'var(--font-body-m-line)',
-                    fontWeight: 'var(--font-body-m-weight)',
-                  }}
-                >
-                  {segment.description}
-                </div>
-              </div>
-            </div>
-          ))}
-          <RouteFootnote>没有缓存到底图 · 仅展示路线分段说明</RouteFootnote>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function RouteUnavailable() {
   return (
     <section id="route" data-testid="mountain-route-section">
-      <SectionHeader title="路线参考" right="暂无 · 不可用" />
+      <SectionHeader title="路线参考" right="未收录" />
       <div style={{ padding: '0 var(--space-4)' }}>
         <EmptyState
           data-mountain-route-card
@@ -959,246 +805,24 @@ function RouteUnavailable() {
               <path d="M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2V6zM9 4v14M15 6v14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           }
-          title="路线参考图暂时不可用"
-          copy="地图服务没有响应，你仍可以查看关键点位与海拔信息。"
+          title="暂未收录参考轨迹"
+          copy="可先查看路线说明与风险提示，具体行程请使用专业户外导航工具。"
         />
       </div>
     </section>
   )
 }
 
-function buildWaypointRouteSegments(waypoints: Waypoint[]): RouteSegment[] {
-  return waypoints.map((waypoint, index) => ({
-    altitude: waypoint.elevation ?? 0,
-    title:
-      index === 0
-        ? `${waypoint.name} · 起点`
-        : index === waypoints.length - 1
-          ? `${waypoint.name} · 终点`
-          : waypoint.name,
-    description: waypoint.description || waypointTypeLabel(waypoint.type),
-  }))
-}
-
-function getFallbackSegments(mountain: Mountain, waypoints: Waypoint[]) {
-  if (waypoints.length >= 2) return buildWaypointRouteSegments(waypoints)
-  return getRouteSegments(mountain.name)
-}
-
-function RouteMapTopControls() {
-  return (
-    <div style={{ position: 'absolute', left: 10, top: 10, zIndex: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          padding: '4px 9px',
-          borderRadius: 'var(--radius-pill)',
-          background: 'color-mix(in srgb, var(--color-surface) 76%, transparent)',
-          border: '1px solid color-mix(in srgb, var(--color-on-surface) 16%, transparent)',
-          color: 'var(--color-on-surface-variant)',
-          backdropFilter: 'blur(10px)',
-          fontSize: 'var(--font-label-s-size)',
-          lineHeight: 'var(--font-label-s-line)',
-          fontWeight: 700,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        仅参考路线
-      </span>
-      <HelpTrigger anchor="map.map-no-nav" size={14} style={{ width: 26, height: 26 }} />
-    </div>
-  )
-}
-
-function getWaypointCoordinate(waypoint: Waypoint): [number, number] | null {
-  const candidate = waypoint as RouteWaypoint
-  if (
-    typeof candidate.longitude === 'number' &&
-    Number.isFinite(candidate.longitude) &&
-    typeof candidate.latitude === 'number' &&
-    Number.isFinite(candidate.latitude)
-  ) {
-    return [candidate.longitude, candidate.latitude]
-  }
-  return null
-}
-
-function addOrReplaceGeoJsonSource(map: MapLibreMap, id: string, data: GeoJSON.GeoJSON) {
-  if (map.getSource(id)) {
-    const source = map.getSource(id) as { setData?: (nextData: GeoJSON.GeoJSON) => void }
-    source.setData?.(data)
-    return
-  }
-  map.addSource(id, {
-    type: 'geojson',
-    data,
+function RouteTraceCard({ geometry }: { geometry: MountainRouteGeometry }) {
+  const view = buildRouteTraceViewModel(geometry, {
+    width: 320,
+    height: 220,
+    padding: 18,
   })
-}
-
-function removeRouteLayerIfPresent(map: MapLibreMap, id: string) {
-  if (map.getLayer(id)) map.removeLayer(id)
-}
-
-function addRouteLayerIfMissing(map: MapLibreMap, layer: Parameters<MapLibreMap['addLayer']>[0]) {
-  if (!map.getLayer(layer.id)) map.addLayer(layer)
-}
-
-function addRouteMapLayers(map: MapLibreMap, mountain: Mountain, waypoints: Waypoint[]) {
-  const prefix = 'fu47b-route'
-  const layers = [
-    `${prefix}-waypoint-labels`,
-    `${prefix}-waypoint-points`,
-    `${prefix}-line`,
-    `${prefix}-summit-label`,
-    `${prefix}-summit-point`,
-  ]
-  layers.forEach((layerId) => removeRouteLayerIfPresent(map, layerId))
-
-  const summitCoordinate: [number, number] = [mountain.longitude, mountain.latitude]
-  const coordinateWaypoints = waypoints.flatMap((waypoint) => {
-    const coordinate = getWaypointCoordinate(waypoint)
-    return coordinate ? [{ waypoint, coordinate }] : []
-  })
-
-  addOrReplaceGeoJsonSource(map, `${prefix}-summit`, {
-    type: 'FeatureCollection',
-    features: [
-      {
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: summitCoordinate },
-        properties: {
-          label: `顶峰 ${formatInteger(mountain.altitude)}m`,
-        },
-      },
-    ],
-  })
-
-  addRouteLayerIfMissing(map, {
-    id: `${prefix}-summit-point`,
-    type: 'circle',
-    source: `${prefix}-summit`,
-    paint: {
-      'circle-radius': 7,
-      'circle-color': '#7ef0b4',
-      'circle-stroke-color': '#10231b',
-      'circle-stroke-width': 2,
-    },
-  })
-  addRouteLayerIfMissing(map, {
-    id: `${prefix}-summit-label`,
-    type: 'symbol',
-    source: `${prefix}-summit`,
-    layout: {
-      'text-field': ['get', 'label'],
-      'text-font': ['Noto Sans Regular'],
-      'text-size': 12,
-      'text-offset': [0, -1.55],
-      'text-anchor': 'bottom',
-    },
-    paint: {
-      'text-color': '#7ef0b4',
-      'text-halo-color': '#07130f',
-      'text-halo-width': 1.6,
-    },
-  })
-
-  if (coordinateWaypoints.length < 2) return
-
-  addOrReplaceGeoJsonSource(map, `${prefix}-line-source`, {
-    type: 'Feature',
-    geometry: {
-      type: 'LineString',
-      coordinates: coordinateWaypoints.map((point) => point.coordinate),
-    },
-    properties: {},
-  })
-  addOrReplaceGeoJsonSource(map, `${prefix}-waypoints`, {
-    type: 'FeatureCollection',
-    features: coordinateWaypoints.map(({ waypoint, coordinate }) => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: coordinate },
-      properties: {
-        label: waypoint.elevation === null ? waypoint.name : `${waypoint.name} · ${formatInteger(waypoint.elevation)}m`,
-        tone: getWaypointTone({
-          waypoint,
-          highestElevation: Math.max(...coordinateWaypoints.map((point) => point.waypoint.elevation ?? 0), mountain.altitude),
-        }),
-      },
-    })),
-  })
-
-  addRouteLayerIfMissing(map, {
-    id: `${prefix}-line`,
-    type: 'line',
-    source: `${prefix}-line-source`,
-    paint: {
-      'line-color': '#7ef0b4',
-      'line-width': 3,
-      'line-opacity': 0.92,
-      'line-dasharray': [2, 2],
-    },
-  })
-  addRouteLayerIfMissing(map, {
-    id: `${prefix}-waypoint-points`,
-    type: 'circle',
-    source: `${prefix}-waypoints`,
-    paint: {
-      'circle-radius': ['case', ['==', ['get', 'tone'], 'success'], 6, 4.5],
-      'circle-color': ['case', ['==', ['get', 'tone'], 'success'], '#7ef0b4', ['==', ['get', 'tone'], 'warn'], '#f7c948', '#d7dde2'],
-      'circle-stroke-color': '#07130f',
-      'circle-stroke-width': 1.5,
-    },
-  })
-  addRouteLayerIfMissing(map, {
-    id: `${prefix}-waypoint-labels`,
-    type: 'symbol',
-    source: `${prefix}-waypoints`,
-    minzoom: 10,
-    layout: {
-      'text-field': ['get', 'label'],
-      'text-font': ['Noto Sans Regular'],
-      'text-size': 10,
-      'text-offset': [0, 1.1],
-      'text-anchor': 'top',
-    },
-    paint: {
-      'text-color': '#eef7f1',
-      'text-halo-color': '#07130f',
-      'text-halo-width': 1.2,
-    },
-  })
-}
-
-function RoutePmtilesCard({
-  mountain,
-  waypoints,
-  asset,
-  forceError,
-  onError,
-}: {
-  mountain: Mountain
-  waypoints: Waypoint[]
-  asset: MapTileAsset
-  forceError: boolean
-  onError: (error: Error) => void
-}) {
-  const hasWaypointRoute = waypoints.length >= 2
-  const handleMapReady = useCallback((map: MapLibreMap) => {
-    addRouteMapLayers(map, mountain, waypoints)
-  }, [mountain, waypoints])
 
   return (
     <section id="route" data-testid="mountain-route-section">
-      <SectionHeader
-        title="路线参考"
-        right={
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            <span aria-hidden style={{ width: 5, height: 5, borderRadius: 'var(--radius-pill)', background: 'var(--color-on-surface-variant)' }} />
-            静态参考图
-          </span>
-        }
-      />
+      <SectionHeader title="路线参考" right="完整轨迹" />
       <div style={{ padding: '0 var(--space-4)' }}>
         <div
           data-mountain-route-card
@@ -1209,59 +833,45 @@ function RoutePmtilesCard({
             overflow: 'hidden',
           }}
         >
-          <div style={{ position: 'relative', padding: '14px' }}>
-            <PmtilesSnapshotMap
-              asset={asset}
-              ariaLabel={hasWaypointRoute ? '真实离线底图上的路线参考图' : '真实离线底图上的山峰位置参考图'}
-              forceError={forceError}
-              onMapReady={handleMapReady}
-              onError={onError}
-              style={{
-                borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--color-outline)',
-              }}
-            >
-              <RouteMapTopControls />
-            </PmtilesSnapshotMap>
+          <svg
+            data-testid="mountain-route-trace-shape"
+            role="img"
+            aria-label="完整参考轨迹形状"
+            viewBox="0 0 320 220"
+            style={{
+              display: 'block',
+              width: '100%',
+              aspectRatio: '16 / 11',
+              background: 'var(--color-surface)',
+            }}
+          >
+            {view.paths.map((path, index) => (
+              <path
+                key={`${geometry.id}-${index}`}
+                d={path}
+                fill="none"
+                stroke="var(--color-success)"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+            <circle cx={view.start.x} cy={view.start.y} r="5" fill="var(--color-surface)" stroke="var(--color-success)" strokeWidth="2" />
+            <circle cx={view.end.x} cy={view.end.y} r="5" fill="var(--color-success)" stroke="var(--color-surface)" strokeWidth="2" />
+          </svg>
+          <div style={{ padding: '10px 14px 12px', color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>
+            轨迹形状示意，不是导航地图
           </div>
-          {hasWaypointRoute ? (
-            <div style={{ padding: '0 14px 12px', color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>
-              仅作路线示意 · 不是导航地图，山区请以现场判断为准
-            </div>
-          ) : null}
         </div>
       </div>
     </section>
   )
 }
 
-function RouteReferenceSection({
-  mountain,
-  waypoints,
-  forceMapError,
-}: {
-  mountain: Mountain
-  waypoints: Waypoint[]
-  forceMapError: boolean
-}) {
-  const asset = getMountainPmtilesAsset(mountain.id)
-  const fallbackSegments = getFallbackSegments(mountain, waypoints)
-  const [mapFailed, setMapFailed] = useState(false)
-
-  if (asset && !mapFailed) {
-    return (
-      <RoutePmtilesCard
-        mountain={mountain}
-        waypoints={waypoints}
-        asset={asset}
-        forceError={forceMapError}
-        onError={() => setMapFailed(true)}
-      />
-    )
-  }
-
-  if (fallbackSegments) return <RouteTextFallback segments={fallbackSegments} />
-  return <RouteUnavailable />
+function RouteReferenceSection({ routeGeometry }: { routeGeometry: MountainRouteGeometry | null }) {
+  if (!routeGeometry) return <RouteUnavailable />
+  return <RouteTraceCard geometry={routeGeometry} />
 }
 
 function FeaturedSection({ posts }: { posts: CommunityPostViewModel[] }) {
@@ -1361,7 +971,7 @@ function BottomCTA({
   requiresLogin: boolean
   hasWaypoints: boolean
 }) {
-  const accessDisplay = getMountainAccessDisplay(mountain.access_status)
+  const accessDisplay = getMountainAccessDisplay(mountain.access_status, mountain.entity_type)
   const loginHref = `/auth/login?from=${encodeURIComponent(`/mountain/${mountain.id}`)}`
   const primaryHref = requiresLogin
     ? loginHref
@@ -1453,20 +1063,17 @@ export default function MountainDetailClient({
   licenseProgress,
   requiresLogin,
   waypoints,
+  routeGeometry,
   featuredPosts,
   heroImages,
-  routeMockEnabled,
-  forceRouteMapError,
 }: MountainDetailClientProps) {
   const router = useRouter()
   const motionScopeRef = useRef<HTMLDivElement | null>(null)
   const routeFacts = getRouteFacts(mountain)
+  const displayAltitude = getMountainDisplayAltitude(mountain)
+  const weatherMountain = hasMountainWeatherTarget(mountain) ? mountain : null
   const communityEnabled = isFeatureEnabled('COMMUNITY_ENABLED')
   const [licenseSheetOpen, setLicenseSheetOpen] = useState(false)
-  const displayWaypoints = useMemo(
-    () => (routeMockEnabled ? buildFu47bMockWaypoints(mountain) : waypoints),
-    [mountain, routeMockEnabled, waypoints],
-  )
 
   useEffect(() => {
     trackEvent({
@@ -1477,11 +1084,12 @@ export default function MountainDetailClient({
         mountain_name: mountain.name,
         province: mountain.province,
         difficulty: mountain.difficulty,
-        altitude_m: mountain.altitude,
-        has_pmtiles: Boolean(getMountainPmtilesAsset(mountain.id)),
+        entity_type: mountain.entity_type ?? 'mountain',
+        altitude_m: mountain.entity_type === 'route_corridor' ? undefined : displayAltitude,
+        route_highpoint_m: mountain.entity_type === 'route_corridor' ? displayAltitude : undefined,
       },
     })
-  }, [mountain.altitude, mountain.difficulty, mountain.id, mountain.name, mountain.province])
+  }, [displayAltitude, mountain.difficulty, mountain.entity_type, mountain.id, mountain.name, mountain.province])
 
   useGSAP((_context, contextSafe) => {
     const root = motionScopeRef.current
@@ -1740,7 +1348,11 @@ export default function MountainDetailClient({
       try {
         await navigator.share({
           title: mountain.name,
-          text: `${mountain.name} · ${mountain.province} · ${formatInteger(mountain.altitude)}m`,
+          text: [
+            mountain.name,
+            mountain.province,
+            displayAltitude === null ? null : `${formatInteger(displayAltitude)}m`,
+          ].filter(Boolean).join(' · '),
           url,
         })
         return
@@ -1773,7 +1385,7 @@ export default function MountainDetailClient({
 
       <section
         data-mountain-motion="stats"
-        aria-label="山峰核心数据"
+        aria-label={mountain.entity_type === 'route_corridor' ? '路线核心数据' : '山峰核心数据'}
         style={{
           padding: 'var(--space-4) var(--space-4) 0',
         }}
@@ -1786,10 +1398,10 @@ export default function MountainDetailClient({
           }}
         >
           <StatTile
-            label="海拔 m"
-            value={formatInteger(mountain.altitude)}
+            label={mountain.entity_type === 'route_corridor' ? '线路最高海拔 m' : '海拔 m'}
+            value={displayAltitude === null ? '--' : formatInteger(displayAltitude)}
             motionKind="altitude"
-            countValue={mountain.altitude}
+            countValue={displayAltitude ?? undefined}
             countFormat="integer"
             accent
           />
@@ -1811,7 +1423,7 @@ export default function MountainDetailClient({
         </div>
       </section>
 
-      <DescriptionSection description={mountain.description} />
+      <DescriptionSection description={mountain.description} entityType={mountain.entity_type} />
 
       <DecisionSection
         mountain={mountain}
@@ -1820,19 +1432,21 @@ export default function MountainDetailClient({
         onShowLicenseSheet={() => setLicenseSheetOpen(true)}
       />
 
-      <div data-mountain-motion="weather">
-        <WeatherSection mountain={mountain} />
-      </div>
+      {weatherMountain ? (
+        <div data-mountain-motion="weather">
+          <WeatherSection mountain={weatherMountain} />
+        </div>
+      ) : null}
       <div data-mountain-motion="route" data-mountain-motion-mode="fade">
-        <RouteReferenceSection mountain={mountain} waypoints={displayWaypoints} forceMapError={forceRouteMapError} />
+        <RouteReferenceSection routeGeometry={routeGeometry} />
       </div>
-      {displayWaypoints.length > 0 ? <WaypointSection waypoints={displayWaypoints} /> : null}
+      {waypoints.length > 0 ? <WaypointSection waypoints={waypoints} /> : null}
       {communityEnabled && featuredPosts.length > 0 ? <FeaturedSection posts={featuredPosts} /> : null}
 
       <BottomCTA
         mountain={mountain}
         requiresLogin={requiresLogin}
-        hasWaypoints={displayWaypoints.length > 0}
+        hasWaypoints={waypoints.length > 0}
       />
       <LicenseProgressSheet
         open={licenseSheetOpen}

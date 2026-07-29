@@ -1,0 +1,251 @@
+{
+  "schema_version": "route-activation-source-v2",
+  "captured_from_production": {
+    "origin_main": "9599933b191448c5fca3f8f91f1ec30960bf2cbb",
+    "notes": [
+      "Captured from one read-only batch SQL snapshot on 2026-07-29.",
+      "This source file keeps only the activation-relevant projection from that snapshot.",
+      "R1 adds production content readiness closure for all 11 hidden routes."
+    ],
+    "mountain_counts": {
+      "total": 373,
+      "active": 342,
+      "readable_total": 345,
+      "mountain_total": 352,
+      "mountain_active": 333,
+      "mountain_readable": 336,
+      "route_corridor_total": 21,
+      "route_corridor_active": 9,
+      "route_corridor_readable": 9
+    },
+    "schema_state": {
+      "migration_applied": true,
+      "mountain_route_geometries_exists": true,
+      "mountains_columns": [
+        "access_status",
+        "aliases",
+        "altitude",
+        "entity_type",
+        "is_active",
+        "is_readable",
+        "route_highpoint_m",
+        "weather_enabled"
+      ],
+      "storage_buckets": [
+        {
+          "id": "mountain-media",
+          "public": true
+        },
+        {
+          "id": "mountain-route-source",
+          "public": false
+        }
+      ]
+    },
+    "geometry_counts": {
+      "total": 74,
+      "target_related": 10
+    },
+    "guard_readiness": {
+      "guard_ready_count": 11,
+      "guard_total": 11,
+      "all_guard_ready": true,
+      "blockers": null
+    },
+    "hidden_route_rows": [
+      {
+        "effective_canonical_key": "aotai-traverse-route",
+        "id": "3aedd9bb-19f7-5b49-a899-b9595aa29002",
+        "name": "鳌太线",
+        "entity_type": "route_corridor",
+        "access_status": "closed",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false,
+        "access_note": "鳌太穿越处于持续禁止非法穿越和重点整治范围；本条目仅用于封闭警示与历史路线认知。 以当地最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "risk_note_ready": true,
+        "route_note_ready": true,
+        "readiness_hash": "2a4e8dfef25a20ff9f78e3280a532354"
+      },
+      {
+        "effective_canonical_key": "bogeda-grand-loop-route",
+        "id": "01c780c1-5d04-5ff6-816d-1cb3a3e89753",
+        "name": "博格达大环线",
+        "entity_type": "route_corridor",
+        "access_status": "closed",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false,
+        "access_note": "产品裁定保留博格达大环线关闭警示；官方资料证明保护区核心区禁入、缓冲区禁止旅游，但具体线路版本与保护区边界仍待取得轨迹后核对。 以当地最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "risk_note_ready": true,
+        "route_note_ready": true,
+        "readiness_hash": "e2c95dbacbca947a0187ea1bec2039f4"
+      },
+      {
+        "effective_canonical_key": "everest-east-kama-valley-route",
+        "id": "ab65bafe-b7a5-516c-bef8-e6efbb8cc7ff",
+        "name": "珠峰东坡嘎玛沟",
+        "entity_type": "route_corridor",
+        "access_status": "unknown",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false,
+        "access_note": "官方文旅资料长期介绍嘎玛沟徒步线路，但边境、高海拔和季节性管理要求可能调整；以定日县及属地最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "risk_note_ready": true,
+        "route_note_ready": true,
+        "readiness_hash": "4a5ad1f5fb852d6e277cac09d2da9704"
+      },
+      {
+        "effective_canonical_key": "genie-south-route",
+        "id": "39b87b29-be32-546e-b1c4-6cb7c993e86c",
+        "name": "格聂南线",
+        "entity_type": "route_corridor",
+        "access_status": "unknown",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false,
+        "access_note": "公开平台存在不同版本的格聂南线轨迹，但徒步线与车辆线口径混杂；具体可通行区段以当地最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "risk_note_ready": true,
+        "route_note_ready": true,
+        "readiness_hash": "478e0a084b28b9615b0867f8f06800cd"
+      },
+      {
+        "effective_canonical_key": "gongga-grand-loop-route",
+        "id": "eca11851-2fe2-5417-b938-a45201282ed6",
+        "name": "贡嘎大环线",
+        "entity_type": "route_corridor",
+        "access_status": "unknown",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false,
+        "access_note": "公开平台存在多条历史与近期轨迹，但未找到足以确认全线当前开放的统一官方公告；以属地最新管理要求为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "risk_note_ready": true,
+        "route_note_ready": true,
+        "readiness_hash": "d6d35292fa0b2384ece94fb797098a55"
+      },
+      {
+        "effective_canonical_key": "kanas-hemu-traverse-route",
+        "id": "e461af81-2f6a-5631-8dc4-23eaef276ff4",
+        "name": "喀纳斯—禾木穿越线",
+        "entity_type": "route_corridor",
+        "access_status": "unknown",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false,
+        "access_note": "公开平台存在白哈巴、喀纳斯、禾木之间的多种穿越组合，当前统一线路版本与开放边界未核定；以景区最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "risk_note_ready": true,
+        "route_note_ready": true,
+        "readiness_hash": "013c21ee946827588103fa008f2cea8e"
+      },
+      {
+        "effective_canonical_key": "kulagangri-trek-route",
+        "id": "f7dc99ae-67af-58a8-8ab1-45a4d7fce00d",
+        "name": "库拉岗日徒步线",
+        "entity_type": "route_corridor",
+        "access_status": "restricted",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false,
+        "access_note": "公开资料曾记录线路开放与临时关闭，当前连续开放状态未核定；出行前须确认山南市及属地最新公告。",
+        "cover_ready": true,
+        "description_ready": true,
+        "risk_note_ready": true,
+        "route_note_ready": true,
+        "readiness_hash": "4f5c5274251b245c2b63fe53acdf30da"
+      },
+      {
+        "effective_canonical_key": "luoke-route",
+        "id": "8670bd70-7784-5294-a413-b976d51c2647",
+        "name": "洛克线",
+        "entity_type": "route_corridor",
+        "access_status": "unknown",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false,
+        "access_note": "公开平台存在洛克线用户轨迹，但不同穿越版本与亚丁保护区管理边界需单独核实；以沿线属地最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "risk_note_ready": true,
+        "route_note_ready": true,
+        "readiness_hash": "959bad19b13467cfa18d99cb06e04649"
+      },
+      {
+        "effective_canonical_key": "motuo-trek-route",
+        "id": "8972353d-ef10-5faf-a352-8f8987c7d4de",
+        "name": "墨脱徒步线",
+        "entity_type": "route_corridor",
+        "access_status": "unknown",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false,
+        "access_note": "官方历史资料显示路线受季节、道路和地质灾害影响会临时关闭；当前开放区段必须以墨脱县及沿线最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "risk_note_ready": true,
+        "route_note_ready": true,
+        "readiness_hash": "493607ef4a7133d4877c2567c197af3c"
+      },
+      {
+        "effective_canonical_key": "siguniang-changping-bipeng-route",
+        "id": "8874b9ed-e531-5690-bc49-a61594a3423c",
+        "name": "四姑娘山长坪沟—毕棚沟穿越线",
+        "entity_type": "route_corridor",
+        "access_status": "unknown",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false,
+        "access_note": "景区公开资料确认穿越活动须按规定办理入园与户外活动手续；具体开放区段以四姑娘山景区最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "risk_note_ready": true,
+        "route_note_ready": true,
+        "readiness_hash": "f13e922c75b38ee6aa58ca2a89b53584"
+      },
+      {
+        "effective_canonical_key": "wusun-ancient-trail-route",
+        "id": "98786a61-8c62-5c36-84bb-c9c09a518394",
+        "name": "乌孙古道",
+        "entity_type": "route_corridor",
+        "access_status": "closed",
+        "is_active": false,
+        "is_readable": false,
+        "weather_enabled": false,
+        "access_note": "新疆体育局 2025-09-29 通知封闭乌孙古道等 14 条古道，2026-06 官方信息仍处于评估启动阶段；未见重新开放公告，本条目仅作关闭警示与历史路线参考。 以当地最新公告为准。",
+        "cover_ready": true,
+        "description_ready": true,
+        "risk_note_ready": true,
+        "route_note_ready": true,
+        "readiness_hash": "3767a66570d894ee0d3de102601ae8d3"
+      }
+    ],
+    "gangrenboqi": {
+      "effective_canonical_key": "gangrenboqi-cluster",
+      "id": "137df8c2-10cd-5705-b65a-60a904744246",
+      "name": "冈仁波齐周边山峰",
+      "entity_type": "mountain",
+      "access_status": "pilgrimage_only",
+      "is_active": true,
+      "is_readable": true,
+      "weather_enabled": true,
+      "altitude": 4000,
+      "altitude_m_exact": 4000,
+      "latitude": 31.05,
+      "longitude": 81.3,
+      "length_km": 52,
+      "route_reference_label": "塔钦-冈仁波齐转山",
+      "access_note": "仅保留转山线路；主峰无成功登顶记录，当地视为神山。外转里程因起点口径不同约52–57km。"
+    }
+  }
+}

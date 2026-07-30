@@ -15,9 +15,17 @@ export type ScreenshotQuotaProfile = {
   subscription_tier: string | null
 }
 
-export type ConsumeScreenshotQuotaResult =
-  | { success: true; bucket: 'free' | 'paid'; quota: ScreenshotQuotaState }
-  | { success: false; reason: 'exhausted' | 'rpc_error'; quota: ScreenshotQuotaState; error?: string }
+export type ReserveScreenshotQuotaResult =
+  | { success: true; requestId: string; bucket: 'free' | 'paid'; quota: ScreenshotQuotaState }
+  | { success: false; requestId: string; reason: 'exhausted' | 'rpc_error'; quota: ScreenshotQuotaState; error?: string }
+
+export type CompleteScreenshotQuotaAttemptResult =
+  | { success: true; requestId: string; quota: ScreenshotQuotaState }
+  | { success: false; requestId: string; reason: 'rpc_error' | 'not_found' | 'not_reserved'; quota: ScreenshotQuotaState; error?: string }
+
+export type RefundScreenshotQuotaAttemptResult =
+  | { success: true; requestId: string; reason: null | 'already_refunded'; quota: ScreenshotQuotaState }
+  | { success: false; requestId: string; reason: 'rpc_error' | 'not_found' | 'not_reserved'; quota: ScreenshotQuotaState; error?: string }
 
 type ScreenshotQuotaRpcRow = {
   success: boolean | null
@@ -25,6 +33,7 @@ type ScreenshotQuotaRpcRow = {
   bucket: string | null
   free_used: number | null
   paid_used: number | null
+  request_id?: string | null
 }
 
 export function getScreenshotQuotaMonthKey(date = new Date()) {
@@ -118,21 +127,24 @@ export async function getScreenshotQuotaState(
   })
 }
 
-export async function consumeScreenshotQuota(
+export async function reserveScreenshotQuota(
   supabase: SupabaseClient,
   userId: string,
-  quota: ScreenshotQuotaState
-): Promise<ConsumeScreenshotQuotaResult> {
-  const { data, error } = await supabase.rpc('consume_screenshot_quota', {
+  quota: ScreenshotQuotaState,
+  requestId: string
+): Promise<ReserveScreenshotQuotaResult> {
+  const { data, error } = await supabase.rpc('reserve_screenshot_quota_attempt', {
     p_user_id: userId,
     p_month_key: quota.monthKey,
     p_free_limit: quota.freeLimit,
     p_paid_limit: quota.paidLimit,
+    p_request_id: requestId,
   })
 
   if (error) {
     return {
       success: false,
+      requestId,
       reason: 'rpc_error',
       quota,
       error: error.message,
@@ -143,6 +155,7 @@ export async function consumeScreenshotQuota(
   if (!result?.success) {
     return {
       success: false,
+      requestId,
       reason: 'exhausted',
       quota: withQuotaUsage(quota, result?.free_used, result?.paid_used),
     }
@@ -150,7 +163,85 @@ export async function consumeScreenshotQuota(
 
   return {
     success: true,
+    requestId,
     bucket: result.bucket === 'paid' ? 'paid' : 'free',
     quota: withQuotaUsage(quota, result.free_used, result.paid_used),
+  }
+}
+
+export async function completeScreenshotQuotaAttempt(
+  supabase: SupabaseClient,
+  userId: string,
+  requestId: string,
+  quota: ScreenshotQuotaState
+): Promise<CompleteScreenshotQuotaAttemptResult> {
+  const { data, error } = await supabase.rpc('complete_screenshot_quota_attempt', {
+    p_user_id: userId,
+    p_request_id: requestId,
+  })
+
+  if (error) {
+    return {
+      success: false,
+      requestId,
+      reason: 'rpc_error',
+      quota,
+      error: error.message,
+    }
+  }
+
+  const result = Array.isArray(data) ? (data[0] as ScreenshotQuotaRpcRow | undefined) : data as ScreenshotQuotaRpcRow | null
+  if (!result?.success) {
+    return {
+      success: false,
+      requestId,
+      reason: result?.reason === 'not_found' ? 'not_found' : 'not_reserved',
+      quota: withQuotaUsage(quota, result?.free_used, result?.paid_used),
+    }
+  }
+
+  return {
+    success: true,
+    requestId,
+    quota: withQuotaUsage(quota, result.free_used, result.paid_used),
+  }
+}
+
+export async function refundScreenshotQuotaAttempt(
+  supabase: SupabaseClient,
+  userId: string,
+  requestId: string,
+  quota: ScreenshotQuotaState
+): Promise<RefundScreenshotQuotaAttemptResult> {
+  const { data, error } = await supabase.rpc('refund_screenshot_quota_attempt', {
+    p_user_id: userId,
+    p_request_id: requestId,
+  })
+
+  if (error) {
+    return {
+      success: false,
+      requestId,
+      reason: 'rpc_error',
+      quota,
+      error: error.message,
+    }
+  }
+
+  const result = Array.isArray(data) ? (data[0] as ScreenshotQuotaRpcRow | undefined) : data as ScreenshotQuotaRpcRow | null
+  if (!result?.success) {
+    return {
+      success: false,
+      requestId,
+      reason: result?.reason === 'not_found' ? 'not_found' : 'not_reserved',
+      quota: withQuotaUsage(quota, result?.free_used, result?.paid_used),
+    }
+  }
+
+  return {
+    success: true,
+    requestId,
+    reason: result?.reason === 'already_refunded' ? 'already_refunded' : null,
+    quota: withQuotaUsage(quota, result?.free_used, result?.paid_used),
   }
 }

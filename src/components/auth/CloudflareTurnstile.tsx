@@ -99,7 +99,7 @@ export function CloudflareTurnstile({
         if (cancelled || !window.turnstile || !containerRef.current) return
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
-          appearance: 'interaction-only',
+          appearance: 'always',
           size: 'flexible',
           theme: 'dark',
           callback: (token) => {
@@ -163,7 +163,7 @@ export function CloudflareTurnstile({
         minHeight: state === 'loading' || state === 'ready' || state === 'expired' ? 65 : 0,
       }}
     >
-      <div ref={containerRef} />
+      <div ref={containerRef} style={{ display: 'flex', justifyContent: 'center' }} />
     </div>
   )
 }

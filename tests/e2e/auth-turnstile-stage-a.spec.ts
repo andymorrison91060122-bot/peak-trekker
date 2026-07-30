@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { expect, test, type Browser, type Page } from '@playwright/test'
 
 const EVIDENCE_DIR = 'output/p1-screenshot-quota-abuse'
+const ALWAYS_VISIBLE_EVIDENCE_DIR = 'output/turnstile-always-visible'
 const TURNSTILE_ALWAYS_PASS_SITE_KEY = '1x00000000000000000000AA'
 const TURNSTILE_SCRIPT_PREFIX = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
 
@@ -266,6 +267,111 @@ test('official Cloudflare test widget preserves one-time auth tokens and 375px l
       cloudflareResponses,
       cloudflareFailures,
       cspRelatedPageErrors: pageErrors.filter((message) => /content security policy|turnstile/i.test(message)),
+      unexpectedMutations: harness.unexpectedMutations,
+    }, null, 2)}\n`,
+  )
+})
+
+test('Turnstile remains visibly rendered on login and register without submitting auth', async ({ page, baseURL }) => {
+  test.setTimeout(120_000)
+  mkdirSync(ALWAYS_VISIBLE_EVIDENCE_DIR, { recursive: true })
+  const root = baseURL ?? 'http://127.0.0.1:3100'
+  const harness = await installReadOnlyAuthHarness(page)
+  await page.setViewportSize({ width: 375, height: 812 })
+
+  async function captureVisibleWidget(pageName: 'login' | 'register') {
+    const wrapper = page.getByTestId('auth-turnstile-widget')
+    const card = page.locator('.mountain-card')
+    await expect(wrapper).toBeVisible()
+    await expect(wrapper).toHaveAttribute('data-turnstile-site-key-kind', 'official-always-pass-test')
+    await expect.poll(async () => (await wrapper.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(65)
+    await expect.poll(async () => wrapper.evaluate((widget) => (
+      Array.from(widget.children).some((child) => child.getBoundingClientRect().height >= 65)
+    ))).toBe(true)
+
+    const frameSamples = await page.evaluate(async () => {
+      const widget = document.querySelector('[data-testid="auth-turnstile-widget"]')
+      if (!(widget instanceof HTMLElement)) return []
+      const samples: Array<{ height: number; contentVisible: boolean }> = []
+      for (let index = 0; index < 12; index += 1) {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+        const widgetBox = widget.getBoundingClientRect()
+        const contentVisible = Array.from(widget.children).some((child) => {
+          const childBox = child.getBoundingClientRect()
+          return childBox.width > 0 && childBox.height >= 65
+        })
+        samples.push({
+          height: widgetBox.height,
+          contentVisible,
+        })
+      }
+      return samples
+    })
+
+    expect(frameSamples).toHaveLength(12)
+    expect(frameSamples.every((sample) => sample.height >= 65 && sample.contentVisible)).toBe(true)
+
+    await expect.poll(() => (
+      page.frames().some((frame) => frame.url().includes('challenges.cloudflare.com'))
+    )).toBe(true)
+    const turnstileFrame = page.frames().find((frame) => frame.url().includes('challenges.cloudflare.com'))
+    if (!turnstileFrame) throw new Error('Cloudflare Turnstile frame is not available.')
+    const iframeBox = await turnstileFrame.frameElement().then((element) => element.boundingBox())
+    const cardBox = await card.boundingBox()
+    expect(iframeBox).not.toBeNull()
+    expect(cardBox).not.toBeNull()
+    if (!iframeBox || !cardBox) throw new Error('Turnstile iframe or auth card is not measurable.')
+
+    const centerDelta = Math.abs(
+      (iframeBox.x + iframeBox.width / 2) - (cardBox.x + cardBox.width / 2),
+    )
+    expect(centerDelta).toBeLessThanOrEqual(1)
+    expect(iframeBox.x).toBeGreaterThanOrEqual(cardBox.x)
+    expect(iframeBox.x + iframeBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width)
+
+    return {
+      page: pageName,
+      wrapperBox: await wrapper.boundingBox(),
+      iframeBox,
+      cardBox,
+      centerDelta,
+      frameSamples,
+      documentWidth: await page.evaluate(() => document.documentElement.scrollWidth),
+      viewportWidth: await page.evaluate(() => window.innerWidth),
+      horizontalOverflow: await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
+      formCount: await page.locator('form').count(),
+      cardCount: await page.locator('.mountain-card').count(),
+    }
+  }
+
+  await page.goto(`${root}/auth/login`, { waitUntil: 'domcontentloaded' })
+  const login = await captureVisibleWidget('login')
+  expect(login.horizontalOverflow).toBe(false)
+  expect(login.formCount).toBe(1)
+  expect(login.cardCount).toBe(1)
+  await page.screenshot({ path: `${ALWAYS_VISIBLE_EVIDENCE_DIR}/login-375.png` })
+
+  await page.goto(`${root}/auth/register`, { waitUntil: 'domcontentloaded' })
+  await page.fill('input[type="email"]', 'visibility-only@example.com')
+  await page.fill('input[type="password"]', 'not-submitted')
+  await page.getByRole('button', { name: '下一步 →' }).click()
+  await expect(page.getByText('// REGISTER')).toBeVisible()
+  const register = await captureVisibleWidget('register')
+  expect(register.horizontalOverflow).toBe(false)
+  expect(register.formCount).toBe(1)
+  expect(register.cardCount).toBe(1)
+  await page.screenshot({ path: `${ALWAYS_VISIBLE_EVIDENCE_DIR}/register-step-2-375.png` })
+
+  expect(harness.authRequests).toEqual([])
+  expect(harness.unexpectedMutations).toEqual([])
+  writeFileSync(
+    `${ALWAYS_VISIBLE_EVIDENCE_DIR}/evidence.json`,
+    `${JSON.stringify({
+      mode: 'official-cloudflare-always-pass-test-widget',
+      note: 'Visual-only localhost evidence. No auth form was submitted and no user was created.',
+      login,
+      register,
+      authRequests: harness.authRequests,
       unexpectedMutations: harness.unexpectedMutations,
     }, null, 2)}\n`,
   )

@@ -1,7 +1,11 @@
+import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { getScreenshotQuotaState } from '@/lib/screenshot/quota'
-import { recognizeThenConsumeScreenshotQuota } from '@/lib/screenshot/recognition-quota'
+import {
+  ScreenshotRecognitionAttemptError,
+  recognizeWithReservedScreenshotQuota,
+} from '@/lib/screenshot/recognition-quota'
 import { screenshotRecognitionErrorStatus } from '@/lib/screenshot/recognition-status'
 import {
   SCREENSHOT_QUOTA_RETRY_MESSAGE,
@@ -39,13 +43,22 @@ async function getScreenshotUser(supabase: Awaited<ReturnType<typeof createSupab
 }
 
 export function recognitionFailureResponse(error: unknown) {
+  const providerError = error instanceof ScreenshotRecognitionAttemptError
+    ? error.providerError
+    : error
+  const quotaRefunded = error instanceof ScreenshotRecognitionAttemptError && error.quotaRefunded
   console.error('screenshot recognition failed', {
-    error,
-    status: screenshotRecognitionErrorStatus(error),
+    error: providerError,
+    quotaRefunded,
+    status: screenshotRecognitionErrorStatus(providerError),
   })
   return NextResponse.json(
-    { error: TEMPORARY_RECOGNITION_ERROR_MESSAGE },
-    { status: screenshotRecognitionErrorStatus(error) }
+    {
+      error: quotaRefunded
+        ? TEMPORARY_RECOGNITION_ERROR_MESSAGE
+        : SCREENSHOT_RECOGNITION_RETRY_MESSAGE,
+    },
+    { status: screenshotRecognitionErrorStatus(providerError) }
   )
 }
 
@@ -111,24 +124,37 @@ export async function POST(request: Request) {
     }
 
     const imageBase64 = Buffer.from(await file.arrayBuffer()).toString('base64')
-    const { recognition, quotaResult } = await recognizeThenConsumeScreenshotQuota({
+    const result = await recognizeWithReservedScreenshotQuota({
       imageBase64,
       mimeType: file.type,
       userId: user.id,
       quota,
+      requestId: randomUUID(),
       adminClient: createSupabaseAdminClient(),
     })
-    const { source: ocrSource, ocrResult, parsedFields, engineMeta } = recognition
-    if (!quotaResult.success) {
-      if (quotaResult.reason === 'exhausted') {
-        return quotaExhaustedResponse(quotaResult.quota)
+
+    if (!result.reserveResult.success) {
+      if (result.reserveResult.reason === 'exhausted') {
+        return quotaExhaustedResponse(result.reserveResult.quota)
       }
 
       console.error('screenshot quota consumption failed', {
-        reason: quotaResult.reason,
-        error: quotaResult.error,
+        reason: result.reserveResult.reason,
+        error: result.reserveResult.error,
       })
       return NextResponse.json({ error: TEMPORARY_QUOTA_ERROR_MESSAGE }, { status: 500 })
+    }
+
+    const { reserveResult, recognition, finalizeResult } = result as Extract<
+      typeof result,
+      { reserveResult: { success: true } }
+    >
+    const { source: ocrSource, ocrResult, parsedFields, engineMeta } = recognition
+    if (!finalizeResult.success) {
+      console.error('screenshot quota completion failed', {
+        reason: finalizeResult.reason,
+        error: finalizeResult.error,
+      })
     }
 
     return NextResponse.json({
@@ -137,7 +163,7 @@ export async function POST(request: Request) {
       parsedFields,
       ocrSource,
       recognitionMeta: engineMeta,
-      quota: quotaResult.quota,
+      quota: finalizeResult.success ? finalizeResult.quota : reserveResult.quota,
     })
   } catch (error) {
     return recognitionFailureResponse(error)

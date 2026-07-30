@@ -17,8 +17,15 @@ import { attributionProperties, clearShareAttribution } from '@/lib/analytics/at
 import { trackEvent, trackEventNow } from '@/lib/analytics/client'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { BrandTile } from '@/components/brand/BrandTile'
+import {
+  CloudflareTurnstile,
+  getCloudflareTurnstileSiteKey,
+  TURNSTILE_EXPIRED_MESSAGE,
+  TURNSTILE_LOAD_ERROR_MESSAGE,
+} from '@/components/auth/CloudflareTurnstile'
 
 const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
+const turnstileSiteKey = getCloudflareTurnstileSiteKey()
 
 function RegisterPageContent() {
   const [step, setStep] = useState<1 | 2>(1)
@@ -26,6 +33,9 @@ function RegisterPageContent() {
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
   const [province, setProvince] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0)
+  const [turnstileUnavailable, setTurnstileUnavailable] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const searchParams = useSearchParams()
@@ -48,9 +58,35 @@ function RegisterPageContent() {
     return () => window.cancelAnimationFrame(frame)
   }, [])
 
+  function handleTurnstileToken(token: string) {
+    setCaptchaToken(token)
+    setTurnstileUnavailable(false)
+    setError((current) => (
+      current === TURNSTILE_EXPIRED_MESSAGE || current === TURNSTILE_LOAD_ERROR_MESSAGE
+        ? ''
+        : current
+    ))
+  }
+
+  function handleTurnstileExpired() {
+    setCaptchaToken('')
+    setTurnstileUnavailable(false)
+    setError(TURNSTILE_EXPIRED_MESSAGE)
+  }
+
+  function handleTurnstileError() {
+    setCaptchaToken('')
+    setTurnstileUnavailable(true)
+    setError(TURNSTILE_LOAD_ERROR_MESSAGE)
+  }
+
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault()
     if (step === 1) { setStep(2); return }
+    if (turnstileSiteKey && !captchaToken) {
+      setError(turnstileUnavailable ? TURNSTILE_LOAD_ERROR_MESSAGE : '请先完成人机验证。')
+      return
+    }
 
     const nicknameResult = validateNickname(username)
     if (!nicknameResult.ok) {
@@ -71,6 +107,7 @@ function RegisterPageContent() {
       email,
       password,
       options: {
+        captchaToken,
         data: {
           nickname: nicknameResult.value,
           province,
@@ -80,21 +117,15 @@ function RegisterPageContent() {
     })
     if (signUpError) {
       console.warn('[auth-register] signup failed', signUpError)
+      setCaptchaToken('')
+      setTurnstileResetKey((current) => current + 1)
       setError('注册暂时没有完成，请检查邮箱和密码后重试。')
       setLoading(false)
       return
     }
 
-    let activeSession = data.session
-    let activeUserId = data.user?.id ?? null
-
-    if (!activeSession) {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-      if (!signInError && signInData.session) {
-        activeSession = signInData.session
-        activeUserId = signInData.user?.id ?? activeUserId
-      }
-    }
+    const activeSession = data.session
+    const activeUserId = data.user?.id ?? null
 
     setProvinceDraft(province)
     setIntroSeen()
@@ -222,14 +253,20 @@ function RegisterPageContent() {
                     选择你的籍贯或常驻省，将作为个人资料中的归属地。
                   </p>
                 </div>
-                <div style={{ padding: '10px 12px', background: 'rgba(45,106,79,0.08)', border: '1px solid rgba(45,106,79,0.2)', borderLeft: '3px solid var(--green-primary)', fontSize: 10, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', lineHeight: 1.8 }}>
-                  🪪 初始：无执照<br />
-                  完成3座1000m以下山峰，解锁初级执照
-                </div>
-              </>
-            )}
+                    <div style={{ padding: '10px 12px', background: 'rgba(45,106,79,0.08)', border: '1px solid rgba(45,106,79,0.2)', borderLeft: '3px solid var(--green-primary)', fontSize: 10, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', lineHeight: 1.8 }}>
+                      🪪 初始：无执照<br />
+                      完成3座1000m以下山峰，解锁初级执照
+                    </div>
+                    <CloudflareTurnstile
+                      onToken={handleTurnstileToken}
+                      onExpired={handleTurnstileExpired}
+                      onError={handleTurnstileError}
+                      resetKey={turnstileResetKey}
+                    />
+                  </>
+                )}
 
-            {error && (
+                {error && (
               <div style={{ padding: '8px 12px', background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.3)', borderLeft: '3px solid #E63946', color: '#E63946', fontSize: 11, fontFamily: 'Share Tech Mono' }}>
                 ⚠ {error}
               </div>

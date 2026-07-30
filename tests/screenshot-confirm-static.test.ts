@@ -18,6 +18,7 @@ const screenshotMimoAdapter = readFileSync('src/lib/screenshot/mimo-v25-adapter.
 const screenshotMimoAdjudicator = readFileSync('src/lib/screenshot/mimo-v25-text-adjudicator.ts', 'utf8')
 const screenshotFieldValidation = readFileSync('src/lib/screenshot-field-validation.ts', 'utf8')
 const screenshotQuotaMigration = readFileSync('supabase/migrations/20260517063336_create_screenshot_quota.sql', 'utf8')
+const screenshotQuotaReservationMigration = readFileSync('supabase/migrations/20260730190000_screenshot_quota_reservations.sql', 'utf8')
 const mountainSearchRoute = readFileSync('src/app/api/mountains/search/route.ts', 'utf8')
 const trekVerifyHelpers = readFileSync('src/lib/trek-verify-helpers.ts', 'utf8')
 
@@ -159,8 +160,11 @@ test('screenshot recognition route enforces quota with service-role RPC only', (
   assert.match(screenshotRecognizeRoute, /export const runtime = 'nodejs'/)
   assert.match(screenshotRecognizeRoute, /export const maxDuration = 60/)
   assert.match(screenshotRecognizeRoute, /getScreenshotQuotaState/)
-  assert.match(screenshotRecognizeRoute, /recognizeThenConsumeScreenshotQuota\(\{[\s\S]*adminClient:\s*createSupabaseAdminClient\(\)/)
-  assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const recognition = await recognize\(imageBase64,\s*mimeType\)[\s\S]*const quotaResult = await consume\(adminClient,\s*userId,\s*quota\)/)
+  assert.match(screenshotRecognizeRoute, /recognizeWithReservedScreenshotQuota\(\{[\s\S]*requestId:\s*randomUUID\(\),[\s\S]*adminClient:\s*createSupabaseAdminClient\(\)/)
+  assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const reserveResult = await reserve\(adminClient,\s*userId,\s*quota,\s*requestId\)/)
+  assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /recognition = await recognize\(imageBase64,\s*mimeType\)/)
+  assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const finalizeResult = await finalize\(adminClient,\s*userId,\s*requestId,\s*reserveResult\.quota\)/)
+  assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const refundResult = await refund\(adminClient,\s*userId,\s*requestId,\s*reserveResult\.quota\)/)
   assert.match(screenshotRecognizeRoute, /status:\s*402/)
   assert.match(screenshotRecognizeRoute, /screenshot_quota_exhausted/)
   assert.match(screenshotRecognizeRoute, /ocrSource/)
@@ -174,12 +178,22 @@ test('screenshot recognition route enforces quota with service-role RPC only', (
   assert.match(screenshotQuotaMigration, /REVOKE ALL ON FUNCTION public\.consume_screenshot_quota\(UUID, TEXT, INTEGER, INTEGER\)\s+FROM PUBLIC, authenticated, anon;/)
   assert.match(screenshotQuotaMigration, /GRANT EXECUTE ON FUNCTION public\.consume_screenshot_quota\(UUID, TEXT, INTEGER, INTEGER\)\s+TO service_role;/)
   assert.doesNotMatch(screenshotQuotaMigration, /GRANT EXECUTE ON FUNCTION public\.consume_screenshot_quota\(UUID, TEXT, INTEGER, INTEGER\)\s+TO authenticated;/)
-  assert.match(screenshotQuotaHelper, /\.rpc\('consume_screenshot_quota'/)
+  assert.match(screenshotQuotaHelper, /\.rpc\('reserve_screenshot_quota_attempt'/)
+  assert.match(screenshotQuotaHelper, /\.rpc\('complete_screenshot_quota_attempt'/)
+  assert.match(screenshotQuotaHelper, /\.rpc\('refund_screenshot_quota_attempt'/)
+  assert.match(screenshotQuotaReservationMigration, /REVOKE ALL ON FUNCTION public\.reserve_screenshot_quota_attempt\(UUID, TEXT, INTEGER, INTEGER, TEXT\)\s+FROM PUBLIC, authenticated, anon;/)
+  assert.match(screenshotQuotaReservationMigration, /GRANT EXECUTE ON FUNCTION public\.reserve_screenshot_quota_attempt\(UUID, TEXT, INTEGER, INTEGER, TEXT\)\s+TO service_role;/)
+  assert.match(screenshotQuotaReservationMigration, /GRANT EXECUTE ON FUNCTION public\.complete_screenshot_quota_attempt\(UUID, TEXT\)\s+TO service_role;/)
+  assert.match(screenshotQuotaReservationMigration, /GRANT EXECUTE ON FUNCTION public\.refund_screenshot_quota_attempt\(UUID, TEXT\)\s+TO service_role;/)
 })
 
 test('screenshot recognition transient errors use friendly copy and do not consume quota', async () => {
-  const { recognizeThenConsumeScreenshotQuota } = await import('../src/lib/screenshot/recognition-quota.ts')
-  let consumed = false
+  const {
+    ScreenshotRecognitionAttemptError,
+    recognizeWithReservedScreenshotQuota,
+  } = await import('../src/lib/screenshot/recognition-quota.ts')
+  let reserved = false
+  let refunded = false
   const quota = {
     monthKey: '2026-06',
     isFirstMonth: false,
@@ -195,27 +209,55 @@ test('screenshot recognition transient errors use friendly copy and do not consu
   } as const
 
   await assert.rejects(
-    () => recognizeThenConsumeScreenshotQuota({
+    () => recognizeWithReservedScreenshotQuota({
       imageBase64: 'base64',
       mimeType: 'image/png',
       userId: 'user-id',
       quota,
+      requestId: 'request-1',
       adminClient: {} as never,
       recognize: async () => {
         throw new TypeError('fetch failed')
       },
-      consume: async (_adminClient, _userId, nextQuota) => {
-        consumed = true
-        return { success: true, bucket: 'free', quota: nextQuota }
+      reserve: async (_adminClient, _userId, nextQuota, requestId) => {
+        reserved = true
+        return { success: true, requestId, bucket: 'free', quota: nextQuota }
+      },
+      finalize: async () => {
+        throw new Error('finalize should not run for provider failure')
+      },
+      refund: async (_adminClient, _userId, requestId, nextQuota) => {
+        refunded = true
+        return { success: true, requestId, reason: null, quota: nextQuota }
       },
     }),
-    /fetch failed/,
+    (error: unknown) => {
+      assert.ok(error instanceof ScreenshotRecognitionAttemptError)
+      assert.equal(error.quotaRefunded, true)
+      return true
+    },
   )
-  assert.equal(consumed, false)
+  assert.equal(reserved, true)
+  assert.equal(refunded, true)
 
   assert.match(screenshotRecognizeErrorCopy, /识别服务暂时不可用，请稍后重试。本次未消耗识别次数。/)
-  assert.match(screenshotRecognizeRoute, /return recognitionFailureResponse\(error\)/)
+  assert.match(screenshotRecognizeRoute, /error instanceof ScreenshotRecognitionAttemptError && error\.quotaRefunded/)
+  assert.match(screenshotRecognizeRoute, /SCREENSHOT_RECOGNITION_TEMPORARY_MESSAGE/)
+  assert.match(screenshotRecognizeRoute, /SCREENSHOT_RECOGNITION_RETRY_MESSAGE/)
   assert.doesNotMatch(screenshotRecognizeRoute, /\{ error: error instanceof Error \? error\.message/)
+})
+
+test('successful OCR response is returned even when quota finalization is temporarily unavailable', () => {
+  const finalizeBranch = screenshotRecognizeRoute.match(
+    /if \(!finalizeResult\.success\) \{[\s\S]*?\n    \}/,
+  )?.[0] ?? ''
+
+  assert.match(finalizeBranch, /console\.error\('screenshot quota completion failed'/)
+  assert.doesNotMatch(finalizeBranch, /return NextResponse/)
+  assert.match(
+    screenshotRecognizeRoute,
+    /quota:\s*finalizeResult\.success \? finalizeResult\.quota : reserveResult\.quota/,
+  )
 })
 
 test('screenshot recognize route sanitizes auth, quota, and client network error surfaces', () => {

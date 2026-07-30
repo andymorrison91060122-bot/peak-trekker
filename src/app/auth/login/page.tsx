@@ -7,6 +7,14 @@ import Link from 'next/link'
 import { BrandTile } from '@/components/brand/BrandTile'
 import { clearClientAuthReturnPath, resolveClientAuthReturnPath } from '@/lib/auth-redirect'
 import { trackEvent, trackEventNow } from '@/lib/analytics/client'
+import {
+  CloudflareTurnstile,
+  getCloudflareTurnstileSiteKey,
+  TURNSTILE_EXPIRED_MESSAGE,
+  TURNSTILE_LOAD_ERROR_MESSAGE,
+} from '@/components/auth/CloudflareTurnstile'
+
+const turnstileSiteKey = getCloudflareTurnstileSiteKey()
 
 function normalizeLoginError(message: string) {
   if (message === 'Invalid login credentials') return '邮箱或密码错误'
@@ -16,14 +24,43 @@ function normalizeLoginError(message: string) {
 function LoginPageContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0)
+  const [turnstileUnavailable, setTurnstileUnavailable] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const searchParams = useSearchParams()
   const supabase = createSupabaseBrowserClient()
   const returnTo = resolveClientAuthReturnPath(searchParams.get('from'), '/explore')
 
+  function handleTurnstileToken(token: string) {
+    setCaptchaToken(token)
+    setTurnstileUnavailable(false)
+    setError((current) => (
+      current === TURNSTILE_EXPIRED_MESSAGE || current === TURNSTILE_LOAD_ERROR_MESSAGE
+        ? ''
+        : current
+    ))
+  }
+
+  function handleTurnstileExpired() {
+    setCaptchaToken('')
+    setTurnstileUnavailable(false)
+    setError(TURNSTILE_EXPIRED_MESSAGE)
+  }
+
+  function handleTurnstileError() {
+    setCaptchaToken('')
+    setTurnstileUnavailable(true)
+    setError(TURNSTILE_LOAD_ERROR_MESSAGE)
+  }
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
+    if (turnstileSiteKey && !captchaToken) {
+      setError(turnstileUnavailable ? TURNSTILE_LOAD_ERROR_MESSAGE : '请先完成人机验证。')
+      return
+    }
     setLoading(true)
     setError('')
     trackEvent({
@@ -31,9 +68,17 @@ function LoginPageContent() {
       event_name: 'auth.login_attempt',
       properties: { return_to: returnTo },
     })
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: {
+        captchaToken,
+      },
+    })
     if (error) {
       console.warn('[auth-login] login failed', error)
+      setCaptchaToken('')
+      setTurnstileResetKey((current) => current + 1)
       setError(normalizeLoginError(error.message))
     } else {
       await trackEventNow({
@@ -116,6 +161,13 @@ function LoginPageContent() {
                 }}
               />
             </div>
+
+            <CloudflareTurnstile
+              onToken={handleTurnstileToken}
+              onExpired={handleTurnstileExpired}
+              onError={handleTurnstileError}
+              resetKey={turnstileResetKey}
+            />
 
             {error && (
               <div style={{

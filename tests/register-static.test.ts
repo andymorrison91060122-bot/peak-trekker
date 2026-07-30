@@ -11,10 +11,12 @@ function requiredIndexOf(source: string, pattern: string, fromIndex = 0) {
 }
 
 test('register validates nickname before signup and sends signup metadata', () => {
+  assert.match(registerPage, /CloudflareTurnstile/)
+  assert.match(registerPage, /const \[captchaToken, setCaptchaToken\] = useState\(''\)/)
   assert.match(registerPage, /import \{ validateNickname \} from '@\/lib\/profile-nickname'/)
   assert.match(registerPage, /const nicknameResult = validateNickname\(username\)/)
   assert.match(registerPage, /const provinceCode = getProvinceCode\(province\)/)
-  assert.match(registerPage, /supabase\.auth\.signUp\(\{[\s\S]*email,[\s\S]*password,[\s\S]*options:\s*\{[\s\S]*data:\s*\{[\s\S]*nickname:\s*nicknameResult\.value,[\s\S]*province,[\s\S]*province_code:\s*provinceCode,[\s\S]*\}[\s\S]*\}[\s\S]*\}\)/)
+  assert.match(registerPage, /supabase\.auth\.signUp\(\{[\s\S]*email,[\s\S]*password,[\s\S]*options:\s*\{[\s\S]*captchaToken,[\s\S]*data:\s*\{[\s\S]*nickname:\s*nicknameResult\.value,[\s\S]*province,[\s\S]*province_code:\s*provinceCode,[\s\S]*\}[\s\S]*\}[\s\S]*\}\)/)
 })
 
 test('register only performs a narrow onboarding completion profile update after authenticated signup', () => {
@@ -53,12 +55,26 @@ test('register email-confirm branch does not attempt server onboarding persisten
   assert.doesNotMatch(emailConfirmBranch, /persistOnboardingCompletionToProfile/)
 })
 
+test('register never replays the one-time signup captcha token for automatic sign-in', () => {
+  assert.doesNotMatch(registerPage, /supabase\.auth\.signInWithPassword/)
+  assert.doesNotMatch(registerPage, /signInData|signInError/)
+})
+
 test('register keeps session guidance, redirects, and local onboarding state', () => {
-  assert.match(registerPage, /supabase\.auth\.signInWithPassword\(\{ email, password \}\)/)
   assert.match(registerPage, /if \(activeSession\) \{[\s\S]*window\.location\.replace\(returnTo\)[\s\S]*return[\s\S]*\}/)
   assert.match(registerPage, /const loginHref =[\s\S]*window\.location\.replace\(loginHref\)/)
   assert.match(registerPage, /setProvinceDraft\(province\)/)
   assert.match(registerPage, /setIntroSeen\(\)/)
+})
+
+test('register mounts Turnstile widget and exposes clear reset and load-error states', () => {
+  assert.match(registerPage, /onToken=\{handleTurnstileToken\}/)
+  assert.match(registerPage, /onExpired=\{handleTurnstileExpired\}/)
+  assert.match(registerPage, /onError=\{handleTurnstileError\}/)
+  assert.match(registerPage, /resetKey=\{turnstileResetKey\}/)
+  assert.match(registerPage, /TURNSTILE_EXPIRED_MESSAGE/)
+  assert.match(registerPage, /TURNSTILE_LOAD_ERROR_MESSAGE/)
+  assert.match(registerPage, /setTurnstileResetKey\(\(current\) => current \+ 1\)/)
 })
 
 test('register keeps province required and explains its profile purpose accessibly', () => {

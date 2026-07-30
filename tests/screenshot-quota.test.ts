@@ -391,7 +391,7 @@ test('dangerous OCR-first quota helper is not exported or retained', () => {
 
 test('screenshot quota migration defines request-bound reserve finalize and refund contracts', () => {
   const migration = readFileSync(
-    'supabase/migrations/20260730190000_screenshot_quota_reservations.sql',
+    'supabase/migrations/20260730180543_screenshot_quota_reservations.sql',
     'utf8',
   )
 

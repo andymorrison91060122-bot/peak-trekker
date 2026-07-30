@@ -18,7 +18,7 @@ const screenshotMimoAdapter = readFileSync('src/lib/screenshot/mimo-v25-adapter.
 const screenshotMimoAdjudicator = readFileSync('src/lib/screenshot/mimo-v25-text-adjudicator.ts', 'utf8')
 const screenshotFieldValidation = readFileSync('src/lib/screenshot-field-validation.ts', 'utf8')
 const screenshotQuotaMigration = readFileSync('supabase/migrations/20260517063336_create_screenshot_quota.sql', 'utf8')
-const screenshotQuotaReservationMigration = readFileSync('supabase/migrations/20260730190000_screenshot_quota_reservations.sql', 'utf8')
+const screenshotQuotaReservationMigration = readFileSync('supabase/migrations/20260730180543_screenshot_quota_reservations.sql', 'utf8')
 const mountainSearchRoute = readFileSync('src/app/api/mountains/search/route.ts', 'utf8')
 const trekVerifyHelpers = readFileSync('src/lib/trek-verify-helpers.ts', 'utf8')
 

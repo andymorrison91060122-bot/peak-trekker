@@ -10,7 +10,7 @@ const activityClient = readFileSync('src/app/(flow)/activity/[id]/ActivityDetail
 const activityServer = readFileSync('src/lib/activity-server.ts', 'utf8')
 const activityMap = readFileSync('src/components/activity/ActivityRouteMap.tsx', 'utf8')
 const middleware = readFileSync('src/middleware.ts', 'utf8')
-const metricMigration = readFileSync('supabase/migrations/20260730170000_p0_trek_metric_deadband.sql', 'utf8')
+const metricMigration = readFileSync('supabase/migrations/20260730085807_p0_trek_metric_deadband.sql', 'utf8')
 const baselineMiddleware = execFileSync('git', ['show', `${BASELINE_SHA}:src/middleware.ts`], { encoding: 'utf8' })
 
 test('activity summit semantics never fall back from end time and route copy stays truthful', () => {

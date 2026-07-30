@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const registerPage = readFileSync('src/app/auth/register/page.tsx', 'utf8')
+const turnstileComponent = readFileSync('src/components/auth/CloudflareTurnstile.tsx', 'utf8')
 
 function requiredIndexOf(source: string, pattern: string, fromIndex = 0) {
   const index = source.indexOf(pattern, fromIndex)
@@ -75,6 +76,11 @@ test('register mounts Turnstile widget and exposes clear reset and load-error st
   assert.match(registerPage, /TURNSTILE_EXPIRED_MESSAGE/)
   assert.match(registerPage, /TURNSTILE_LOAD_ERROR_MESSAGE/)
   assert.match(registerPage, /setTurnstileResetKey\(\(current\) => current \+ 1\)/)
+})
+
+test('auth Turnstile widget stays visibly rendered by default', () => {
+  assert.match(turnstileComponent, /appearance:\s*'always',/)
+  assert.doesNotMatch(turnstileComponent, /appearance:\s*'interaction-only',/)
 })
 
 test('register keeps province required and explains its profile purpose accessibly', () => {

@@ -62,7 +62,7 @@ test('mergeTrekTrackPoints is deterministic for replay, duplicate, and out-of-or
   assert.deepEqual(new Set(first.acceptedIds), new Set([point(2).id!, point(3).id!, point(4).id!]))
 })
 
-test('legacy id-less prefix participates in metrics but never dedups incoming ids', () => {
+test('legacy id-less prefix stays stored and never dedups incoming ids', () => {
   const legacy: TrackPoint = {
     lat: 30,
     lng: 120,
@@ -78,7 +78,7 @@ test('legacy id-less prefix participates in metrics but never dedups incoming id
   assert.equal(result.points[0]?.id, undefined)
   assert.deepEqual(result.acceptedIds, [point(1).id, point(2).id])
   assert.equal(result.summary.pointCount, 3)
-  assert.equal(result.summary.ascentM, 2)
+  assert.equal(result.summary.ascentM, 0)
 })
 
 test('captureSeq gives deterministic order when timestamps roll backward', () => {
@@ -120,4 +120,76 @@ test('mixed valid and invalid incoming points still merge valid points', () => {
   assert.deepEqual(result.acceptedIds, [valid.id])
   assert.deepEqual(result.rejectedIds, [])
   assert.equal(result.summary.distanceM, 0)
+})
+
+test('stationary jitter does not accumulate distance', () => {
+  const points = [
+    point(0, { lat: 30, lng: 120, accuracy: 8, ts: baseTs }),
+    point(1, { lat: 30.00002, lng: 120.00001, accuracy: 8, ts: baseTs + 15_000 }),
+    point(2, { lat: 29.99998, lng: 119.99999, accuracy: 8, ts: baseTs + 30_000 }),
+    point(3, { lat: 30.00001, lng: 120.00002, accuracy: 8, ts: baseTs + 60_000 }),
+  ]
+
+  const summary = summarizeTrekTrackPoints(points)
+
+  assert.equal(summary.distanceM, 0)
+  assert.equal(summary.pointCount, 4)
+})
+
+test('slow real walking accumulates after crossing the anchor deadband', () => {
+  const points = Array.from({ length: 11 }, (_, index) =>
+    point(index, {
+      lat: 30 + index * 0.000027,
+      lng: 120,
+      accuracy: 8,
+      ts: baseTs + index * 10_000,
+      altitude: 100,
+    })
+  )
+
+  const summary = summarizeTrekTrackPoints(points)
+
+  assert.ok(summary.distanceM >= 24)
+  assert.ok(summary.distanceM <= 34)
+  assert.equal(summary.pointCount, 11)
+})
+
+test('poor-accuracy samples do not create movement', () => {
+  const points = [
+    point(0, { lat: 30, lng: 120, accuracy: 8 }),
+    point(1, { lat: 30.0003, lng: 120, accuracy: 120 }),
+  ]
+
+  assert.equal(summarizeTrekTrackPoints(points).distanceM, 0)
+})
+
+test('leading poor-accuracy point does not block later trusted movement recovery', () => {
+  const points = [
+    point(0, { lat: 30, lng: 120, accuracy: 120, ts: baseTs, altitude: 100 }),
+    point(1, { lat: 30, lng: 120, accuracy: 8, ts: baseTs + 10_000, altitude: 100 }),
+    point(2, { lat: 30.00012, lng: 120, accuracy: 8, ts: baseTs + 20_000, altitude: 106 }),
+  ]
+
+  const summary = summarizeTrekTrackPoints(points)
+
+  assert.ok(summary.distanceM > 0)
+  assert.ok(summary.distanceM < 20)
+  assert.equal(summary.ascentM, 6)
+  assert.equal(summary.pointCount, 3)
+})
+
+test('merge preserves accepted raw points even when sub-deadband movement does not affect metrics', () => {
+  const origin = point(0, { lat: 30, lng: 120, accuracy: 8, ts: baseTs })
+  const jitter = point(1, { lat: 30.00002, lng: 120.00001, accuracy: 8, ts: baseTs + 15_000 })
+  const stride = point(2, { lat: 30.00011, lng: 120, accuracy: 8, ts: baseTs + 30_000 })
+
+  const result = mergeTrekTrackPoints({
+    existingPoints: [],
+    incomingPoints: [origin, jitter, stride],
+  })
+
+  assert.equal(result.points.length, 3)
+  assert.deepEqual(result.rejectedIds, [])
+  assert.ok(result.summary.distanceM > 0)
+  assert.ok(result.summary.distanceM < 20)
 })

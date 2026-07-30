@@ -128,6 +128,14 @@ test('migration does not synthesize fields without authoritative trek session so
 
 test('app fallback insert paths are left as the writers for already-measured non-RPC checkins', () => {
   const finishBlock = trekActions.match(/if \(action === 'finish_incomplete_trek'\) \{[\s\S]*?if \(action === 'verify_summit_checkin'\)/)?.[0] ?? ''
+  assert.match(finishBlock, /const metricSummary = summarizeTrekTrackPoints\(effectivePoints\)/)
+  assert.match(finishBlock, /const distanceMeters = metricSummary\.distanceM/)
+  assert.match(finishBlock, /const ascentMeters = metricSummary\.ascentM/)
+  assert.match(finishBlock, /const descentMeters = metricSummary\.descentM/)
+  assert.doesNotMatch(finishBlock, /finiteNumber\(session\?\.distance_m\)/)
+  assert.doesNotMatch(finishBlock, /finiteNumber\(body\?\.distanceMeters\)/)
+  assert.doesNotMatch(finishBlock, /finiteNumber\(session\?\.ascent_m\)/)
+  assert.doesNotMatch(finishBlock, /finiteNumber\(body\?\.ascentMeters\)/)
   assert.match(finishBlock, /distance_meters:\s*Math\.round\(distanceMeters\)/)
   assert.match(finishBlock, /duration_seconds:\s*durationSeconds/)
   assert.match(finishBlock, /elevation_gain_meters:\s*Math\.round\(ascentMeters\)/)

@@ -2,6 +2,9 @@ import { haversineMeters, type TrackPoint } from './trek-utils.ts'
 
 export const TREK_APPEND_BATCH_LIMIT = 500
 export const TREK_SESSION_POINT_HARD_LIMIT = 30_000
+export const TREK_MIN_MOVEMENT_METERS = 8
+export const TREK_MAX_METRIC_ACCURACY_METERS = 50
+export const TREK_MIN_VERTICAL_CHANGE_METERS = 3
 export const TREK_TRACK_POINT_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -83,7 +86,35 @@ function isDriftPoint(previous: TrackPoint | undefined, point: TrackPoint) {
   return speed > MAX_DRIFT_SPEED_MPS && point.accuracy > 25
 }
 
+export function getMeaningfulTrekTrackPoints(points: TrackPoint[]) {
+  if (!points.length) return []
+
+  const meaningful: TrackPoint[] = []
+  let anchor: TrackPoint | null = null
+
+  for (const point of points) {
+    if (point.accuracy > TREK_MAX_METRIC_ACCURACY_METERS) continue
+
+    if (!anchor) {
+      meaningful.push(point)
+      anchor = point
+      continue
+    }
+
+    const accuracy = Math.max(anchor.accuracy, point.accuracy)
+
+    const displacement = haversineMeters(anchor.lat, anchor.lng, point.lat, point.lng)
+    if (displacement < Math.max(TREK_MIN_MOVEMENT_METERS, accuracy)) continue
+
+    meaningful.push(point)
+    anchor = point
+  }
+
+  return meaningful
+}
+
 export function summarizeTrekTrackPoints(points: TrackPoint[]): TrekTrackSummary {
+  const meaningfulPoints = getMeaningfulTrekTrackPoints(points)
   let distanceM = 0
   let ascentM = 0
   let descentM = 0
@@ -97,14 +128,17 @@ export function summarizeTrekTrackPoints(points: TrackPoint[]): TrekTrackSummary
       maxAltitudeM = maxAltitudeM === null ? rounded : Math.max(maxAltitudeM, rounded)
       minAltitudeM = minAltitudeM === null ? rounded : Math.min(minAltitudeM, rounded)
     }
+  }
 
-    const previous = points[index - 1]
+  for (let index = 0; index < meaningfulPoints.length; index += 1) {
+    const point = meaningfulPoints[index]!
+    const previous = meaningfulPoints[index - 1]
     if (!previous) continue
     distanceM += haversineMeters(previous.lat, previous.lng, point.lat, point.lng)
     if (typeof previous.altitude === 'number' && typeof point.altitude === 'number') {
       const delta = point.altitude - previous.altitude
-      if (delta > 0) ascentM += Math.round(delta)
-      if (delta < 0) descentM += Math.round(Math.abs(delta))
+      if (delta >= TREK_MIN_VERTICAL_CHANGE_METERS) ascentM += Math.round(delta)
+      if (delta <= -TREK_MIN_VERTICAL_CHANGE_METERS) descentM += Math.round(Math.abs(delta))
     }
   }
 

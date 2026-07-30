@@ -6,6 +6,8 @@ import { getSourceLabelType } from '@/lib/source-label-utils'
 import { isScreenshotRecognitionSource, resolveCheckinSource, type CheckinSource } from '@/lib/trek-utils'
 import { validateScreenshotRouteShape, type PersistedScreenshotRouteShape } from '@/lib/screenshot-route-shape'
 import { resolveCheckinDisplayTitle } from '@/lib/checkin-display-title'
+import { summarizeTrekTrackPoints, getMeaningfulTrekTrackPoints } from '@/lib/trek-track-metrics'
+import type { TrackPoint } from '@/lib/trek-utils'
 import ActivityDetailClient, {
   type ActivityDetailViewModel,
   type ActivityPhotoViewModel,
@@ -72,6 +74,8 @@ type RawTrackPoint = {
   lng: number | null
   altitude: number | null
   time: string | null
+  accuracy: number | null
+  ts: number | null
 }
 
 const CHECKIN_SELECT_FULL = `
@@ -123,14 +127,53 @@ function parseTrackPoints(value: unknown): RawTrackPoint[] {
         : typeof raw.ts === 'number'
           ? new Date(raw.ts).toISOString()
           : null
+    const accuracy = toNumber(raw.accuracy)
+    const ts = toNumber(raw.ts)
 
     const hasValidCoordinate =
       lat !== null && lng !== null && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && !(lat === 0 && lng === 0)
 
-    if (altitude === null && !time && !hasValidCoordinate) return []
+    if (altitude === null && !time && accuracy === null && ts === null && !hasValidCoordinate) return []
 
-    return [{ lat: hasValidCoordinate ? lat : null, lng: hasValidCoordinate ? lng : null, altitude, time }]
+    return [{ lat: hasValidCoordinate ? lat : null, lng: hasValidCoordinate ? lng : null, altitude, time, accuracy, ts }]
   })
+}
+
+function toMeaningfulRealtimeTrackPoints(points: RawTrackPoint[]) {
+  const normalized = points.flatMap((point) => {
+    const accuracy = point.accuracy
+    const ts = point.ts
+    if (
+      point.lat === null ||
+      point.lng === null ||
+      typeof accuracy !== 'number' ||
+      !Number.isFinite(accuracy) ||
+      typeof ts !== 'number' ||
+      !Number.isFinite(ts)
+    ) {
+      return []
+    }
+
+    return [{
+      lat: point.lat,
+      lng: point.lng,
+      altitude: point.altitude,
+      accuracy,
+      ts,
+    }] satisfies TrackPoint[]
+  })
+
+  if (!normalized.length || normalized.length !== points.length) return null
+
+  const summary = summarizeTrekTrackPoints(normalized)
+  const meaningfulPoints = getMeaningfulTrekTrackPoints(normalized).map((point) => ({
+    lat: point.lat,
+    lng: point.lng,
+    altitude: point.altitude,
+    time: new Date(point.ts).toISOString(),
+  }))
+
+  return { summary, meaningfulPoints }
 }
 
 function uniquePhotos(legacyPhotoUrl: string | null, assets: CheckinAssetRow[]): ActivityPhotoViewModel[] {
@@ -221,6 +264,7 @@ export default async function ActivityDetailPage({
   const { id } = await params
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const activityMapError = resolveActivityMapError(resolvedSearchParams.fu47bActivityMapError)
+
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -278,31 +322,41 @@ export default async function ActivityDetailPage({
     : { ok: true as const, shape: null as PersistedScreenshotRouteShape | null }
   const screenshotRouteShape = screenshotRouteShapeResult.ok ? screenshotRouteShapeResult.shape : null
   const trackSamples = sessionSamples.length ? sessionSamples : checkinSamples
-  const trackPoints = trackSamples.flatMap((point) =>
+  const rawTrackPoints = trackSamples.flatMap((point) =>
     point.lat === null || point.lng === null
       ? []
       : [{ lat: point.lat, lng: point.lng, altitude: point.altitude, time: point.time }]
   )
+  const realtimeTrackMetrics =
+    sourceType === 'realtime_gps' && !isScreenshotRecognition
+      ? toMeaningfulRealtimeTrackPoints(trackSamples)
+      : null
+  const trackPoints = realtimeTrackMetrics?.meaningfulPoints ?? rawTrackPoints
   const elevationSamples = trackSamples.flatMap((point) =>
     point.altitude === null ? [] : [Math.round(point.altitude)]
   )
   const maxSampleAltitude = elevationSamples.length ? Math.max(...elevationSamples) : null
   const minSampleAltitude = elevationSamples.length ? Math.min(...elevationSamples) : null
   const maxAltitude =
+    (realtimeTrackMetrics?.summary.maxAltitudeM ?? null) ??
     toNumber(checkin.max_elevation_meters) ??
     (isScreenshotRecognition ? null : toNumber(session?.max_altitude_m)) ??
     (isScreenshotRecognition ? null : maxSampleAltitude) ??
     (isScreenshotRecognition ? null : toNumber(mountain?.altitude)) ??
     0
   const explicitAscent =
+    (realtimeTrackMetrics?.summary.ascentM ?? null) ??
     toNumber(checkin.elevation_gain_meters) ??
     (isScreenshotRecognition ? null : toNumber(session?.ascent_m))
   const minAltitude =
+    (realtimeTrackMetrics?.summary.minAltitudeM ?? null) ??
     toNumber(checkin.min_elevation_meters) ??
     (isScreenshotRecognition ? null : minSampleAltitude) ??
     (explicitAscent !== null ? Math.max(0, maxAltitude - explicitAscent) : 0)
   const distanceKm =
-    toNumber(checkin.distance_meters) !== null
+    realtimeTrackMetrics
+      ? Number((realtimeTrackMetrics.summary.distanceM / 1000).toFixed(1))
+      : toNumber(checkin.distance_meters) !== null
       ? Number(((toNumber(checkin.distance_meters) ?? 0) / 1000).toFixed(1))
       : session?.distance_m
         ? Number((session.distance_m / 1000).toFixed(1))
@@ -318,8 +372,9 @@ export default async function ActivityDetailPage({
   const durationSeconds = rawDurationSeconds > 0 && rawDurationSeconds <= 30 * 24 * 60 * 60
     ? rawDurationSeconds
     : 0
-  const summitAt = isScreenshotRecognition ? null : (checkin.verified_at ?? checkin.end_time ?? session?.ended_at ?? null)
-  const isSummit = isScreenshotRecognition ? false : Boolean(checkin.verified_at)
+  const isSummit = !isScreenshotRecognition && Boolean(checkin.verified_at)
+  const summitAt = isSummit ? checkin.verified_at ?? null : null
+  const endedAt = checkin.end_time ?? session?.ended_at ?? null
   const proofStatus =
     isScreenshotRecognition ? 'none' : isSummit && elevationSamples.length >= 8 ? 'confirmed' : isSummit ? 'partial' : 'none'
   const hasMeaningfulActivityData = distanceKm > 0 || ascentM > 0 || durationSeconds > 60
@@ -329,6 +384,7 @@ export default async function ActivityDetailPage({
     createdAt: checkin.created_at,
     startedAt: checkin.start_time ?? session?.started_at ?? checkin.created_at,
     summitAt,
+    endedAt,
     sourceType,
     sourceLabelType,
     isSummit,

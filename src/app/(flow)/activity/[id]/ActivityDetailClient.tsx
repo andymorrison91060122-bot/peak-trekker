@@ -33,6 +33,7 @@ import {
 } from '@/lib/activity-detail-validation'
 import { formatMotionCountValue, parseMotionTokenSeconds, type MotionCountFormat } from '@/lib/motion-count-format'
 import { trackEvent } from '@/lib/analytics/client'
+import { getActivityRecordSemantics } from '@/lib/activity-record-semantics'
 
 gsap.registerPlugin(useGSAP)
 
@@ -92,6 +93,7 @@ export type ActivityDetailViewModel = {
   createdAt: string
   startedAt: string
   summitAt: string | null
+  endedAt: string | null
   sourceType: CheckinSource
   sourceLabelType: SourceLabelProps['type']
   isSummit: boolean
@@ -517,6 +519,7 @@ function SummitReachedCard({ activity }: { activity: ActivityDetailViewModel }) 
 
 function MaxAltitudeCard({ activity }: { activity: ActivityDetailViewModel }) {
   const hasMaxAltitude = activity.metrics.maxAltitudeM > 0
+  const semantics = getActivityRecordSemantics(activity.isSummit)
 
   return (
     <section data-activity-motion="summit-card" style={sectionPadding('var(--space-4)')}>
@@ -540,7 +543,7 @@ function MaxAltitudeCard({ activity }: { activity: ActivityDetailViewModel }) {
                 textTransform: 'uppercase',
               }}
             >
-              最高海拔
+              {semantics.altitudeLabel}
             </div>
             <div
               data-testid="activity-hero-altitude-value"
@@ -581,7 +584,7 @@ function MaxAltitudeCard({ activity }: { activity: ActivityDetailViewModel }) {
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 10, lineHeight: '14px', letterSpacing: '0.08em' }}>
-              未登顶
+              {semantics.timeLabel}
             </div>
             <div
               style={{
@@ -593,7 +596,7 @@ function MaxAltitudeCard({ activity }: { activity: ActivityDetailViewModel }) {
                 fontWeight: 600,
               }}
             >
-              折返记录
+              {formatTime(activity.endedAt)}
             </div>
           </div>
         </div>
@@ -603,9 +606,10 @@ function MaxAltitudeCard({ activity }: { activity: ActivityDetailViewModel }) {
 }
 
 function KeyDataGrid({ activity }: { activity: ActivityDetailViewModel }) {
+  const semantics = getActivityRecordSemantics(activity.isSummit)
   const cells = [
     {
-      label: '最高海拔 m',
+      label: `${semantics.altitudeLabel} m`,
       value: activity.metrics.maxAltitudeM > 0 ? formatNumber(activity.metrics.maxAltitudeM) : '--',
       countValue: activity.metrics.maxAltitudeM > 0 ? activity.metrics.maxAltitudeM : undefined,
       countFormat: 'integer' as MotionCountFormat,
@@ -686,6 +690,7 @@ function KeyDataGrid({ activity }: { activity: ActivityDetailViewModel }) {
 
 function RouteSnapshot({ activity }: { activity: ActivityDetailViewModel }) {
   const hasElevationRange = activity.metrics.maxAltitudeM > 0
+  const semantics = getActivityRecordSemantics(activity.isSummit)
   const samples = activity.elevationSamples.length
     ? activity.elevationSamples
     : routeFallbackSamples(activity.metrics.minAltitudeM, activity.metrics.maxAltitudeM)
@@ -769,9 +774,9 @@ function RouteSnapshot({ activity }: { activity: ActivityDetailViewModel }) {
                 letterSpacing: '0.05em',
               }}
             >
-              <span>大本营</span>
-              <span style={{ color: 'var(--color-success)' }}>山顶 · {formatNumber(max)}m</span>
-              <span>回营</span>
+              <span>起点</span>
+              <span style={{ color: 'var(--color-success)' }}>{semantics.highestPointLabel} · {formatNumber(max)}m</span>
+              <span>{semantics.endPointLabel}</span>
             </div>
           </>
         ) : (

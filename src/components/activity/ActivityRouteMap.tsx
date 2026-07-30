@@ -16,6 +16,7 @@ import {
 } from '@/lib/share-track-preview'
 import { createGeoTraceProjector, evaluateTrackBboxEnvelope } from '@/lib/geo-trace-projector'
 import { isScreenshotRecognitionSource } from '@/lib/trek-utils'
+import { getActivityRecordSemantics } from '@/lib/activity-record-semantics'
 
 type ProjectedPoint = {
   x: number
@@ -114,7 +115,14 @@ function addLayerIfMissing(map: MapLibreMap, layer: Parameters<MapLibreMap['addL
   if (!map.getLayer(layer.id)) map.addLayer(layer)
 }
 
-function addActivityGeoJsonLayers(map: MapLibreMap, rawPoints: ActivityTrackPointViewModel[]) {
+function addActivityGeoJsonLayers(
+  map: MapLibreMap,
+  rawPoints: ActivityTrackPointViewModel[],
+  {
+    highestPointLabel,
+    endPointLabel,
+  }: Pick<ReturnType<typeof getActivityRecordSemantics>, 'highestPointLabel' | 'endPointLabel'>
+) {
   const points = getGeoTracePoints(rawPoints)
   if (!points.length) return
   const summit = getSummitTrackPoint(points)
@@ -122,8 +130,8 @@ function addActivityGeoJsonLayers(map: MapLibreMap, rawPoints: ActivityTrackPoin
   const end = points.at(-1) ?? null
   const markerFeatures = [
     start ? { point: start, label: '起', tone: 'start' } : null,
-    summit ? { point: summit, label: `山顶 · ${formatRouteTime(summit.time)}`, tone: 'summit' } : null,
-    end ? { point: end, label: '回营', tone: 'end' } : null,
+    summit ? { point: summit, label: `${highestPointLabel} · ${formatRouteTime(summit.time)}`, tone: 'summit' } : null,
+    end ? { point: end, label: endPointLabel, tone: 'end' } : null,
   ].filter((feature): feature is { point: ActivityTrackPointViewModel; label: string; tone: string } => Boolean(feature))
 
   ;[
@@ -201,7 +209,7 @@ function addActivityGeoJsonLayers(map: MapLibreMap, rawPoints: ActivityTrackPoin
 
 function buildProjectedTrace(rawPoints: ActivityTrackPointViewModel[]): ProjectedTrace | null {
   const points = sampleTrackPoints(rawPoints.filter(isValidTrackPoint))
-  if (!points.length) return null
+  if (points.length < 2) return null
 
   const projector = createGeoTraceProjector(points, TRACE_FRAME)
   const projected = projector.projectPoints(points)
@@ -228,20 +236,14 @@ function buildProjectedTrace(rawPoints: ActivityTrackPointViewModel[]): Projecte
 function TraceOverlay({
   trace,
   summitTime,
+  semantics,
   noMap = false,
 }: {
   trace: ProjectedTrace | null
   summitTime: string | null
+  semantics: ReturnType<typeof getActivityRecordSemantics>
   noMap?: boolean
 }) {
-  const fallbackTrace = trace ?? {
-    d: 'M 38 300 Q 88 278 126 252 T 196 186 T 212 150 L 220 158 Q 238 206 282 300',
-    start: { x: 38, y: 300, altitude: null, time: null },
-    end: { x: 282, y: 300, altitude: null, time: null },
-    summit: { x: 212, y: 150, altitude: null, time: summitTime },
-    points: [],
-  }
-
   return (
     <svg
       className="act-route__svg"
@@ -277,10 +279,10 @@ function TraceOverlay({
           ))}
         </>
       ) : null}
-      {fallbackTrace.d ? (
+      {trace?.d ? (
         <path
           className="act-route__trace"
-          d={fallbackTrace.d}
+          d={trace.d}
           stroke="url(#act-route-trace)"
           strokeWidth="3"
           fill="none"
@@ -288,34 +290,46 @@ function TraceOverlay({
           strokeLinejoin="round"
         />
       ) : null}
-      <circle cx={fallbackTrace.start.x} cy={fallbackTrace.start.y} r="6" className="act-route__marker-start" />
-      <text x={fallbackTrace.start.x + 10} y={fallbackTrace.start.y + 4} className="act-route__marker-label">
-        起
-      </text>
-      <circle cx={fallbackTrace.end.x} cy={fallbackTrace.end.y} r="6" className="act-route__marker-end" />
-      <text x={fallbackTrace.end.x - 28} y={fallbackTrace.end.y + 4} className="act-route__marker-label">
-        回营
-      </text>
-      <path
-        d={`M ${fallbackTrace.summit.x - 8} ${fallbackTrace.summit.y + 4} L ${fallbackTrace.summit.x} ${fallbackTrace.summit.y - 14} L ${fallbackTrace.summit.x + 8} ${fallbackTrace.summit.y + 4} Z`}
-        className="act-route__summit-triangle"
-      />
-      <circle cx={fallbackTrace.summit.x} cy={fallbackTrace.summit.y} r="11" className="act-route__summit-ring" />
-      <text
-        x={Math.min(250, Math.max(16, fallbackTrace.summit.x - 28))}
-        y={Math.max(18, fallbackTrace.summit.y - 28)}
-        className="act-route__summit-label"
-      >
-        山顶 · {formatRouteTime(fallbackTrace.summit.time ?? summitTime)}
-      </text>
+      {trace ? (
+        <>
+          <circle cx={trace.start.x} cy={trace.start.y} r="6" className="act-route__marker-start" />
+          <text x={trace.start.x + 10} y={trace.start.y + 4} className="act-route__marker-label">
+            起
+          </text>
+          <circle cx={trace.end.x} cy={trace.end.y} r="6" className="act-route__marker-end" />
+          <text x={trace.end.x - 28} y={trace.end.y + 4} className="act-route__marker-label">
+            {semantics.endPointLabel}
+          </text>
+          <path
+            d={`M ${trace.summit.x - 8} ${trace.summit.y + 4} L ${trace.summit.x} ${trace.summit.y - 14} L ${trace.summit.x + 8} ${trace.summit.y + 4} Z`}
+            className="act-route__summit-triangle"
+          />
+          <circle cx={trace.summit.x} cy={trace.summit.y} r="11" className="act-route__summit-ring" />
+          <text
+            x={Math.min(250, Math.max(16, trace.summit.x - 28))}
+            y={Math.max(18, trace.summit.y - 28)}
+            className="act-route__summit-label"
+          >
+            {semantics.highestPointLabel} · {formatRouteTime(trace.summit.time ?? summitTime)}
+          </text>
+        </>
+      ) : null}
     </svg>
   )
 }
 
-function MapChrome({ noMap = false }: { noMap?: boolean }) {
+function MapChrome({
+  routeStatusLabel,
+  noMap = false,
+  trackUnavailable = false,
+}: {
+  routeStatusLabel: string
+  noMap?: boolean
+  trackUnavailable?: boolean
+}) {
   return (
     <>
-      <div className="act-route__status-chip">完成轨迹</div>
+      <div className="act-route__status-chip">{routeStatusLabel}</div>
       {noMap ? (
         <div
           style={{
@@ -334,18 +348,26 @@ function MapChrome({ noMap = false }: { noMap?: boolean }) {
             lineHeight: 'var(--font-label-s-line)',
           }}
         >
-          仅可预览轨迹
+          {trackUnavailable ? '本次轨迹暂不可用' : '仅可预览轨迹'}
         </div>
       ) : null}
     </>
   )
 }
 
-function StatStrip({ activity }: { activity: ActivityDetailViewModel }) {
+function StatStrip({
+  activity,
+  semantics,
+  highestPointLabel = semantics.highestPointLabel,
+}: {
+  activity: ActivityDetailViewModel
+  semantics: ReturnType<typeof getActivityRecordSemantics>
+  highestPointLabel?: string
+}) {
   const stats = [
     { label: '总距离', value: formatDistance(activity.metrics.distanceKm) },
     { label: '用时', value: formatDuration(activity.metrics.durationSeconds) },
-    { label: '最高点', value: formatAltitude(activity.metrics.maxAltitudeM), accent: true },
+    { label: highestPointLabel, value: formatAltitude(activity.metrics.maxAltitudeM), accent: true },
   ]
 
   return (
@@ -492,7 +514,15 @@ function ScreenshotTextOnlyRouteCard() {
   )
 }
 
-function NoMapTraceCard({ trace, summitTime }: { trace: ProjectedTrace | null; summitTime: string | null }) {
+function NoMapTraceCard({
+  trace,
+  summitTime,
+  semantics,
+}: {
+  trace: ProjectedTrace | null
+  summitTime: string | null
+  semantics: ReturnType<typeof getActivityRecordSemantics>
+}) {
   return (
     <div
       className="act-route__map-placeholder"
@@ -500,8 +530,8 @@ function NoMapTraceCard({ trace, summitTime }: { trace: ProjectedTrace | null; s
       aria-label="轨迹预览卡片"
       style={{ height: 'auto', aspectRatio: '1 / 1', background: 'var(--color-surface)' }}
     >
-      <TraceOverlay trace={trace} summitTime={summitTime} noMap />
-      <MapChrome noMap />
+      <TraceOverlay trace={trace} summitTime={summitTime} semantics={semantics} noMap />
+      <MapChrome routeStatusLabel={semantics.routeStatusLabel} noMap trackUnavailable={!trace} />
     </div>
   )
 }
@@ -509,17 +539,20 @@ function NoMapTraceCard({ trace, summitTime }: { trace: ProjectedTrace | null; s
 function MapTraceCard({
   asset,
   rawPoints,
+  semantics,
   forceError,
   onError,
 }: {
   asset: MapTileAsset
   rawPoints: ActivityTrackPointViewModel[]
+  semantics: ReturnType<typeof getActivityRecordSemantics>
   forceError: boolean
   onError: (error: Error) => void
 }) {
+  const { highestPointLabel, endPointLabel } = semantics
   const handleMapReady = useCallback((map: MapLibreMap) => {
-    addActivityGeoJsonLayers(map, rawPoints)
-  }, [rawPoints])
+    addActivityGeoJsonLayers(map, rawPoints, { highestPointLabel, endPointLabel })
+  }, [rawPoints, highestPointLabel, endPointLabel])
 
   return (
     <PmtilesSnapshotMap
@@ -529,7 +562,7 @@ function MapTraceCard({
       onMapReady={handleMapReady}
       onError={onError}
     >
-      <MapChrome />
+      <MapChrome routeStatusLabel={semantics.routeStatusLabel} />
     </PmtilesSnapshotMap>
   )
 }
@@ -545,6 +578,7 @@ export default function ActivityRouteMap({
   const [mountainMapFailed, setMountainMapFailed] = useState(false)
   const forceMountainError = forceMapError === 'mountain'
   const summitTime = activity.summitAt
+  const semantics = useMemo(() => getActivityRecordSemantics(activity.isSummit), [activity.isSummit])
   const isScreenshotRoute = isScreenshotRecognitionSource(activity.sourceType)
   const validTrackPoints = useMemo(() => activity.trackPoints.filter(isValidTrackPoint), [activity.trackPoints])
   const envelope = useMemo(
@@ -572,7 +606,7 @@ export default function ActivityRouteMap({
 
         <div className="act-route__card">
           {activity.screenshotRouteShape ? <ScreenshotRouteShapeCard activity={activity} /> : <ScreenshotTextOnlyRouteCard />}
-          <StatStrip activity={activity} />
+          <StatStrip activity={activity} semantics={semantics} highestPointLabel="最高点" />
         </div>
       </section>
     )
@@ -582,23 +616,24 @@ export default function ActivityRouteMap({
     <section className="act-route" data-testid="activity-route-map" data-map-mode={mapMode}>
       <div className="act-route__section-head">
         <div className="act-route__section-title">走过的路线</div>
-        <div className="act-route__section-right">完整轨迹</div>
+        <div className="act-route__section-right">{semantics.routeSectionLabel}</div>
       </div>
 
       <div className="act-route__card">
-        {!useMountainAsset || !mountainAsset ? (
-          <NoMapTraceCard trace={trace} summitTime={summitTime} />
+        {!trace || !useMountainAsset || !mountainAsset ? (
+          <NoMapTraceCard trace={trace} summitTime={summitTime} semantics={semantics} />
         ) : (
           <MapTraceCard
             asset={mountainAsset}
             rawPoints={activity.trackPoints}
+            semantics={semantics}
             forceError={forceMountainError}
             onError={() => {
               setMountainMapFailed(true)
             }}
           />
         )}
-        <StatStrip activity={activity} />
+        <StatStrip activity={activity} semantics={semantics} />
       </div>
     </section>
   )

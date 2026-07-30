@@ -40,6 +40,7 @@ export type ActivityDetail = {
   createdAt: string
   startedAt: string | null
   summitAt: string | null
+  endedAt: string | null
   verifiedAt: string | null
   note: string
   sourceType: CheckinSource
@@ -179,7 +180,8 @@ export async function getActivityDetail({
     checkinId: record.checkinId,
     createdAt: record.createdAt,
     startedAt: session?.started_at ?? record.createdAt,
-    summitAt: record.verifiedAt ?? session?.ended_at ?? null,
+    summitAt: record.verifiedAt ?? null,
+    endedAt: session?.ended_at ?? null,
     verifiedAt: record.verifiedAt ?? null,
     note: record.note?.trim() ?? '',
     sourceType,

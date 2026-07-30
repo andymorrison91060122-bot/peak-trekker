@@ -823,18 +823,11 @@ export async function POST(request: NextRequest) {
     }
 
     const trackSummary = summarizeTrackPoints(effectivePoints)
-    const distanceMeters =
-      finiteNumber(session?.distance_m) ??
-      finiteNumber(body?.distanceMeters) ??
-      0
-    const ascentMeters =
-      finiteNumber(session?.ascent_m) ??
-      finiteNumber(body?.ascentMeters) ??
-      0
-    const descentMeters = finiteNumber(session?.descent_m) ?? 0
-    const maxAltitudeMeters =
-      finiteNumber(session?.max_altitude_m) ??
-      trackSummary.maxAltitudeM
+    const metricSummary = summarizeTrekTrackPoints(effectivePoints)
+    const distanceMeters = metricSummary.distanceM
+    const ascentMeters = metricSummary.ascentM
+    const descentMeters = metricSummary.descentM
+    const maxAltitudeMeters = metricSummary.maxAltitudeM
 
     const { data: finishMountain } = await fetchMountainForVerification(supabase, effectiveMountainId)
     if (

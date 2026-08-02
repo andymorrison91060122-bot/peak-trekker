@@ -18,6 +18,7 @@ import IconButton from '@/components/ui/IconButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import EmptyState from '@/components/ui/EmptyState'
 import { BackIcon, SearchIcon } from '@/components/ui/Icons'
+import { FaqAnswerContent } from '@/components/help/FaqAnswerContent'
 import { parseMotionTokenSeconds } from '@/lib/motion-count-format'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import { FAQ_BY_ANCHOR, FAQ_GROUPS, type FaqGroup, type FaqQuestion } from '@/lib/faq-content'
@@ -319,13 +320,9 @@ function AnswerCard({ question }: { question: FaqQuestion }) {
           borderRadius: 10,
           border: '1px solid var(--color-outline)',
           background: 'color-mix(in srgb, var(--color-on-surface) 2%, transparent)',
-          color: 'var(--color-on-surface-variant)',
-          fontSize: 'var(--font-label-m-size)',
-          lineHeight: 'calc(var(--font-label-m-line) * 1.26)',
-          whiteSpace: 'pre-line',
         }}
       >
-        {question.a}
+        <FaqAnswerContent answer={question.a} image={question.image} imageMaxWidth={280} />
       </div>
       {question.contactEmail ? (
         <div

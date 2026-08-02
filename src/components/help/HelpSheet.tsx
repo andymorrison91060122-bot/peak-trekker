@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useId, useState } from 'react'
 import { FAQ_BY_ANCHOR } from '@/lib/faq-content'
+import { FaqAnswerContent } from './FaqAnswerContent'
 
 export type HelpSheetProps = {
   anchor: string
@@ -107,19 +108,10 @@ export function HelpSheet({ anchor, closing, onClose }: HelpSheetProps) {
             {item.q}
           </h2>
         </div>
-        <div
-          style={{
-            padding: '12px 20px 4px',
-            overflowY: 'auto',
-            color: 'var(--color-on-surface-variant)',
-            fontSize: 'var(--font-body-m-size)',
-            lineHeight: 'calc(var(--font-body-m-line) * 1.12)',
-            whiteSpace: 'pre-line',
-          }}
-        >
-          {item.a}
+        <div data-testid="help-sheet-content" style={{ padding: '12px 20px 4px', overflowY: 'auto' }}>
+          <FaqAnswerContent answer={item.a} image={item.image} imageMaxWidth={220} />
         </div>
-        <div style={{ padding: '14px 20px 22px', display: 'flex', justifyContent: 'flex-end' }}>
+        <div data-testid="help-sheet-footer" style={{ padding: '14px 20px 22px', display: 'flex', justifyContent: 'flex-end' }}>
           <Link
             href={faqHref}
             onClick={onClose}

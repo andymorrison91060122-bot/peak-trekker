@@ -34,3 +34,31 @@ test('FAQ source label explains page Chinese labels and poster English labels', 
   assert.match(sourceLabel.a, /轨迹.*到达峰顶范围/)
   assert.match(sourceLabel.a, /照片不是必要条件|不要求现场照片/)
 })
+
+test('FAQ includes screenshot how-to guidance with the shared example image', () => {
+  const howTo = FAQ_BY_ANCHOR['start.screenshot-how-to'] as unknown as {
+    anchor?: string
+    q?: string
+    a?: string
+    image?: {
+      src: string
+      alt: string
+      width: number
+      height: number
+    }
+  } | undefined
+
+  assert.ok(howTo)
+  assert.equal(howTo?.anchor, 'start.screenshot-how-to')
+  assert.equal(howTo?.q, '如何获取可识别的截图？')
+  assert.match(howTo?.a ?? '', /请打开两步路、六只脚、行者等 App 中已经完成的活动记录详情页/)
+  assert.match(howTo?.a ?? '', /轨迹和主要数据/)
+  assert.match(howTo?.a ?? '', /上传记录/)
+  assert.match(howTo?.a ?? '', /Peak Trekker GPS 实测/)
+  assert.deepEqual(howTo?.image, {
+    src: '/images/screenshot-record-example.webp',
+    alt: '两步路活动记录详情页示例，包含轨迹、距离、用时、爬升和最高海拔',
+    width: 447,
+    height: 737,
+  })
+})

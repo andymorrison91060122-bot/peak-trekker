@@ -20,7 +20,7 @@ export function PremiumVerticalStoryTemplate({ data, photoDataUrl, brandMarkSrc 
 
   return (
     <PosterShell background="#0a0c0e">
-      <PhotoLayer photoDataUrl={photoDataUrl} grayscale />
+      <PhotoLayer photoDataUrl={photoDataUrl} />
       {!photoDataUrl && hasShareTrackPoint(data.trackPreview) ? <VerticalStoryTrailSvg trackPreview={data.trackPreview} /> : null}
       {!photoDataUrl && !hasShareTrackPoint(data.trackPreview) ? <VerticalStoryRidgeSvg /> : null}
       <div

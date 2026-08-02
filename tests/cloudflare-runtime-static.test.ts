@@ -14,6 +14,7 @@ const screenshotRecognitionRoute = readFileSync('src/app/api/screenshot/recogniz
 const wranglerConfig = existsSync('wrangler.jsonc') ? readFileSync('wrangler.jsonc', 'utf8') : ''
 const openNextConfig = existsSync('open-next.config.ts') ? readFileSync('open-next.config.ts', 'utf8') : ''
 const gitignore = readFileSync('.gitignore', 'utf8')
+const customWorker = existsSync('custom-worker.ts') ? readFileSync('custom-worker.ts', 'utf8') : ''
 
 test('Cloudflare candidate removes Tencent OCR runtime residue', () => {
   const removedAdapterPath = ['tencent', 'ocr', 'adapter.ts'].join('-')
@@ -50,7 +51,7 @@ test('Cloudflare candidate defines one minimal OpenNext Worker without storage o
   }
 
   assert.equal(config.name, 'peak-trekker')
-  assert.equal(config.main, '.open-next/worker.js')
+  assert.equal(config.main, 'custom-worker.ts')
   assert.ok((config.compatibility_date ?? '') >= '2025-04-01')
   assert.deepEqual(config.compatibility_flags, ['nodejs_compat'])
   assert.deepEqual(config.assets, {
@@ -59,6 +60,7 @@ test('Cloudflare candidate defines one minimal OpenNext Worker without storage o
     run_worker_first: false,
   })
   assert.deepEqual(config.observability, { enabled: true })
+  assert.equal('vars' in config, false)
   assert.deepEqual(config.secrets?.required, [
     'SUPABASE_SERVICE_ROLE_KEY',
     'MIMO_API_KEY',
@@ -66,9 +68,19 @@ test('Cloudflare candidate defines one minimal OpenNext Worker without storage o
     'WEATHER_REFRESH_SECRET',
   ])
   assert.doesNotMatch(wranglerConfig, /r2_buckets|kv_namespaces|durable_objects|hyperdrive|migrations|services/i)
+  assert.match(customWorker, /from '\.\/\.open-next\/worker\.js'/)
+  assert.match(customWorker, /ensureWorkerShareRenderer/)
+  assert.match(customWorker, /openNextHandler\.fetch\(request, env, context\)/)
+  assert.match(customWorker, /'\/api\/share\/render'/)
+  assert.match(customWorker, /'\/api\/poster'/)
+  assert.match(customWorker, /'\/api\/poster-preview'/)
+  assert.doesNotMatch(customWorker, /photoBase64|checkinId|user_id|access_token|service_role/)
   assert.match(openNextConfig, /import \{ defineCloudflareConfig, type OpenNextConfig \} from '@opennextjs\/cloudflare'/)
   assert.match(openNextConfig, /\.\.\.defineCloudflareConfig\(\)/)
-  assert.match(openNextConfig, /buildCommand: 'npm run build -- --webpack'/)
+  assert.match(
+    openNextConfig,
+    /buildCommand: 'NEXT_PUBLIC_PEAK_TREKKER_RUNTIME=cloudflare npm run build -- --webpack'/,
+  )
   assert.match(openNextConfig, /satisfies OpenNextConfig/)
   assert.equal(packageJson.scripts?.['cf:build'], 'opennextjs-cloudflare build')
   assert.equal(packageJson.scripts?.['cf:preview'], 'opennextjs-cloudflare preview')

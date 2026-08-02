@@ -2,5 +2,5 @@ import { defineCloudflareConfig, type OpenNextConfig } from '@opennextjs/cloudfl
 
 export default {
   ...defineCloudflareConfig(),
-  buildCommand: 'npm run build -- --webpack',
+  buildCommand: 'NEXT_PUBLIC_PEAK_TREKKER_RUNTIME=cloudflare npm run build -- --webpack',
 } satisfies OpenNextConfig

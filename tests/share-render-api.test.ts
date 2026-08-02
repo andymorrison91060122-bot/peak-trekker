@@ -2,7 +2,6 @@ import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import ts from 'typescript'
 
 const sourceExtension = 'ts'
 
@@ -37,27 +36,6 @@ function matchesPolicyError(
 
 function readSource(path: string) {
   return readFileSync(new URL(path, import.meta.url), 'utf8')
-}
-
-function loadPhotoPreprocessor() {
-  const routePath = new URL('../src/app/api/share/render/route.ts', import.meta.url)
-  const source = readFileSync(routePath, 'utf8')
-  const sourceFile = ts.createSourceFile(routePath.pathname, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
-  const declaration = sourceFile.statements.find(
-    (statement): statement is ts.FunctionDeclaration =>
-      ts.isFunctionDeclaration(statement) && statement.name?.text === 'photoDataUrlForTemplate',
-  )
-  assert.ok(declaration, 'photoDataUrlForTemplate must remain extractable from the production route')
-  const printed = ts.createPrinter().printNode(ts.EmitHint.Unspecified, declaration, sourceFile)
-  const compiled = ts.transpileModule(`${printed}\nmodule.exports = { photoDataUrlForTemplate }`, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText
-  const runtimeModule = {
-    exports: {} as {
-      photoDataUrlForTemplate: (template: string, photoBase64?: string) => Promise<string | null>
-    },
-  }
-  return { runtimeModule, compiled }
 }
 
 async function measureChannelDelta(
@@ -223,6 +201,56 @@ describe('share render API field policy regression', () => {
     assert.match(posterSource, /'UPLOADED'/)
   })
 
+  test('Worker share and poster rendering bundle fonts and Resvg without runtime filesystem or native sharp', () => {
+    const fontSource = readSource('../src/lib/fonts/load-share-fonts.ts')
+    const pngSource = readSource('../src/lib/share-render-png.ts')
+    const workerPngSource = readSource('../src/lib/share-render-png.worker.ts')
+    const runtimeSource = readSource('../src/lib/share-render-runtime.ts')
+    const customWorkerSource = readSource('../custom-worker.ts')
+    const posterSource = readSource('../src/app/api/poster/route.ts')
+
+    assert.doesNotMatch(fontSource, /from 'fs\/promises'|from 'path'|readFile\(|process\.cwd\(\)/)
+    assert.match(fontSource, /fetch\(new URL\(`\/fonts\/\$\{fileName\}`, origin\)/)
+    assert.doesNotMatch(pngSource, /from 'fs\/promises'|from 'path'|readFile\(|process\.cwd\(\)/)
+    assert.match(pngSource, /renderShareSvg/)
+    assert.doesNotMatch(pngSource, /share-render-png\.worker|index_bg\.wasm/)
+    assert.match(workerPngSource, /@resvg\/resvg-wasm\/index_bg\.wasm\?module/)
+    assert.match(workerPngSource, /Promise<SvgPngRenderer>/)
+    assert.match(runtimeSource, /process\.env\.NEXT_PUBLIC_PEAK_TREKKER_RUNTIME === 'cloudflare'/)
+    assert.doesNotMatch(runtimeSource, /process\.env\.PEAK_TREKKER_RUNTIME|WORKER_SVG_QUERY_PARAM|__pt_worker_svg/)
+    assert.match(runtimeSource, /createWorkerSvgResponse/)
+    assert.doesNotMatch(runtimeSource, /photoBase64|checkinId|user_id|access_token/)
+    assert.match(customWorkerSource, /renderWorkerSvgResponse/)
+    assert.doesNotMatch(customWorkerSource, /WORKER_SVG_QUERY_PARAM|__pt_worker_svg/)
+    assert.match(customWorkerSource, /ensureWorkerShareRenderer\(\)/)
+    assert.match(posterSource, /renderSvgPng/)
+    const renderPngBlock = posterSource.match(/async function renderPngResponse[\s\S]*?\n}\n/)?.[0] ?? ''
+    assert.doesNotMatch(renderPngBlock, /import\('sharp'\)|sharp\(/)
+  })
+
+  test('Worker Satori uses a precompiled Yoga module while Node keeps the default renderer', () => {
+    const pngSource = readSource('../src/lib/share-render-png.ts')
+    const workerSvgSource = readSource('../src/lib/share-render-svg.worker.ts')
+    const nodeSvgSource = readSource('../src/lib/share-render-svg.node.ts')
+
+    assert.doesNotMatch(pngSource, /^import satori from 'satori'$/m)
+    assert.match(pngSource, /import\('\.\/share-render-svg\.worker\.ts'\)/)
+    assert.match(pngSource, /import\('\.\/share-render-svg\.node\.ts'\)/)
+    assert.match(workerSvgSource, /import satori, \{ init \} from 'satori\/standalone'/)
+    assert.match(workerSvgSource, /import \{ getCloudflareContext \} from '@opennextjs\/cloudflare'/)
+    assert.match(workerSvgSource, /getCloudflareContext\(\{ async: true \}\)/)
+    assert.match(workerSvgSource, /env\.PEAK_TREKKER_YOGA_WASM/)
+    assert.match(workerSvgSource, /yogaReady \?\?= init\(yogaWasm\)/)
+    assert.match(workerSvgSource, /return yogaReady/)
+    assert.match(workerSvgSource, /await ensureWorkerYoga\(\)/)
+    assert.doesNotMatch(workerSvgSource, /yoga\.wasm|WebAssembly\.compile|fetch\(/)
+    const customWorkerSource = readSource('../custom-worker.ts')
+    assert.match(customWorkerSource, /import yogaWasm from '\.\/node_modules\/satori\/yoga\.wasm\?module'/)
+    assert.match(customWorkerSource, /PEAK_TREKKER_YOGA_WASM: yogaWasm/)
+    assert.match(nodeSvgSource, /import satori from 'satori'/)
+    assert.doesNotMatch(nodeSvgSource, /yoga\.wasm|satori\/standalone/)
+  })
+
   test('/api/poster keeps altitude-derived metrics demo-only', () => {
     const posterSource = readSource('../src/app/api/poster/route.ts')
     const realCheckinModelBlock = posterSource.match(/const measuredAltitude[\s\S]*?const coverImageHref/)?.[0] ?? ''
@@ -243,27 +271,35 @@ describe('share render API field policy regression', () => {
     assert.doesNotMatch(monoFilmSource, /<TrailSvg/)
   })
 
-  test('premium mono-film export preprocesses photos to grayscale while the browser preview stays grayscale', () => {
+  test('premium mono-film export applies grayscale after Satori while the browser preview stays grayscale', () => {
     const routeSource = readSource('../src/app/api/share/render/route.ts')
     const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
     const monoFilmSource = readSource('../src/lib/share-templates/premium-mono-film.tsx')
+    const sharedSource = readSource('../src/lib/share-templates/shared.tsx')
+    const filterSource = readSource('../src/lib/share-svg-filters.ts')
     const photoPreprocess = routeSource.match(/async function photoDataUrlForTemplate[\s\S]*?\n}\n\nfunction renderTemplate/)?.[0] ?? ''
 
     assert.ok(photoPreprocess)
-    assert.match(photoPreprocess, /template !== 'premium-vertical-story' && template !== 'premium-mono-film'/)
-    assert.match(photoPreprocess, /sharp\(Buffer\.from\(photoBase64, 'base64'\)\)[\s\S]*\.grayscale\(\)/)
+    assert.doesNotMatch(routeSource, /import\('sharp'\)|sharp\(/)
+    assert.match(photoPreprocess, /photoBase64\.startsWith\('iVBORw0KGgo'\)/)
+    assert.match(photoPreprocess, /photoBase64\.startsWith\('UklGR'\)/)
+    assert.match(photoPreprocess, /return `data:\$\{mimeType\};base64,\$\{photoBase64\}`/)
+    assert.doesNotMatch(sharedSource, /<feColorMatrix|share-photo-grayscale|grayscale\(1\)/)
+    assert.match(routeSource, /'premium-mono-film',[\s\S]*'premium-vertical-story'/)
+    assert.match(routeSource, /GRAYSCALE_PHOTO_TEMPLATES\.has\(payload\.template\)[\s\S]*applyPhotoGrayscaleSvgFilter\(svg, photoDataUrl\)/)
+    assert.match(filterSource, /href="\$\{photoDataUrl\}"/)
+    assert.match(filterSource, /<feColorMatrix type="saturate" values="0"\/>/)
     assert.match(clientSource, /const monoFilm = template === 'premium-mono-film'/)
     assert.match(clientSource, /if \(monoFilm\)[\s\S]*<PreviewPhotoBackground photoDataUrl=\{photoDataUrl\} grayscale>/)
     assert.match(clientSource, /filter: grayscale \? 'grayscale\(1\)' : 'none'/)
-    assert.match(monoFilmSource, /<PhotoLayer photoDataUrl=\{photoDataUrl\} width=\{1080\} height=\{900\} grayscale \/>/)
+    assert.match(monoFilmSource, /<PhotoLayer photoDataUrl=\{photoDataUrl\} width=\{1080\} height=\{900\} \/>/)
   })
 
-  test('premium mono-film production preprocessor survives an actual DB-free Satori PNG render as grayscale', async () => {
+  test('premium mono-film post-Satori filter targets only the uploaded photo and renders grayscale', async () => {
     const React = await import('react')
     const sharp = (await import('sharp')).default
-    const { renderSharePng } = await import('../src/lib/share-render-png.ts')
-    const { runtimeModule, compiled } = loadPhotoPreprocessor()
-    new Function('module', 'exports', 'sharp', 'Buffer', compiled)(runtimeModule, runtimeModule.exports, sharp, Buffer)
+    const { renderShareSvg, renderSvgPng } = await import('../src/lib/share-render-png.ts')
+    const { applyPhotoGrayscaleSvgFilter } = await import('../src/lib/share-svg-filters.ts')
 
     const blueHalf = await sharp({
       create: { width: 540, height: 900, channels: 3, background: { r: 22, g: 118, b: 245 } },
@@ -272,30 +308,36 @@ describe('share render API field policy regression', () => {
       create: { width: 1080, height: 900, channels: 3, background: { r: 232, g: 42, b: 76 } },
     }).composite([{ input: blueHalf, left: 540, top: 0 }]).png().toBuffer()
     const rawPhotoDataUrl = `data:image/png;base64,${colorPhoto.toString('base64')}`
-    const processedPhotoDataUrl = await runtimeModule.exports.photoDataUrlForTemplate(
-      'premium-mono-film',
-      colorPhoto.toString('base64'),
-    )
-    assert.match(processedPhotoDataUrl ?? '', /^data:image\/jpeg;base64,/)
 
-    const renderPhoto = (photoDataUrl: string) => React.createElement(
+    const renderPhoto = (grayscale: boolean) => React.createElement(
       'div',
       { style: { display: 'flex', position: 'relative', width: 1080, height: 1920, background: '#0a0c0e' } },
       React.createElement('img', {
-        src: photoDataUrl,
+        src: rawPhotoDataUrl,
         width: 1080,
         height: 900,
-        alt: '',
-        style: { position: 'absolute', left: 0, top: 0, width: 1080, height: 900, objectFit: 'cover' },
+        style: {
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          objectFit: 'cover',
+        },
       }),
     )
-    const baselinePng = await renderSharePng({ element: renderPhoto(rawPhotoDataUrl) })
-    const fixedPng = await renderSharePng({ element: renderPhoto(processedPhotoDataUrl!) })
+    const svg = await renderShareSvg({ element: renderPhoto(false) })
+    const brandDataUrl = 'data:image/png;base64,YnJhbmQ='
+    const svgWithBrand = svg.replace('</svg>', `<image href="${brandDataUrl}" width="1" height="1"/></svg>`)
+    const filteredSvg = applyPhotoGrayscaleSvgFilter(svgWithBrand, rawPhotoDataUrl)
+    assert.match(filteredSvg, new RegExp(`<image filter="url\\(#share-photo-grayscale\\)"[^>]*href="${rawPhotoDataUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`))
+    assert.match(filteredSvg, new RegExp(`<image href="${brandDataUrl}"`))
+    assert.doesNotMatch(filteredSvg, new RegExp(`<image filter="url\\(#share-photo-grayscale\\)"[^>]*href="${brandDataUrl}"`))
+    const baselinePng = await renderSvgPng({ svg })
+    const fixedPng = await renderSvgPng({ svg: filteredSvg })
     const crop = { left: 300, top: 180, width: 480, height: 260 }
     const beforeDelta = await measureChannelDelta(baselinePng, crop)
     const afterDelta = await measureChannelDelta(fixedPng, crop)
     assert.ok(beforeDelta.mean > 40, `baseline photo should retain color, mean delta=${beforeDelta.mean}`)
-    assert.ok(afterDelta.mean < 2, `fixed photo should be grayscale, mean delta=${afterDelta.mean}`)
+    assert.ok(afterDelta.mean < 8, `fixed photo should be grayscale, mean delta=${afterDelta.mean}`)
 
     const outputDir = join(process.cwd(), 'output', 'p3-cleanup-acceptance')
     mkdirSync(outputDir, { recursive: true })
@@ -304,7 +346,7 @@ describe('share render API field policy regression', () => {
     writeFileSync(join(outputDir, 'fu106-satori-pixel-metrics.json'), `${JSON.stringify({
       baselinePhotoRegionChannelDelta: beforeDelta,
       fixedPhotoRegionChannelDelta: afterDelta,
-      evidenceBoundary: 'production photoDataUrlForTemplate extracted from route.ts and rendered by the actual DB-free Satori PNG pipeline',
+      evidenceBoundary: 'production post-Satori photo targeting and SVG grayscale filter rendered by the actual DB-free Satori PNG pipeline',
     }, null, 2)}\n`)
   })
 

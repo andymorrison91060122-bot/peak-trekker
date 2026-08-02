@@ -1,11 +1,13 @@
-import { readFile } from 'fs/promises'
-import { join } from 'path'
-
 type ShareFont = {
   name: string
   data: ArrayBuffer
   weight: 400 | 500 | 600 | 700 | 800
   style: 'normal'
+}
+
+export type ShareFontBuffers = {
+  regular: ArrayBuffer
+  bold: ArrayBuffer
 }
 
 const FONT_FAMILY = 'Noto Sans SC'
@@ -20,13 +22,8 @@ const REMOTE_FONT_URLS = {
   bold: 'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf',
 }
 
+const fontBufferCache = new Map<string, Promise<ShareFontBuffers>>()
 const fontCache = new Map<string, ShareFont[]>()
-
-function toArrayBuffer(buffer: Buffer) {
-  const copy = new Uint8Array(buffer.byteLength)
-  copy.set(buffer)
-  return copy.buffer
-}
 
 function buildFonts(regular: ArrayBuffer, bold: ArrayBuffer) {
   return [
@@ -38,8 +35,14 @@ function buildFonts(regular: ArrayBuffer, bold: ArrayBuffer) {
   ] satisfies ShareFont[]
 }
 
-async function readLocalFont(fileName: string) {
-  return toArrayBuffer(await readFile(join(process.cwd(), 'public', 'fonts', fileName)))
+async function fetchStaticFont(origin: string, fileName: string) {
+  const response = await fetch(new URL(`/fonts/${fileName}`, origin), {
+    cache: 'force-cache',
+  })
+  if (!response.ok) {
+    throw new Error(`Static font responded ${response.status}`)
+  }
+  return response.arrayBuffer()
 }
 
 async function fetchRemoteFont(url: string) {
@@ -55,49 +58,69 @@ async function fetchRemoteFont(url: string) {
   return response.arrayBuffer()
 }
 
-async function loadLocalFonts() {
+async function loadStaticFontBuffers(origin: string): Promise<ShareFontBuffers> {
   const [regular, bold] = await Promise.all([
-    readLocalFont(LOCAL_FONT_FILES.regular),
-    readLocalFont(LOCAL_FONT_FILES.bold),
+    fetchStaticFont(origin, LOCAL_FONT_FILES.regular),
+    fetchStaticFont(origin, LOCAL_FONT_FILES.bold),
   ])
 
-  return buildFonts(regular, bold)
+  return { regular, bold }
 }
 
-async function loadRemoteFonts() {
+async function loadRemoteFontBuffers(): Promise<ShareFontBuffers> {
   const [regular, bold] = await Promise.all([
     fetchRemoteFont(REMOTE_FONT_URLS.regular),
     fetchRemoteFont(REMOTE_FONT_URLS.bold),
   ])
 
-  return buildFonts(regular, bold)
+  return { regular, bold }
 }
 
-export async function loadShareFonts(text: string): Promise<ShareFont[]> {
-  const normalizedText = Array.from(new Set(`${text}Peak Trekker GPS VERIFIED UPLOADED 总距离时长爬升最高海拔`.split('')))
-    .join('')
-    .slice(0, 512)
-
-  const cached = fontCache.get(normalizedText)
-  if (cached) return cached
-
+async function fetchShareFontBuffers(origin: string) {
   try {
-    const localFonts = await loadLocalFonts()
-    fontCache.set(normalizedText, localFonts)
-    return localFonts
+    return await loadStaticFontBuffers(origin)
   } catch {
-    console.warn('Local share fonts not found, trying remote Noto Sans SC fonts...')
+    console.warn('Static share fonts not found, trying remote Noto Sans SC fonts...')
   }
 
   try {
-    const remoteFonts = await loadRemoteFonts()
-    fontCache.set(normalizedText, remoteFonts)
-    return remoteFonts
+    return await loadRemoteFontBuffers()
   } catch (error) {
     throw new Error(
-      `Font loading failed: no local fonts and remote Noto Sans SC fonts are unreachable. Please add ${LOCAL_FONT_FILES.regular} and ${LOCAL_FONT_FILES.bold} to public/fonts/. Cause: ${
+      `Font loading failed: no static fonts and remote Noto Sans SC fonts are unreachable. Please add ${LOCAL_FONT_FILES.regular} and ${LOCAL_FONT_FILES.bold} to public/fonts/. Cause: ${
         error instanceof Error ? error.message : 'unknown error'
       }`,
     )
   }
+}
+
+export async function loadShareFontBuffers(origin: string): Promise<ShareFontBuffers> {
+  const cacheKey = new URL(origin).origin
+  let pending = fontBufferCache.get(cacheKey)
+  if (!pending) {
+    pending = fetchShareFontBuffers(cacheKey)
+    fontBufferCache.set(cacheKey, pending)
+  }
+
+  try {
+    return await pending
+  } catch (error) {
+    fontBufferCache.delete(cacheKey)
+    throw error
+  }
+}
+
+export async function loadShareFonts(text: string, origin: string): Promise<ShareFont[]> {
+  const normalizedText = Array.from(new Set(`${text}Peak Trekker GPS VERIFIED UPLOADED 总距离时长爬升最高海拔`.split('')))
+    .join('')
+    .slice(0, 512)
+  const cacheKey = `${new URL(origin).origin}:${normalizedText}`
+
+  const cached = fontCache.get(cacheKey)
+  if (cached) return cached
+
+  const { regular, bold } = await loadShareFontBuffers(origin)
+  const fonts = buildFonts(regular, bold)
+  fontCache.set(cacheKey, fonts)
+  return fonts
 }

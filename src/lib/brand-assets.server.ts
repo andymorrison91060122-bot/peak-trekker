@@ -1,11 +1,24 @@
 import 'server-only'
 
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+let brandMarkMaskDataUriPromise: Promise<string> | null = null
 
-function publicPngDataUri(fileName: string) {
-  const bytes = readFileSync(join(process.cwd(), 'public', 'brand', fileName))
+async function fetchBrandMarkMaskDataUri(origin: string) {
+  const response = await fetch(new URL('/brand/derived-mask-mark-white.png', origin), {
+    cache: 'force-cache',
+  })
+  if (!response.ok) {
+    throw new Error(`Brand mark responded ${response.status}`)
+  }
+  const bytes = Buffer.from(await response.arrayBuffer())
   return `data:image/png;base64,${bytes.toString('base64')}`
 }
 
-export const BRAND_MARK_MASK_DATA_URI = publicPngDataUri('derived-mask-mark-white.png')
+export async function loadBrandMarkMaskDataUri(origin: string) {
+  brandMarkMaskDataUriPromise ??= fetchBrandMarkMaskDataUri(origin)
+  try {
+    return await brandMarkMaskDataUriPromise
+  } catch (error) {
+    brandMarkMaskDataUriPromise = null
+    throw error
+  }
+}

@@ -21,7 +21,9 @@ test('client UI masks are derived from full masks while server rendering retains
   assert.doesNotMatch(brandAssets, /derived-mask-(?:mark|crest)-white\.png/)
   assert.match(brandMask, /BRAND_ASSETS\.mask\.crestUi384/)
   assert.match(brandMask, /BRAND_ASSETS\.mask\.markUi128/)
-  assert.match(serverAssets, /publicPngDataUri\('derived-mask-mark-white\.png'\)/)
+  assert.doesNotMatch(serverAssets, /readFileSync|node:fs|publicPngDataUri/)
+  assert.match(serverAssets, /fetch\(new URL\('\/brand\/derived-mask-mark-white\.png', origin\)/)
+  assert.match(serverAssets, /data:image\/png;base64/)
 })
 
 test('limited product touchpoints use brand masks without replacing content mountain icons', () => {

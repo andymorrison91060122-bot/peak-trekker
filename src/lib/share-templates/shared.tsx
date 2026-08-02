@@ -94,13 +94,11 @@ export function PhotoLayer({
   photoDataUrl,
   width = POSTER_WIDTH,
   height = POSTER_HEIGHT,
-  grayscale = false,
   opacity = 1,
 }: {
   photoDataUrl?: string | null
   width?: number
   height?: number
-  grayscale?: boolean
   opacity?: number
 }) {
   if (photoDataUrl) {
@@ -110,7 +108,6 @@ export function PhotoLayer({
         width={width}
         height={height}
         alt=""
-        data-grayscale={grayscale ? 'true' : undefined}
         style={{
           position: 'absolute',
           left: 0,

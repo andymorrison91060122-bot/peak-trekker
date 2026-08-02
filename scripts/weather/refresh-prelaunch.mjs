@@ -25,21 +25,28 @@ async function appendReceipt(receiptPath, entry) {
   await appendFile(receiptPath, `${JSON.stringify(entry)}\n`, 'utf8')
 }
 
-async function loadResumeCursor(receiptPath) {
+async function loadResumeState(receiptPath) {
   try {
     const contents = await readFile(receiptPath, 'utf8')
-    let cursor = null
+    let latestCompleted = null
     for (const line of contents.split('\n')) {
       if (!line) continue
       const entry = JSON.parse(line)
       if (entry.status === 'completed') {
-        cursor = entry.nextCursor ?? null
+        latestCompleted = entry
       }
     }
-    return cursor
+    if (!latestCompleted) {
+      return { cursor: null, alreadyCompleted: false }
+    }
+
+    return {
+      cursor: latestCompleted.nextCursor ?? null,
+      alreadyCompleted: latestCompleted.nextCursor == null,
+    }
   } catch (error) {
     if (error && typeof error === 'object' && error.code === 'ENOENT') {
-      return null
+      return { cursor: null, alreadyCompleted: false }
     }
     throw error
   }
@@ -73,7 +80,12 @@ export async function runPrelaunchRefresh({
   fetchImpl = fetch,
 }) {
   const resolvedReceiptPath = resolve(receiptPath)
-  let cursor = await loadResumeCursor(resolvedReceiptPath)
+  const resumeState = await loadResumeState(resolvedReceiptPath)
+  if (resumeState.alreadyCompleted) {
+    return { completed: 0, retries: 0, finalCursor: null, alreadyCompleted: true }
+  }
+
+  let cursor = resumeState.cursor
   let completed = 0
   let retries = 0
 
@@ -114,7 +126,7 @@ export async function runPrelaunchRefresh({
     completed += 1
     cursor = result.nextCursor ?? null
     if (!cursor) {
-      return { completed, retries, finalCursor: null }
+      return { completed, retries, finalCursor: null, alreadyCompleted: false }
     }
   }
 }

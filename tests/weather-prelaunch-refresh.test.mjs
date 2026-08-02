@@ -106,6 +106,38 @@ test('prelaunch driver retries one failed batch once and resumes from the receip
   assert.equal(summary.retries, 1)
 })
 
+test('prelaunch driver treats a terminal completed receipt as an already-completed no-op', async () => {
+  const { runPrelaunchRefresh } = await loadDriver()
+  const directory = await mkdtemp(join(tmpdir(), 'weather-prelaunch-driver-'))
+  const receiptPath = join(directory, 'receipt.jsonl')
+  let calls = 0
+  const fetchImpl = async () => {
+    calls += 1
+    return response(batch())
+  }
+
+  await runPrelaunchRefresh({
+    baseUrl: 'https://example.test',
+    secret: 'not-for-receipt',
+    receiptPath,
+    fetchImpl,
+  })
+  const secondRun = await runPrelaunchRefresh({
+    baseUrl: 'https://example.test',
+    secret: 'not-for-receipt',
+    receiptPath,
+    fetchImpl,
+  })
+
+  assert.equal(calls, 1)
+  assert.deepEqual(secondRun, {
+    completed: 0,
+    retries: 0,
+    finalCursor: null,
+    alreadyCompleted: true,
+  })
+})
+
 test('prelaunch driver throws after the one allowed causal retry', async () => {
   const { runPrelaunchRefresh } = await loadDriver()
   const directory = await mkdtemp(join(tmpdir(), 'weather-prelaunch-driver-'))

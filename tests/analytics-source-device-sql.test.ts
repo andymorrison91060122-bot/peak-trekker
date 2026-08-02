@@ -47,14 +47,17 @@ test('source metrics classify referrers and compute visible-history retention', 
     event('page_view', 'google-user', { referrer: 'https://www.google.com/search?q=peak' }),
     event('page_view', 'other-user', { referrer: 'https://example.com/outdoor' }),
     event('page_view', 'same-site-user', { referrer: 'https://peak-trekker.vercel.app/explore' }),
+    event('page_view', 'same-site-preview-user', { referrer: 'https://peak-trekker-example.vercel.app/explore' }),
+    event('page_view', 'canonical-user', { referrer: 'https://peaktrekker.cc/explore' }),
+    event('page_view', 'canonical-www-user', { referrer: 'https://www.peaktrekker.cc/faq' }),
   ]
 
   const metrics = buildUserBehaviorMetrics(events)
   const bySource = new Map(metrics.sourceMetrics.map((row) => [row.source, row]))
 
-  assert.equal(bySource.get('直接')?.actorCount, 3)
-  assert.equal(bySource.get('直接')?.d1RetentionRate, 0.3333)
-  assert.equal(bySource.get('直接')?.d30RetentionRate, 0.3333)
+  assert.equal(bySource.get('直接')?.actorCount, 6)
+  assert.equal(bySource.get('直接')?.d1RetentionRate, 0.1667)
+  assert.equal(bySource.get('直接')?.d30RetentionRate, 0.1667)
   assert.equal(bySource.get('微信')?.actorCount, 1)
   assert.equal(bySource.get('朋友圈')?.actorCount, 1)
   assert.equal(bySource.get('百度')?.actorCount, 1)

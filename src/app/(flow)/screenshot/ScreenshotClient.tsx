@@ -41,6 +41,7 @@ import {
 } from '@/lib/share-track-preview'
 import { buildImprintSourceUrl, buildShareUrlForCheckin } from '@/lib/share-template-intent'
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
+import { useHelpSheet } from '@/components/help/useHelpSheet'
 import { SCREENSHOT_RECOGNITION_SOURCE } from '@/lib/trek-utils'
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
@@ -2332,6 +2333,7 @@ export default function ScreenshotClient({
   returnToImprint?: boolean
 }) {
   const router = useRouter()
+  const { open: openHelpSheet } = useHelpSheet()
   const motionScopeRef = useRef<HTMLDivElement | null>(null)
   const albumInputRef = useRef<HTMLInputElement | null>(null)
   const cameraInputRef = useRef<HTMLInputElement | null>(null)
@@ -3135,7 +3137,7 @@ export default function ScreenshotClient({
           onCamera={() => {
             if (canUseScreenshotQuota()) cameraInputRef.current?.click()
           }}
-          onHowTo={() => console.log('Screenshot how-to will be added later')}
+          onHowTo={() => openHelpSheet('start.screenshot-how-to')}
           onLogin={openLogin}
           onUpgrade={openUpgradeSheet}
         />

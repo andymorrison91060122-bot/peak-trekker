@@ -5,6 +5,12 @@ export type FaqQuestion = {
   anchor: string
   q: string
   a: string
+  image?: {
+    src: string
+    alt: string
+    width: number
+    height: number
+  }
   contactEmail?: string
   long?: boolean
 }
@@ -31,6 +37,19 @@ export const BASE_FAQ_GROUPS: FaqGroup[] = [
         anchor: 'start.already-walked',
         q: '我已经走过了,现在怎么办',
         a: '有两条路可走，选最贴近你这次实际情况的那一条：\n\n· 导入轨迹文件 —— 你当时用了别的工具（手表、Garmin、两步路、健康），手里有 GPX/FIT 文件\n· 上传 App 截图 —— 你在两步路、六只脚、行者等其他 App 完成了记录，现在只有截图\n\n如果手里只有一张登顶照片、或既没照片也没轨迹，这两种补录方式我们还在做，暂时还没开放。',
+        long: true,
+      },
+      {
+        id: 'screenshot-how-to',
+        anchor: 'start.screenshot-how-to',
+        q: '如何获取可识别的截图？',
+        a: '请打开两步路、六只脚、行者等 App 中已经完成的活动记录详情页，再截取能同时看清轨迹和主要数据的页面。\n\n截图尽量包含轨迹、距离、用时、海拔或爬升；日期和地点如果页面里有，也请一并保留。不需要裁得很紧，像下面这样能看清轨迹和主要数据即可。\n\n识别完成后，请核对并修改结果。截图导入会标记为“上传记录”，不等同于 Peak Trekker GPS 实测。',
+        image: {
+          src: '/images/screenshot-record-example.webp',
+          alt: '两步路活动记录详情页示例，包含轨迹、距离、用时、爬升和最高海拔',
+          width: 447,
+          height: 737,
+        },
         long: true,
       },
       {

@@ -13,8 +13,8 @@ type ExpiredCacheRow = {
 
 type MountainRow = {
   id: string
-  latitude: number | null
-  longitude: number | null
+  latitude: number | string | null
+  longitude: number | string | null
   weather_priority_tier: string | null
   weather_enabled: boolean | null
 }
@@ -22,6 +22,107 @@ type MountainRow = {
 const TIER_PRIORITY: Record<WeatherTier, number> = { S: 0, A: 1, B: 2, C: 3 }
 const BATCH_LIMIT = 20
 const CONCURRENCY = 3
+const PRELAUNCH_BATCH_LIMIT = 10
+const PRELAUNCH_CONCURRENCY = 2
+
+type PrelaunchRequest = {
+  mode?: unknown
+  cursor?: unknown
+  limit?: unknown
+}
+
+function getPrelaunchCursor(value: unknown) {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
+function getPrelaunchBatchLimit(value: unknown) {
+  const requestedLimit = Number(value)
+  if (!Number.isInteger(requestedLimit) || requestedLimit <= 0) {
+    return PRELAUNCH_BATCH_LIMIT
+  }
+
+  return Math.min(requestedLimit, PRELAUNCH_BATCH_LIMIT)
+}
+
+async function refreshPrelaunchBatch(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  request: PrelaunchRequest
+) {
+  const cursor = getPrelaunchCursor(request.cursor)
+  const batchLimit = getPrelaunchBatchLimit(request.limit)
+  let query = supabase
+    .from('mountains')
+    .select('id, latitude, longitude, weather_priority_tier, weather_enabled')
+    .eq('is_active', true)
+    .eq('is_readable', true)
+    .eq('entity_type', 'mountain')
+    .eq('weather_enabled', true)
+    .not('latitude', 'is', null)
+    .not('longitude', 'is', null)
+
+  if (cursor) {
+    query = query.gt('id', cursor)
+  }
+
+  const { data, error } = await query
+    .order('id', { ascending: true })
+    .limit(batchLimit)
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  const mountains = (data ?? []) as MountainRow[]
+  let refreshed = 0
+  let failed = 0
+  let skipped = 0
+  const failures: Array<{ mountainId: string; error: string }> = []
+
+  const eligibleMountains = mountains.filter((mountain) => {
+    const latitude = Number(mountain.latitude)
+    const longitude = Number(mountain.longitude)
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      return true
+    }
+
+    skipped += 1
+    return false
+  })
+
+  for (let index = 0; index < eligibleMountains.length; index += PRELAUNCH_CONCURRENCY) {
+    const chunk = eligibleMountains.slice(index, index + PRELAUNCH_CONCURRENCY)
+    const results = await Promise.allSettled(chunk.map(async (mountain) => {
+      await refreshWeatherForMountain({
+        mountainId: mountain.id,
+        latitude: Number(mountain.latitude),
+        longitude: Number(mountain.longitude),
+        tier: normalizeWeatherTier(mountain.weather_priority_tier),
+      })
+      refreshed += 1
+    }))
+
+    results.forEach((result, resultIndex) => {
+      if (result.status === 'rejected') {
+        failed += 1
+        failures.push({
+          mountainId: chunk[resultIndex]?.id ?? 'unknown',
+          error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+        })
+      }
+    })
+  }
+
+  return NextResponse.json({
+    ok: true,
+    mode: 'prelaunch',
+    checked: mountains.length,
+    refreshed,
+    failed,
+    skipped,
+    nextCursor: mountains.length === batchLimit ? mountains.at(-1)?.id ?? null : null,
+    failures,
+  })
+}
 
 export async function POST(request: Request) {
   const secret = process.env.WEATHER_REFRESH_SECRET
@@ -36,6 +137,11 @@ export async function POST(request: Request) {
 
   try {
     const supabase = createSupabaseAdminClient()
+    const requestBody = await request.json().catch(() => null) as PrelaunchRequest | null
+    if (requestBody?.mode === 'prelaunch') {
+      return await refreshPrelaunchBatch(supabase, requestBody)
+    }
+
     const { data, error } = await supabase
       .from('weather_cache')
       .select('mountain_id, tier, expires_at')

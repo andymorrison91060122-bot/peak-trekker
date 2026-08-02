@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { test } from 'node:test'
 
 const screenshotClient = readFileSync('src/app/(flow)/screenshot/ScreenshotClient.tsx', 'utf8')
@@ -8,7 +8,6 @@ const activityPage = readFileSync('src/app/(flow)/activity/[id]/page.tsx', 'utf8
 const activityRouteMap = readFileSync('src/components/activity/ActivityRouteMap.tsx', 'utf8')
 const screenshotRecognizeRoute = readFileSync('src/app/api/screenshot/recognize/route.ts', 'utf8')
 const screenshotQuotaHelper = readFileSync('src/lib/screenshot/quota.ts', 'utf8')
-const screenshotOcrAdapter = readFileSync('src/lib/screenshot/tencent-ocr-adapter.ts', 'utf8')
 const screenshotRecognitionStatus = readFileSync('src/lib/screenshot/recognition-status.ts', 'utf8')
 const screenshotRecognitionService = readFileSync('src/lib/screenshot/recognition-service.ts', 'utf8')
 const screenshotRecognizeErrorCopy = readFileSync('src/lib/screenshot/recognize-error-copy.ts', 'utf8')
@@ -187,6 +186,20 @@ test('screenshot recognition route enforces quota with service-role RPC only', (
   assert.match(screenshotQuotaReservationMigration, /GRANT EXECUTE ON FUNCTION public\.refund_screenshot_quota_attempt\(UUID, TEXT\)\s+TO service_role;/)
 })
 
+test('screenshot recognition runtime and current analytics mapping are MIMO-only', () => {
+  const screenshotTypes = readFileSync('src/lib/screenshot/types.ts', 'utf8')
+  const removedAdapterPath = ['tencent', 'ocr', 'adapter.ts'].join('-')
+  const removedOptions = new RegExp([['force', 'Tencent'].join(''), ['tencent', 'Invoker'].join(''), removedAdapterPath].join('|'))
+  const removedAnalyticsProvider = new RegExp(['tencent', 'ocr'].join('_'))
+
+  assert.equal(existsSync(`src/lib/screenshot/${removedAdapterPath}`), false)
+  assert.match(screenshotRecognitionService, /mimoInvoker\?:/)
+  assert.doesNotMatch(screenshotRecognitionService, removedOptions)
+  assert.match(screenshotTypes, /export type ScreenshotOcrSource = 'mimo_v25'/)
+  assert.doesNotMatch(screenshotTypes, /TencentOcrSource/)
+  assert.doesNotMatch(screenshotClient, removedAnalyticsProvider)
+})
+
 test('screenshot recognition transient errors use friendly copy and do not consume quota', async () => {
   const {
     ScreenshotRecognitionAttemptError,
@@ -284,22 +297,13 @@ test('screenshot client surfaces quota state and upgrade placeholder', () => {
   assert.match(screenshotClient, /setUpgradeSheetOpen\(true\)/)
 })
 
-test('Tencent OCR adapter supports BasicOCR to AccurateOCR fallback', () => {
-  assert.match(screenshotOcrAdapter, /GeneralBasicOCR/)
-  assert.match(screenshotOcrAdapter, /GeneralAccurateOCR/)
-  assert.match(screenshotOcrAdapter, /recognizeScreenshotWithFallback/)
-  assert.match(screenshotOcrAdapter, /basic_empty_result/)
-})
-
-test('mimo text route uses primary adapter with Tencent fallback and no track-processing copy', () => {
+test('mimo text route is the only OCR runtime and keeps no track-processing copy', () => {
   assert.match(screenshotRecognitionService, /recognizeScreenshotWithMimoV25Text/)
-  assert.match(screenshotRecognitionService, /recognizeScreenshotWithFallback/)
+  assert.doesNotMatch(screenshotRecognitionService, /recognizeScreenshotWithFallback|tencent/i)
   assert.match(screenshotMimoAdjudicator, /mimo_missing_required_distance/)
   assert.match(screenshotMimoAdapter, /MIMO_TEXT_TIMEOUT_MS = 32_000/)
   assert.match(screenshotMimoAdapter, /MIMO_API_KEY is not configured/)
   assert.match(screenshotMimoAdapter, /thinking: \{ type: 'disabled' \}/)
-  assert.match(screenshotRecognitionService, /noTextDetected/)
-  assert.match(screenshotRecognitionService, /tencent_accurate:no_text/)
-  assert.match(screenshotClient, /provider: 'mimo_v25_primary'/)
+  assert.match(screenshotClient, /return source \?\? SCREENSHOT_RECOGNITION_SOURCE/)
   assert.doesNotMatch(screenshotClient, /轨迹路线识别中/)
 })

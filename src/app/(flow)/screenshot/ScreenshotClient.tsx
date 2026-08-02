@@ -204,9 +204,7 @@ function validateImageFile(file: File): { message: string; kind: RecognizeErrorK
 }
 
 function providerFromSource(source?: ScreenshotOcrSource) {
-  if (source === 'mimo_v25') return 'mimo_v25'
-  if (source === 'basic' || source === 'accurate') return `tencent_ocr_${source}`
-  return SCREENSHOT_RECOGNITION_SOURCE
+  return source ?? SCREENSHOT_RECOGNITION_SOURCE
 }
 
 function hasFieldValue<T extends { value?: unknown }>(

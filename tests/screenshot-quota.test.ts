@@ -7,10 +7,8 @@ import {
   SCREENSHOT_QUOTA_MONTHLY_FREE_LIMIT,
   SCREENSHOT_QUOTA_PAID_LIMIT,
 } from '../src/lib/screenshot/quota.ts'
-import { recognizeScreenshotWithFallback } from '../src/lib/screenshot/tencent-ocr-adapter.ts'
-import type { OcrResult, TencentOcrSource } from '../src/lib/screenshot/types.ts'
+import type { OcrResult } from '../src/lib/screenshot/types.ts'
 
-const emptyOcr: OcrResult = { textBlocks: [], rawText: '' }
 const filledOcr: OcrResult = {
   rawText: '路线距离\n5.9 km',
   textBlocks: [{ text: '路线距离', confidence: 99, x: 0, y: 0, width: 10, height: 10 }],
@@ -63,49 +61,6 @@ test('screenshot quota clamps exhausted usage to zero remaining', () => {
 
   assert.equal(quota.freeRemaining, 0)
   assert.equal(quota.remaining, 0)
-})
-
-test('Tencent OCR router returns basic when BasicOCR has text blocks', async () => {
-  const result = await recognizeScreenshotWithFallback('base64', async (_image, source) => {
-    assert.equal(source, 'basic')
-    return filledOcr
-  })
-
-  assert.equal(result.source, 'basic')
-  assert.equal(result.ocrResult, filledOcr)
-})
-
-test('Tencent OCR router falls back to accurate when BasicOCR returns no text', async () => {
-  const calls: TencentOcrSource[] = []
-  const result = await recognizeScreenshotWithFallback('base64', async (_image, source) => {
-    calls.push(source)
-    return source === 'basic' ? emptyOcr : filledOcr
-  })
-
-  assert.deepEqual(calls, ['basic', 'accurate'])
-  assert.equal(result.source, 'accurate')
-  assert.equal(result.fallbackReason, 'basic_empty_result')
-})
-
-test('Tencent OCR router falls back to accurate on transient BasicOCR errors', async () => {
-  const calls: TencentOcrSource[] = []
-  const result = await recognizeScreenshotWithFallback('base64', async (_image, source) => {
-    calls.push(source)
-    if (source === 'basic') throw new Error('Tencent basic OCR failed: rate limit exceeded')
-    return filledOcr
-  })
-
-  assert.deepEqual(calls, ['basic', 'accurate'])
-  assert.equal(result.source, 'accurate')
-})
-
-test('Tencent OCR router does not hide missing credential errors', async () => {
-  await assert.rejects(
-    () => recognizeScreenshotWithFallback('base64', async () => {
-      throw new Error('TENCENT_CLOUD_SECRET_ID is not configured')
-    }),
-    /not configured/
-  )
 })
 
 test('screenshot recognition reserves quota before OCR and refunds only provider failures', async () => {

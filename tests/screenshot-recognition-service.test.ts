@@ -1,19 +1,10 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { adjudicateMimoTextPayload, type MimoTextPayload } from '../src/lib/screenshot/mimo-v25-text-adjudicator.ts'
-import { recognizeScreenshotText, type ScreenshotRecognitionOptions } from '../src/lib/screenshot/recognition-service.ts'
+import { recognizeScreenshotText } from '../src/lib/screenshot/recognition-service.ts'
 import type { OcrResult } from '../src/lib/screenshot/types.ts'
 
 const emptyOcr: OcrResult = { textBlocks: [], rawText: '' }
-const tencentOcr: OcrResult = {
-  rawText: '路线距离\n5.9 km\n运动时长\n2h 00m',
-  textBlocks: [
-    { text: '路线距离', confidence: 99, x: 0, y: 0, width: 40, height: 12 },
-    { text: '5.9 km', confidence: 99, x: 0, y: 14, width: 40, height: 12 },
-    { text: '运动时长', confidence: 99, x: 0, y: 30, width: 40, height: 12 },
-    { text: '2h 00m', confidence: 99, x: 0, y: 44, width: 40, height: 12 },
-  ],
-}
 
 function payload(fields: MimoTextPayload['fields']): MimoTextPayload {
   return { app: null, imageType: 'activity_summary', fields }
@@ -39,85 +30,50 @@ function mimoResult(fields: MimoTextPayload['fields']) {
   }
 }
 
-function tencentInvoker(calls: string[]) {
-  return async (imageBase64: string) => {
-    calls.push(imageBase64)
-    return { source: 'basic' as const, ocrResult: tencentOcr }
-  }
-}
-
-test('recognition service uses mimo as primary when required distance is confident', async () => {
-  const tencentCalls: string[] = []
-  const options: ScreenshotRecognitionOptions = {
-    mimoInvoker: async () => mimoResult({
-      distanceKm: [{ raw: '5.9', labelRaw: '路线距离', unitRaw: 'km', bbox: null, sourceKind: 'metric_label', visibility: 'visible', confidence: 0.96, reason: null }],
-      durationSeconds: [{ raw: '2:00:00', labelRaw: '运动时长', unitRaw: null, bbox: null, sourceKind: 'metric_label', visibility: 'visible', confidence: 0.92, reason: null }],
-    }),
-    tencentInvoker: tencentInvoker(tencentCalls),
-  }
-
-  const result = await recognizeScreenshotText('base64', 'image/png', options)
+test('recognition service invokes only mimo for a confident result', async () => {
+  let mimoCalls = 0
+  const result = await recognizeScreenshotText('base64', 'image/png', {
+    mimoInvoker: async () => {
+      mimoCalls += 1
+      return mimoResult({
+        distanceKm: [{ raw: '5.9', labelRaw: '路线距离', unitRaw: 'km', bbox: null, sourceKind: 'metric_label', visibility: 'visible', confidence: 0.96, reason: null }],
+      })
+    },
+  })
 
   assert.equal(result.source, 'mimo_v25')
   assert.equal(result.parsedFields.distance?.value, 5.9)
-  assert.deepEqual(tencentCalls, [])
+  assert.equal(mimoCalls, 1)
 })
 
-test('recognition service falls back to Tencent when mimo misses required distance', async () => {
-  const tencentCalls: string[] = []
+test('recognition service retains a low-confidence mimo result without another OCR provider', async () => {
+  let mimoCalls = 0
   const result = await recognizeScreenshotText('base64', 'image/png', {
-    mimoInvoker: async () => mimoResult({
-      durationSeconds: [{ raw: '2:00:00', labelRaw: '运动时长', unitRaw: null, bbox: null, sourceKind: 'metric_label', visibility: 'visible', confidence: 0.92, reason: null }],
-    }),
-    tencentInvoker: tencentInvoker(tencentCalls),
-  })
-
-  assert.equal(result.source, 'basic')
-  assert.equal(result.parsedFields.distance?.value, 5.9)
-  assert.equal(tencentCalls.length, 1)
-  assert.ok(result.engineMeta?.fallbackChain.some((item) => item.includes('mimo_missing_required_distance')))
-})
-
-test('recognition service returns an empty low-confidence result when every engine sees no text', async () => {
-  const result = await recognizeScreenshotText('base64', 'image/png', {
-    mimoInvoker: async () => mimoResult({}),
-    tencentInvoker: async () => {
-      throw new Error('Tencent accurate OCR failed: 照片中未检测到文本')
+    mimoInvoker: async () => {
+      mimoCalls += 1
+      return mimoResult({
+        durationSeconds: [{ raw: '2:00:00', labelRaw: '运动时长', unitRaw: null, bbox: null, sourceKind: 'metric_label', visibility: 'visible', confidence: 0.92, reason: null }],
+      })
     },
   })
 
-  assert.equal(result.source, 'accurate')
-  assert.deepEqual(result.ocrResult, { textBlocks: [], rawText: '' })
-  assert.deepEqual(result.parsedFields, {})
-  assert.equal(result.engineMeta?.primary, 'mimo_v25')
-  assert.equal(result.engineMeta?.fallback, 'accurate')
-  assert.equal(result.engineMeta?.noTextDetected, true)
-  assert.ok(result.engineMeta?.fallbackChain.includes('tencent_accurate:no_text'))
+  assert.equal(result.source, 'mimo_v25')
+  assert.equal(mimoCalls, 1)
+  assert.equal(result.parsedFields.duration?.value, 7200)
+  assert.match(result.fallbackReason ?? '', /mimo_missing_required_distance/)
+  assert.deepEqual(result.engineMeta?.fallbackChain, ['mimo_v25'])
 })
 
-test('recognition service still rejects non-empty Tencent failures', async () => {
+test('recognition service propagates a mimo provider failure without another OCR provider', async () => {
+  let mimoCalls = 0
   await assert.rejects(
     recognizeScreenshotText('base64', 'image/png', {
-      mimoInvoker: async () => mimoResult({}),
-      tencentInvoker: async () => {
-        throw new Error('Tencent accurate OCR failed: upstream timeout')
+      mimoInvoker: async () => {
+        mimoCalls += 1
+        throw new Error('mimo upstream timeout')
       },
     }),
-    /upstream timeout/
+    /mimo upstream timeout/
   )
-})
-
-test('recognition service skips mimo when forced to Tencent', async () => {
-  let mimoCalled = false
-  const result = await recognizeScreenshotText('base64', 'image/png', {
-    forceTencent: true,
-    mimoInvoker: async () => {
-      mimoCalled = true
-      return mimoResult({})
-    },
-    tencentInvoker: tencentInvoker([]),
-  })
-
-  assert.equal(result.source, 'basic')
-  assert.equal(mimoCalled, false)
+  assert.equal(mimoCalls, 1)
 })

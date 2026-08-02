@@ -38,8 +38,7 @@
     "react-dom": "19.2.3",
     "recharts": "^3.8.1",
     "satori": "^0.26.0",
-    "sharp": "^0.34.5",
-    "tencentcloud-sdk-nodejs-ocr": "^4.1.224"
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

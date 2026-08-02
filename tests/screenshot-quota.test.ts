@@ -357,3 +357,19 @@ test('screenshot quota migration defines request-bound reserve finalize and refu
   assert.match(migration, /CREATE OR REPLACE FUNCTION public\.complete_screenshot_quota_attempt/)
   assert.match(migration, /CREATE OR REPLACE FUNCTION public\.refund_screenshot_quota_attempt/)
 })
+
+test('quota RPC correction qualifies columns that collide with RETURNS TABLE variables', () => {
+  const migration = readFileSync(
+    'supabase/migrations/20260802171731_fix_screenshot_quota_column_ambiguity.sql',
+    'utf8',
+  )
+
+  assert.match(migration, /UPDATE public\.screenshot_quota AS q/)
+  assert.match(migration, /SET free_used = q\.free_used \+ 1/)
+  assert.match(migration, /SET paid_used = q\.paid_used \+ 1/)
+  assert.match(migration, /GREATEST\(q\.free_used - 1, 0\)/)
+  assert.match(migration, /GREATEST\(q\.paid_used - 1, 0\)/)
+  assert.match(migration, /FROM public\.screenshot_quota_attempts AS a/)
+  assert.match(migration, /WHERE a\.user_id = p_user_id\s+AND a\.request_id = p_request_id/)
+  assert.doesNotMatch(migration, /SET free_used = free_used|SET paid_used = paid_used/)
+})

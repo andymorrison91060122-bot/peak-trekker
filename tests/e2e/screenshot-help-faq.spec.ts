@@ -176,6 +176,37 @@ async function collectViewportEvidence(page: Page) {
   }))
 }
 
+async function waitForHelpSheetSettled(page: Page) {
+  await page.waitForFunction(() => {
+    const sheet = document.querySelector<HTMLElement>('[data-testid="help-sheet"]')
+    const footer = document.querySelector<HTMLElement>('[data-testid="help-sheet-footer"]')
+    if (!sheet || !footer) return false
+
+    const sheetRect = sheet.getBoundingClientRect()
+    const footerRect = footer.getBoundingClientRect()
+    const transform = getComputedStyle(sheet).transform
+    const state = ((window as typeof window & {
+      __screenshotHelpSheetStable?: { last: string | null; count: number }
+    }).__screenshotHelpSheetStable ??= { last: null, count: 0 })
+    const snapshot = JSON.stringify({
+      y: Number(sheetRect.y.toFixed(3)),
+      height: Number(sheetRect.height.toFixed(3)),
+      bottom: Number(sheetRect.bottom.toFixed(3)),
+      footerBottom: Number(footerRect.bottom.toFixed(3)),
+      transform,
+    })
+
+    if (state.last === snapshot) state.count += 1
+    else {
+      state.last = snapshot
+      state.count = 1
+    }
+
+    const withinViewport = sheetRect.y >= -1 && sheetRect.bottom <= window.innerHeight + 1 && footerRect.bottom <= window.innerHeight + 1
+    return state.count >= 2 && withinViewport
+  }, undefined, { polling: 'raf', timeout: 10_000 })
+}
+
 async function captureHelpSheetState(page: Page, screenshotPath: string, scrollToBottom = false) {
   const sheet = page.getByTestId('help-sheet')
   const content = page.getByTestId('help-sheet-content')
@@ -193,6 +224,8 @@ async function captureHelpSheetState(page: Page, screenshotPath: string, scrollT
       return Math.max(0, el.scrollHeight - el.clientHeight - el.scrollTop)
     })).toBeLessThanOrEqual(1)
   }
+
+  await waitForHelpSheetSettled(page)
 
   const [sheetBox, contentBox, imageBox, footerBox, titleBox] = await Promise.all([
     sheet.boundingBox(),
@@ -257,6 +290,7 @@ test('screenshot help sheet shares the example asset with FAQ and remains viewpo
   await page.getByRole('button', { name: '如何获取截图？' }).click()
   await expect(page.getByTestId('help-sheet-root')).toBeVisible()
   await expect(page.getByTestId('help-sheet')).toBeVisible()
+  await waitForHelpSheetSettled(page)
   await expect(page.locator('body')).toHaveCSS('overflow', 'hidden')
 
   await waitForImageReady(page)

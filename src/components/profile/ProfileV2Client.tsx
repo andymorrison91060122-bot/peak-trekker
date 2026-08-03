@@ -649,8 +649,9 @@ function LogoutLink() {
   async function handleLogout() {
     setPending(true)
     try {
-      await trackEventNow({ event_type: 'auth', event_name: 'auth.logout' })
-      await createSupabaseBrowserClient().auth.signOut()
+      void trackEventNow({ event_type: 'auth', event_name: 'auth.logout' })
+      const { error } = await createSupabaseBrowserClient().auth.signOut()
+      if (error) throw error
       router.push('/explore')
       router.refresh()
     } catch {

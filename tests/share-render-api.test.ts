@@ -201,6 +201,16 @@ describe('share render API field policy regression', () => {
     assert.match(posterSource, /'UPLOADED'/)
   })
 
+  test('/api/poster supports the anonymous demo smoke input without a Supabase checkin', () => {
+    const posterSource = readSource('../src/app/api/poster/route.ts')
+    const demoBlock = posterSource.match(/if \(checkinId === 'demo'\) \{[\s\S]*?\n  \}\n\n  const supabase =/)?.[0] ?? ''
+
+    assert.match(demoBlock, /loadBrandMarkMaskDataUri\(request\.nextUrl\.origin\)/)
+    assert.match(demoBlock, /createWorkerSvgResponse\(/)
+    assert.match(demoBlock, /return renderPngResponse\(/)
+    assert.doesNotMatch(demoBlock, /createSupabaseServerClient|createSupabaseAdminClient|auth\.getUser/)
+  })
+
   test('Worker share and poster rendering bundle fonts and Resvg without runtime filesystem or native sharp', () => {
     const fontSource = readSource('../src/lib/fonts/load-share-fonts.ts')
     const pngSource = readSource('../src/lib/share-render-png.ts')

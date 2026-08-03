@@ -22,7 +22,11 @@ test('client UI masks are derived from full masks while server rendering retains
   assert.match(brandMask, /BRAND_ASSETS\.mask\.crestUi384/)
   assert.match(brandMask, /BRAND_ASSETS\.mask\.markUi128/)
   assert.doesNotMatch(serverAssets, /readFileSync|node:fs|publicPngDataUri/)
-  assert.match(serverAssets, /fetch\(new URL\('\/brand\/derived-mask-mark-white\.png', origin\)/)
+  assert.match(serverAssets, /import \{ getCloudflareContext \} from '@opennextjs\/cloudflare'/)
+  assert.match(serverAssets, /process\.env\.NEXT_PUBLIC_PEAK_TREKKER_RUNTIME === 'cloudflare'/)
+  assert.match(serverAssets, /await getCloudflareContext\(\{ async: true \}\)/)
+  assert.match(serverAssets, /env\.ASSETS\?\.fetch\(new Request\(assetUrl\)\)/)
+  assert.match(serverAssets, /fetch\(assetUrl, \{\s*cache: 'force-cache'\s*\}\)/)
   assert.match(serverAssets, /data:image\/png;base64/)
 })
 

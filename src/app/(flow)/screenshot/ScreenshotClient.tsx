@@ -43,6 +43,11 @@ import { buildImprintSourceUrl, buildShareUrlForCheckin } from '@/lib/share-temp
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 import { useHelpSheet } from '@/components/help/useHelpSheet'
 import { SCREENSHOT_RECOGNITION_SOURCE } from '@/lib/trek-utils'
+import {
+  recoverScreenshotRecognition,
+  readScreenshotRecognitionResponse,
+  type ScreenshotRecognitionRecoveryResponse,
+} from '@/lib/screenshot/recognition-recovery'
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
 const PROCESSING_MIN_DURATION_MS = 2000
@@ -2705,6 +2710,7 @@ export default function ScreenshotClient({
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
+    const requestId = crypto.randomUUID()
     const contentHash = await buildContentHash(file)
     recognizeContentHashRef.current = contentHash
     recognizedFieldsRef.current = []
@@ -2720,24 +2726,60 @@ export default function ScreenshotClient({
     })
 
     try {
-      const formData = new FormData()
-      formData.append('image', file)
+      const submitRecognition = async (): Promise<ScreenshotRecognitionRecoveryResponse<RecognizeResponse>> => {
+        const formData = new FormData()
+        formData.append('image', file)
+        formData.append('requestId', requestId)
 
-      const [response] = await Promise.all([
-        fetch('/api/screenshot/recognize', {
+        const response = await fetch('/api/screenshot/recognize', {
           method: 'POST',
           body: formData,
           signal: controller.signal,
-        }),
-        wait(PROCESSING_MIN_DURATION_MS),
-      ])
+        })
+        return readScreenshotRecognitionResponse<RecognizeResponse>(response)
+      }
 
-      const payload = (await response.json().catch(() => ({}))) as RecognizeResponse
+      const readRecovery = async (
+        nextRequestId: string,
+        signal: AbortSignal,
+      ): Promise<ScreenshotRecognitionRecoveryResponse<RecognizeResponse>> => {
+        const response = await fetch(`/api/screenshot/recognize?requestId=${encodeURIComponent(nextRequestId)}`, {
+          method: 'GET',
+          signal,
+        })
+        return readScreenshotRecognitionResponse<RecognizeResponse>(response)
+      }
+
+      let recognitionResponse: ScreenshotRecognitionRecoveryResponse<RecognizeResponse>
+      try {
+        recognitionResponse = await submitRecognition()
+      } catch (error) {
+        if (controller.signal.aborted) throw error
+        recognitionResponse = await recoverScreenshotRecognition({
+          requestId,
+          startedAtMs: startedAt,
+          signal: controller.signal,
+          read: readRecovery,
+        })
+      }
+
+      if (recognitionResponse.status === 202 && recognitionResponse.payload.code === 'screenshot_recognition_pending') {
+        recognitionResponse = await recoverScreenshotRecognition({
+          requestId,
+          startedAtMs: startedAt,
+          signal: controller.signal,
+          read: readRecovery,
+        })
+      }
+
+      const { payload } = recognitionResponse
+      const remainingMinDuration = PROCESSING_MIN_DURATION_MS - (performance.now() - startedAt)
+      if (remainingMinDuration > 0) await wait(remainingMinDuration)
       if (payload.quota) {
         setQuotaState(payload.quota)
       }
-      if (!response.ok) {
-        const kind = responseKind(response.status)
+      if (!recognitionResponse.ok) {
+        const kind = responseKind(recognitionResponse.status)
         if (kind === 'quota') {
           setUpgradeSheetOpen(true)
         }

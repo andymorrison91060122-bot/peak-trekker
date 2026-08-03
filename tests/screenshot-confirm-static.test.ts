@@ -159,10 +159,11 @@ test('screenshot recognition route enforces quota with service-role RPC only', (
   assert.match(screenshotRecognizeRoute, /export const runtime = 'nodejs'/)
   assert.match(screenshotRecognizeRoute, /export const maxDuration = 60/)
   assert.match(screenshotRecognizeRoute, /getScreenshotQuotaState/)
-  assert.match(screenshotRecognizeRoute, /recognizeWithReservedScreenshotQuota\(\{[\s\S]*requestId:\s*randomUUID\(\),[\s\S]*adminClient:\s*createSupabaseAdminClient\(\)/)
+  assert.match(screenshotRecognizeRoute, /const requestId = resolveScreenshotRecognitionRequestId\(\s*formData \? formData\.get\('requestId'\) : null,\s*\)/)
+  assert.match(screenshotRecognizeRoute, /recognizeOrReplayScreenshotQuotaAttempt\(\{[\s\S]*requestId,[\s\S]*adminClient:\s*createSupabaseAdminClient\(\)/)
   assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const reserveResult = await reserve\(adminClient,\s*userId,\s*quota,\s*requestId\)/)
   assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /recognition = await recognize\(imageBase64,\s*mimeType\)/)
-  assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const finalizeResult = await finalize\(adminClient,\s*userId,\s*requestId,\s*reserveResult\.quota\)/)
+  assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const finalizeResult = await finalize\(adminClient,\s*userId,\s*requestId,\s*reserveResult\.quota,\s*storedRecognition\)/)
   assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const refundResult = await refund\(adminClient,\s*userId,\s*requestId,\s*reserveResult\.quota\)/)
   assert.match(screenshotRecognizeRoute, /status:\s*402/)
   assert.match(screenshotRecognizeRoute, /screenshot_quota_exhausted/)
@@ -170,6 +171,13 @@ test('screenshot recognition route enforces quota with service-role RPC only', (
   assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /recognizeScreenshotText/)
   assert.match(screenshotRecognizeRoute, /screenshotRecognitionErrorStatus/)
   assert.match(screenshotRecognizeRoute, /recognitionMeta/)
+  assert.match(screenshotRecognizeRoute, /screenshot_recognition_pending/)
+  assert.match(screenshotRecognizeRoute, /screenshot_recognition_result_unavailable/)
+  assert.match(screenshotClient, /formData\.append\('requestId', requestId\)/)
+  assert.match(screenshotClient, /recoverScreenshotRecognition/)
+  assert.match(screenshotClient, /method: 'GET'/)
+  assert.match(screenshotClient, /\?requestId=\$\{encodeURIComponent\(nextRequestId\)\}/)
+  assert.doesNotMatch(screenshotClient, /MAX_RECOGNITION_RECOVERY_REPLAYS/)
   assert.doesNotMatch(screenshotRecognitionStatus, /limit\|quota\|rate/)
   assert.match(screenshotRecognitionStatus, /rate\.\?limit/)
   assert.match(screenshotRecognitionStatus, /too many requests/)
@@ -269,7 +277,7 @@ test('successful OCR response is returned even when quota finalization is tempor
   assert.doesNotMatch(finalizeBranch, /return NextResponse/)
   assert.match(
     screenshotRecognizeRoute,
-    /quota:\s*finalizeResult\.success \? finalizeResult\.quota : reserveResult\.quota/,
+    /recognitionSuccessResponse\(recognition, finalizeResult\.success \? finalizeResult\.quota : reserveResult\.quota\)/,
   )
 })
 
@@ -301,7 +309,8 @@ test('mimo text route is the only OCR runtime and keeps no track-processing copy
   assert.match(screenshotRecognitionService, /recognizeScreenshotWithMimoV25Text/)
   assert.doesNotMatch(screenshotRecognitionService, /recognizeScreenshotWithFallback|tencent/i)
   assert.match(screenshotMimoAdjudicator, /mimo_missing_required_distance/)
-  assert.match(screenshotMimoAdapter, /MIMO_TEXT_TIMEOUT_MS = 32_000/)
+  assert.match(screenshotMimoAdapter, /MIMO_TEXT_TIMEOUT_MS = 45_000/)
+  assert.match(screenshotRecognizeRoute, /export const maxDuration = 60/)
   assert.match(screenshotMimoAdapter, /MIMO_API_KEY is not configured/)
   assert.match(screenshotMimoAdapter, /thinking: \{ type: 'disabled' \}/)
   assert.match(screenshotClient, /return source \?\? SCREENSHOT_RECOGNITION_SOURCE/)

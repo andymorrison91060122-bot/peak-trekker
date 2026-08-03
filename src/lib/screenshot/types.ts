@@ -12,8 +12,7 @@ export interface OcrResult {
   rawText: string
 }
 
-export type TencentOcrSource = 'basic' | 'accurate'
-export type ScreenshotOcrSource = 'mimo_v25' | TencentOcrSource
+export type ScreenshotOcrSource = 'mimo_v25'
 
 export interface ScreenshotQuotaState {
   monthKey: string

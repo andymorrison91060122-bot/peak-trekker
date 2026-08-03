@@ -1,5 +1,4 @@
-import sharp from 'sharp'
-import { BRAND_MARK_MASK_DATA_URI } from '@/lib/brand-assets.server'
+import { loadBrandMarkMaskDataUri } from '@/lib/brand-assets.server'
 import { RenderRoot } from '@/lib/share-templates/shared'
 import { getShareTemplateComponent } from '@/lib/share-templates/registry'
 import { TransparentWatermarkTemplate } from '@/lib/share-templates/transparent-watermark'
@@ -13,8 +12,10 @@ import {
 import { loadShareFonts } from '@/lib/fonts/load-share-fonts'
 import { checkTemplateAccess, isPremiumPaywallEnabled } from '@/lib/premium'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
-import { renderSharePng } from '@/lib/share-render-png'
+import { renderShareSvg, renderSvgPng } from '@/lib/share-render-png'
+import { createWorkerSvgResponse } from '@/lib/share-render-runtime'
 import { ShareRenderPayloadPolicyError, assertShareRenderPayload } from '@/lib/share-render-policy'
+import { applyPhotoGrayscaleSvgFilter } from '@/lib/share-svg-filters'
 import {
   buildShareTrackPreview,
   buildShareTrackPreviewFromScreenshotRouteShape,
@@ -26,6 +27,10 @@ import { isScreenshotRecognitionSource } from '@/lib/trek-utils'
 export const runtime = 'nodejs'
 
 const VALID_TEMPLATES: readonly ShareRenderTemplate[] = SHARE_RENDER_TEMPLATE_IDS
+const GRAYSCALE_PHOTO_TEMPLATES = new Set<ShareRenderTemplate>([
+  'premium-mono-film',
+  'premium-vertical-story',
+])
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -327,15 +332,15 @@ async function buildServerRenderPayload(apiRequest: ShareRenderApiRequest): Prom
 
 async function photoDataUrlForTemplate(template: ShareRenderTemplate, photoBase64?: string) {
   if (!photoBase64) return null
-  if (template !== 'premium-vertical-story' && template !== 'premium-mono-film') {
-    return `data:image/jpeg;base64,${photoBase64}`
-  }
-
-  const grayBuffer = await sharp(Buffer.from(photoBase64, 'base64'))
-    .grayscale()
-    .jpeg({ quality: 86 })
-    .toBuffer()
-  return `data:image/jpeg;base64,${grayBuffer.toString('base64')}`
+  void template
+  const mimeType = photoBase64.startsWith('iVBORw0KGgo')
+    ? 'image/png'
+    : photoBase64.startsWith('UklGR')
+      ? 'image/webp'
+      : photoBase64.startsWith('R0lGOD')
+        ? 'image/gif'
+        : 'image/jpeg'
+  return `data:${mimeType};base64,${photoBase64}`
 }
 
 function renderTemplate(
@@ -348,9 +353,8 @@ function renderTemplate(
   return Template({ data, photoDataUrl, brandMarkSrc })
 }
 
-function renderPayload(payload: ShareRenderRequest, photoDataUrl: string | null) {
+function renderPayload(payload: ShareRenderRequest, photoDataUrl: string | null, brandMarkSrc?: string) {
   if (payload.transparent) {
-    const brandMarkSrc = BRAND_MARK_MASK_DATA_URI
     if (!brandMarkSrc) {
       return TransparentWatermarkTemplate({
         data: payload.data,
@@ -360,7 +364,7 @@ function renderPayload(payload: ShareRenderRequest, photoDataUrl: string | null)
     return TransparentWatermarkTemplate({ data: payload.data, template: payload.template, brandMarkSrc })
   }
 
-  return renderTemplate(payload, photoDataUrl, BRAND_MARK_MASK_DATA_URI)
+  return renderTemplate(payload, photoDataUrl, brandMarkSrc)
 }
 
 function fontText(data: ShareTemplateData) {
@@ -405,25 +409,38 @@ export async function POST(request: Request) {
   try {
     const { payload, userId } = serverPayload
     const paywallEnabled = isPremiumPaywallEnabled()
-    const [fonts, photoDataUrl] = await Promise.all([
-      loadShareFonts(fontText(payload.data)),
+    const [fonts, photoDataUrl, brandMarkSrc] = await Promise.all([
+      loadShareFonts(fontText(payload.data), request.url),
       payload.transparent ? null : photoDataUrlForTemplate(payload.template, payload.photoBase64),
+      loadBrandMarkMaskDataUri(request.url),
     ])
     const access = paywallEnabled
       ? await checkTemplateAccess(payload.template, userId)
       : { allowed: true }
-    const templateElement = renderPayload(payload, photoDataUrl)
+    const templateElement = renderPayload(payload, photoDataUrl, brandMarkSrc)
 
-    const png = await renderSharePng({
-      element: access.allowed
-        ? templateElement
-        : RenderRoot({
-            paywallWatermark: true,
-            children: templateElement,
-          }),
+    const element = access.allowed
+      ? templateElement
+      : RenderRoot({
+          paywallWatermark: true,
+          children: templateElement,
+        })
+    let svg = await renderShareSvg({
+      element,
       fonts,
-      transparent: payload.transparent,
     })
+    if (GRAYSCALE_PHOTO_TEMPLATES.has(payload.template) && photoDataUrl) {
+      svg = applyPhotoGrayscaleSvgFilter(svg, photoDataUrl)
+    }
+    const workerSvgResponse = await createWorkerSvgResponse({
+      request,
+      svg,
+      transparent: payload.transparent,
+      headers: { 'Cache-Control': 'no-store' },
+    })
+    if (workerSvgResponse) return workerSvgResponse
+
+    const png = await renderSvgPng({ svg, transparent: payload.transparent })
 
     return new Response(new Blob([png.buffer], { type: 'image/png' }), {
       headers: {

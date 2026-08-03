@@ -429,3 +429,15 @@ test('server summit verification uses 300m hard fallback and closest-point dista
   assert.match(trekActions, /distanceMeters:\s*Math\.round\(evidence\.distanceM\)/)
   assert.match(trekActions, /maxMeters:\s*maxVerifyDistance/)
 })
+
+test('profile logout keeps analytics off the session and navigation critical path', () => {
+  const logoutBlock = profileClient.match(/async function handleLogout\(\) \{[\s\S]*?\n  \}/)?.[0] ?? ''
+
+  assert.match(logoutBlock, /void trackEventNow\(\{ event_type: 'auth', event_name: 'auth\.logout' \}\)/)
+  assert.doesNotMatch(logoutBlock, /await trackEventNow/)
+  assert.match(logoutBlock, /const \{ error \} = await createSupabaseBrowserClient\(\)\.auth\.signOut\(\)/)
+  assert.match(logoutBlock, /if \(error\) throw error/)
+  assert.match(logoutBlock, /router\.push\('\/explore'\)/)
+  assert.match(logoutBlock, /showToast\(\{ tone: 'error', message: '退出登录失败，请稍后重试。' \}\)/)
+  assert.match(logoutBlock, /setPending\(false\)/)
+})

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { BRAND_MARK_MASK_DATA_URI } from '@/lib/brand-assets.server'
+import { loadBrandMarkMaskDataUri } from '@/lib/brand-assets.server'
 import { isSchemaCompatibilityErrorMessage } from '@/lib/schema-compat'
 import { resolveMeasuredShareAltitude } from '@/lib/share-data'
 import {
@@ -12,6 +12,9 @@ import {
 import { getMountainPosterBackgroundImage } from '@/lib/mountain-media'
 import { parseCommunityPostPayload } from '@/lib/community'
 import { getRandomQuote, IN_PROGRESS_QUOTES, SUMMIT_QUOTES } from '@/lib/sharing-quotes'
+import { loadShareFontBuffers } from '@/lib/fonts/load-share-fonts'
+import { renderSvgPng } from '@/lib/share-render-png'
+import { createWorkerSvgResponse } from '@/lib/share-render-runtime'
 import type { ShareAnchorPosition, ShareCardTemplate, ShareRenderMode } from '@/types'
 
 const POSTER_WIDTH = 1080
@@ -33,6 +36,7 @@ type PosterModel = {
   renderMode: ShareRenderMode
   anchorPosition: ShareAnchorPosition
   previewBackground: PreviewBackground
+  brandMarkDataUri: string
   coverImageHref?: string | null
   quoteOverride?: { text: string; author: string } | null
   isDemo?: boolean
@@ -492,17 +496,18 @@ function toAsciiFilenameSegment(value: string | null | undefined, fallback: stri
 
 async function renderPngResponse({
   svg,
+  origin,
   cacheControl,
   contentDisposition,
 }: {
   svg: string
+  origin: string
   cacheControl: string
   contentDisposition?: string
 }) {
   try {
-    const sharp = (await import('sharp')).default
-    const png = await sharp(Buffer.from(svg)).png().toBuffer()
-    const body = Uint8Array.from(png)
+    const { regular, bold } = await loadShareFontBuffers(origin)
+    const body = await renderSvgPng({ svg, fontBuffers: [regular, bold] })
 
     return new Response(body, {
       headers: {
@@ -750,7 +755,17 @@ function svgShell(content: string, background: PreviewBackground | 'classic') {
   </svg>`
 }
 
-function buildBrandLockup({ x, y, compact = false }: { x: number; y: number; compact?: boolean }) {
+function buildBrandLockup({
+  x,
+  y,
+  brandMarkDataUri,
+  compact = false,
+}: {
+  x: number
+  y: number
+  brandMarkDataUri: string
+  compact?: boolean
+}) {
   const iconSize = compact ? 44 : 52
   const wordmarkSize = compact ? 27 : 31
   const textX = x + iconSize + 18
@@ -768,7 +783,7 @@ function buildBrandLockup({ x, y, compact = false }: { x: number; y: number; com
         stroke="rgba(126,240,180,0.26)"
       />
       <image
-        href="${BRAND_MARK_MASK_DATA_URI}"
+        href="${brandMarkDataUri}"
         x="${x}"
         y="${y}"
         width="${iconSize}"
@@ -1090,7 +1105,7 @@ function buildOverlaySVG(model: PosterModel) {
 
     return svgShell(`
       ${scrim}
-      ${buildBrandLockup({ x: 80, y: contentTop, compact: true })}
+      ${buildBrandLockup({ x: 80, y: contentTop, brandMarkDataUri: model.brandMarkDataUri, compact: true })}
       ${buildVerificationBadge({ x: badgeX, y: contentTop, template: model.template, source: model.source })}
 
       <g filter="url(#textShadow)">
@@ -1143,7 +1158,7 @@ function buildOverlaySVG(model: PosterModel) {
 
     return svgShell(`
       ${scrim}
-      ${buildBrandLockup({ x: 80, y: contentTop, compact: true })}
+      ${buildBrandLockup({ x: 80, y: contentTop, brandMarkDataUri: model.brandMarkDataUri, compact: true })}
       ${buildVerificationBadge({ x: badgeX, y: contentTop, template: model.template, source: model.source })}
 
       <g filter="url(#textShadow)">
@@ -1187,7 +1202,7 @@ function buildOverlaySVG(model: PosterModel) {
 
   return svgShell(`
     ${scrim}
-    ${buildBrandLockup({ x: 80, y: contentTop, compact: true })}
+    ${buildBrandLockup({ x: 80, y: contentTop, brandMarkDataUri: model.brandMarkDataUri, compact: true })}
     ${buildVerificationBadge({ x: POSTER_WIDTH - 80 - 324, y: contentTop, template: model.template, source: model.source })}
 
     <g filter="url(#textShadow)">
@@ -1257,7 +1272,7 @@ function buildClassicSVG(model: PosterModel) {
 
     return svgShell(`
       ${buildClassicBackgroundArt(model)}
-      ${buildBrandLockup({ x: 84, y: 84 })}
+      ${buildBrandLockup({ x: 84, y: 84, brandMarkDataUri: model.brandMarkDataUri })}
       ${buildVerificationBadge({ x: 672, y: 90, template: model.template, source: model.source })}
 
       <g filter="url(#textShadow)">
@@ -1318,7 +1333,7 @@ function buildClassicSVG(model: PosterModel) {
 
   return svgShell(`
       ${buildClassicBackgroundArt(model)}
-      ${buildBrandLockup({ x: 84, y: 84 })}
+      ${buildBrandLockup({ x: 84, y: 84, brandMarkDataUri: model.brandMarkDataUri })}
     ${buildVerificationBadge({ x: 672, y: 90, template: model.template, source: model.source })}
 
     <g filter="url(#textShadow)">
@@ -1470,6 +1485,7 @@ export async function GET(request: NextRequest) {
     const demoAltitude = parseDemoAltitudeSearchParam(searchParams.get('altitude'))
     const demoVerified = parseBooleanSearchParam(searchParams.get('verified'), true)
     const demoSource = parseDemoSource(searchParams.get('source'), demoVerified)
+    const brandMarkDataUri = await loadBrandMarkMaskDataUri(request.nextUrl.origin)
     const svg = buildPosterSVG({
       template,
       mountainName: searchParams.get('mountainName') || '四姑娘山',
@@ -1482,6 +1498,7 @@ export async function GET(request: NextRequest) {
       renderMode,
       anchorPosition,
       previewBackground,
+      brandMarkDataUri,
       coverImageHref: null,
       quoteOverride: resolvePosterQuote(template, quoteIndex, quotePoolMode),
       isDemo: true,
@@ -1499,8 +1516,16 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    const workerSvgResponse = await createWorkerSvgResponse({
+      request,
+      svg,
+      headers: { 'Cache-Control': 'no-store' },
+    })
+    if (workerSvgResponse) return workerSvgResponse
+
     return renderPngResponse({
       svg,
+      origin: request.nextUrl.origin,
       cacheControl: 'no-store',
     })
   }
@@ -1632,6 +1657,7 @@ export async function GET(request: NextRequest) {
     ? await resolveCoverImageHref(getMountainPosterBackgroundImage(mountain ?? {}) ?? null, request.nextUrl.origin)
     : null
 
+  const brandMarkDataUri = await loadBrandMarkMaskDataUri(request.nextUrl.origin)
   const svg = buildPosterSVG({
     template,
     mountainName,
@@ -1644,6 +1670,7 @@ export async function GET(request: NextRequest) {
     renderMode,
     anchorPosition,
     previewBackground,
+    brandMarkDataUri,
     coverImageHref,
     metrics: {
       distanceKm: typeof distanceMeters === 'number' ? distanceMeters / 1000 : undefined,
@@ -1661,9 +1688,22 @@ export async function GET(request: NextRequest) {
     })
   }
 
+
+  const contentDisposition = `attachment; filename="peak-trekker-${toAsciiFilenameSegment(mountain?.name, 'activity')}-${renderMode}.png"`
+  const workerSvgResponse = await createWorkerSvgResponse({
+    request,
+    svg,
+    headers: {
+      'Cache-Control': 'public, max-age=86400',
+      'Content-Disposition': contentDisposition,
+    },
+  })
+  if (workerSvgResponse) return workerSvgResponse
+
   return renderPngResponse({
     svg,
+    origin: request.nextUrl.origin,
     cacheControl: 'public, max-age=86400',
-    contentDisposition: `attachment; filename="peak-trekker-${toAsciiFilenameSegment(mountain?.name, 'activity')}-${renderMode}.png"`,
+    contentDisposition,
   })
 }

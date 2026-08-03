@@ -1,4 +1,3 @@
-import sharp from 'sharp'
 import {
   adjudicateMimoTextPayload,
   MIMO_TEXT_FIELD_KEYS,
@@ -7,6 +6,7 @@ import {
   type MimoTextAdjudication,
   type MimoTextPayload,
 } from './mimo-v25-text-adjudicator.ts'
+import { readImageDimensions } from './image-dimensions.ts'
 import type { OcrResult, ParsedScreenshotFields } from './types.ts'
 
 const MIMO_MODEL = 'mimo-v2.5'
@@ -57,18 +57,6 @@ function requiredMimoApiKey() {
 
 function dataUriFromImage(imageBase64: string, mimeType: string) {
   return `data:${mimeType};base64,${imageBase64}`
-}
-
-async function imageDimensions(imageBase64: string) {
-  try {
-    const metadata = await sharp(Buffer.from(imageBase64, 'base64')).metadata()
-    return {
-      width: metadata.width ?? null,
-      height: metadata.height ?? null,
-    }
-  } catch {
-    return { width: null, height: null }
-  }
 }
 
 function promptForImage(width: number | null, height: number | null) {
@@ -268,7 +256,7 @@ export async function recognizeScreenshotWithMimoV25Text(
   const key = requiredMimoApiKey()
   const startedAt = Date.now()
   const deadline = startedAt + timeoutMs
-  const { width, height } = await imageDimensions(imageBase64)
+  const { width, height } = readImageDimensions(Buffer.from(imageBase64, 'base64'), mimeType)
   const dataUri = dataUriFromImage(imageBase64, mimeType)
   const { response, thinkingAccepted } = await primaryMimoRequest(dataUri, width, height, key, deadline)
   const text = messageText(response.body)

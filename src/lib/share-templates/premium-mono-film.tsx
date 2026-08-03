@@ -18,7 +18,7 @@ export function PremiumMonoFilmTemplate({ data, photoDataUrl, brandMarkSrc }: Sh
   return (
     <PosterShell background="#0a0c0e">
       <div style={{ display: 'flex', position: 'absolute', left: 0, top: 0, width: 1080, height: 900, overflow: 'hidden' }}>
-        <PhotoLayer photoDataUrl={photoDataUrl} width={1080} height={900} grayscale />
+        <PhotoLayer photoDataUrl={photoDataUrl} width={1080} height={900} />
         {!photoDataUrl ? <MonoFilmTopTexture /> : null}
         <div style={{ display: 'flex', position: 'absolute', left: 72, right: 72, top: 58, alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>PEAK TREKKER</span>

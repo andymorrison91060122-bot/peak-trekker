@@ -21,6 +21,10 @@ __pycache__/
 # next.js
 /.next/
 /out/
+/.open-next/
+/.wrangler/
+/.dev.vars*
+/output/cloudflare-migration/
 
 # production
 /build

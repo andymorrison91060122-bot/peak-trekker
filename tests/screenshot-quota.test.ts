@@ -7,10 +7,8 @@ import {
   SCREENSHOT_QUOTA_MONTHLY_FREE_LIMIT,
   SCREENSHOT_QUOTA_PAID_LIMIT,
 } from '../src/lib/screenshot/quota.ts'
-import { recognizeScreenshotWithFallback } from '../src/lib/screenshot/tencent-ocr-adapter.ts'
-import type { OcrResult, TencentOcrSource } from '../src/lib/screenshot/types.ts'
+import type { OcrResult } from '../src/lib/screenshot/types.ts'
 
-const emptyOcr: OcrResult = { textBlocks: [], rawText: '' }
 const filledOcr: OcrResult = {
   rawText: '路线距离\n5.9 km',
   textBlocks: [{ text: '路线距离', confidence: 99, x: 0, y: 0, width: 10, height: 10 }],
@@ -63,49 +61,6 @@ test('screenshot quota clamps exhausted usage to zero remaining', () => {
 
   assert.equal(quota.freeRemaining, 0)
   assert.equal(quota.remaining, 0)
-})
-
-test('Tencent OCR router returns basic when BasicOCR has text blocks', async () => {
-  const result = await recognizeScreenshotWithFallback('base64', async (_image, source) => {
-    assert.equal(source, 'basic')
-    return filledOcr
-  })
-
-  assert.equal(result.source, 'basic')
-  assert.equal(result.ocrResult, filledOcr)
-})
-
-test('Tencent OCR router falls back to accurate when BasicOCR returns no text', async () => {
-  const calls: TencentOcrSource[] = []
-  const result = await recognizeScreenshotWithFallback('base64', async (_image, source) => {
-    calls.push(source)
-    return source === 'basic' ? emptyOcr : filledOcr
-  })
-
-  assert.deepEqual(calls, ['basic', 'accurate'])
-  assert.equal(result.source, 'accurate')
-  assert.equal(result.fallbackReason, 'basic_empty_result')
-})
-
-test('Tencent OCR router falls back to accurate on transient BasicOCR errors', async () => {
-  const calls: TencentOcrSource[] = []
-  const result = await recognizeScreenshotWithFallback('base64', async (_image, source) => {
-    calls.push(source)
-    if (source === 'basic') throw new Error('Tencent basic OCR failed: rate limit exceeded')
-    return filledOcr
-  })
-
-  assert.deepEqual(calls, ['basic', 'accurate'])
-  assert.equal(result.source, 'accurate')
-})
-
-test('Tencent OCR router does not hide missing credential errors', async () => {
-  await assert.rejects(
-    () => recognizeScreenshotWithFallback('base64', async () => {
-      throw new Error('TENCENT_CLOUD_SECRET_ID is not configured')
-    }),
-    /not configured/
-  )
 })
 
 test('screenshot recognition reserves quota before OCR and refunds only provider failures', async () => {
@@ -401,4 +356,20 @@ test('screenshot quota migration defines request-bound reserve finalize and refu
   assert.match(migration, /CREATE OR REPLACE FUNCTION public\.reserve_screenshot_quota_attempt/)
   assert.match(migration, /CREATE OR REPLACE FUNCTION public\.complete_screenshot_quota_attempt/)
   assert.match(migration, /CREATE OR REPLACE FUNCTION public\.refund_screenshot_quota_attempt/)
+})
+
+test('quota RPC correction qualifies columns that collide with RETURNS TABLE variables', () => {
+  const migration = readFileSync(
+    'supabase/migrations/20260802171731_fix_screenshot_quota_column_ambiguity.sql',
+    'utf8',
+  )
+
+  assert.match(migration, /UPDATE public\.screenshot_quota AS q/)
+  assert.match(migration, /SET free_used = q\.free_used \+ 1/)
+  assert.match(migration, /SET paid_used = q\.paid_used \+ 1/)
+  assert.match(migration, /GREATEST\(q\.free_used - 1, 0\)/)
+  assert.match(migration, /GREATEST\(q\.paid_used - 1, 0\)/)
+  assert.match(migration, /FROM public\.screenshot_quota_attempts AS a/)
+  assert.match(migration, /WHERE a\.user_id = p_user_id\s+AND a\.request_id = p_request_id/)
+  assert.doesNotMatch(migration, /SET free_used = free_used|SET paid_used = paid_used/)
 })

@@ -21,7 +21,13 @@ test('client UI masks are derived from full masks while server rendering retains
   assert.doesNotMatch(brandAssets, /derived-mask-(?:mark|crest)-white\.png/)
   assert.match(brandMask, /BRAND_ASSETS\.mask\.crestUi384/)
   assert.match(brandMask, /BRAND_ASSETS\.mask\.markUi128/)
-  assert.match(serverAssets, /publicPngDataUri\('derived-mask-mark-white\.png'\)/)
+  assert.doesNotMatch(serverAssets, /readFileSync|node:fs|publicPngDataUri/)
+  assert.match(serverAssets, /import \{ getCloudflareContext \} from '@opennextjs\/cloudflare'/)
+  assert.match(serverAssets, /process\.env\.NEXT_PUBLIC_PEAK_TREKKER_RUNTIME === 'cloudflare'/)
+  assert.match(serverAssets, /await getCloudflareContext\(\{ async: true \}\)/)
+  assert.match(serverAssets, /env\.ASSETS\?\.fetch\(new Request\(assetUrl\)\)/)
+  assert.match(serverAssets, /fetch\(assetUrl, \{\s*cache: 'force-cache'\s*\}\)/)
+  assert.match(serverAssets, /data:image\/png;base64/)
 })
 
 test('limited product touchpoints use brand masks without replacing content mountain icons', () => {

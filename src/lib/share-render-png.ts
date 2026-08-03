@@ -1,21 +1,27 @@
-import satori from 'satori'
-import { readFile } from 'fs/promises'
-import { join } from 'path'
-import { Resvg, initWasm } from '@resvg/resvg-wasm'
 import type { ReactElement } from 'react'
-
-type SatoriOptions = Parameters<typeof satori>[1]
+import type { ShareSvgRenderInput, SvgPngRenderInput } from './share-render-runtime.ts'
 
 const DEFAULT_RENDER_WIDTH = 1080
 const DEFAULT_RENDER_HEIGHT = 1920
 
-let wasmReady = false
+export async function renderSvgPng(input: SvgPngRenderInput) {
+  return (await import('./share-render-png.node.ts')).renderSvgPngWithNode(input)
+}
 
-async function ensureResvgWasm() {
-  if (wasmReady) return
-  const wasm = await readFile(join(process.cwd(), 'node_modules/@resvg/resvg-wasm/index_bg.wasm'))
-  await initWasm(wasm)
-  wasmReady = true
+export async function renderShareSvg({
+  element,
+  fonts = [],
+  width = DEFAULT_RENDER_WIDTH,
+  height = DEFAULT_RENDER_HEIGHT,
+}: Omit<ShareSvgRenderInput, 'width' | 'height'> & {
+  width?: number
+  height?: number
+}) {
+  const input = { element, fonts, width, height }
+  if (process.env.NEXT_PUBLIC_PEAK_TREKKER_RUNTIME === 'cloudflare') {
+    return (await import('./share-render-svg.worker.ts')).renderShareSvgWithWorker(input)
+  }
+  return (await import('./share-render-svg.node.ts')).renderShareSvgWithNode(input)
 }
 
 export async function renderSharePng({
@@ -26,27 +32,11 @@ export async function renderSharePng({
   transparent = false,
 }: {
   element: ReactElement
-  fonts?: SatoriOptions['fonts']
+  fonts?: ShareSvgRenderInput['fonts']
   width?: number
   height?: number
   transparent?: boolean
 }) {
-  await ensureResvgWasm()
-
-  const svg = await satori(element, {
-    width,
-    height,
-    fonts,
-  })
-  const resvgOptions = transparent
-    ? { fitTo: { mode: 'original' as const } }
-    : {
-        fitTo: { mode: 'original' as const },
-        background: '#121416',
-      }
-  const png = new Resvg(svg, resvgOptions).render().asPng()
-  const pngCopy = new Uint8Array(png.byteLength)
-  pngCopy.set(png)
-
-  return pngCopy
+  const svg = await renderShareSvg({ element, fonts, width, height })
+  return renderSvgPng({ svg, transparent })
 }

@@ -19,6 +19,6 @@ export async function GET(request: NextRequest) {
       url.searchParams.set('previewBackground', 'scenic')
     }
   }
-  const fakeReq = new NextRequest(url.toString())
+  const fakeReq = new NextRequest(url.toString(), { headers: request.headers })
   return posterGET(fakeReq)
 }

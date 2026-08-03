@@ -42,7 +42,7 @@ async function getScreenshotUser(supabase: Awaited<ReturnType<typeof createSupab
   }
 }
 
-export function recognitionFailureResponse(error: unknown) {
+function recognitionFailureResponse(error: unknown) {
   const providerError = error instanceof ScreenshotRecognitionAttemptError
     ? error.providerError
     : error

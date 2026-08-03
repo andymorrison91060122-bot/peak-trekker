@@ -15,6 +15,7 @@ import type {
   UserBehaviorMetrics,
 } from './types'
 import { ANALYTICS_COHORT_OPTIONS, NEW_USER_THRESHOLD_DAYS } from './constants.ts'
+import { isSiteHostname } from '../site-url.ts'
 
 const DAY_MS = 86_400_000
 
@@ -672,7 +673,13 @@ function classifyReferrer(referrer: unknown) {
   const hostname = hostnameFromReferrer(value)
   const haystack = `${value} ${hostname}`
 
-  if (!value || hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('peak-trekker')) return '直接'
+  if (
+    !value
+    || hostname === 'localhost'
+    || hostname === '127.0.0.1'
+    || hostname.includes('peak-trekker')
+    || isSiteHostname(hostname)
+  ) return '直接'
   if (haystack.includes('servicewechat.com') || haystack.includes('pyq') || haystack.includes('moments')) return '朋友圈'
   if (haystack.includes('wx.qq.com') || haystack.includes('weixin') || haystack.includes('wechat')) return '微信'
   if (hostname.includes('baidu.com')) return '百度'

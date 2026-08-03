@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 import { getMountainDetailHeroImages } from '@/lib/mountain-media'
@@ -7,9 +8,61 @@ import { listProfileTrips } from '@/lib/profile-records-server'
 import { buildLicenseProgressSummary } from '@/lib/license-progress'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import { normalizeApprovedRouteGeometry } from '@/lib/mountain-route-geometry'
+import { SITE_ORIGIN } from '@/lib/site-url'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
 import type { Waypoint } from '@/lib/waypoints'
 import MountainDetailClient from './MountainDetailClient'
+
+type MountainMetadataRow = Pick<
+  Mountain,
+  'id' | 'name' | 'altitude' | 'province' | 'entity_type' | 'cover_image'
+>
+
+async function loadMountainMetadata(id: string): Promise<MountainMetadataRow | null> {
+  const supabase = await createSupabaseServerClient()
+  const { data } = await supabase
+    .from('mountains')
+    .select('id, name, altitude, province, entity_type, cover_image')
+    .eq('id', id)
+    .eq('is_readable', true)
+    .maybeSingle()
+
+  return data as MountainMetadataRow | null
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const mountain = await loadMountainMetadata(id)
+  if (!mountain) return { robots: { index: false, follow: false } }
+
+  const isRoute = mountain.entity_type === 'route_corridor'
+  const title = isRoute
+    ? `${mountain.name} - 徒步路线与轨迹参考`
+    : `${mountain.name} - 海拔、山峰资料与登山记录`
+  const location = mountain.province ? `${mountain.province}${mountain.name}` : mountain.name
+  const description = isRoute
+    ? `查看${location}的徒步路线与轨迹参考。路线信息仅供行程了解，不作为导航依据。`
+    : `查看${location}${typeof mountain.altitude === 'number' ? `（海拔${mountain.altitude}米）` : ''}的山峰资料与登山记录。`
+  const canonical = `${SITE_ORIGIN}/mountain/${mountain.id}`
+  const images = mountain.cover_image ? [mountain.cover_image] : undefined
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      url: canonical,
+      images,
+    },
+  }
+}
 
 function sortWaypointsByElevation(waypoints: Waypoint[]) {
   return [...waypoints].sort((a, b) => {

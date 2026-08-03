@@ -1,8 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import { RefreshIcon, WarnIcon } from '@/components/ui/Icons'
+import {
+  createOneShotClientErrorReporter,
+  reportClientErrorDiagnostic,
+} from '@/lib/client-error-diagnostic'
 
 export default function Error({
   error,
@@ -11,9 +15,16 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const [reporter] = useState(() => createOneShotClientErrorReporter(fetch))
+
   useEffect(() => {
     console.error(error)
-  }, [error])
+    reportClientErrorDiagnostic(reporter, error, {
+      getPathname: () => window.location.pathname,
+      getRuntime: () => process.env.NEXT_PUBLIC_PEAK_TREKKER_RUNTIME === 'cloudflare' ? 'cloudflare' : 'next',
+      createCorrelationId: () => crypto.randomUUID(),
+    })
+  }, [error, reporter])
 
   return (
     <main

@@ -416,7 +416,7 @@ test('request ids are bounded UUIDs before they can reach quota reservation', as
 })
 
 test('idempotency migration stores only bounded result data and scopes replay reads to auth.uid()', () => {
-  const migrationPath = 'supabase/migrations/20260803160000_screenshot_recognition_idempotency.sql'
+  const migrationPath = 'supabase/migrations/20260803150802_screenshot_recognition_idempotency.sql'
   assert.equal(existsSync(migrationPath), true)
   const migration = readFileSync(migrationPath, 'utf8')
 

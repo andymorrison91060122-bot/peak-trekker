@@ -17,7 +17,7 @@ export type ScreenshotQuotaProfile = {
 
 export type ReserveScreenshotQuotaResult =
   | { success: true; requestId: string; bucket: 'free' | 'paid'; quota: ScreenshotQuotaState }
-  | { success: false; requestId: string; reason: 'exhausted' | 'rpc_error'; quota: ScreenshotQuotaState; error?: string }
+  | { success: false; requestId: string; reason: 'exhausted' | 'existing' | 'rpc_error'; quota: ScreenshotQuotaState; error?: string }
 
 export type CompleteScreenshotQuotaAttemptResult =
   | { success: true; requestId: string; quota: ScreenshotQuotaState }
@@ -35,6 +35,20 @@ type ScreenshotQuotaRpcRow = {
   paid_used: number | null
   request_id?: string | null
 }
+
+type ScreenshotRecognitionReplayRpcRow = {
+  found: boolean | null
+  status: string | null
+  recognition_result: unknown
+}
+
+export type ScreenshotRecognitionReplay =
+  | { success: true; kind: 'missing' }
+  | { success: true; kind: 'pending' }
+  | { success: true; kind: 'completed'; recognition: unknown }
+  | { success: true; kind: 'result_unavailable' }
+  | { success: true; kind: 'refunded' }
+  | { success: false; reason: 'rpc_error'; error?: string }
 
 export function getScreenshotQuotaMonthKey(date = new Date()) {
   const year = date.getUTCFullYear()
@@ -156,7 +170,7 @@ export async function reserveScreenshotQuota(
     return {
       success: false,
       requestId,
-      reason: 'exhausted',
+      reason: result?.reason === 'existing' ? 'existing' : 'exhausted',
       quota: withQuotaUsage(quota, result?.free_used, result?.paid_used),
     }
   }
@@ -173,11 +187,13 @@ export async function completeScreenshotQuotaAttempt(
   supabase: SupabaseClient,
   userId: string,
   requestId: string,
-  quota: ScreenshotQuotaState
+  quota: ScreenshotQuotaState,
+  recognitionResult: unknown,
 ): Promise<CompleteScreenshotQuotaAttemptResult> {
   const { data, error } = await supabase.rpc('complete_screenshot_quota_attempt', {
     p_user_id: userId,
     p_request_id: requestId,
+    p_recognition_result: recognitionResult,
   })
 
   if (error) {
@@ -205,6 +221,29 @@ export async function completeScreenshotQuotaAttempt(
     requestId,
     quota: withQuotaUsage(quota, result.free_used, result.paid_used),
   }
+}
+
+export async function getScreenshotRecognitionReplay(
+  supabase: SupabaseClient,
+  requestId: string,
+): Promise<ScreenshotRecognitionReplay> {
+  const { data, error } = await supabase.rpc('get_screenshot_recognition_replay', {
+    p_request_id: requestId,
+  })
+
+  if (error) {
+    return { success: false, reason: 'rpc_error', error: error.message }
+  }
+
+  const result = Array.isArray(data) ? (data[0] as ScreenshotRecognitionReplayRpcRow | undefined) : data as ScreenshotRecognitionReplayRpcRow | null
+  if (!result?.found) return { success: true, kind: 'missing' }
+  if (result.status === 'reserved') return { success: true, kind: 'pending' }
+  if (result.status === 'refunded') return { success: true, kind: 'refunded' }
+  if (result.status === 'consumed' && result.recognition_result) {
+    return { success: true, kind: 'completed', recognition: result.recognition_result }
+  }
+
+  return { success: true, kind: 'result_unavailable' }
 }
 
 export async function refundScreenshotQuotaAttempt(

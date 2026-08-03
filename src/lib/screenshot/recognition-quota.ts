@@ -1,8 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   completeScreenshotQuotaAttempt,
+  getScreenshotRecognitionReplay,
   refundScreenshotQuotaAttempt,
   reserveScreenshotQuota,
+  type ScreenshotRecognitionReplay,
 } from './quota.ts'
 import { recognizeScreenshotText } from './recognition-service.ts'
 import type { ScreenshotQuotaState } from './types.ts'
@@ -10,6 +12,9 @@ import type { ScreenshotQuotaState } from './types.ts'
 type RecognitionResult = Awaited<ReturnType<typeof recognizeScreenshotText>>
 type ReserveResult = Awaited<ReturnType<typeof reserveScreenshotQuota>>
 type FinalizeResult = Awaited<ReturnType<typeof completeScreenshotQuotaAttempt>>
+
+const SCREENSHOT_RECOGNITION_REQUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+const SCREENSHOT_RECOGNITION_RESULT_MAX_BYTES = 65536
 
 function finalizeErrorMessage(error: unknown) {
   if (!(error instanceof Error)) return 'Screenshot quota finalization failed'
@@ -27,6 +32,96 @@ export class ScreenshotRecognitionAttemptError extends Error {
     this.providerError = providerError
     this.quotaRefunded = quotaRefunded
   }
+}
+
+export function isValidScreenshotRecognitionRequestId(value: unknown): value is string {
+  return typeof value === 'string'
+    && value.length === 36
+    && SCREENSHOT_RECOGNITION_REQUEST_ID_PATTERN.test(value)
+}
+
+type StoredRecognitionResult = {
+  ocrSource: RecognitionResult['source']
+  ocrResult: RecognitionResult['ocrResult']
+  parsedFields: RecognitionResult['parsedFields']
+  recognitionMeta?: RecognitionResult['engineMeta']
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isStoredOcrResult(value: unknown): value is RecognitionResult['ocrResult'] {
+  return isRecord(value)
+    && typeof value.rawText === 'string'
+    && Array.isArray(value.textBlocks)
+    && value.textBlocks.every((block) => isRecord(block)
+      && typeof block.text === 'string'
+      && typeof block.confidence === 'number'
+      && typeof block.x === 'number'
+      && typeof block.y === 'number'
+      && typeof block.width === 'number'
+      && typeof block.height === 'number')
+}
+
+function isStoredParsedFields(value: unknown): value is RecognitionResult['parsedFields'] {
+  return isRecord(value) && Object.values(value).every((field) => isRecord(field)
+    && typeof field.raw === 'string'
+    && (typeof field.value === 'string' || typeof field.value === 'number'))
+}
+
+function serializeRecognitionResult(recognition: RecognitionResult): StoredRecognitionResult {
+  const stored: StoredRecognitionResult = {
+    ocrSource: recognition.source,
+    ocrResult: recognition.ocrResult,
+    parsedFields: recognition.parsedFields,
+    ...(recognition.engineMeta ? { recognitionMeta: recognition.engineMeta } : {}),
+  }
+  const serialized = JSON.stringify(stored)
+  if (!serialized || new TextEncoder().encode(serialized).byteLength > SCREENSHOT_RECOGNITION_RESULT_MAX_BYTES) {
+    throw new Error('Screenshot recognition result exceeds the replay limit')
+  }
+  return JSON.parse(serialized) as StoredRecognitionResult
+}
+
+function parseStoredRecognitionResult(value: unknown): RecognitionResult | null {
+  if (!isRecord(value)
+    || value.ocrSource !== 'mimo_v25'
+    || !isStoredOcrResult(value.ocrResult)
+    || !isStoredParsedFields(value.parsedFields)
+    || (value.recognitionMeta !== undefined && !isRecord(value.recognitionMeta))) {
+    return null
+  }
+
+  const serialized = JSON.stringify(value)
+  if (!serialized || new TextEncoder().encode(serialized).byteLength > SCREENSHOT_RECOGNITION_RESULT_MAX_BYTES) {
+    return null
+  }
+
+  return {
+    source: 'mimo_v25',
+    ocrResult: value.ocrResult,
+    parsedFields: value.parsedFields,
+    ...(value.recognitionMeta ? { engineMeta: value.recognitionMeta as RecognitionResult['engineMeta'] } : {}),
+  }
+}
+
+type AttemptLookup = ScreenshotRecognitionReplay
+
+export function getScreenshotRecognitionRecoveryOutcome(replay: AttemptLookup):
+  | { kind: 'missing' }
+  | { kind: 'pending' }
+  | { kind: 'replayed'; recognition: RecognitionResult }
+  | { kind: 'refunded' }
+  | { kind: 'result_unavailable' }
+  | { kind: 'lookup_failed' } {
+  if (!replay.success) return { kind: 'lookup_failed' }
+  if (replay.kind === 'missing') return { kind: 'missing' }
+  if (replay.kind === 'pending') return { kind: 'pending' }
+  if (replay.kind === 'refunded') return { kind: 'refunded' }
+  if (replay.kind === 'result_unavailable') return { kind: 'result_unavailable' }
+  const recognition = parseStoredRecognitionResult(replay.recognition)
+  return recognition ? { kind: 'replayed', recognition } : { kind: 'result_unavailable' }
 }
 
 export async function recognizeWithReservedScreenshotQuota({
@@ -63,8 +158,10 @@ export async function recognizeWithReservedScreenshotQuota({
   if (!reserveResult.success) return { reserveResult }
 
   let recognition: RecognitionResult
+  let storedRecognition: StoredRecognitionResult
   try {
     recognition = await recognize(imageBase64, mimeType)
+    storedRecognition = serializeRecognitionResult(recognition)
   } catch (error) {
     try {
       const refundResult = await refund(adminClient, userId, requestId, reserveResult.quota)
@@ -86,7 +183,7 @@ export async function recognizeWithReservedScreenshotQuota({
     throw new ScreenshotRecognitionAttemptError(error, false)
   }
 
-  const finalizeResult = await finalize(adminClient, userId, requestId, reserveResult.quota).catch((error: unknown): FinalizeResult => (
+  const finalizeResult = await finalize(adminClient, userId, requestId, reserveResult.quota, storedRecognition).catch((error: unknown): FinalizeResult => (
     {
       success: false,
       requestId,
@@ -97,4 +194,71 @@ export async function recognizeWithReservedScreenshotQuota({
   ))
 
   return { reserveResult, recognition, finalizeResult }
+}
+
+export async function recognizeOrReplayScreenshotQuotaAttempt({
+  imageBase64,
+  mimeType,
+  userId,
+  quota,
+  requestId,
+  adminClient,
+  replayClient,
+  findAttempt = async (_userId, nextRequestId) => replayClient
+    ? getScreenshotRecognitionReplay(replayClient, nextRequestId)
+    : { success: true, kind: 'missing' },
+  recognize = recognizeScreenshotText,
+  reserve = reserveScreenshotQuota,
+  finalize = completeScreenshotQuotaAttempt,
+  refund = refundScreenshotQuotaAttempt,
+}: {
+  imageBase64: string
+  mimeType: string
+  userId: string
+  quota: ScreenshotQuotaState
+  requestId: string
+  adminClient: SupabaseClient
+  replayClient?: SupabaseClient
+  findAttempt?: (userId: string, requestId: string) => Promise<AttemptLookup>
+  recognize?: typeof recognizeScreenshotText
+  reserve?: typeof reserveScreenshotQuota
+  finalize?: typeof completeScreenshotQuotaAttempt
+  refund?: typeof refundScreenshotQuotaAttempt
+}): Promise<
+  | { kind: 'completed'; reserveResult: Extract<ReserveResult, { success: true }>; recognition: RecognitionResult; finalizeResult: FinalizeResult }
+  | { kind: 'replayed'; recognition: RecognitionResult }
+  | { kind: 'pending' | 'refunded' | 'result_unavailable' | 'lookup_failed' }
+  | { kind: 'reserve_failed'; reserveResult: Extract<ReserveResult, { success: false }> }
+> {
+  const existing = getScreenshotRecognitionRecoveryOutcome(await findAttempt(userId, requestId))
+  if (existing.kind !== 'missing') return existing
+
+  const result = await recognizeWithReservedScreenshotQuota({
+    imageBase64,
+    mimeType,
+    userId,
+    quota,
+    requestId,
+    adminClient,
+    recognize,
+    reserve,
+    finalize,
+    refund,
+  })
+
+  if (!('recognition' in result)) {
+    if (result.reserveResult.reason !== 'existing') {
+      return { kind: 'reserve_failed', reserveResult: result.reserveResult }
+    }
+
+    const duplicate = getScreenshotRecognitionRecoveryOutcome(await findAttempt(userId, requestId))
+    return duplicate.kind === 'missing' ? { kind: 'lookup_failed' } : duplicate
+  }
+
+  return {
+    kind: 'completed',
+    reserveResult: result.reserveResult,
+    recognition: result.recognition,
+    finalizeResult: result.finalizeResult,
+  }
 }

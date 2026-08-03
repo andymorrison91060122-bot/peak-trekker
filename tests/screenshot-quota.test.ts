@@ -211,6 +211,63 @@ test('screenshot recognition reserves quota before OCR and refunds only provider
   )
 })
 
+test('a MIMO timeout refunds the reserved quota exactly once without a second provider invocation', async () => {
+  const { ScreenshotRecognitionAttemptError, recognizeWithReservedScreenshotQuota } = await import('../src/lib/screenshot/recognition-quota.ts')
+  let providerCalls = 0
+  let refundCalls = 0
+  const timeoutBaseQuota = {
+    monthKey: '2026-08',
+    isFirstMonth: false,
+    subscriptionTier: 'free' as const,
+    freeLimit: 2,
+    freeUsed: 0,
+    paidLimit: 0,
+    paidUsed: 0,
+    freeRemaining: 2,
+    paidRemaining: 0,
+    remaining: 2,
+    totalLimit: 2,
+  }
+  const timeoutQuota = { ...timeoutBaseQuota, freeUsed: 1, freeRemaining: 1, remaining: 1 }
+
+  await assert.rejects(
+    () => recognizeWithReservedScreenshotQuota({
+      imageBase64: 'base64',
+      mimeType: 'image/png',
+      userId: 'user-id',
+      quota: timeoutBaseQuota,
+      requestId: 'timeout-request',
+      adminClient: {} as never,
+      reserve: async (_adminClient, _userId, nextQuota, requestId) => ({
+        success: true as const,
+        requestId,
+        bucket: 'free' as const,
+        quota: timeoutQuota,
+      }),
+      recognize: async () => {
+        providerCalls += 1
+        throw new Error('MIMO request timed out after 45000ms')
+      },
+      finalize: async () => {
+        throw new Error('finalize must not run after a provider timeout')
+      },
+      refund: async (_adminClient, _userId, requestId) => {
+        refundCalls += 1
+        return {
+          success: true as const,
+          requestId,
+          reason: null,
+          quota: timeoutBaseQuota,
+        }
+      },
+    }),
+    (error: unknown) => error instanceof ScreenshotRecognitionAttemptError && error.quotaRefunded,
+  )
+
+  assert.equal(providerCalls, 1)
+  assert.equal(refundCalls, 1)
+})
+
 test('successful OCR survives a quota finalize failure without a second recognition', async () => {
   const { recognizeWithReservedScreenshotQuota } = await import('../src/lib/screenshot/recognition-quota.ts')
   const quota = {

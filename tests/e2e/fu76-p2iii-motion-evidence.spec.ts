@@ -86,13 +86,11 @@ const pageConfigs: Record<PageKey, {
   archive: {
     path: '/archive',
     visibility: {
-      header: '[data-archive-motion="header"]',
       identity: '[data-archive-motion="identity"]',
       filters: '[data-archive-motion="filters"]',
       firstCard: '[data-archive-trip-card]',
     },
     motionTargets: {
-      header: '[data-archive-motion="header"]',
       identity: '[data-archive-motion="identity"]',
       filters: '[data-archive-motion="filters"]',
       firstCard: '[data-archive-trip-card]',

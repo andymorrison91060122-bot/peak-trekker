@@ -3799,23 +3799,6 @@ body:has(.archive-reinvention) {
   background: var(--color-surface);
 }
 
-.archive-heading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0 var(--space-4);
-}
-
-.archive-heading h1 {
-  margin: 0;
-  color: var(--color-on-surface);
-  font-size: var(--font-label-m-size);
-  line-height: var(--font-label-m-line);
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
 .archive-hero {
   padding: var(--space-3) var(--space-4) var(--space-4);
 }

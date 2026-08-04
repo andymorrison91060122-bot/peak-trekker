@@ -80,8 +80,8 @@ test('archive is a tier-1 tab page without page-level back chrome', () => {
   assert.doesNotMatch(archiveClient, /ariaLabel="返回"/)
   assert.doesNotMatch(archiveClient, /function handleBack\(\)/)
   assert.doesNotMatch(archiveClient, /router\.replace\('\/explore'\)/)
-  assert.match(archiveClient, /function ArchiveContentHeading\(\)/)
-  assert.match(archiveClient, /data-archive-motion="header"/)
+  assert.doesNotMatch(archiveClient, /function ArchiveContentHeading\(\)/)
+  assert.doesNotMatch(archiveClient, /data-archive-motion="header"/)
 })
 
 test('community delete replaces deleted detail with activity result', () => {

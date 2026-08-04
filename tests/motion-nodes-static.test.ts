@@ -652,13 +652,14 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
   })
 
   test('Phase 2-III archive/profile/faq/activity schedule labels and motion markers match the approved 4-page scope', () => {
-    assert.match(archiveClient, /data-archive-motion="header"/)
+    assert.doesNotMatch(archiveClient, /function ArchiveContentHeading\(\)/)
+    assert.doesNotMatch(archiveClient, /data-archive-motion="header"/)
     assert.match(archiveClient, /data-archive-motion="identity"/)
     assert.match(archiveClient, /data-archive-stat-value=\{kind\}/)
     assert.match(archiveClient, /data-archive-motion="filters"/)
     assert.match(archiveClient, /data-archive-trip-card=\{trip\.id\}/)
     assert.match(archiveClient, /data-archive-motion="year-divider"[\s\S]*data-archive-motion-mode="fade"/)
-    assert.match(archiveClient, /const schedule = \{[\s\S]*header: 0,[\s\S]*identity: 0\.06,[\s\S]*filters: 0\.28,[\s\S]*timeline: 0\.34,[\s\S]*trips: 0\.38/)
+    assert.match(archiveClient, /const schedule = \{ identity: 0, filters: 0\.22, timeline: 0\.28, trips: 0\.32, footer: 0\.62 \} as const/)
     assert.match(archiveClient, /stagger: \{ each: 0\.03, from: 'start' \}/)
 
     assert.match(profileClient, /data-profile-motion="identity" data-profile-motion-mode="fade"/)
@@ -698,8 +699,6 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.doesNotMatch(archiveClient, /ariaLabel="更多"/)
     assert.doesNotMatch(archiveClient, /function ArchiveHeader/)
     assert.doesNotMatch(archiveClient, /ariaLabel="返回"/)
-    assert.match(archiveClient, /function ArchiveContentHeading\(\)[\s\S]*data-archive-motion="header"[\s\S]*山行档案/)
-
     assert.match(archiveClient, /className="archive-filter-tab pt-pressable"/)
     assert.match(componentsCss, /\.archive-filter-tab:active/)
     assert.match(componentsCss, /\.archive-filter-tab\[data-pt-press-active='true'\]/)
@@ -950,7 +949,8 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     )?.[1] ?? ''
 
     assert.match(emptyMotionBranch, /if \(isTrueEmpty\) \{/)
-    assert.match(emptyMotionBranch, /const emptyMotionTargets = \[header, identity, emptyState, \.\.\.emptyActions, emptyCopy, footer\]\.filter/)
+    assert.doesNotMatch(emptyMotionBranch, /const header = motionMap\.get\('header'\)/)
+    assert.match(emptyMotionBranch, /const emptyMotionTargets = \[identity, emptyState, \.\.\.emptyActions, emptyCopy, footer\]\.filter/)
     assert.match(emptyMotionBranch, /gsap\.set\(emptyMotionTargets, \{ autoAlpha: 0 \}\)/)
     assert.match(emptyMotionBranch, /gsap\.set\(emptyMotionTargets, \{ autoAlpha: 0 \}\)\s*root\.removeAttribute\('data-archive-empty-motion-pending'\)/)
     assert.match(emptyMotionBranch, /rebuildArchiveScrollMotionRef\.current = \(\) => \{\}/)
@@ -959,6 +959,11 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(emptyMotionBranch, /gsap\.timeline\(\{[\s\S]*onComplete: terminalizeArchiveMotion,[\s\S]*onInterrupt: terminalizeArchiveMotion/)
     assert.match(emptyMotionBranch, /fromTo\(emptyState, \{ autoAlpha: 0, y: 16, scale: 0\.96 \}, \{[\s\S]*ease: 'back\.out\(1\.3\)'/)
     assert.match(emptyMotionBranch, /fromTo\(emptyActions, \{ autoAlpha: 0, y: 8 \}, \{[\s\S]*stagger: \{ each: 0\.035, from: 'start' \}/)
+    assert.match(emptyMotionBranch, /fromTo\(identity,[\s\S]*\}, 0\)/)
+    assert.match(emptyMotionBranch, /fromTo\(emptyState,[\s\S]*\}, 0\.06\)/)
+    assert.match(emptyMotionBranch, /fromTo\(emptyActions,[\s\S]*\}, 0\.2\)/)
+    assert.match(emptyMotionBranch, /fromTo\(emptyCopy,[\s\S]*\}, 0\.3\)/)
+    assert.match(emptyMotionBranch, /fromTo\(footer,[\s\S]*\}, 0\.38\)/)
     assert.match(emptyMotionBranch, /return \(\) => \{ emptyTimeline\.kill\(\); terminalizeArchiveMotion\(\) \}/)
     assert.doesNotMatch(emptyMotionBranch, /syncTimelineGeometry|ScrollTrigger/)
     assert.match(archiveClient, /data-archive-empty-motion-pending=\{hasTrips \? undefined : ''\}/)

@@ -215,7 +215,7 @@ function LoginPageContent() {
           fontSize: 9, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono',
           lineHeight: 2,
         }}>
-          <div>▲ 已收录 20 座国内山峰</div>
+          <div>▲ 已收录 300+ 座国内山峰</div>
           <div>⛺ 记录你的真实攀登经验</div>
         </div>
       </div>

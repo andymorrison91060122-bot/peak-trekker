@@ -77,6 +77,12 @@ test('register and onboarding demilitarized copy is present without province-ran
   assert.doesNotMatch(onboardingModal, /Blank License Issued|Identity Anchor|战区归属|当前任务|哪片土地而战/)
 })
 
+test('auth inventory copy uses the approved conservative count on login only', () => {
+  assert.match(loginPage, /▲ 已收录 300\+ 座国内山峰/)
+  assert.doesNotMatch(loginPage, /▲ 已收录 20 座国内山峰/)
+  assert.doesNotMatch(registerPage, /已收录 \d+\+? 座国内山峰/)
+})
+
 test('user-visible raw errors are normalized at presentation sinks', () => {
   assert.match(loginPage, /normalizeLoginError/)
   assert.match(loginPage, /console\.warn\('\[auth-login\] login failed'/)

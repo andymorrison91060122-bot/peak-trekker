@@ -652,6 +652,8 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
   })
 
   test('Phase 2-III archive/profile/faq/activity schedule labels and motion markers match the approved 4-page scope', () => {
+    const archiveSchedule = archiveClient.match(/const schedule = \{([\s\S]*?)\} as const/)?.[1] ?? ''
+
     assert.doesNotMatch(archiveClient, /function ArchiveContentHeading\(\)/)
     assert.doesNotMatch(archiveClient, /data-archive-motion="header"/)
     assert.match(archiveClient, /data-archive-motion="identity"/)
@@ -659,7 +661,12 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(archiveClient, /data-archive-motion="filters"/)
     assert.match(archiveClient, /data-archive-trip-card=\{trip\.id\}/)
     assert.match(archiveClient, /data-archive-motion="year-divider"[\s\S]*data-archive-motion-mode="fade"/)
-    assert.match(archiveClient, /const schedule = \{ identity: 0, filters: 0\.22, timeline: 0\.28, trips: 0\.32, footer: 0\.62 \} as const/)
+    assert.match(archiveSchedule, /identity:\s*0(?:,|\s)/)
+    assert.match(archiveSchedule, /filters:\s*0\.22(?:,|\s)/)
+    assert.match(archiveSchedule, /timeline:\s*0\.28(?:,|\s)/)
+    assert.match(archiveSchedule, /trips:\s*0\.32(?:,|\s)/)
+    assert.match(archiveSchedule, /footer:\s*0\.62(?:,|\s)/)
+    assert.match(archiveClient, /addShell\('identity', 'identity', schedule\.identity, 14, 0\.98\)/)
     assert.match(archiveClient, /stagger: \{ each: 0\.03, from: 'start' \}/)
 
     assert.match(profileClient, /data-profile-motion="identity" data-profile-motion-mode="fade"/)
@@ -947,6 +954,9 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     const emptyMotionBranch = archiveClient.match(
       /const isTrueEmpty = Boolean\(motionMap\.get\('empty-state'\)\)([\s\S]*?)\n\s*const baseDuration/,
     )?.[1] ?? ''
+    const emptyTweenSequence = emptyMotionBranch.match(
+      /const emptyTimeline = gsap\.timeline\(\{[\s\S]*?\n\s*\}\)([\s\S]*?)\n\s*return \(\) =>/,
+    )?.[1] ?? ''
 
     assert.match(emptyMotionBranch, /if \(isTrueEmpty\) \{/)
     assert.doesNotMatch(emptyMotionBranch, /const header = motionMap\.get\('header'\)/)
@@ -959,7 +969,7 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(emptyMotionBranch, /gsap\.timeline\(\{[\s\S]*onComplete: terminalizeArchiveMotion,[\s\S]*onInterrupt: terminalizeArchiveMotion/)
     assert.match(emptyMotionBranch, /fromTo\(emptyState, \{ autoAlpha: 0, y: 16, scale: 0\.96 \}, \{[\s\S]*ease: 'back\.out\(1\.3\)'/)
     assert.match(emptyMotionBranch, /fromTo\(emptyActions, \{ autoAlpha: 0, y: 8 \}, \{[\s\S]*stagger: \{ each: 0\.035, from: 'start' \}/)
-    assert.match(emptyMotionBranch, /fromTo\(identity,[\s\S]*\}, 0\)/)
+    assert.match(emptyTweenSequence, /^\s*if \(identity\) \{\s*emptyTimeline\.fromTo\(identity, \{ autoAlpha: 0 \}, \{ autoAlpha: 1, duration: emptyBaseDuration, ease: 'power3\.out' \}, 0\)\s*\}/)
     assert.match(emptyMotionBranch, /fromTo\(emptyState,[\s\S]*\}, 0\.06\)/)
     assert.match(emptyMotionBranch, /fromTo\(emptyActions,[\s\S]*\}, 0\.2\)/)
     assert.match(emptyMotionBranch, /fromTo\(emptyCopy,[\s\S]*\}, 0\.3\)/)

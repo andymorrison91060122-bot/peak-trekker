@@ -76,12 +76,17 @@ test('trek completion uses local loop-pop guard neutralization only after comple
 })
 
 test('archive is a tier-1 tab page without page-level back chrome', () => {
+  const semanticPageHeadings = archiveClient.match(/<h1 className="sr-only">山行档案<\/h1>/g) ?? []
+
   assert.doesNotMatch(archiveClient, /function ArchiveHeader/)
   assert.doesNotMatch(archiveClient, /ariaLabel="返回"/)
   assert.doesNotMatch(archiveClient, /function handleBack\(\)/)
   assert.doesNotMatch(archiveClient, /router\.replace\('\/explore'\)/)
   assert.doesNotMatch(archiveClient, /function ArchiveContentHeading\(\)/)
   assert.doesNotMatch(archiveClient, /data-archive-motion="header"/)
+  assert.equal(semanticPageHeadings.length, 1)
+  assert.match(archiveClient, /data-archive-motion-root[\s\S]{0,260}<h1 className="sr-only">山行档案<\/h1>/)
+  assert.doesNotMatch(archiveClient, /<h1[^>]*data-archive-motion/)
 })
 
 test('community delete replaces deleted detail with activity result', () => {

@@ -1340,6 +1340,7 @@ export default function ArchiveClient({
       className="archive-reinvention"
       style={{ '--archive-app-header-height': `${APP_HEADER_HEIGHT_PX}px` } as CSSProperties}
     >
+      <h1 className="sr-only">山行档案</h1>
       {hasTrips ? null : (
         <style>{`
           @media (prefers-reduced-motion: no-preference) {

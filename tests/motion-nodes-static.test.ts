@@ -11,6 +11,78 @@ function readOptionalSource(path: string) {
   return existsSync(url) ? readFileSync(url, 'utf8') : ''
 }
 
+function findMatchingDelimiter(source: string, openIndex: number, open: string, close: string) {
+  assert.equal(source[openIndex], open, `expected ${open} at index ${openIndex}`)
+  let depth = 0
+
+  for (let index = openIndex; index < source.length; index += 1) {
+    const char = source[index]
+    if (char === open) depth += 1
+    else if (char === close && --depth === 0) return index
+  }
+  assert.fail(`expected matching ${close} for index ${openIndex}`)
+}
+
+function splitTopLevelArguments(source: string) {
+  const parts: string[] = []
+  let start = 0
+  let depth = 0
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index]
+    if ('({['.includes(char)) depth += 1
+    else if (')}]'.includes(char)) depth -= 1
+    else if (char === ',' && depth === 0) {
+      parts.push(source.slice(start, index).trim())
+      start = index + 1
+    }
+  }
+
+  const finalPart = source.slice(start).trim()
+  if (finalPart) parts.push(finalPart)
+  return parts
+}
+
+function extractNumericObject(source: string, declaration: string) {
+  const declarationIndex = source.indexOf(declaration)
+  assert.notEqual(declarationIndex, -1, `${declaration} should exist`)
+  const openIndex = source.indexOf('{', declarationIndex + declaration.length)
+  assert.notEqual(openIndex, -1, `${declaration} should have an object body`)
+  const closeIndex = findMatchingDelimiter(source, openIndex, '{', '}')
+  const body = source.slice(openIndex + 1, closeIndex)
+  const values: Record<string, number> = {}
+
+  for (const entry of splitTopLevelArguments(body)) {
+    const match = entry.match(/^([A-Za-z_$][\w$]*)\s*:\s*(-?(?:\d+(?:\.\d+)?|\.\d+))$/)
+    assert.ok(match, `expected numeric key:value schedule entry, received ${entry}`)
+    const [, key, rawValue] = match
+    assert.equal(Object.hasOwn(values, key), false, `duplicate schedule key ${key}`)
+    values[key] = Number(rawValue)
+  }
+
+  return values
+}
+
+function extractTimelineFromToCalls(source: string, timelineName: string) {
+  const marker = `${timelineName}.fromTo`
+  const calls: Array<{ target: string; position: number }> = []
+  let cursor = 0
+
+  while (true) {
+    const markerIndex = source.indexOf(marker, cursor)
+    if (markerIndex === -1) return calls
+    const openIndex = source.indexOf('(', markerIndex + marker.length)
+    assert.notEqual(openIndex, -1, `${marker} should have arguments`)
+    const closeIndex = findMatchingDelimiter(source, openIndex, '(', ')')
+    const args = splitTopLevelArguments(source.slice(openIndex + 1, closeIndex))
+    assert.ok(args.length >= 3, `${marker} should include target, vars, and position`)
+    const position = Number(args.at(-1))
+    assert.equal(Number.isFinite(position), true, `${marker} should end with a numeric position`)
+    calls.push({ target: args[0], position })
+    cursor = closeIndex + 1
+  }
+}
+
 function assertRouteTemplate({
   source,
   routeGroup,
@@ -652,7 +724,7 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
   })
 
   test('Phase 2-III archive/profile/faq/activity schedule labels and motion markers match the approved 4-page scope', () => {
-    const archiveSchedule = archiveClient.match(/const schedule = \{([\s\S]*?)\} as const/)?.[1] ?? ''
+    const archiveSchedule = extractNumericObject(archiveClient, 'const schedule =')
 
     assert.doesNotMatch(archiveClient, /function ArchiveContentHeading\(\)/)
     assert.doesNotMatch(archiveClient, /data-archive-motion="header"/)
@@ -661,11 +733,15 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(archiveClient, /data-archive-motion="filters"/)
     assert.match(archiveClient, /data-archive-trip-card=\{trip\.id\}/)
     assert.match(archiveClient, /data-archive-motion="year-divider"[\s\S]*data-archive-motion-mode="fade"/)
-    assert.match(archiveSchedule, /identity:\s*0(?:,|\s)/)
-    assert.match(archiveSchedule, /filters:\s*0\.22(?:,|\s)/)
-    assert.match(archiveSchedule, /timeline:\s*0\.28(?:,|\s)/)
-    assert.match(archiveSchedule, /trips:\s*0\.32(?:,|\s)/)
-    assert.match(archiveSchedule, /footer:\s*0\.62(?:,|\s)/)
+    assert.deepEqual(archiveSchedule, {
+      identity: 0,
+      filters: 0.22,
+      timeline: 0.28,
+      trips: 0.32,
+      footer: 0.62,
+    })
+    assert.equal(Object.hasOwn(archiveSchedule, 'header'), false)
+    assert.doesNotMatch(archiveClient, /addShell\(\s*'header'\s*,/)
     assert.match(archiveClient, /addShell\('identity', 'identity', schedule\.identity, 14, 0\.98\)/)
     assert.match(archiveClient, /stagger: \{ each: 0\.03, from: 'start' \}/)
 
@@ -954,9 +1030,7 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     const emptyMotionBranch = archiveClient.match(
       /const isTrueEmpty = Boolean\(motionMap\.get\('empty-state'\)\)([\s\S]*?)\n\s*const baseDuration/,
     )?.[1] ?? ''
-    const emptyTweenSequence = emptyMotionBranch.match(
-      /const emptyTimeline = gsap\.timeline\(\{[\s\S]*?\n\s*\}\)([\s\S]*?)\n\s*return \(\) =>/,
-    )?.[1] ?? ''
+    const emptyTweens = extractTimelineFromToCalls(emptyMotionBranch, 'emptyTimeline')
 
     assert.match(emptyMotionBranch, /if \(isTrueEmpty\) \{/)
     assert.doesNotMatch(emptyMotionBranch, /const header = motionMap\.get\('header'\)/)
@@ -967,13 +1041,14 @@ describe('FU-76 motion nodes Phase 2-I import and screenshot ceremonies', () => 
     assert.match(emptyMotionBranch, /Math\.min\(parseMotionTokenSeconds\(root, '--motion-base', 240\), 0\.2\)/)
     assert.match(emptyMotionBranch, /Math\.min\(parseMotionTokenSeconds\(root, '--motion-enter', 320\), 0\.24\)/)
     assert.match(emptyMotionBranch, /gsap\.timeline\(\{[\s\S]*onComplete: terminalizeArchiveMotion,[\s\S]*onInterrupt: terminalizeArchiveMotion/)
-    assert.match(emptyMotionBranch, /fromTo\(emptyState, \{ autoAlpha: 0, y: 16, scale: 0\.96 \}, \{[\s\S]*ease: 'back\.out\(1\.3\)'/)
-    assert.match(emptyMotionBranch, /fromTo\(emptyActions, \{ autoAlpha: 0, y: 8 \}, \{[\s\S]*stagger: \{ each: 0\.035, from: 'start' \}/)
-    assert.match(emptyTweenSequence, /^\s*if \(identity\) \{\s*emptyTimeline\.fromTo\(identity, \{ autoAlpha: 0 \}, \{ autoAlpha: 1, duration: emptyBaseDuration, ease: 'power3\.out' \}, 0\)\s*\}/)
-    assert.match(emptyMotionBranch, /fromTo\(emptyState,[\s\S]*\}, 0\.06\)/)
-    assert.match(emptyMotionBranch, /fromTo\(emptyActions,[\s\S]*\}, 0\.2\)/)
-    assert.match(emptyMotionBranch, /fromTo\(emptyCopy,[\s\S]*\}, 0\.3\)/)
-    assert.match(emptyMotionBranch, /fromTo\(footer,[\s\S]*\}, 0\.38\)/)
+    assert.deepEqual(emptyTweens, [
+      { target: 'identity', position: 0 },
+      { target: 'emptyState', position: 0.06 },
+      { target: 'emptyActions', position: 0.2 },
+      { target: 'emptyCopy', position: 0.3 },
+      { target: 'footer', position: 0.38 },
+    ])
+    assert.equal(emptyTweens.some(({ target }) => target === 'header'), false)
     assert.match(emptyMotionBranch, /return \(\) => \{ emptyTimeline\.kill\(\); terminalizeArchiveMotion\(\) \}/)
     assert.doesNotMatch(emptyMotionBranch, /syncTimelineGeometry|ScrollTrigger/)
     assert.match(archiveClient, /data-archive-empty-motion-pending=\{hasTrips \? undefined : ''\}/)

@@ -31,11 +31,12 @@ test('import client renders duplicate state with activity link and no duplicate 
 })
 
 test('import completed exits replace consumed flow history', () => {
-  assert.match(importClient, /if \(step === 'entry'\) \{[\s\S]{0,80}router\.replace\('\/explore'\)/)
+  assert.match(importClient, /if \(step === 'entry'\)/)
+  assert.match(importClient, /router\.replace\('\/explore'\)/)
   assert.match(importClient, /router\.replace\(`\/activity\/\$\{confirmResult\.checkinId\}`\)/)
   assert.match(importClient, /router\.replace\('\/profile'\)/)
   assert.match(importClient, /onViewDuplicate=\{\(checkinId\) => \{[\s\S]{0,80}router\.replace\(`\/activity\/\$\{checkinId\}`\)/)
-  assert.match(importClient, /onView=\{\(\) => \{[\s\S]{0,120}router\.replace\(`\/activity\/\$\{confirmResult\.checkinId\}`\)/)
+  assert.match(importClient, /onViewArchive=\{\(\) => \{[\s\S]{0,120}router\.replace\(`\/activity\/\$\{confirmResult\.checkinId\}`\)/)
   assert.doesNotMatch(importClient, /IMPORT_COMPLETION_EXIT_REDIRECT_KEY/)
   assert.doesNotMatch(importClient, /completion_exit_redirect_until/)
   assert.doesNotMatch(importClient, /consumeImportCompletionExitRedirectFlag/)

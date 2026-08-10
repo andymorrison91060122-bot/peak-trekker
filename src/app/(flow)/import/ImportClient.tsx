@@ -1,7 +1,7 @@
 'use client'
 
 import type { CSSProperties, ChangeEvent, DragEvent, FocusEvent, PointerEvent, ReactNode } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
@@ -12,12 +12,14 @@ import {
 } from '@/lib/import/mountain-distance-check'
 import type { ImportedTrackData, MountainMatch } from '@/lib/import/types'
 import type { MountainRequestInput } from '@/lib/mountain-requests'
+import ArchiveCreationSuccess from '@/components/activity/ArchiveCreationSuccess'
 import Card from '@/components/ui/Card'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import Spinner from '@/components/ui/Spinner'
 import { useHelpSheet } from '@/components/help/useHelpSheet'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import { buildImprintSourceUrl, buildShareUrlForCheckin } from '@/lib/share-template-intent'
+import { buildShareTrackPreview } from '@/lib/share-track-preview'
 import type { ShareRenderTemplate } from '@/lib/share-templates/types'
 import {
   ArchiveIcon,
@@ -377,13 +379,6 @@ function toSelectableMountain(match: MountainMatch): SelectableMountain {
   }
 }
 
-function formatActivityDate(isoString?: string) {
-  if (!isoString) return '日期待补充'
-  const date = new Date(isoString)
-  if (Number.isNaN(date.getTime())) return '日期待补充'
-  return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`
-}
-
 function buildLoginHref() {
   return `/auth/login?from=${encodeURIComponent('/import')}`
 }
@@ -521,15 +516,6 @@ function ChevronIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
       <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function EyeIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-      <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" stroke="currentColor" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   )
 }
@@ -3201,249 +3187,6 @@ function ConfirmingScreen() {
   )
 }
 
-function MiniResult({ label, value, motionKind }: { label: string; value: string; motionKind: string }) {
-  return (
-    <div data-import-success-metric={motionKind}>
-      <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 10, lineHeight: 'var(--font-label-s-line)' }}>{label}</div>
-      <div style={{ marginTop: 2, color: 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontSize: 13, lineHeight: 'var(--font-label-m-line)', fontWeight: 700 }}>
-        {value}
-      </div>
-    </div>
-  )
-}
-
-function NextAction({
-  icon,
-  label,
-  sub,
-  primary = false,
-  onClick,
-}: {
-  icon: ReactNode
-  label: string
-  sub: string
-  primary?: boolean
-  onClick: () => void
-}) {
-  const content = (
-    <>
-      <div
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 10,
-          background: primary
-            ? 'color-mix(in srgb, var(--color-primary) 14%, transparent)'
-            : 'color-mix(in srgb, var(--color-on-surface) 4%, transparent)',
-          border: primary
-            ? '1px solid color-mix(in srgb, var(--color-primary) 28%, transparent)'
-            : '1px solid var(--color-outline)',
-          color: primary ? 'var(--color-success)' : 'var(--color-on-surface)',
-          display: 'grid',
-          placeItems: 'center',
-        }}
-      >
-        {icon}
-      </div>
-      <div style={{ marginTop: 10, color: 'var(--color-on-surface)', fontSize: 'var(--font-label-m-size)', lineHeight: 'var(--font-label-m-line)', fontWeight: 700 }}>
-        {label}
-      </div>
-      <div style={{ marginTop: 3, color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>
-        {sub}
-      </div>
-    </>
-  )
-  const baseStyle: CSSProperties = {
-        textAlign: 'left',
-        padding: 14,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        background: primary
-          ? 'color-mix(in srgb, var(--color-primary) 8%, transparent)'
-          : 'var(--color-surface-variant)',
-        border: primary
-          ? '1px solid color-mix(in srgb, var(--color-primary) 28%, transparent)'
-          : '1px solid var(--color-outline)',
-        borderRadius: 14,
-        color: 'inherit',
-        minWidth: 0,
-        opacity: 1,
-  }
-
-  return (
-    <button
-      type="button"
-      data-import-success-next={primary ? 'primary' : 'secondary'}
-      className={primary ? 'pt-pressable-hero' : 'pt-pressable-card'}
-      onClick={onClick}
-      onPointerDown={markPressFallback}
-      onPointerUp={clearPressFallback}
-      onPointerCancel={clearPressFallback}
-      onPointerLeave={clearPressFallback}
-      onBlur={clearPressFallback}
-      style={baseStyle}
-    >
-      {content}
-    </button>
-  )
-}
-
-function ImportSuccess({
-  result,
-  confirmResult,
-  mountainName,
-  onShare,
-  onView,
-}: {
-  result: ImportedTrackData | null
-  confirmResult: ConfirmResult | null
-  mountainName: string | null
-  onShare: () => void
-  onView: () => void
-}) {
-  const displayMountainName = mountainName ?? result?.suggestedMountain?.name ?? '未关联山峰'
-  const dateLabel = formatActivityDate(result?.startTime)
-
-  return (
-    <div
-      data-import-step="success"
-      data-import-success-root="true"
-      style={{
-        minHeight: '100dvh',
-        maxWidth: 'var(--page-max-width)',
-        margin: '0 auto',
-        position: 'relative',
-        background: 'var(--color-surface)',
-        overflowX: 'hidden',
-        padding: 'var(--space-10) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom))',
-      }}
-    >
-      <div style={{ textAlign: 'center', paddingInline: 'var(--space-2)' }}>
-        <div
-          data-import-success-badge="true"
-          style={{
-            position: 'relative',
-            width: 64,
-            height: 64,
-            borderRadius: 'var(--radius-pill)',
-            background: 'color-mix(in srgb, var(--color-primary) 12%, transparent)',
-            border: '1px solid color-mix(in srgb, var(--color-primary) 32%, transparent)',
-            color: 'var(--color-success)',
-            display: 'grid',
-            placeItems: 'center',
-            margin: '0 auto',
-          }}
-        >
-          <span
-            data-import-success-badge-halo="true"
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              inset: -10,
-              borderRadius: 'var(--radius-pill)',
-              background: 'radial-gradient(circle, color-mix(in srgb, var(--color-primary) 34%, transparent), transparent 68%)',
-              opacity: 0,
-              pointerEvents: 'none',
-            }}
-          />
-          <CheckIcon size={30} />
-        </div>
-        <div
-          data-import-success-copy="title"
-          style={{
-            marginTop: 18,
-            color: 'var(--color-on-surface)',
-            fontSize: 'var(--font-headline-m-size)',
-            lineHeight: 'var(--font-headline-m-line)',
-            fontWeight: 700,
-          }}
-        >
-          已带回档案
-        </div>
-        <div
-          data-import-success-copy="subtitle"
-          style={{
-            marginTop: 'var(--space-2)',
-            color: 'var(--color-on-surface-variant)',
-            fontSize: 'var(--font-label-m-size)',
-            lineHeight: 1.65,
-          }}
-        >
-          {displayMountainName} · {dateLabel}
-          <br />
-          这次山行已成为你档案里的一条记录
-        </div>
-      </div>
-
-      <div
-        data-import-success-card="true"
-        style={{
-          position: 'relative',
-          marginTop: 'var(--space-6)',
-          background: 'var(--color-surface-variant)',
-          border: '1px solid var(--color-outline)',
-          borderRadius: 14,
-          padding: 14,
-          overflow: 'hidden',
-        }}
-      >
-        <span
-          data-import-success-card-rim="true"
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: 'inherit',
-            border: '1px solid color-mix(in srgb, var(--color-primary) 42%, transparent)',
-            boxShadow: '0 0 40px color-mix(in srgb, var(--color-primary) 30%, transparent), inset 0 0 26px color-mix(in srgb, var(--color-primary) 18%, transparent)',
-            opacity: 0,
-            pointerEvents: 'none',
-          }}
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--space-3)' }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ color: 'var(--color-on-surface)', fontSize: 'var(--font-body-m-size)', lineHeight: 'var(--font-body-m-line)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {displayMountainName}
-            </div>
-            <div style={{ marginTop: 3, color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>
-              {confirmResult?.checkinId ? `活动 ${confirmResult.checkinId.slice(0, 8)}` : '活动已生成'}
-            </div>
-          </div>
-          <div
-            data-import-success-count="altitude"
-            data-val={typeof result?.maxElevation === 'number' && Number.isFinite(result.maxElevation) ? Math.round(result.maxElevation) : ''}
-            style={{ color: 'var(--color-success)', fontFamily: 'var(--font-mono)', fontSize: 18, lineHeight: 'var(--font-title-l-line)', fontWeight: 700, whiteSpace: 'nowrap' }}
-          >
-            {formatElevationCompact(result?.maxElevation)}
-          </div>
-        </div>
-        <div
-          style={{
-            marginTop: 'var(--space-3)',
-            paddingTop: 'var(--space-3)',
-            borderTop: '1px solid var(--color-outline)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 'var(--space-2)',
-          }}
-        >
-          <MiniResult motionKind="distance" label="距离" value={formatDistance(result?.distanceMeters)} />
-          <MiniResult motionKind="duration" label="时长" value={formatDuration(result?.durationSeconds)} />
-          <MiniResult motionKind="gain" label="爬升" value={formatElevation(result?.elevationGainMeters)} />
-        </div>
-      </div>
-
-      <div data-import-success-next-label="true" style={{ marginTop: 'var(--space-5)', color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-        接下来
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 'var(--space-2)' }}>
-        <NextAction primary icon={<ShareIcon size={16} />} label="生成分享" sub="海拔卡 / 朋友圈" onClick={onShare} />
-        <NextAction icon={<EyeIcon size={16} />} label="查看活动" sub="进入完整记录" onClick={onView} />
-      </div>
-    </div>
-  )
-}
-
 export default function ImportClient({
   initialTemplate = null,
   returnToImprint = false,
@@ -3477,6 +3220,10 @@ export default function ImportClient({
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null)
   const [confirmError, setConfirmError] = useState<string | null>(null)
   const [confirmAuthRequired, setConfirmAuthRequired] = useState(false)
+  const importTrackPreview = useMemo(
+    () => buildShareTrackPreview(parseResult?.trackPoints ?? []),
+    [parseResult?.trackPoints]
+  )
 
   useGSAP((_context, contextSafe) => {
     const root = motionScopeRef.current
@@ -3503,7 +3250,7 @@ export default function ImportClient({
 	    const clearImportMotion = () => {
 	      importMotionTimelineRef.current?.kill()
 	      importMotionTimelineRef.current = null
-	      const motionTargets = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-entry-motion], [data-import-l3-item], .pt-import-l3-cta, [data-import-preview-glow], [data-import-success-badge], [data-import-success-badge-halo], [data-import-success-copy], [data-import-success-card], [data-import-success-card-rim], [data-import-success-count], [data-import-success-metric], [data-import-success-next-label], [data-import-success-next]'))
+	      const motionTargets = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-entry-motion], [data-import-l3-item], .pt-import-l3-cta, [data-import-preview-glow]'))
 	      if (motionTargets.length > 0) {
 	        gsap.set(motionTargets, {
 	          clearProps: 'willChange,transform,opacity,visibility',
@@ -3517,29 +3264,6 @@ export default function ImportClient({
       if (previewTargets.length > 0) gsap.set(previewTargets, { autoAlpha: 1, y: 0, scale: 1, clearProps: 'willChange' })
       const glow = root.querySelector('[data-import-preview-glow]')
       if (glow) gsap.set(glow, { autoAlpha: 0, clearProps: 'willChange' })
-    }
-
-    const setImportSuccessTerminal = () => {
-      const badge = root.querySelector<HTMLElement>('[data-import-success-badge]')
-      const halo = root.querySelector<HTMLElement>('[data-import-success-badge-halo]')
-      const copy = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-success-copy]'))
-      const card = root.querySelector<HTMLElement>('[data-import-success-card]')
-      const rim = root.querySelector<HTMLElement>('[data-import-success-card-rim]')
-      const metrics = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-success-metric]'))
-      const next = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-success-next-label], [data-import-success-next]'))
-      const altitude = root.querySelector<HTMLElement>('[data-import-success-count="altitude"]')
-      if (altitude) altitude.textContent = formatElevationCompact(parseResult?.maxElevation)
-      const successTargets = [badge, halo, card, rim, ...copy, ...metrics, ...next].filter(Boolean)
-      if (successTargets.length > 0) {
-        gsap.set(successTargets, {
-          autoAlpha: 1,
-          y: 0,
-          scale: 1,
-          clearProps: 'willChange',
-        })
-      }
-      if (halo) gsap.set(halo, { autoAlpha: 0.55 })
-      if (rim) gsap.set(rim, { autoAlpha: 0.55 })
     }
 
     const makeContextSafe = contextSafe ?? ((callback: () => void) => callback)
@@ -3661,98 +3385,6 @@ export default function ImportClient({
             importMotionTimelineRef.current = timeline
             return () => clearImportMotion()
           }
-
-          if (step === 'success') {
-            if (reduceMotion) {
-              setImportSuccessTerminal()
-              return () => clearImportMotion()
-            }
-            const ceremonyMax = parseMotionTokenSeconds(root, '--motion-ceremony-max', 1200)
-            const badge = root.querySelector<HTMLElement>('[data-import-success-badge]')
-            const halo = root.querySelector<HTMLElement>('[data-import-success-badge-halo]')
-            const copy = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-success-copy]'))
-            const card = root.querySelector<HTMLElement>('[data-import-success-card]')
-            const rim = root.querySelector<HTMLElement>('[data-import-success-card-rim]')
-            const altitude = root.querySelector<HTMLElement>('[data-import-success-count="altitude"]')
-            const metrics = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-success-metric]'))
-            const next = gsap.utils.toArray<HTMLElement>(root.querySelectorAll('[data-import-success-next-label], [data-import-success-next]'))
-            const terminalAltitude = formatElevationCompact(parseResult?.maxElevation)
-            const targetAltitude = typeof parseResult?.maxElevation === 'number' && Number.isFinite(parseResult.maxElevation)
-              ? Math.round(parseResult.maxElevation)
-              : null
-            gsap.set([badge, halo, card, rim, altitude, ...copy, ...metrics, ...next].filter(Boolean), { willChange: 'transform, opacity' })
-            if (badge) gsap.set(badge, { autoAlpha: 0, scale: 0.6 })
-            if (halo) gsap.set(halo, { autoAlpha: 0, scale: 0.9 })
-            if (copy.length > 0) gsap.set(copy, { autoAlpha: 0, y: 12 })
-            if (card) gsap.set(card, { autoAlpha: 0, y: 16, scale: 0.985 })
-            if (rim) gsap.set(rim, { autoAlpha: 0 })
-            if (metrics.length > 0) gsap.set(metrics, { autoAlpha: 0, y: 10 })
-            if (next.length > 0) gsap.set(next, { autoAlpha: 0, y: 10 })
-            if (altitude && targetAltitude !== null) altitude.textContent = formatElevationCompact(0)
-            const countState = { value: 0 }
-            const timeline = gsap.timeline({
-              defaults: { ease: 'power3.out' },
-              onComplete: () => {
-                if (altitude) altitude.textContent = terminalAltitude
-                gsap.set([badge, halo, card, rim, altitude, ...copy, ...metrics, ...next].filter(Boolean), { clearProps: 'willChange' })
-              },
-            })
-            timeline.addLabel('symbol', 0)
-            if (badge) {
-              timeline
-                .to(badge, { autoAlpha: 1, scale: 1.04, duration: Math.min(0.34, ceremonyMax * 0.28), ease: 'back.out(1.35)' }, 'symbol')
-                .to(badge, { scale: 1, duration: 0.18, ease: 'power3.out' }, 'symbol+=0.32')
-            }
-            if (halo) {
-              timeline
-                .to(halo, { autoAlpha: 0.9, scale: 1.08, duration: 0.22 }, 'symbol+=0.04')
-                .to(halo, { autoAlpha: 0.55, scale: 1, duration: 0.28 }, 'symbol+=0.28')
-            }
-            timeline.addLabel('copy', 'symbol+=0.16')
-            if (copy.length > 0) {
-              timeline.to(copy, { autoAlpha: 1, y: 0, duration: 0.32, stagger: 0.055 }, 'copy')
-            }
-            timeline.addLabel('card', 'copy+=0.18')
-            if (card) {
-              timeline.to(card, { autoAlpha: 1, y: 0, scale: 1, duration: 0.34 }, 'card')
-            }
-            if (rim) {
-              timeline
-                .to(rim, { autoAlpha: 0.82, duration: 0.22 }, 'card+=0.06')
-                .to(rim, { autoAlpha: 0.55, duration: 0.28 }, 'card+=0.28')
-            }
-            timeline.addLabel('altitude', 'card+=0.18')
-            if (altitude && targetAltitude !== null) {
-              timeline.to(countState, {
-                value: targetAltitude,
-                duration: 0.42,
-                ease: 'power2.out',
-                onUpdate: () => {
-                  altitude.textContent = formatElevationCompact(countState.value)
-                },
-                onComplete: () => {
-                  altitude.textContent = terminalAltitude
-                },
-              }, 'altitude')
-            }
-            timeline.addLabel('metrics', 'altitude+=0.18')
-            if (metrics.length > 0) {
-              timeline.to(metrics, { autoAlpha: 1, y: 0, duration: 0.28, stagger: 0.06 }, 'metrics')
-            }
-            timeline.addLabel('next', 'metrics+=0.22')
-            if (next.length > 0) {
-              timeline.to(next, { autoAlpha: 1, y: 0, duration: 0.28, stagger: 0.055 }, 'next')
-            }
-            const primaryNext = root.querySelector<HTMLElement>('[data-import-success-next="primary"]')
-            if (primaryNext) {
-              timeline
-                .to(primaryNext, { scale: 1.025, duration: 0.16, ease: 'power2.out' }, 'next+=0.24')
-                .to(primaryNext, { scale: 1, duration: 0.18, ease: 'power3.out' }, 'next+=0.4')
-            }
-            importMotionTimelineRef.current = timeline
-            return () => clearImportMotion()
-          }
-
           return () => clearImportMotion()
         },
         root,
@@ -4254,29 +3886,35 @@ export default function ImportClient({
 
     if (step === 'success') {
       return (
-        <ImportSuccess
-          result={parseResult}
-          confirmResult={confirmResult}
-          mountainName={selectedMountainName}
-          onShare={() => {
-            const shareUrl = buildShareUrlForCheckin({
-              checkinId: confirmResult?.checkinId,
-              template: initialTemplate,
-            })
-            if (!shareUrl) {
-              showToast({ key: 'action_blocked', message: '活动还没有生成，暂时无法进入分享。' })
-              return
-            }
-            router.replace(shareUrl)
-          }}
-          onView={() => {
-            if (confirmResult?.checkinId) {
-              router.replace(`/activity/${confirmResult.checkinId}`)
-              return
-            }
-            router.replace('/profile')
-          }}
-        />
+        <div data-import-step="success">
+          <ArchiveCreationSuccess
+            title={selectedMountainName ?? parseResult?.suggestedMountain?.name ?? '未关联山峰'}
+            values={[
+              formatDistance(parseResult?.distanceMeters),
+              formatDuration(parseResult?.durationSeconds),
+              formatElevation(parseResult?.elevationGainMeters),
+            ] as const}
+            trackPreview={importTrackPreview}
+            onShare={() => {
+              const shareUrl = buildShareUrlForCheckin({
+                checkinId: confirmResult?.checkinId,
+                template: initialTemplate,
+              })
+              if (!shareUrl) {
+                showToast({ key: 'action_blocked', message: '活动还没有生成，暂时无法进入分享。' })
+                return
+              }
+              router.replace(shareUrl)
+            }}
+            onViewArchive={() => {
+              if (confirmResult?.checkinId) {
+                router.replace(`/activity/${confirmResult.checkinId}`)
+                return
+              }
+              router.replace('/profile')
+            }}
+          />
+        </div>
       )
     }
 

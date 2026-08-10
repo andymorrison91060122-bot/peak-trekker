@@ -11,7 +11,7 @@ import type { OcrResult, ParsedScreenshotFields } from './types.ts'
 
 const MIMO_MODEL = 'mimo-v2.5'
 const OPENAI_COMPATIBLE_ENDPOINT = 'https://api.xiaomimimo.com/v1/chat/completions'
-export const MIMO_TEXT_TIMEOUT_MS = 45_000
+export const MIMO_TEXT_TIMEOUT_MS = 90_000
 const MIMO_REPAIR_MIN_REMAINING_MS = 4_000
 
 export type MimoTextUsage = {

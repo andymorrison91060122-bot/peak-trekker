@@ -2,10 +2,10 @@ import { randomUUID } from 'node:crypto'
 import { NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase-admin'
 import {
-  completeScreenshotQuotaAttempt,
+  completeScreenshotRecognitionAttempt,
   getScreenshotQuotaState,
   getScreenshotRecognitionReplay,
-  reserveScreenshotQuota,
+  reserveScreenshotRecognitionLease,
 } from '@/lib/screenshot/quota'
 import {
   ScreenshotRecognitionAttemptError,
@@ -28,7 +28,7 @@ import { resolveScreenshotAuthState } from '@/lib/screenshot/recognize-auth-erro
 import { createSupabaseServerClient } from '@/lib/supabase-server'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 120
 
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
 const SUPPORTED_SCREENSHOT_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
@@ -143,10 +143,12 @@ function recognitionSuccessResponse(
     parsedFields: unknown
     engineMeta?: unknown
   },
-  quota?: Awaited<ReturnType<typeof getScreenshotQuotaState>>
+  quota: Awaited<ReturnType<typeof getScreenshotQuotaState>> | undefined,
+  requestId: string,
 ) {
   return NextResponse.json({
     ok: true,
+    requestId,
     ocrResult: recognition.ocrResult,
     parsedFields: recognition.parsedFields,
     ocrSource: recognition.source,
@@ -182,7 +184,7 @@ export async function GET(request: Request) {
     const recovery = getScreenshotRecognitionRecoveryOutcome(
       await getScreenshotRecognitionReplay(supabase, requestId),
     )
-    if (recovery.kind === 'replayed') return recognitionSuccessResponse(recovery.recognition)
+    if (recovery.kind === 'replayed') return recognitionSuccessResponse(recovery.recognition, undefined, requestId)
     if (recovery.kind === 'pending') return pendingRecognitionResponse()
     if (recovery.kind === 'refunded') return refundedRecognitionResponse()
     if (recovery.kind === 'lookup_failed') {
@@ -243,20 +245,21 @@ export async function POST(request: Request) {
       adminClient: createSupabaseAdminClient(),
       replayClient: supabase,
       findAttempt: async (_userId, nextRequestId) => getScreenshotRecognitionReplay(supabase, nextRequestId),
-      reserve: (...args) => timing.measureReserve(() => reserveScreenshotQuota(...args)),
+      reserve: (...args) => timing.measureReserve(() => reserveScreenshotRecognitionLease(...args)),
       recognize: (...args) => timing.measureProvider(() => recognizeScreenshotText(...args)),
-      finalize: (...args) => timing.measureFinalize(() => completeScreenshotQuotaAttempt(...args)),
+      finalize: (...args) => timing.measureFinalize(() => completeScreenshotRecognitionAttempt(...args)),
     })
 
     if (result.kind === 'replayed') {
       logRecognitionCheckpoint(timing, 'completed', true)
-      return recognitionSuccessResponse(result.recognition, quota)
+      return recognitionSuccessResponse(result.recognition, quota, requestId)
     }
 
     if (result.kind === 'pending') {
       logRecognitionCheckpoint(timing, 'pending', true)
       return pendingRecognitionResponse()
     }
+
     if (result.kind === 'result_unavailable') {
       logRecognitionCheckpoint(timing, 'result_unavailable', true)
       return unavailableRecognitionResultResponse()
@@ -304,7 +307,7 @@ export async function POST(request: Request) {
       finalizeResult.success ? 'completed' : 'completed_finalize_pending',
       false,
     )
-    return recognitionSuccessResponse(recognition, finalizeResult.success ? finalizeResult.quota : reserveResult.quota)
+    return recognitionSuccessResponse(recognition, finalizeResult.success ? finalizeResult.quota : reserveResult.quota, requestId)
   } catch (error) {
     logRecognitionCheckpoint(
       timing,

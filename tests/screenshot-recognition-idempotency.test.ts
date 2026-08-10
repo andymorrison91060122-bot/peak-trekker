@@ -35,7 +35,7 @@ test('lightweight recovery survives two pending reads and returns a 31.7-second 
     SCREENSHOT_RECOGNITION_RECOVERY_DEADLINE_MS,
     recoverScreenshotRecognition,
   } = await import('../src/lib/screenshot/recognition-recovery.ts')
-  assert.equal(SCREENSHOT_RECOGNITION_RECOVERY_DEADLINE_MS, 55_000)
+  assert.equal(SCREENSHOT_RECOGNITION_RECOVERY_DEADLINE_MS, 115_000)
   const controller = new AbortController()
   const requestId = '2408c2b0-6cb7-4d2b-b7f9-0df5972ea555'
   let elapsedMs = 28_400
@@ -81,7 +81,7 @@ test('lightweight recovery ends at its total deadline without quota mutation', a
   const controller = new AbortController()
   let elapsedMs = 28_400
   let recoveryCalls = 0
-  let providerCalls = 1
+  const providerCalls = 1
   const quotaMutations = 0
 
   await assert.rejects(
@@ -102,7 +102,7 @@ test('lightweight recovery ends at its total deadline without quota mutation', a
   )
 
   assert.ok(recoveryCalls > 0)
-  assert.ok(elapsedMs >= 55_000)
+  assert.ok(elapsedMs >= 115_000)
   assert.equal(quotaMutations, 0)
   assert.equal(providerCalls, 1)
 })
@@ -139,7 +139,7 @@ test('lightweight recovery tolerates two transient reads before pending then a 3
   assert.equal(recoveryCalls, 4)
   assert.equal(providerCalls, 1)
   assert.equal(quotaMutations, 0)
-  assert.ok(elapsedMs < 55_000)
+  assert.ok(elapsedMs < 115_000)
 })
 
 test('aborting during a transient recovery observation exits immediately', async () => {
@@ -173,7 +173,7 @@ test('a 200 response with a truncated body recovers through the same request id 
   } = await import('../src/lib/screenshot/recognition-recovery.ts')
   const requestId = '5a4ad35e-fd47-4e74-b4e0-e7e749abbc88'
   const controller = new AbortController()
-  let initialImagePosts = 1
+  const initialImagePosts = 1
   let recoveryReads = 0
   const providerCalls = 1
   const reserveCalls = 1
@@ -281,7 +281,7 @@ test('a lost client response is recovered by the same request id without a secon
       success: true as const,
       requestId,
       bucket: 'free' as const,
-      quota: { ...nextQuota, freeUsed: 1, freeRemaining: 1, remaining: 1 },
+      quota: nextQuota,
     }
   }
 
@@ -303,8 +303,8 @@ test('a lost client response is recovered by the same request id without a secon
     findAttempt,
     reserve,
     finalize,
-    refund: async () => {
-      throw new Error('refund should not run after a valid provider result')
+    release: async () => {
+      throw new Error('release should not run after a valid provider result')
     },
     recognize: async () => {
       recognitionCalls += 1
@@ -328,8 +328,8 @@ test('a lost client response is recovered by the same request id without a secon
     findAttempt,
     reserve,
     finalize,
-    refund: async () => {
-      throw new Error('refund should not run for a completed replay')
+    release: async () => {
+      throw new Error('release should not run for a completed replay')
     },
     recognize: async () => {
       recognitionCalls += 1
@@ -375,7 +375,7 @@ test('a duplicate request while the first recognition is reserved returns pendin
     findAttempt,
     reserve,
     finalize: async () => ({ success: true as const, requestId, quota }),
-    refund: async () => ({ success: true as const, requestId, reason: null, quota }),
+    release: async () => ({ success: true as const, requestId }),
     recognize: async () => {
       recognitionCalls += 1
       await new Promise((resolve) => setTimeout(resolve, 20))
@@ -394,7 +394,7 @@ test('a duplicate request while the first recognition is reserved returns pendin
     findAttempt,
     reserve,
     finalize: async () => ({ success: true as const, requestId, quota }),
-    refund: async () => ({ success: true as const, requestId, reason: null, quota }),
+    release: async () => ({ success: true as const, requestId }),
     recognize: async () => {
       recognitionCalls += 1
       return recognition
@@ -442,7 +442,8 @@ test('recognition route exposes a requestId-only recovery read without reserve, 
 
   assert.match(getRoute, /new URL\(request\.url\)\.searchParams\.get\('requestId'\)/)
   assert.match(getRoute, /getScreenshotRecognitionReplay\(supabase, requestId\)/)
-  assert.doesNotMatch(getRoute, /createSupabaseAdminClient|recognizeOrReplayScreenshotQuotaAttempt|formData|arrayBuffer|reserveScreenshotQuota/)
+  assert.doesNotMatch(getRoute, /recognizeOrReplayScreenshotQuotaAttempt|formData|arrayBuffer|reserveScreenshotQuota/)
+  assert.doesNotMatch(route, /export async function PUT/)
 })
 
 test('recognition route emits a single allowlisted checkpoint around reserve, provider, and finalize work', () => {

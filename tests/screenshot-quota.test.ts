@@ -63,7 +63,7 @@ test('screenshot quota clamps exhausted usage to zero remaining', () => {
   assert.equal(quota.remaining, 0)
 })
 
-test('screenshot recognition reserves quota before OCR and refunds only provider failures', async () => {
+test('screenshot recognition reserves qualification before OCR and releases only provider failures', async () => {
   const {
     ScreenshotRecognitionAttemptError,
     recognizeWithReservedScreenshotQuota,
@@ -104,7 +104,7 @@ test('screenshot recognition reserves quota before OCR and refunds only provider
         success: true,
         bucket: 'free',
         requestId,
-        quota: { ...quota, freeUsed: 1, freeRemaining: 1, remaining: 1 },
+        quota,
       }
     },
     finalize: async (_adminClient, _userId, requestId, nextQuota) => {
@@ -115,13 +115,11 @@ test('screenshot recognition reserves quota before OCR and refunds only provider
         quota: nextQuota,
       }
     },
-    refund: async () => {
-      calls.push('refund')
+    release: async () => {
+      calls.push('release')
       return {
         success: true,
-        reason: 'already_refunded',
         requestId: 'request-1',
-        quota,
       }
     },
   })
@@ -149,7 +147,7 @@ test('screenshot recognition reserves quota before OCR and refunds only provider
           success: true,
           bucket: 'free',
           requestId,
-          quota: { ...quota, freeUsed: 1, freeRemaining: 1, remaining: 1 },
+          quota,
         }
       },
       finalize: async () => {
@@ -160,19 +158,17 @@ test('screenshot recognition reserves quota before OCR and refunds only provider
           quota,
         }
       },
-      refund: async (_adminClient, _userId, requestId) => {
-        calls.push(`refund:${requestId}`)
+      release: async (_adminClient, _userId, requestId) => {
+        calls.push(`release:${requestId}`)
         return {
           success: true,
           requestId,
-          reason: null,
-          quota,
         }
       },
     }),
     /fetch failed/,
   )
-  assert.deepEqual(calls, ['reserve:request-2', 'recognize', 'refund:request-2'])
+  assert.deepEqual(calls, ['reserve:request-2', 'recognize', 'release:request-2'])
 
   await assert.rejects(
     () => recognizeWithReservedScreenshotQuota({
@@ -189,17 +185,16 @@ test('screenshot recognition reserves quota before OCR and refunds only provider
         success: true,
         bucket: 'free',
         requestId,
-        quota: { ...quota, freeUsed: 1, freeRemaining: 1, remaining: 1 },
+        quota,
       }),
       finalize: async () => {
         throw new Error('finalize should not run for provider failure')
       },
-      refund: async (_adminClient, _userId, requestId, nextQuota) => ({
+      release: async (_adminClient, _userId, requestId) => ({
         success: false,
         requestId,
         reason: 'rpc_error',
         error: 'temporary database failure',
-        quota: nextQuota,
       }),
     }),
     (error: unknown) => {
@@ -211,10 +206,10 @@ test('screenshot recognition reserves quota before OCR and refunds only provider
   )
 })
 
-test('a MIMO timeout refunds the reserved quota exactly once without a second provider invocation', async () => {
+test('a MIMO timeout releases the reserved recognition attempt exactly once without a second provider invocation', async () => {
   const { ScreenshotRecognitionAttemptError, recognizeWithReservedScreenshotQuota } = await import('../src/lib/screenshot/recognition-quota.ts')
   let providerCalls = 0
-  let refundCalls = 0
+  let releaseCalls = 0
   const timeoutBaseQuota = {
     monthKey: '2026-08',
     isFirstMonth: false,
@@ -228,7 +223,6 @@ test('a MIMO timeout refunds the reserved quota exactly once without a second pr
     remaining: 2,
     totalLimit: 2,
   }
-  const timeoutQuota = { ...timeoutBaseQuota, freeUsed: 1, freeRemaining: 1, remaining: 1 }
 
   await assert.rejects(
     () => recognizeWithReservedScreenshotQuota({
@@ -242,22 +236,20 @@ test('a MIMO timeout refunds the reserved quota exactly once without a second pr
         success: true as const,
         requestId,
         bucket: 'free' as const,
-        quota: timeoutQuota,
+        quota: timeoutBaseQuota,
       }),
       recognize: async () => {
         providerCalls += 1
-        throw new Error('MIMO request timed out after 45000ms')
+        throw new Error('MIMO request timed out after 90000ms')
       },
       finalize: async () => {
         throw new Error('finalize must not run after a provider timeout')
       },
-      refund: async (_adminClient, _userId, requestId) => {
-        refundCalls += 1
+      release: async (_adminClient, _userId, requestId) => {
+        releaseCalls += 1
         return {
           success: true as const,
           requestId,
-          reason: null,
-          quota: timeoutBaseQuota,
         }
       },
     }),
@@ -265,7 +257,7 @@ test('a MIMO timeout refunds the reserved quota exactly once without a second pr
   )
 
   assert.equal(providerCalls, 1)
-  assert.equal(refundCalls, 1)
+  assert.equal(releaseCalls, 1)
 })
 
 test('successful OCR survives a quota finalize failure without a second recognition', async () => {
@@ -304,7 +296,7 @@ test('successful OCR survives a quota finalize failure without a second recognit
       success: true,
       bucket: 'free',
       requestId,
-      quota: { ...quota, freeUsed: 1, freeRemaining: 1, remaining: 1 },
+      quota,
     }),
     finalize: async (_adminClient, _userId, requestId, nextQuota) => ({
       success: false,
@@ -313,8 +305,8 @@ test('successful OCR survives a quota finalize failure without a second recognit
       error: 'temporary database failure',
       quota: nextQuota,
     }),
-    refund: async () => {
-      throw new Error('refund should not run after valid OCR')
+    release: async () => {
+      throw new Error('release should not run after valid OCR')
     },
   })
 
@@ -322,7 +314,7 @@ test('successful OCR survives a quota finalize failure without a second recognit
   assert.equal(result.reserveResult.success, true)
   assert.deepEqual(result.recognition.parsedFields, { distance: 5.9 })
   assert.equal(result.finalizeResult.success, false)
-  assert.equal(result.reserveResult.quota.remaining, 1)
+  assert.equal(result.reserveResult.quota.remaining, 2)
 })
 
 test('successful OCR survives a thrown quota finalize error without refunding or retrying', async () => {
@@ -341,7 +333,7 @@ test('successful OCR survives a thrown quota finalize error without refunding or
     totalLimit: 2,
   } as const
   let recognitionCalls = 0
-  let refundCalls = 0
+  let releaseCalls = 0
 
   const result = await recognizeWithReservedScreenshotQuota({
     imageBase64: 'base64',
@@ -362,24 +354,22 @@ test('successful OCR survives a thrown quota finalize error without refunding or
       success: true,
       bucket: 'free',
       requestId,
-      quota: { ...quota, freeUsed: 1, freeRemaining: 1, remaining: 1 },
+      quota,
     }),
     finalize: async () => {
       throw new TypeError('fetch failed during finalize')
     },
-    refund: async (_adminClient, _userId, requestId, nextQuota) => {
-      refundCalls += 1
+    release: async (_adminClient, _userId, requestId) => {
+      releaseCalls += 1
       return {
         success: true,
         requestId,
-        reason: null,
-        quota: nextQuota,
       }
     },
   })
 
   assert.equal(recognitionCalls, 1)
-  assert.equal(refundCalls, 0)
+  assert.equal(releaseCalls, 0)
   assert.equal(result.reserveResult.success, true)
   assert.deepEqual(result.recognition.parsedFields, { distance: 5.9 })
   assert.deepEqual(result.finalizeResult, {

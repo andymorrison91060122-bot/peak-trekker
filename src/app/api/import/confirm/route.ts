@@ -7,9 +7,11 @@ import { measureScreenshotRouteShape, validateScreenshotRouteShape } from '@/lib
 import { computeTrackContentHash } from '@/lib/import/track-hash'
 import { buildComputedTrackStats, findHighestTrackPoint } from '@/lib/import/track-stats'
 import type { ImportedTrackData, TrackPoint } from '@/lib/import/types'
+import { createSupabaseAdminClient } from '@/lib/supabase-admin'
+import { finalizeScreenshotRecognition, getScreenshotQuotaState } from '@/lib/screenshot/quota'
+import { isValidScreenshotRecognitionRequestId } from '@/lib/screenshot/recognition-quota'
 import { isScreenshotRecognitionSource, rankingWeightByDifficulty, SCREENSHOT_RECOGNITION_SOURCE } from '@/lib/trek-utils'
 import { createSupabaseServerClient } from '@/lib/supabase-server'
-import { insertCheckinWithFallback } from '@/lib/trek-verify-helpers'
 
 type ImportMountainRow = {
   id: string
@@ -264,6 +266,13 @@ async function handleScreenshotRecognitionConfirm({
   userId: string
   body: Record<string, unknown>
 }) {
+  const requestId = typeof body.requestId === 'string' && isValidScreenshotRecognitionRequestId(body.requestId)
+    ? body.requestId
+    : null
+  if (!requestId) {
+    return NextResponse.json({ error: '识别请求无效，请重新识别后再试。', code: 'screenshot_request_id_invalid' }, { status: 400 })
+  }
+
   const parsedDataResult = normalizeScreenshotData(body.parsedData)
   if (!parsedDataResult.ok) {
     return NextResponse.json({ error: '截图数据不完整，请重新识别后再试。' }, { status: 400 })
@@ -283,45 +292,60 @@ async function handleScreenshotRecognitionConfirm({
   const parsedData = parsedDataResult.data
   const { startTime, endTime } = screenshotTimeRange(parsedData)
   const note = toSafeNote(body.note)
+  const quota = await getScreenshotQuotaState(supabase, userId)
 
-  const { data: checkin, error } = await insertCheckinWithFallback(
-    supabase,
-    {
-      user_id: userId,
-      mountain_id: mountain?.id ?? null,
-      type: 'gps',
-      source: SCREENSHOT_RECOGNITION_SOURCE,
-      completion_status: 'complete',
-      latitude: mountain?.latitude ?? null,
-      longitude: mountain?.longitude ?? null,
-      note,
-      // Screenshot recognition is uploaded proof, not GPS/summit verification.
-      verified_at: null,
-      verification_distance_m: null,
-      ranking_weight: 0,
-      distance_meters: parsedData.distanceMeters,
-      duration_seconds: parsedData.durationSeconds ?? null,
-      elevation_gain_meters: parsedData.elevationGainMeters ?? null,
-      elevation_loss_meters: parsedData.elevationLossMeters ?? null,
-      max_elevation_meters: parsedData.maxElevation ?? null,
-      min_elevation_meters: null,
-      start_time: startTime,
-      end_time: endTime,
-      track_name: parsedData.name ?? parsedData.location ?? parsedData.fileName ?? '截图识别活动',
-      track_points: [],
-      screenshot_route_shape: routeShapeResult.shape,
-    },
-    'id'
+  const checkinPayload = {
+    user_id: userId,
+    mountain_id: mountain?.id ?? null,
+    type: 'gps',
+    source: SCREENSHOT_RECOGNITION_SOURCE,
+    completion_status: 'complete',
+    latitude: mountain?.latitude ?? null,
+    longitude: mountain?.longitude ?? null,
+    note,
+    // Screenshot recognition is uploaded proof, not GPS/summit verification.
+    verified_at: null,
+    verification_distance_m: null,
+    ranking_weight: 0,
+    distance_meters: parsedData.distanceMeters,
+    duration_seconds: parsedData.durationSeconds ?? null,
+    elevation_gain_meters: parsedData.elevationGainMeters ?? null,
+    elevation_loss_meters: parsedData.elevationLossMeters ?? null,
+    max_elevation_meters: parsedData.maxElevation ?? null,
+    min_elevation_meters: null,
+    start_time: startTime,
+    end_time: endTime,
+    track_name: parsedData.name ?? parsedData.location ?? parsedData.fileName ?? '截图识别活动',
+    track_points: [],
+    screenshot_route_shape: routeShapeResult.shape,
+  }
+
+  const finalized = await finalizeScreenshotRecognition(
+    createSupabaseAdminClient(),
+    userId,
+    requestId,
+    quota,
+    checkinPayload,
   )
 
-  if (error || !checkin) {
+  if (!finalized.success) {
     console.error('screenshot route shape checkin insert failed', {
       code: routeShapeResult.shape ? 'route_shape_persist_failed' : 'screenshot_checkin_insert_failed',
       userId,
       hasShape: Boolean(routeShapeResult.shape),
       shapeMetrics: measureScreenshotRouteShape(routeShapeResult.shape),
-      error: error?.message ?? 'missing inserted checkin',
+      reason: finalized.reason,
+      error: finalized.error,
     })
+    if (finalized.reason === 'exhausted') {
+      return NextResponse.json({ error: '本月截图识别次数已用完。', code: 'screenshot_quota_exhausted', quota: finalized.quota }, { status: 402 })
+    }
+    if (finalized.reason === 'pending') {
+      return NextResponse.json({ error: '识别仍在处理中，请稍后再试。', code: 'screenshot_recognition_pending', retryable: true }, { status: 409 })
+    }
+    if (finalized.reason === 'expired') {
+      return NextResponse.json({ error: '这次识别已被新的识别任务替代，请重新选择截图。', code: 'screenshot_recognition_expired' }, { status: 409 })
+    }
     return NextResponse.json({
       error: routeShapeResult.shape
         ? '校准路线保存失败，请稍后重试。'
@@ -332,7 +356,8 @@ async function handleScreenshotRecognitionConfirm({
 
   return NextResponse.json({
     ok: true,
-    checkinId: (checkin as unknown as { id: string }).id,
+    checkinId: finalized.checkinId,
+    quota: finalized.quota,
   })
 }
 

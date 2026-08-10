@@ -29,7 +29,7 @@ test('screenshot confirm path writes through import confirm without requiring tr
   assert.match(importConfirmRoute, /source:\s*SCREENSHOT_RECOGNITION_SOURCE/)
   assert.match(importConfirmRoute, /track_points:\s*\[\]/)
   assert.match(importConfirmRoute, /screenshot_route_shape:\s*routeShapeResult\.shape/)
-  assert.match(importConfirmRoute, /insertCheckinWithFallback/)
+  assert.match(importConfirmRoute, /\.from\('checkins'\)\s*\.insert\(/)
 
   const screenshotBranchIndex = importConfirmRoute.indexOf('isScreenshotRecognitionSource(source)')
   const trackNormalizeIndex = importConfirmRoute.indexOf('normalizeImportedTrackData(rawParsedData)')
@@ -157,14 +157,14 @@ test('mountain search supports recognized mountain name candidates such as Taish
 test('screenshot recognition route enforces quota with service-role RPC only', () => {
   assert.match(screenshotRecognizeRoute, /export async function GET/)
   assert.match(screenshotRecognizeRoute, /export const runtime = 'nodejs'/)
-  assert.match(screenshotRecognizeRoute, /export const maxDuration = 60/)
+  assert.match(screenshotRecognizeRoute, /export const maxDuration = 120/)
   assert.match(screenshotRecognizeRoute, /getScreenshotQuotaState/)
   assert.match(screenshotRecognizeRoute, /const requestId = resolveScreenshotRecognitionRequestId\(\s*formData \? formData\.get\('requestId'\) : null,\s*\)/)
   assert.match(screenshotRecognizeRoute, /recognizeOrReplayScreenshotQuotaAttempt\(\{[\s\S]*requestId,[\s\S]*adminClient:\s*createSupabaseAdminClient\(\)/)
   assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const reserveResult = await reserve\(adminClient,\s*userId,\s*quota,\s*requestId\)/)
   assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /recognition = await recognize\(imageBase64,\s*mimeType\)/)
   assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const finalizeResult = await finalize\(adminClient,\s*userId,\s*requestId,\s*reserveResult\.quota,\s*storedRecognition\)/)
-  assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const refundResult = await refund\(adminClient,\s*userId,\s*requestId,\s*reserveResult\.quota\)/)
+  assert.match(readFileSync('src/lib/screenshot/recognition-quota.ts', 'utf8'), /const releaseResult = await release\(adminClient,\s*userId,\s*requestId\)/)
   assert.match(screenshotRecognizeRoute, /status:\s*402/)
   assert.match(screenshotRecognizeRoute, /screenshot_quota_exhausted/)
   assert.match(screenshotRecognizeRoute, /ocrSource/)
@@ -214,7 +214,7 @@ test('screenshot recognition transient errors use friendly copy and do not consu
     recognizeWithReservedScreenshotQuota,
   } = await import('../src/lib/screenshot/recognition-quota.ts')
   let reserved = false
-  let refunded = false
+  let released = false
   const quota = {
     monthKey: '2026-06',
     isFirstMonth: false,
@@ -247,9 +247,9 @@ test('screenshot recognition transient errors use friendly copy and do not consu
       finalize: async () => {
         throw new Error('finalize should not run for provider failure')
       },
-      refund: async (_adminClient, _userId, requestId, nextQuota) => {
-        refunded = true
-        return { success: true, requestId, reason: null, quota: nextQuota }
+      release: async (_adminClient, _userId, requestId) => {
+        released = true
+        return { success: true, requestId }
       },
     }),
     (error: unknown) => {
@@ -259,7 +259,7 @@ test('screenshot recognition transient errors use friendly copy and do not consu
     },
   )
   assert.equal(reserved, true)
-  assert.equal(refunded, true)
+  assert.equal(released, true)
 
   assert.match(screenshotRecognizeErrorCopy, /识别服务暂时不可用，请稍后重试。本次未消耗识别次数。/)
   assert.match(screenshotRecognizeRoute, /error instanceof ScreenshotRecognitionAttemptError && error\.quotaRefunded/)
@@ -277,7 +277,7 @@ test('successful OCR response is returned even when quota finalization is tempor
   assert.doesNotMatch(finalizeBranch, /return NextResponse/)
   assert.match(
     screenshotRecognizeRoute,
-    /recognitionSuccessResponse\(recognition, finalizeResult\.success \? finalizeResult\.quota : reserveResult\.quota\)/,
+    /recognitionSuccessResponse\(recognition, finalizeResult\.success \? finalizeResult\.quota : reserveResult\.quota, requestId\)/,
   )
 })
 
@@ -309,8 +309,8 @@ test('mimo text route is the only OCR runtime and keeps no track-processing copy
   assert.match(screenshotRecognitionService, /recognizeScreenshotWithMimoV25Text/)
   assert.doesNotMatch(screenshotRecognitionService, /recognizeScreenshotWithFallback|tencent/i)
   assert.match(screenshotMimoAdjudicator, /mimo_missing_required_distance/)
-  assert.match(screenshotMimoAdapter, /MIMO_TEXT_TIMEOUT_MS = 45_000/)
-  assert.match(screenshotRecognizeRoute, /export const maxDuration = 60/)
+  assert.match(screenshotMimoAdapter, /MIMO_TEXT_TIMEOUT_MS = 90_000/)
+  assert.match(screenshotRecognizeRoute, /export const maxDuration = 120/)
   assert.match(screenshotMimoAdapter, /MIMO_API_KEY is not configured/)
   assert.match(screenshotMimoAdapter, /thinking: \{ type: 'disabled' \}/)
   assert.match(screenshotClient, /return source \?\? SCREENSHOT_RECOGNITION_SOURCE/)

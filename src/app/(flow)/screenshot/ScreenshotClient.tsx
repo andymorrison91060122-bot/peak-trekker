@@ -52,7 +52,6 @@ import {
 const SCREENSHOT_MAX_BYTES = 10 * 1024 * 1024
 const PROCESSING_MIN_DURATION_MS = 2000
 const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
-
 gsap.registerPlugin(useGSAP)
 
 type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
@@ -70,6 +69,7 @@ type FieldKey = ScreenshotFieldKey
 
 type RecognizeResult = {
   ok: true
+  requestId: string
   ocrResult: OcrResult
   parsedFields: ParsedScreenshotFields
   ocrSource?: ScreenshotOcrSource
@@ -77,6 +77,7 @@ type RecognizeResult = {
 
 type RecognizeResponse = {
   ok?: boolean
+  requestId?: string
   ocrResult?: OcrResult
   parsedFields?: ParsedScreenshotFields
   ocrSource?: ScreenshotOcrSource
@@ -89,6 +90,14 @@ type SubmitResult = {
   ok: true
   checkinId?: string
   routeShape?: PersistedScreenshotRouteShape | null
+}
+
+type ConfirmResponse = {
+  ok?: boolean
+  checkinId?: string
+  quota?: ScreenshotQuotaState
+  error?: string
+  code?: string
 }
 
 function readPayloadError(payload: unknown) {
@@ -2344,6 +2353,7 @@ export default function ScreenshotClient({
   const screenshotMotionTimelineRef = useRef<gsap.core.Timeline | null>(null)
   const upgradeEngageCloseTimerRef = useRef<number | null>(null)
   const recognizeContentHashRef = useRef<string | null>(null)
+  const recognitionRequestIdRef = useRef<string | null>(null)
   const recognizedFieldsRef = useRef<string[]>([])
   const editedFieldsRef = useRef<Set<string>>(new Set())
 
@@ -2711,6 +2721,7 @@ export default function ScreenshotClient({
     const controller = new AbortController()
     abortRef.current = controller
     const requestId = crypto.randomUUID()
+    recognitionRequestIdRef.current = requestId
     const contentHash = await buildContentHash(file)
     recognizeContentHashRef.current = contentHash
     recognizedFieldsRef.current = []
@@ -2810,6 +2821,7 @@ export default function ScreenshotClient({
       })
       setRecognizeResult({
         ok: true,
+        requestId: payload.requestId ?? requestId,
         ocrResult: payload.ocrResult,
         parsedFields: payload.parsedFields,
         ocrSource: payload.ocrSource,
@@ -2874,6 +2886,7 @@ export default function ScreenshotClient({
     setSubmitError(null)
     setRouteShapeRecoveryOpen(false)
     setSubmitResult(null)
+    recognitionRequestIdRef.current = null
   }
 
   function resetToUpload() {
@@ -3093,12 +3106,13 @@ export default function ScreenshotClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           source: SCREENSHOT_RECOGNITION_SOURCE,
+          requestId: recognitionRequestIdRef.current,
           mountainId: selectedMountainId,
           parsedData,
           routeShape,
         }),
       })
-      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; checkinId?: string; error?: string; code?: string }
+      const payload = (await response.json().catch(() => ({}))) as ConfirmResponse
       if (!response.ok || !payload.ok || !payload.checkinId) {
         if (payload.code === 'route_shape_invalid' || payload.code === 'route_shape_persist_failed') {
           setRouteShapeRecoveryOpen(true)
@@ -3108,6 +3122,7 @@ export default function ScreenshotClient({
         }
         throw new Error(screenshotDisplayError('confirm failed', payload, '活动生成失败，请稍后再试。'))
       }
+      if (payload.quota) setQuotaState(payload.quota)
       trackEvent({
         event_type: 'business',
         event_name: 'business.activity_create',
@@ -3119,6 +3134,7 @@ export default function ScreenshotClient({
         },
       })
       setSubmitResult({ ok: true, checkinId: payload.checkinId, routeShape: routeShapeValidation.shape })
+      recognitionRequestIdRef.current = null
       setStep('success')
     } catch (error) {
       if (error instanceof Error) console.warn('[screenshot] submit client failed', error)

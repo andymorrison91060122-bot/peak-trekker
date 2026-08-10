@@ -1,17 +1,17 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  completeScreenshotQuotaAttempt,
+  completeScreenshotRecognitionAttempt,
   getScreenshotRecognitionReplay,
-  refundScreenshotQuotaAttempt,
-  reserveScreenshotQuota,
+  releaseScreenshotRecognitionLease,
+  reserveScreenshotRecognitionLease,
   type ScreenshotRecognitionReplay,
 } from './quota.ts'
 import { recognizeScreenshotText } from './recognition-service.ts'
 import type { ScreenshotQuotaState } from './types.ts'
 
 type RecognitionResult = Awaited<ReturnType<typeof recognizeScreenshotText>>
-type ReserveResult = Awaited<ReturnType<typeof reserveScreenshotQuota>>
-type FinalizeResult = Awaited<ReturnType<typeof completeScreenshotQuotaAttempt>>
+type ReserveResult = Awaited<ReturnType<typeof reserveScreenshotRecognitionLease>>
+type FinalizeResult = Awaited<ReturnType<typeof completeScreenshotRecognitionAttempt>>
 
 const SCREENSHOT_RECOGNITION_REQUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const SCREENSHOT_RECOGNITION_RESULT_MAX_BYTES = 65536
@@ -132,9 +132,9 @@ export async function recognizeWithReservedScreenshotQuota({
   requestId,
   adminClient,
   recognize = recognizeScreenshotText,
-  reserve = reserveScreenshotQuota,
-  finalize = completeScreenshotQuotaAttempt,
-  refund = refundScreenshotQuotaAttempt,
+  reserve = reserveScreenshotRecognitionLease,
+  finalize = completeScreenshotRecognitionAttempt,
+  release = releaseScreenshotRecognitionLease,
 }: {
   imageBase64: string
   mimeType: string
@@ -143,9 +143,9 @@ export async function recognizeWithReservedScreenshotQuota({
   requestId: string
   adminClient: SupabaseClient
   recognize?: typeof recognizeScreenshotText
-  reserve?: typeof reserveScreenshotQuota
-  finalize?: typeof completeScreenshotQuotaAttempt
-  refund?: typeof refundScreenshotQuotaAttempt
+  reserve?: typeof reserveScreenshotRecognitionLease
+  finalize?: typeof completeScreenshotRecognitionAttempt
+  release?: typeof releaseScreenshotRecognitionLease
 }): Promise<
   | { reserveResult: Extract<ReserveResult, { success: false }> }
   | {
@@ -164,14 +164,13 @@ export async function recognizeWithReservedScreenshotQuota({
     storedRecognition = serializeRecognitionResult(recognition)
   } catch (error) {
     try {
-      const refundResult = await refund(adminClient, userId, requestId, reserveResult.quota)
-      if (refundResult.success) {
+      const releaseResult = await release(adminClient, userId, requestId)
+      if (releaseResult.success) {
         throw new ScreenshotRecognitionAttemptError(error, true)
       }
       console.error('screenshot quota refund failed', {
         requestId,
-        reason: refundResult.reason,
-        error: refundResult.error,
+        reason: 'lease_release_failed',
       })
     } catch (refundError) {
       if (refundError instanceof ScreenshotRecognitionAttemptError) throw refundError
@@ -208,9 +207,9 @@ export async function recognizeOrReplayScreenshotQuotaAttempt({
     ? getScreenshotRecognitionReplay(replayClient, nextRequestId)
     : { success: true, kind: 'missing' },
   recognize = recognizeScreenshotText,
-  reserve = reserveScreenshotQuota,
-  finalize = completeScreenshotQuotaAttempt,
-  refund = refundScreenshotQuotaAttempt,
+  reserve = reserveScreenshotRecognitionLease,
+  finalize = completeScreenshotRecognitionAttempt,
+  release = releaseScreenshotRecognitionLease,
 }: {
   imageBase64: string
   mimeType: string
@@ -221,9 +220,9 @@ export async function recognizeOrReplayScreenshotQuotaAttempt({
   replayClient?: SupabaseClient
   findAttempt?: (userId: string, requestId: string) => Promise<AttemptLookup>
   recognize?: typeof recognizeScreenshotText
-  reserve?: typeof reserveScreenshotQuota
-  finalize?: typeof completeScreenshotQuotaAttempt
-  refund?: typeof refundScreenshotQuotaAttempt
+  reserve?: typeof reserveScreenshotRecognitionLease
+  finalize?: typeof completeScreenshotRecognitionAttempt
+  release?: typeof releaseScreenshotRecognitionLease
 }): Promise<
   | { kind: 'completed'; reserveResult: Extract<ReserveResult, { success: true }>; recognition: RecognitionResult; finalizeResult: FinalizeResult }
   | { kind: 'replayed'; recognition: RecognitionResult }
@@ -243,7 +242,7 @@ export async function recognizeOrReplayScreenshotQuotaAttempt({
     recognize,
     reserve,
     finalize,
-    refund,
+    release,
   })
 
   if (!('recognition' in result)) {
@@ -252,7 +251,8 @@ export async function recognizeOrReplayScreenshotQuotaAttempt({
     }
 
     const duplicate = getScreenshotRecognitionRecoveryOutcome(await findAttempt(userId, requestId))
-    return duplicate.kind === 'missing' ? { kind: 'lookup_failed' } : duplicate
+    if (duplicate.kind === 'missing') return { kind: 'lookup_failed' }
+    return duplicate
   }
 
   return {

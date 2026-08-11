@@ -11,13 +11,14 @@ function requiredIndexOf(source: string, pattern: string, fromIndex = 0) {
   return index
 }
 
-test('register validates nickname before signup and sends signup metadata', () => {
+test('register validates nickname before signup and sends nickname-only signup metadata', () => {
   assert.match(registerPage, /CloudflareTurnstile/)
   assert.match(registerPage, /const \[captchaToken, setCaptchaToken\] = useState\(''\)/)
   assert.match(registerPage, /import \{ validateNickname \} from '@\/lib\/profile-nickname'/)
   assert.match(registerPage, /const nicknameResult = validateNickname\(username\)/)
-  assert.match(registerPage, /const provinceCode = getProvinceCode\(province\)/)
-  assert.match(registerPage, /supabase\.auth\.signUp\(\{[\s\S]*email,[\s\S]*password,[\s\S]*options:\s*\{[\s\S]*captchaToken,[\s\S]*data:\s*\{[\s\S]*nickname:\s*nicknameResult\.value,[\s\S]*province,[\s\S]*province_code:\s*provinceCode,[\s\S]*\}[\s\S]*\}[\s\S]*\}\)/)
+  assert.match(registerPage, /supabase\.auth\.signUp\(\{[\s\S]*email,[\s\S]*password,[\s\S]*options:\s*\{[\s\S]*captchaToken,[\s\S]*data:\s*\{[\s\S]*nickname:\s*nicknameResult\.value,[\s\S]*\}[\s\S]*\}[\s\S]*\}\)/)
+  assert.doesNotMatch(registerPage, /province_code/)
+  assert.doesNotMatch(registerPage, /getProvinceCode/)
 })
 
 test('register only performs a narrow onboarding completion profile update after authenticated signup', () => {
@@ -61,11 +62,11 @@ test('register never replays the one-time signup captcha token for automatic sig
   assert.doesNotMatch(registerPage, /signInData|signInError/)
 })
 
-test('register keeps session guidance, redirects, and local onboarding state', () => {
+test('register keeps session guidance, redirects, and intro completion state without a province draft', () => {
   assert.match(registerPage, /if \(activeSession\) \{[\s\S]*window\.location\.replace\(returnTo\)[\s\S]*return[\s\S]*\}/)
   assert.match(registerPage, /const loginHref =[\s\S]*window\.location\.replace\(loginHref\)/)
-  assert.match(registerPage, /setProvinceDraft\(province\)/)
   assert.match(registerPage, /setIntroSeen\(\)/)
+  assert.doesNotMatch(registerPage, /setProvinceDraft/)
 })
 
 test('register mounts Turnstile widget and exposes clear reset and load-error states', () => {
@@ -83,13 +84,11 @@ test('auth Turnstile widget stays visibly rendered by default', () => {
   assert.doesNotMatch(turnstileComponent, /appearance:\s*'interaction-only',/)
 })
 
-test('register keeps province required and explains its profile purpose accessibly', () => {
-  const provinceSelect = registerPage.match(/<select[\s\S]*?<option value="">选择省份\.\.\.<\/option>[\s\S]*?<\/select>/)?.[0] ?? ''
-  assert.match(provinceSelect, /required/)
-  assert.match(provinceSelect, /aria-describedby="register-province-help"/)
-  assert.match(
-    registerPage,
-    /id="register-province-help"[\s\S]*选择你的籍贯或常驻省，将作为个人资料中的归属地。/,
-  )
-  assert.match(registerPage, /provinceRankingEnabled \? <span[\s\S]*（为家乡省份积分）/)
+test('register profile step contains no province state, draft, selector, or ranking copy', () => {
+  assert.doesNotMatch(registerPage, /getProvinceDraft/)
+  assert.doesNotMatch(registerPage, /setProvinceDraft/)
+  assert.doesNotMatch(registerPage, /PROVINCES/)
+  assert.doesNotMatch(registerPage, /provinceRankingEnabled/)
+  assert.doesNotMatch(registerPage, /register-province-help/)
+  assert.doesNotMatch(registerPage, /<select/)
 })

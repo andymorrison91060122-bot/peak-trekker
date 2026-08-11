@@ -1,21 +1,17 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/lib/supabase-browser'
 import {
   buildOnboardingCompletionPayload,
-  getProvinceDraft,
   setIntroSeen,
-  setProvinceDraft,
 } from '@/lib/onboarding'
 import { clearClientAuthReturnPath, resolveClientAuthReturnPath } from '@/lib/auth-redirect'
-import { PROVINCES, getProvinceCode } from '@/lib/provinces'
 import { validateNickname } from '@/lib/profile-nickname'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { attributionProperties, clearShareAttribution } from '@/lib/analytics/attribution'
 import { trackEvent, trackEventNow } from '@/lib/analytics/client'
-import { isFeatureEnabled } from '@/lib/feature-flags'
 import { BrandTile } from '@/components/brand/BrandTile'
 import {
   CloudflareTurnstile,
@@ -24,7 +20,6 @@ import {
   TURNSTILE_LOAD_ERROR_MESSAGE,
 } from '@/components/auth/CloudflareTurnstile'
 
-const provinceRankingEnabled = isFeatureEnabled('PROVINCE_RANKING')
 const turnstileSiteKey = getCloudflareTurnstileSiteKey()
 
 function RegisterPageContent() {
@@ -32,7 +27,6 @@ function RegisterPageContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
-  const [province, setProvince] = useState('')
   const [captchaToken, setCaptchaToken] = useState('')
   const [turnstileResetKey, setTurnstileResetKey] = useState(0)
   const [turnstileUnavailable, setTurnstileUnavailable] = useState(false)
@@ -50,13 +44,6 @@ function RegisterPageContent() {
       console.warn('Onboarding completion persistence failed during register')
     }
   }
-
-  useEffect(() => {
-    const draftProvince = getProvinceDraft()
-    if (!draftProvince) return
-    const frame = window.requestAnimationFrame(() => setProvince(draftProvince))
-    return () => window.cancelAnimationFrame(frame)
-  }, [])
 
   function handleTurnstileToken(token: string) {
     setCaptchaToken(token)
@@ -93,8 +80,6 @@ function RegisterPageContent() {
       setError(nicknameResult.error)
       return
     }
-    const provinceCode = getProvinceCode(province)
-
     setLoading(true)
     setError('')
     trackEvent({
@@ -110,8 +95,6 @@ function RegisterPageContent() {
         captchaToken,
         data: {
           nickname: nicknameResult.value,
-          province,
-          province_code: provinceCode,
         },
       },
     })
@@ -127,7 +110,6 @@ function RegisterPageContent() {
     const activeSession = data.session
     const activeUserId = data.user?.id ?? null
 
-    setProvinceDraft(province)
     setIntroSeen()
 
     // 会话已建立时优先整页回跳，避免客户端路由在 cookie 同步阶段卡住。
@@ -237,23 +219,7 @@ function RegisterPageContent() {
                   <input value={username} onChange={e => setUsername(e.target.value)} required placeholder="给自己起个名字"
                     style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderBottom: '2px solid var(--green-primary)', color: 'var(--text-primary)', fontFamily: 'Share Tech Mono', fontSize: 12, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
-                <div>
-                  <div style={{ fontSize: 9, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', marginBottom: 6 }}>
-                    籍贯省份 {provinceRankingEnabled ? <span style={{ color: 'var(--green-primary)' }}>（为家乡省份积分）</span> : null}
-                  </div>
-                  <select value={province} onChange={e => setProvince(e.target.value)} required aria-describedby="register-province-help"
-                    style={{ width: '100%', padding: '10px 12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderBottom: '2px solid var(--green-primary)', color: province ? 'var(--text-primary)' : 'var(--text-muted)', fontFamily: 'Share Tech Mono', fontSize: 12, outline: 'none', boxSizing: 'border-box' }}>
-                    <option value="">选择省份...</option>
-                    {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                  <p
-                    id="register-province-help"
-                    style={{ margin: 'var(--space-2) 0 0', color: 'var(--text-muted)', fontSize: 10, lineHeight: 1.6 }}
-                  >
-                    选择你的籍贯或常驻省，将作为个人资料中的归属地。
-                  </p>
-                </div>
-                    <div style={{ padding: '10px 12px', background: 'rgba(45,106,79,0.08)', border: '1px solid rgba(45,106,79,0.2)', borderLeft: '3px solid var(--green-primary)', fontSize: 10, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', lineHeight: 1.8 }}>
+                <div style={{ padding: '10px 12px', background: 'rgba(45,106,79,0.08)', border: '1px solid rgba(45,106,79,0.2)', borderLeft: '3px solid var(--green-primary)', fontSize: 10, color: 'var(--text-muted)', fontFamily: 'Share Tech Mono', lineHeight: 1.8 }}>
                       🪪 初始：无执照<br />
                       完成3座1000m以下山峰，解锁初级执照
                     </div>

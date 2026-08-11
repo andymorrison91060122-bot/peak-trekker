@@ -14,15 +14,13 @@ export default async function MainLayout({
     data: { user },
   } = await supabase.auth.getUser()
 
-  let initialProvince: string | null = null
   let initialOnboardingVersion: string | null = null
   if (user) {
     const { data } = await supabase
       .from('profiles')
-      .select('province,onboarding_version')
+      .select('onboarding_version')
       .eq('id', user.id)
       .single()
-    initialProvince = data?.province ?? null
     initialOnboardingVersion = data?.onboarding_version ?? null
   }
 
@@ -31,7 +29,6 @@ export default async function MainLayout({
       <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
         <AppHeader />
         <OnboardingModal
-          initialProvince={initialProvince}
           initialOnboardingVersion={initialOnboardingVersion}
           currentUserId={user?.id ?? null}
         />

@@ -32,7 +32,6 @@ const flipFrom = Flip.from
 export type ArchiveUserViewModel = {
   displayName: string
   avatarUrl: string | null
-  province: string
   city: string | null
   licenseLevel: string | null
 }
@@ -165,7 +164,7 @@ function getInitial(name: string) {
 }
 
 function buildLocationLine(user: ArchiveUserViewModel) {
-  return [user.province, user.city && user.city !== user.province ? user.city : null].filter(Boolean).join(' · ')
+  return user.city?.trim() || ''
 }
 
 function buildTripLocation(trip: ArchiveTripViewModel) {
@@ -227,13 +226,15 @@ function Avatar({ user }: { user: ArchiveUserViewModel }) {
 }
 
 function UserIdentityRow({ user, chip }: { user: ArchiveUserViewModel; chip: ReactNode }) {
+  const location = buildLocationLine(user)
+
   return (
     <div className="archive-hero__identity-row">
       <Avatar user={user} />
       <div className="archive-hero__identity-copy">
         <div className="archive-hero__name">{user.displayName}</div>
         <div className="archive-hero__location">
-          <span><PinIcon size={14} />{buildLocationLine(user)}</span>
+          {location ? <span><PinIcon size={14} />{location}</span> : null}
           {chip}
         </div>
       </div>

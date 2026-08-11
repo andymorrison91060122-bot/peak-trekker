@@ -35,7 +35,6 @@ function clearPressFallback(event: PressFallbackEvent) {
 export type ProfileV2Identity = {
   userId: string
   username: string
-  province: string | null
   avatarUrl: string | null
   licenseLevel: string
   joinedAt: string
@@ -919,7 +918,6 @@ export default function ProfileV2Client({
         <ProfileAvatarUploader
           userId={identity.userId}
           username={identity.username}
-          province={identity.province}
           joinedAt={identity.joinedAt}
           initialAvatarUrl={identity.avatarUrl}
           licenseLevel={identity.licenseLevel}

@@ -235,7 +235,7 @@ async function grantTrekLocation(page: Page, mountain: TrekMountainMeta) {
   })
 }
 
-async function completeProvinceOnboarding(page: Page, province = '四川') {
+async function completeIntroOnboarding(page: Page) {
   await page.goto('/explore', { waitUntil: 'domcontentloaded' })
   const skipButton = page.getByRole('button', { name: '跳过' })
   await skipButton.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
@@ -243,20 +243,16 @@ async function completeProvinceOnboarding(page: Page, province = '四川') {
     await skipButton.click()
   }
 
-  await expect(page.getByText('先选一个与你有连接的地方。')).toBeVisible({ timeout: 15000 })
-  await page.getByRole('button', { name: province }).click()
-  await page.getByRole('button', { name: '生成空白执照' }).click()
   await expect(page.getByText('已经走过？把结果带回来')).toBeVisible({ timeout: 15000 })
 }
 
-async function registerFreshUser(page: Page, province = '四川') {
+async function registerFreshUser(page: Page) {
   const email = createTestEmail()
   const password = 'PeakTrekker123!'
   await registerFreshUserViaHelper(page, 'http://127.0.0.1:3100', {
     email,
     password,
     username: `qa-${Date.now()}`,
-    province,
     returnTo: '/explore',
   })
 }
@@ -266,14 +262,6 @@ async function dismissActivationChecklistIfPresent(page: Page) {
   await introSkipButton.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {})
   if (await introSkipButton.isVisible().catch(() => false)) {
     await introSkipButton.click()
-  }
-
-  const provincePrompt = page.getByText('先选一个与你有连接的地方。')
-  await provincePrompt.waitFor({ state: 'visible', timeout: 1000 }).catch(() => {})
-  if (await provincePrompt.isVisible().catch(() => false)) {
-    await page.getByRole('button', { name: '四川' }).click()
-    await page.getByRole('button', { name: '生成空白执照' }).click()
-    await expect(provincePrompt).not.toBeVisible({ timeout: 10000 })
   }
 
   const dismissButton = page.getByRole('button', { name: '先自己逛逛' })
@@ -303,7 +291,6 @@ test('guest can register from protected trek redirect and return to the targeted
   await page.getByRole('button', { name: '下一步 →' }).click()
 
   await page.getByPlaceholder('给自己起个名字').fill(`qa-${Date.now()}`)
-  await page.locator('select').selectOption('四川')
   await page.getByRole('button', { name: '▶ 创建登山档案' }).click()
   await page.waitForLoadState('domcontentloaded')
   if (/\/auth\/login/.test(page.url())) {
@@ -340,22 +327,22 @@ test('guest can register from protected trek redirect and return to the targeted
   expect(download.suggestedFilename()).toMatch(/^peak-trekker-qa-report-\d{4}-\d{2}-\d{2}\.md$/)
 })
 
-test('first-time visitors can skip the intro, anchor a province, and continue to explore', async ({ page }) => {
-  await completeProvinceOnboarding(page)
+test('ONB-001: first-time visitors can skip intro and continue to explore without a province gate', async ({ page }) => {
+  await completeIntroOnboarding(page)
 
   await expect(page.getByText('Activation Checklist')).toHaveCount(0)
   await expect(page.getByText('已经走过？把结果带回来')).toBeVisible()
   await expect(page.getByText('山峰列表')).toBeVisible()
-})
-
-test('province draft from onboarding prefills the register profile step', async ({ page }) => {
-  await completeProvinceOnboarding(page)
+  await expect(page.getByText('先选一个与你有连接的地方。')).toHaveCount(0)
+  await expect(page.getByText('选择归属地')).toHaveCount(0)
 
   await page.goto('/auth/register')
   await page.getByPlaceholder('your@email.com').fill(createTestEmail())
   await page.getByPlaceholder('至少6位').fill('PeakTrekker123!')
   await page.getByRole('button', { name: '下一步 →' }).click()
-  await expect(page.locator('select')).toHaveValue('四川')
+  await expect(page.getByPlaceholder('给自己起个名字')).toBeVisible()
+  await expect(page.locator('select')).toHaveCount(0)
+  await expect(page.getByText('选择归属地')).toHaveCount(0)
 })
 
 test('explore search supports an empty-state recovery path for real users', async ({ page }) => {
@@ -375,7 +362,7 @@ test('explore search supports an empty-state recovery path for real users', asyn
 })
 
 test('explore advanced filters combine correctly for real mountain results', async ({ page }) => {
-  await completeProvinceOnboarding(page)
+  await completeIntroOnboarding(page)
   await dismissActivationChecklistIfPresent(page)
   await expect(page.getByText('找山出发')).toBeVisible()
 
@@ -646,7 +633,7 @@ test('profile records open a private activity detail page instead of using commu
   const { mountainId } = await getFirstMountain(page)
   const note = `activity-detail-${Date.now()}`
 
-  await registerFreshUser(page, '四川')
+  await registerFreshUser(page)
   const checkinId = await createHistoricalCheckinViaApi(page, mountainId, note)
 
   await page.goto(`${root}/profile`)
@@ -669,7 +656,7 @@ test('activity detail keeps record-first actions and embedded photo previews con
   const note = `activity-preview-${Date.now()}`
 
   await page.setViewportSize({ width: 375, height: 812 })
-  await registerFreshUser(page, '四川')
+  await registerFreshUser(page)
   const checkinId = await createHistoricalCheckinViaApi(page, mountainId, note)
 
   await page.goto(`${root}/activity/${checkinId}`)

@@ -31,14 +31,12 @@ function profileRouteDisplayError(scope: string, payload: unknown, fallback: str
 
 export default function ProfileAvatarUploader({
   username,
-  province,
   initialAvatarUrl,
   licenseLevel,
   onLicenseClick,
 }: {
   userId: string
   username: string
-  province: string | null
   joinedAt: string
   initialAvatarUrl: string | null
   licenseLevel: string
@@ -434,22 +432,6 @@ export default function ProfileAvatarUploader({
                 <span>{getLicenseLevelLabel(licenseLevel)}</span>
                 <span aria-hidden="true" style={{ color: 'var(--color-on-surface-variant)' }}>›</span>
               </button>
-              <span
-                className="pt-label-s"
-                style={{
-                  minHeight: 24,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  borderRadius: 'var(--radius-pill)',
-                  padding: '0 var(--space-3)',
-                  color: 'var(--color-on-surface-variant)',
-                  border: '1px solid var(--color-outline)',
-                  background: 'color-mix(in srgb, var(--color-on-surface) 5%, transparent)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {province ?? '未设置省份'}
-              </span>
             </div>
           </div>
         </div>

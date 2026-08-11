@@ -237,7 +237,6 @@ function resolveUser(profile: ProfileRow | null, fallbackName: string): ArchiveU
   return {
     displayName,
     avatarUrl: profile?.avatar_url ?? null,
-    province: profile?.province?.trim() || '未设置省份',
     city: profile?.city?.trim() || null,
     licenseLevel: profile?.license_level ?? 'none',
   }

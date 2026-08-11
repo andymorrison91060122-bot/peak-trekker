@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { BRAND_ASSETS } from '@/lib/brand-assets'
-import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, SHARE_TRACK_RENDER_PROFILES, type ShareTrackPreview } from '../share-track-preview'
+import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, SHARE_TRACK_RENDER_PROFILES, type ShareTrackFrame, type ShareTrackPreview } from '../share-track-preview'
 import type { ShareTemplateData } from './types'
 
 export const POSTER_WIDTH = 1080
@@ -412,10 +412,12 @@ export function TrailSvg({
   glow = 10,
   lineWidth = 8,
   trackPreview,
+  contentBounds,
 }: {
   glow?: number
   lineWidth?: number
   trackPreview?: ShareTrackPreview | null
+  contentBounds?: Pick<ShareTrackFrame, 'x' | 'y' | 'width' | 'height' | 'padding'>
 }) {
   const route = buildShareTrackRender(trackPreview, {
     x: 240,
@@ -424,6 +426,7 @@ export function TrailSvg({
     height: 800,
     padding: 96,
     ...SHARE_TRACK_CONTENT_FIT,
+    ...contentBounds,
   }, SHARE_TRACK_RENDER_PROFILES.posterTrail({ lineWidth, glow }))
 
   if (!route) return null

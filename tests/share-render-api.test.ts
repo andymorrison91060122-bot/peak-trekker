@@ -1,5 +1,6 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -121,6 +122,69 @@ describe('share render API field policy regression', () => {
       'premium-vertical-story',
     ]) {
       assert.match(transparentSource, new RegExp(`template === '${template}'`), `${template} should have a transparent watermark branch`)
+    }
+  })
+
+  test('SHARE-001A compacts only approved transparent watermarks without changing Cert or canvas anchors', () => {
+    const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
+    const sharedSource = readSource('../src/lib/share-templates/shared.tsx')
+    const certificateSource = transparentSource.match(/function WatermarkCertificate[\s\S]*?(?=\nfunction WatermarkVerticalStory)/)?.[0]
+
+    assert.ok(certificateSource, 'Cert renderer should remain present')
+    assert.equal(
+      createHash('sha256').update(certificateSource).digest('hex'),
+      '32fbc757dc4b56dbdc6fa0065077e64ba62edf66f410c077596a780b24991c4a',
+      'SHARE-001A must leave the Cert renderer byte-identical',
+    )
+
+    assert.match(transparentSource, /const TRANSPARENT_WATERMARK_LAYOUT =/)
+    for (const template of [
+      'classic',
+      'data',
+      'composite',
+      'overlay',
+      'boldNumber',
+      'dataScatter',
+      'monoFilm',
+      'altitudeProfile',
+      'verticalStory',
+    ]) {
+      assert.match(transparentSource, new RegExp(`\\b${template}: \\{`), `${template} needs a local compact layout`)
+    }
+    assert.doesNotMatch(transparentSource, /certificate:\s*\{/, 'Cert must not receive a SHARE-001A layout override')
+
+    assert.match(
+      transparentSource,
+      /<TrailSvg glow=\{10\} lineWidth=\{5\} trackPreview=\{data\.trackPreview\} contentBounds=\{TRANSPARENT_WATERMARK_LAYOUT\.classic\.trailBounds\}/,
+    )
+    assert.match(
+      transparentSource,
+      /<TrailSvg glow=\{14\} lineWidth=\{7\} trackPreview=\{data\.trackPreview\} contentBounds=\{TRANSPARENT_WATERMARK_LAYOUT\.composite\.trailBounds\}/,
+    )
+    assert.match(sharedSource, /contentBounds\?: Pick<ShareTrackFrame, 'x' \| 'y' \| 'width' \| 'height' \| 'padding'>/)
+    assert.match(sharedSource, /x: 240,[\s\S]*y: 120,[\s\S]*width: 720,[\s\S]*height: 800,[\s\S]*padding: 96/)
+
+    assert.match(transparentSource, /width: POSTER_WIDTH,[\s\S]*height: POSTER_HEIGHT/)
+    assert.doesNotMatch(transparentSource, /transform:\s*['"]?scale\(/)
+    assert.match(transparentSource, /<BottomClassicBlock data=\{data\} layout=\{TRANSPARENT_WATERMARK_LAYOUT\.classic\}/)
+    assert.match(transparentSource, /left: 0,[\s\S]*right: 0,[\s\S]*bottom: 0,[\s\S]*height: layout\.gradientHeight/)
+    assert.match(transparentSource, /position: 'absolute',[\s\S]*inset: 0,[\s\S]*linear-gradient\(90deg/)
+    assert.match(transparentSource, /left: 0,[\s\S]*top: 0,[\s\S]*height: POSTER_HEIGHT/)
+    assert.match(transparentSource, /function WatermarkVerticalStory[\s\S]*left: 0,[\s\S]*right: 0,[\s\S]*bottom: 0/)
+  })
+
+  test('premium data scatter reserves explicit Satori layout for a four-digit altitude row', () => {
+    const photoSource = readSource('../src/lib/share-templates/premium-data-scatter.tsx')
+    const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
+    const transparentRenderer = transparentSource.match(/function WatermarkDataScatter[\s\S]*?(?=\nfunction WatermarkMonoFilm)/)?.[0]
+
+    assert.ok(transparentRenderer, 'transparent data scatter renderer should remain present')
+
+    for (const [kind, source] of [['photo', photoSource], ['transparent', transparentRenderer]] as const) {
+      assert.match(source, /display: 'flex', height: 22, flexShrink: 0,[\s\S]*?最高海拔/, `${kind} label needs a reserved Satori line box`)
+      assert.match(source, /alignItems: 'baseline',[\s\S]*?height: 96,[\s\S]*?flexShrink: 0,[\s\S]*?whiteSpace: 'nowrap'/, `${kind} 5077m row needs a non-collapsing, non-wrapping line box`)
+      assert.match(source, /fontSize: 106,[\s\S]*?flexShrink: 0,[\s\S]*?whiteSpace: 'nowrap'[\s\S]*?formatShareAltitude\(data\)/, `${kind} altitude value must remain on the intentional row`)
+      assert.match(source, /fontSize: 42,[\s\S]*?flexShrink: 0,[\s\S]*?whiteSpace: 'nowrap'[\s\S]*?>m</, `${kind} altitude unit must remain on the intentional row`)
     }
   })
 

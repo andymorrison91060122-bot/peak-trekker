@@ -9,6 +9,7 @@ import {
   SHARE_TEMPLATE_PALETTE,
   TopoSvg,
   TrailSvg,
+  METRIC_FONT_FAMILY,
   buildMountainLine,
   formatShareAltitude,
   hasShareTrackPoint,
@@ -34,7 +35,7 @@ export function PremiumPhotoCompositeTemplate({ data, photoDataUrl, brandMarkSrc
             {mountainLine}
           </span>
         ) : null}
-        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 32 }}>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 32, fontFamily: METRIC_FONT_FAMILY }}>
           <span
             data-role="num"
             data-motion-kind="altitude-value"

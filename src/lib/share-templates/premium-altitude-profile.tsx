@@ -7,6 +7,7 @@ import {
   PhotoShade,
   PosterShell,
   SmallMetric,
+  METRIC_FONT_FAMILY,
   buildMountainLine,
   formatDistance,
   formatPlainNumber,
@@ -38,7 +39,7 @@ export function PremiumAltitudeProfileTemplate({ data, photoDataUrl, brandMarkSr
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'absolute', left: 246, right: 246, bottom: 420 }}>
         {mountainLine ? <span data-role="text" data-motion-kind="mountain" data-motion-order="18" style={{ color: C.fg, fontSize: 38, lineHeight: 1.2, fontWeight: 800, textAlign: 'center' }}>{mountainLine}</span> : null}
-        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 26 }}>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 26, fontFamily: METRIC_FONT_FAMILY }}>
           <span
             data-role="num"
             data-motion-kind="altitude-value"
@@ -54,7 +55,7 @@ export function PremiumAltitudeProfileTemplate({ data, photoDataUrl, brandMarkSr
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', position: 'absolute', right: 72, bottom: 450, gap: 40 }}>
         {data.visibleFields.duration ? <SmallMetric label="时长" value={data.duration || '--'} align="right" /> : null}
-        {data.visibleFields.date && data.date ? <SmallMetric label="日期" value={data.date} align="right" /> : null}
+        {data.visibleFields.date && data.date ? <SmallMetric label="日期" value={data.date} align="right" metric={false} /> : null}
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>

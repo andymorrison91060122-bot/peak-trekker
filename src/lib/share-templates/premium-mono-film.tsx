@@ -4,6 +4,7 @@ import {
   C,
   PhotoLayer,
   PosterShell,
+  METRIC_FONT_FAMILY,
   buildMountainLine,
   formatShareAltitude,
   fourStats,
@@ -12,7 +13,7 @@ import {
 
 export function PremiumMonoFilmTemplate({ data, photoDataUrl, brandMarkSrc }: ShareTemplateProps) {
   const mountainLine = buildMountainLine(data)
-  const stats = fourStats(data)
+  const stats = fourStats(data).filter((item) => item.key !== 'date')
   const showAltitude = hasShareAltitude(data)
 
   return (
@@ -45,13 +46,15 @@ export function PremiumMonoFilmTemplate({ data, photoDataUrl, brandMarkSrc }: Sh
         {mountainLine ? (
           <span style={{ color: C.fg, fontSize: 42, lineHeight: 1.18, fontWeight: 800, textAlign: 'left' }}>{mountainLine}</span>
         ) : null}
-        {showAltitude ? <>
-        <span style={{ color: C.fg2, fontSize: 28, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em', marginTop: 52 }}>最高海拔</span>
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 24 }}>
-          <span style={{ color: C.success, fontSize: 172, lineHeight: 0.9, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
-          <span style={{ color: C.success, fontSize: 58, lineHeight: 1, fontWeight: 800, marginLeft: 12 }}>m</span>
-        </div>
-        </> : null}
+        {showAltitude ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginTop: 52, gap: 24 }}>
+            <span style={{ color: C.fg2, fontSize: 28, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>最高海拔</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', fontFamily: METRIC_FONT_FAMILY }}>
+              <span style={{ color: C.success, fontSize: 172, lineHeight: 0.9, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
+              <span style={{ color: C.success, fontSize: 58, lineHeight: 1, fontWeight: 800, marginLeft: 12 }}>m</span>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 58, right: 58, top: 1388, alignItems: 'stretch', justifyContent: 'center' }}>
@@ -68,7 +71,7 @@ export function PremiumMonoFilmTemplate({ data, photoDataUrl, brandMarkSrc }: Sh
             }}
           >
             <span style={{ color: C.fg2, fontSize: 19, lineHeight: 1, fontWeight: 800, letterSpacing: '0.12em' }}>{item.label}</span>
-            <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 12, fontFamily: METRIC_FONT_FAMILY }}>
               <span style={{ color: C.fg, fontSize: 36, lineHeight: 1, fontWeight: 800 }}>{item.value}</span>
               {item.unit ? <span style={{ color: C.fg2, fontSize: 18, fontWeight: 800, marginLeft: 5 }}>{item.unit}</span> : null}
             </div>

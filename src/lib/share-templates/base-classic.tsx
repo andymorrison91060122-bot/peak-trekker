@@ -8,6 +8,7 @@ import {
   PosterShell,
   SHARE_TEMPLATE_PALETTE,
   TrailSvg,
+  METRIC_FONT_FAMILY,
   buildMountainLine,
   formatShareAltitude,
   hasShareTrackPoint,
@@ -83,7 +84,7 @@ export function BaseClassicTemplate({ data, photoDataUrl, brandMarkSrc }: ShareT
             {mountainLine}
           </span>
         ) : null}
-        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 34 }}>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 34, fontFamily: METRIC_FONT_FAMILY }}>
           <span
             data-role="num"
             data-motion-kind="altitude-value"

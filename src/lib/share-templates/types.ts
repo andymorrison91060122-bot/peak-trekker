@@ -1,6 +1,7 @@
 import type { ShareTrackPreview } from '../share-track-preview'
 
 export const BASIC_SHARE_TEMPLATE_IDS = [
+  'base-vertical-classic',
   'base-classic',
   'base-data',
 ] as const
@@ -58,4 +59,5 @@ export type ShareTemplateProps = {
   data: ShareTemplateData
   photoDataUrl?: string | null
   brandMarkSrc?: string
+  transparent?: boolean
 }

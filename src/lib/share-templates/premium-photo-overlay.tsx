@@ -7,6 +7,7 @@ import {
   PosterShell,
   SHARE_TEMPLATE_PALETTE,
   TopoSvg,
+  METRIC_FONT_FAMILY,
   formatDistance,
   formatPlainNumber,
   formatShareAltitude,
@@ -36,7 +37,7 @@ export function PremiumPhotoOverlayTemplate({ data, photoDataUrl, brandMarkSrc }
             {location}
           </span>
         ) : null}
-        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 44 }}>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 44, fontFamily: METRIC_FONT_FAMILY }}>
           <span
             data-role="num"
             data-motion-kind="altitude-value"
@@ -79,7 +80,7 @@ function OverlayMetric({
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       <span data-role="text" data-motion-kind="metric-label" data-motion-order="44" style={{ color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800, letterSpacing: '0.1em' }}>{label}</span>
-      <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 12, fontFamily: METRIC_FONT_FAMILY }}>
         <span
           data-role={typeof motionValue === 'number' ? 'num' : 'text'}
           data-motion-kind="metric-value"

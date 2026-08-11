@@ -5,6 +5,7 @@ import {
   DataRow,
   PhotoLayer,
   PhotoShade,
+  METRIC_FONT_FAMILY,
   PosterShell,
   buildMountainLine,
   formatShareAltitude,
@@ -84,7 +85,7 @@ export function BaseDataTemplate({ data, photoDataUrl, brandMarkSrc }: ShareTemp
         <span style={{ color: C.fg2, fontSize: 38, lineHeight: 1, fontWeight: 800, letterSpacing: '0.08em' }}>
           最高海拔
         </span>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 46 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 46, fontFamily: METRIC_FONT_FAMILY }}>
           <span style={{ color: C.success, fontSize: 238, lineHeight: 0.92, fontWeight: 800, letterSpacing: '0' }}>
             {formatShareAltitude(data)}
           </span>

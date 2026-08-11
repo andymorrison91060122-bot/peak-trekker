@@ -8,12 +8,17 @@ type ShareFont = {
 export type ShareFontBuffers = {
   regular: ArrayBuffer
   bold: ArrayBuffer
+  rajdhaniSemiBold: ArrayBuffer
+  rajdhaniBold: ArrayBuffer
 }
 
 const FONT_FAMILY = 'Noto Sans SC'
+const METRIC_FONT_FAMILY = 'Rajdhani'
 const LOCAL_FONT_FILES = {
   regular: 'NotoSansSC-Regular.otf',
   bold: 'NotoSansSC-Bold.otf',
+  rajdhaniSemiBold: 'Rajdhani-SemiBold.ttf',
+  rajdhaniBold: 'Rajdhani-Bold.ttf',
 }
 
 const REMOTE_FONT_URLS = {
@@ -25,13 +30,16 @@ const REMOTE_FONT_URLS = {
 const fontBufferCache = new Map<string, Promise<ShareFontBuffers>>()
 const fontCache = new Map<string, ShareFont[]>()
 
-function buildFonts(regular: ArrayBuffer, bold: ArrayBuffer) {
+function buildFonts(regular: ArrayBuffer, bold: ArrayBuffer, rajdhaniSemiBold: ArrayBuffer, rajdhaniBold: ArrayBuffer) {
   return [
     { name: FONT_FAMILY, data: regular, weight: 400, style: 'normal' as const },
     { name: FONT_FAMILY, data: bold, weight: 500, style: 'normal' as const },
     { name: FONT_FAMILY, data: bold, weight: 600, style: 'normal' as const },
     { name: FONT_FAMILY, data: bold, weight: 700, style: 'normal' as const },
     { name: FONT_FAMILY, data: bold, weight: 800, style: 'normal' as const },
+    { name: METRIC_FONT_FAMILY, data: rajdhaniSemiBold, weight: 600, style: 'normal' as const },
+    { name: METRIC_FONT_FAMILY, data: rajdhaniBold, weight: 700, style: 'normal' as const },
+    { name: METRIC_FONT_FAMILY, data: rajdhaniBold, weight: 800, style: 'normal' as const },
   ] satisfies ShareFont[]
 }
 
@@ -59,21 +67,25 @@ async function fetchRemoteFont(url: string) {
 }
 
 async function loadStaticFontBuffers(origin: string): Promise<ShareFontBuffers> {
-  const [regular, bold] = await Promise.all([
+  const [regular, bold, rajdhaniSemiBold, rajdhaniBold] = await Promise.all([
     fetchStaticFont(origin, LOCAL_FONT_FILES.regular),
     fetchStaticFont(origin, LOCAL_FONT_FILES.bold),
+    fetchStaticFont(origin, LOCAL_FONT_FILES.rajdhaniSemiBold),
+    fetchStaticFont(origin, LOCAL_FONT_FILES.rajdhaniBold),
   ])
 
-  return { regular, bold }
+  return { regular, bold, rajdhaniSemiBold, rajdhaniBold }
 }
 
-async function loadRemoteFontBuffers(): Promise<ShareFontBuffers> {
-  const [regular, bold] = await Promise.all([
+async function loadRemoteFontBuffers(origin: string): Promise<ShareFontBuffers> {
+  const [regular, bold, rajdhaniSemiBold, rajdhaniBold] = await Promise.all([
     fetchRemoteFont(REMOTE_FONT_URLS.regular),
     fetchRemoteFont(REMOTE_FONT_URLS.bold),
+    fetchStaticFont(origin, LOCAL_FONT_FILES.rajdhaniSemiBold),
+    fetchStaticFont(origin, LOCAL_FONT_FILES.rajdhaniBold),
   ])
 
-  return { regular, bold }
+  return { regular, bold, rajdhaniSemiBold, rajdhaniBold }
 }
 
 async function fetchShareFontBuffers(origin: string) {
@@ -84,10 +96,10 @@ async function fetchShareFontBuffers(origin: string) {
   }
 
   try {
-    return await loadRemoteFontBuffers()
+    return await loadRemoteFontBuffers(origin)
   } catch (error) {
     throw new Error(
-      `Font loading failed: no static fonts and remote Noto Sans SC fonts are unreachable. Please add ${LOCAL_FONT_FILES.regular} and ${LOCAL_FONT_FILES.bold} to public/fonts/. Cause: ${
+      `Font loading failed: no static fonts and remote Noto Sans SC fonts are unreachable. Please add ${LOCAL_FONT_FILES.regular}, ${LOCAL_FONT_FILES.bold}, ${LOCAL_FONT_FILES.rajdhaniSemiBold}, and ${LOCAL_FONT_FILES.rajdhaniBold} to public/fonts/. Cause: ${
         error instanceof Error ? error.message : 'unknown error'
       }`,
     )
@@ -119,8 +131,8 @@ export async function loadShareFonts(text: string, origin: string): Promise<Shar
   const cached = fontCache.get(cacheKey)
   if (cached) return cached
 
-  const { regular, bold } = await loadShareFontBuffers(origin)
-  const fonts = buildFonts(regular, bold)
+  const { regular, bold, rajdhaniSemiBold, rajdhaniBold } = await loadShareFontBuffers(origin)
+  const fonts = buildFonts(regular, bold, rajdhaniSemiBold, rajdhaniBold)
   fontCache.set(cacheKey, fonts)
   return fonts
 }

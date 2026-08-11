@@ -7,6 +7,7 @@ import {
   PhotoLayer,
   PhotoShade,
   PosterShell,
+  METRIC_FONT_FAMILY,
   buildMountainLine,
   formatPlainNumber,
   formatShareAltitude,
@@ -29,15 +30,15 @@ export function PremiumSummitCertificateTemplate({ data, photoDataUrl, brandMark
       <MountainRidgeSvg opacity={photoDataUrl ? 0.24 : 0.18} />
       <ElevationChart />
       {showAltitude && startAltitude !== null ? <span style={{ position: 'absolute', left: 120, top: 870, color: C.fg2, fontSize: 24, lineHeight: 1, fontWeight: 800 }}>
-        起点 {formatPlainNumber(startAltitude)}m
+        起点 <span style={{ fontFamily: METRIC_FONT_FAMILY }}>{formatPlainNumber(startAltitude)}m</span>
       </span> : null}
-      {showAltitude ? <span style={{ position: 'absolute', right: 120, top: 190, color: C.success, fontSize: 30, lineHeight: 1, fontWeight: 800 }}>
+      {showAltitude ? <span style={{ position: 'absolute', right: 120, top: 190, color: C.success, fontSize: 30, lineHeight: 1, fontWeight: 800, fontFamily: METRIC_FONT_FAMILY }}>
         {formatShareAltitude(data)}m
       </span> : null}
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'absolute', left: 72, right: 72, bottom: 430 }}>
         {mountainLine ? <span style={{ color: C.fg, fontSize: 40, lineHeight: 1.2, fontWeight: 800, textAlign: 'center' }}>{mountainLine}</span> : null}
-        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 28 }}>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 28, fontFamily: METRIC_FONT_FAMILY }}>
           <span style={{ color: C.success, fontSize: 132, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 50, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
         </div> : null}

@@ -27,9 +27,9 @@ import { buildShareTrackPreview } from '@/lib/share-track-preview'
 
 gsap.registerPlugin(useGSAP)
 
-type FacadeTemplateKey = 'minimal' | 'route' | 'alt' | 'profile' | 'photo'
+type FacadeTemplateKey = 'vertical' | 'minimal' | 'route' | 'alt' | 'profile' | 'photo'
 type ImprintScreen = 'facade' | 'method'
-type MotionFormat = 'comma' | 'dec1' | 'plus'
+type MotionFormat = 'comma' | 'dec1' | 'plus' | 'duration'
 type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
 
 type FacadeTemplate = {
@@ -54,6 +54,7 @@ function clearPressFallback(event: PressFallbackEvent) {
 }
 
 const TEMPLATE_ITEMS: FacadeTemplate[] = [
+  { key: 'vertical', template: 'base-vertical-classic', photoDataUrl: PHOTO_ALPINE },
   { key: 'minimal', template: 'base-classic' },
   { key: 'route', template: 'premium-photo-composite', photoDataUrl: PHOTO_ALPINE },
   { key: 'alt', template: 'premium-bold-number', photoDataUrl: PHOTO_ALPINE },
@@ -116,6 +117,12 @@ function deckPosition(offset: number, cardWidth: number) {
 function formatMotionValue(value: number, format?: string) {
   if (!Number.isFinite(value)) return '--'
   if (format === 'dec1') return value.toFixed(1)
+  if (format === 'duration') {
+    const totalSeconds = Math.max(0, Math.round(value))
+    const hours = Math.floor(totalSeconds / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+  }
   const rounded = String(Math.round(value))
   return format === 'plus' ? `+${rounded}` : rounded
 }

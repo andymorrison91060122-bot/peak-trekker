@@ -6,6 +6,7 @@ import {
   MountainGlyph,
   PhotoLayer,
   PosterShell,
+  METRIC_FONT_FAMILY,
   buildMountainLine,
   formatDistance,
   formatPlainNumber,
@@ -45,7 +46,7 @@ export function PremiumVerticalStoryTemplate({ data, photoDataUrl, brandMarkSrc 
 
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 58, right: 58, bottom: 310 }}>
         {mountainLine ? <span style={{ color: C.fg, fontSize: 42, lineHeight: 1.2, fontWeight: 800 }}>{mountainLine}</span> : null}
-        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 24 }}>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 24, fontFamily: METRIC_FONT_FAMILY }}>
           <span style={{ color: C.success, fontSize: 120, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
           <span style={{ color: C.success, fontSize: 46, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>m</span>
         </div> : null}
@@ -88,8 +89,8 @@ function StoryStat({
       }}
     >
       <StoryIcon kind={icon} />
-      <span style={{ color: C.fg, fontSize: 26, lineHeight: 1, fontWeight: 800, marginLeft: 10 }}>{value}</span>
-      {unit ? <span style={{ color: C.fg2, fontSize: 17, lineHeight: 1, fontWeight: 800, marginLeft: 4 }}>{unit}</span> : null}
+      <span style={{ color: C.fg, fontSize: 26, lineHeight: 1, fontWeight: 800, marginLeft: 10, fontFamily: METRIC_FONT_FAMILY }}>{value}</span>
+      {unit ? <span style={{ color: C.fg2, fontSize: 17, lineHeight: 1, fontWeight: 800, marginLeft: 4, fontFamily: METRIC_FONT_FAMILY }}>{unit}</span> : null}
     </div>
   )
 }

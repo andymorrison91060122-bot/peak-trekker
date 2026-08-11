@@ -1,7 +1,6 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const sourceExtension = 'ts'
@@ -61,14 +60,122 @@ async function measureChannelDelta(
 }
 
 describe('share render API field policy regression', () => {
-  test('registered share templates match the v0.4 ten-template pool', async () => {
+  test('TYPO-001 registers local Rajdhani only for exercise metric values and Latin units', () => {
+    const globalsSource = readSource('../src/app/globals.css')
+    const shareFontSource = readSource('../src/lib/fonts/load-share-fonts.ts')
+    const sharedSource = readSource('../src/lib/share-templates/shared.tsx')
+    const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
+    const shareClientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const metricTemplateSources = [
+      '../src/lib/share-templates/base-vertical-classic.tsx',
+      '../src/lib/share-templates/base-classic.tsx',
+      '../src/lib/share-templates/base-data.tsx',
+      '../src/lib/share-templates/premium-photo-composite.tsx',
+      '../src/lib/share-templates/premium-photo-overlay.tsx',
+      '../src/lib/share-templates/premium-bold-number.tsx',
+      '../src/lib/share-templates/premium-data-scatter.tsx',
+      '../src/lib/share-templates/premium-mono-film.tsx',
+      '../src/lib/share-templates/premium-altitude-profile.tsx',
+      '../src/lib/share-templates/premium-summit-certificate.tsx',
+      '../src/lib/share-templates/premium-vertical-story.tsx',
+    ]
+
+    for (const fileName of ['Rajdhani-SemiBold.ttf', 'Rajdhani-Bold.ttf', 'Rajdhani-OFL.txt']) {
+      assert.equal(existsSync(new URL(`../public/fonts/${fileName}`, import.meta.url)), true, `the packaged ${fileName} asset is required`)
+    }
+
+    assert.match(globalsSource, /font-family: 'Rajdhani';[\s\S]*?Rajdhani-SemiBold\.ttf[\s\S]*?font-weight: 600/)
+    assert.match(globalsSource, /font-family: 'Rajdhani';[\s\S]*?Rajdhani-Bold\.ttf[\s\S]*?font-weight: 700/)
+    assert.match(globalsSource, /font-family: 'Rajdhani';[\s\S]*?Rajdhani-Bold\.ttf[\s\S]*?font-weight: 800/)
+    assert.match(sharedSource, /export const METRIC_FONT_FAMILY = 'Rajdhani'/)
+    assert.match(shareFontSource, /Rajdhani-SemiBold\.ttf/)
+    assert.match(shareFontSource, /Rajdhani-Bold\.ttf/)
+    assert.match(shareFontSource, /name: METRIC_FONT_FAMILY,[\s\S]*?weight: 600/)
+    assert.match(shareFontSource, /name: METRIC_FONT_FAMILY,[\s\S]*?weight: 700/)
+    assert.match(shareFontSource, /name: METRIC_FONT_FAMILY,[\s\S]*?weight: 800/)
+
+    metricTemplateSources.forEach((templateSource) => {
+      assert.match(readSource(templateSource), /METRIC_FONT_FAMILY/, `${templateSource} must apply Rajdhani to its exercise metrics`)
+    })
+    assert.match(transparentSource, /METRIC_FONT_FAMILY/, 'transparent watermarks must use the same metric family')
+    assert.match(transparentSource, /METRIC_FONT_FAMILY/g)
+    assert.match(shareClientSource, /METRIC_FONT_FAMILY/, 'the browser editor must match exported metric typography')
+
+    assert.match(sharedSource, /metric = true,[\s\S]*?fontFamily: metric \? METRIC_FONT_FAMILY : 'Noto Sans SC'/, 'shared metric rows must keep an explicit non-metric escape hatch')
+    assert.match(readSource('../src/lib/share-templates/premium-altitude-profile.tsx'), /SmallMetric label="日期" value=\{data\.date\} align="right" metric=\{false\}/, 'date metadata must opt out of the metric font')
+    assert.match(readSource('../src/lib/share-templates/premium-mono-film.tsx'), /const stats = fourStats\(data\)\.filter\(\(item\) => item\.key !== 'date'\)/, 'mono-film must not duplicate its header date in the stat row')
+    assert.match(transparentSource.match(/function WatermarkMonoFilm[\s\S]*?(?=\nfunction WatermarkAltitudeProfile)/)?.[0] ?? '', /const stats = fourStats\(data\)\.filter\(\(item\) => item\.key !== 'date'\)/, 'transparent mono-film must use the same three-stat structure')
+    assert.doesNotMatch(sharedSource.match(/export function SourcePill[\s\S]*?(?=export function BrandFooter)/)?.[0] ?? '', /METRIC_FONT_FAMILY/, 'source identity must retain the base font')
+    assert.doesNotMatch(sharedSource.match(/export function BrandFooter[\s\S]*?(?=export function PreviewWatermarkLayer)/)?.[0] ?? '', /METRIC_FONT_FAMILY/, 'brand identity must retain the base font')
+
+    const verticalSource = readSource('../src/lib/share-templates/base-vertical-classic.tsx')
+    assert.match(verticalSource, /key: 'duration',[\s\S]*?motionFormat: 'duration',[\s\S]*?motionValue: durationToSeconds\(data\.duration\)/, 'the existing duration motion contract must remain intact')
+  })
+
+  test('SHARE-001B registers the free vertical classic template first and shares one normal/transparent content skeleton', async () => {
+    const {
+      BASIC_SHARE_TEMPLATE_IDS,
+      SHARE_RENDER_TEMPLATE_IDS,
+    } = await loadShareTemplateTypes()
+    const verticalTemplatePath = new URL('../src/lib/share-templates/base-vertical-classic.tsx', import.meta.url)
+
+    assert.deepEqual([...BASIC_SHARE_TEMPLATE_IDS], ['base-vertical-classic', 'base-classic', 'base-data'])
+    assert.equal(SHARE_RENDER_TEMPLATE_IDS.length, 11)
+    assert.equal(SHARE_RENDER_TEMPLATE_IDS[0], 'base-vertical-classic')
+    assert.equal(existsSync(verticalTemplatePath), true, 'Vertical must have a dedicated shared template component')
+
+    const registrySource = readSource('../src/lib/share-templates/registry.tsx')
+    const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
+    const shareClientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const imprintClientSource = readSource('../src/app/(main)/imprint/ImprintClient.tsx')
+    const typesSource = readSource('../src/lib/share-templates/types.ts')
+    const verticalSource = readFileSync(verticalTemplatePath, 'utf8')
+
+    assert.match(registrySource, /id: 'base-vertical-classic', label: 'Vertical', tier: 'basic', Component: BaseVerticalClassicTemplate/)
+    assert.match(transparentSource, /template === 'base-vertical-classic'[\s\S]*<BaseVerticalClassicTemplate data=\{data\} transparent brandMarkSrc=\{brandMarkSrc\} \/>/)
+    assert.match(typesSource, /transparent\?: boolean/)
+    assert.match(verticalSource, /transparent \? null : <PhotoLayer/)
+    assert.match(verticalSource, /transparent \? null : <PhotoShade/)
+    assert.match(verticalSource, /const heroMetric: VerticalMetric \| null = hasShareAltitude\(data\)[\s\S]*?key: 'altitude',[\s\S]*?label: '最高海拔'/, 'the measured altitude must be the first hero metric')
+    assert.match(verticalSource, /data\.visibleFields\.elevationGain[\s\S]*?key: 'elevationGain',[\s\S]*?label: '爬升'/, 'elevation gain must be the truthful hero fallback')
+    assert.match(verticalSource, /const distanceMetric: VerticalMetric = \{[\s\S]*?key: 'distance'/)
+    assert.match(verticalSource, /const durationMetric: VerticalMetric \| null = data\.visibleFields\.duration[\s\S]*?key: 'duration'/)
+    assert.match(verticalSource, /return \[\s*\.\.\.\(heroMetric \? \[heroMetric\] : \[\]\),\s*distanceMetric,\s*\.\.\.\(durationMetric \? \[durationMetric\] : \[\]\)/, 'the hero, distance, and duration order must remain vertical and compact')
+    assert.match(verticalSource, /left: 0,\s*width: POSTER_WIDTH,\s*top: 320/, 'the centered data zone needs an explicit Satori-safe canvas width')
+    assert.match(verticalSource, /key=\{metric\.key\} style=\{\{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 \}\}/, 'each metric must be a centered vertical group')
+    assert.match(verticalSource, /data-motion-kind="metric-label"[\s\S]*?\{metric\.label\}/, 'each metric must render its label before the value row')
+    assert.match(verticalSource, /color: isHero \? C\.primary : C\.fg,[\s\S]*?fontSize: isHero \? 92 : 78/, 'only the altitude or gain hero value is green and larger')
+    assert.match(verticalSource, /motionFormat\?: 'decimal-1' \| 'duration' \| 'integer'/, 'Vertical must keep duration inside the existing numeric motion contract')
+    assert.match(verticalSource, /function durationToSeconds\(duration: string\)/, 'Vertical needs a numeric duration value for the existing counter')
+    assert.match(verticalSource, /key: 'duration',[\s\S]*?motionFormat: 'duration',[\s\S]*?motionValue: durationToSeconds\(data\.duration\)/, 'duration must participate in the same numeric entry motion as the other metrics')
+    assert.match(verticalSource, /fontFamily: 'Noto Sans SC',[\s\S]*?fontWeight: 700/, 'the label must use the existing Noto Sans SC weight available to both browser and renderer')
+    assert.match(verticalSource, /fontFamily: METRIC_FONT_FAMILY,[\s\S]*?fontWeight: 800/, 'metric values and units must use the packaged Rajdhani resource')
+    assert.match(verticalSource, /marginLeft: 8,[\s\S]*?fontWeight: 700/, 'units must remain attached to their numeric value without changing the layout zones')
+    assert.match(verticalSource, /y: 808,\s*width: 712,\s*height: 420/, 'route bounds must stay in the lower middle zone without changing the shared renderer')
+    assert.match(verticalSource, /data-motion-phase="brand"[\s\S]*?left: 0,[\s\S]*?width: POSTER_WIDTH,[\s\S]*?top: 1404,[\s\S]*?flexDirection: 'column',[\s\S]*?gap: 16,[\s\S]*?Peak Trekker[\s\S]*?<SourcePill/, 'brand and source must share one centered lower wrapper')
+    assert.doesNotMatch(verticalSource, /data-motion-phase="source"/, 'Vertical must not retain an independent source motion phase')
+    assert.match(shareClientSource, /\{ id: 'base-vertical-classic', label: 'Vertical', variant: 'vertical' \}/)
+    const verticalPreviewSource = shareClientSource.match(/function VerticalClassicHeroPreview[\s\S]*?(?=\nfunction HeroPreview)/)?.[0]
+    assert.ok(verticalPreviewSource, 'the vertical editor preview should be a narrow real-template branch')
+    assert.match(verticalPreviewSource, /getShareTemplateComponent\(template\)\(\{ data: templateData, photoDataUrl \}\)/)
+    assert.match(shareClientSource, /template === 'base-vertical-classic'[\s\S]*?<VerticalClassicHeroPreview/)
+    assert.match(shareClientSource, /phaseTargets: \{ data: \[\], route: \[\], brand: \[\] \}/, 'the Vertical motion path must contain only data, route, and brand phases')
+    assert.doesNotMatch(shareClientSource, /timeline\.to\(phaseTargets\.source/, 'brand wrapper must animate with its source pill')
+    assert.match(shareClientSource, /if \(format === 'duration'\)/, 'Share must format the shared duration counter instead of treating it as a static third metric')
+    assert.match(imprintClientSource, /type MotionFormat = 'comma' \| 'dec1' \| 'plus' \| 'duration'/, 'Imprint must accept the shared duration counter format')
+    assert.match(imprintClientSource, /if \(format === 'duration'\)/, 'Imprint must format the duration counter during its existing metric timeline')
+    assert.match(shareClientSource, /共 \{SHARE_TEMPLATE_OPTIONS\.length\} 款/)
+    assert.match(imprintClientSource, /const TEMPLATE_ITEMS: FacadeTemplate\[\] = \[\s*\{ key: 'vertical', template: 'base-vertical-classic', photoDataUrl: PHOTO_ALPINE \}/)
+  })
+
+  test('registered share templates include the SHARE-001B free vertical template', async () => {
     const {
       BASIC_SHARE_TEMPLATE_IDS,
       PREMIUM_SHARE_TEMPLATE_IDS,
       SHARE_RENDER_TEMPLATE_IDS,
     } = await loadShareTemplateTypes()
 
-    assert.deepEqual([...BASIC_SHARE_TEMPLATE_IDS], ['base-classic', 'base-data'])
+    assert.deepEqual([...BASIC_SHARE_TEMPLATE_IDS], ['base-vertical-classic', 'base-classic', 'base-data'])
     assert.deepEqual([...PREMIUM_SHARE_TEMPLATE_IDS], [
       'premium-photo-composite',
       'premium-photo-overlay',
@@ -79,7 +186,7 @@ describe('share render API field policy regression', () => {
       'premium-summit-certificate',
       'premium-vertical-story',
     ])
-    assert.equal(SHARE_RENDER_TEMPLATE_IDS.length, 10)
+    assert.equal(SHARE_RENDER_TEMPLATE_IDS.length, 11)
     const registeredTemplates = [...SHARE_RENDER_TEMPLATE_IDS] as readonly string[]
     const removedBasicTemplate = ['base', 'minimal'].join('-')
     const removedPremiumTemplate = ['premium', 'split', 'view'].join('-')
@@ -111,6 +218,7 @@ describe('share render API field policy regression', () => {
     assert.doesNotMatch(transparentSource, /function WatermarkPhoto\(/)
 
     for (const template of [
+      'base-vertical-classic',
       'base-data',
       'premium-photo-composite',
       'premium-photo-overlay',
@@ -125,17 +233,18 @@ describe('share render API field policy regression', () => {
     }
   })
 
-  test('SHARE-001A compacts only approved transparent watermarks without changing Cert or canvas anchors', () => {
+  test('SHARE-001A compacts only approved transparent watermarks without changing Cert layout or canvas anchors', () => {
     const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
     const sharedSource = readSource('../src/lib/share-templates/shared.tsx')
     const certificateSource = transparentSource.match(/function WatermarkCertificate[\s\S]*?(?=\nfunction WatermarkVerticalStory)/)?.[0]
 
     assert.ok(certificateSource, 'Cert renderer should remain present')
-    assert.equal(
-      createHash('sha256').update(certificateSource).digest('hex'),
-      '32fbc757dc4b56dbdc6fa0065077e64ba62edf66f410c077596a780b24991c4a',
-      'SHARE-001A must leave the Cert renderer byte-identical',
-    )
+    assert.match(certificateSource, /<CertificateElevationChart \/>/, 'Cert chart must remain present')
+    assert.match(certificateSource, /left: 120, top: 870/, 'Cert route anchor must remain unchanged')
+    assert.match(certificateSource, /right: 120, top: 190/, 'Cert upper metrics anchor must remain unchanged')
+    assert.match(certificateSource, /bottom: 430/, 'Cert primary metric anchor must remain unchanged')
+    assert.match(certificateSource, /bottom: 260/, 'Cert brand anchor must remain unchanged')
+    assert.match(certificateSource, /fontFamily: METRIC_FONT_FAMILY/, 'TYPO-001 may change only Cert exercise metric typography')
 
     assert.match(transparentSource, /const TRANSPARENT_WATERMARK_LAYOUT =/)
     for (const template of [
@@ -213,6 +322,7 @@ describe('share render API field policy regression', () => {
     const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
     const fontSource = readSource('../src/lib/fonts/load-share-fonts.ts')
     const serverTemplateSources = [
+      '../src/lib/share-templates/base-vertical-classic.tsx',
       '../src/lib/share-templates/base-classic.tsx',
       '../src/lib/share-templates/base-data.tsx',
       '../src/lib/share-templates/premium-photo-composite.tsx',
@@ -345,6 +455,26 @@ describe('share render API field policy regression', () => {
     assert.doesNotMatch(monoFilmSource, /<TrailSvg/)
   })
 
+  test('premium mono-film server render keeps a vertical hero and three centered stats', () => {
+    const normalRenderer = readSource('../src/lib/share-templates/premium-mono-film.tsx')
+    const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
+    const transparentRenderer = transparentSource.match(/function WatermarkMonoFilm[\s\S]*?(?=\nfunction WatermarkAltitudeProfile)/)?.[0]
+
+    assert.ok(transparentRenderer, 'transparent mono-film renderer should remain present')
+
+    for (const [kind, source] of [['normal', normalRenderer], ['transparent', transparentRenderer]] as const) {
+      assert.match(source, /const stats = fourStats\(data\)\.filter\(\(item\) => item\.key !== 'date'\)/, `${kind} output must omit the duplicate DATE stat`)
+      assert.match(
+        source,
+        /showAltitude \? \(\s*<div style=\{\{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginTop: 52, gap: 24 \}\}>[\s\S]*?最高海拔[\s\S]*?fontFamily: METRIC_FONT_FAMILY/,
+        `${kind} output must keep the altitude label above its Rajdhani value with an explicit vertical gap`,
+      )
+      assert.doesNotMatch(source, /item\.key === 'date'/, `${kind} output must not retain a fourth date column`)
+      assert.match(source, /position: 'absolute', left: 58, right: 58, top:[\s\S]*?alignItems: 'stretch', justifyContent: 'center'/, `${kind} stats must retain their centered canvas region`)
+      assert.match(source, /flexDirection: 'column',[\s\S]*?alignItems: 'center',[\s\S]*?width: `\$\{100 \/ Math\.max\(1, stats\.length\)\}%`/, `${kind} output must keep equal-width centered stat columns`)
+    }
+  })
+
   test('premium mono-film export applies grayscale after Satori while the browser preview stays grayscale', () => {
     const routeSource = readSource('../src/app/api/share/render/route.ts')
     const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
@@ -383,7 +513,7 @@ describe('share render API field policy regression', () => {
     }).composite([{ input: blueHalf, left: 540, top: 0 }]).png().toBuffer()
     const rawPhotoDataUrl = `data:image/png;base64,${colorPhoto.toString('base64')}`
 
-    const renderPhoto = (grayscale: boolean) => React.createElement(
+    const renderPhoto = () => React.createElement(
       'div',
       { style: { display: 'flex', position: 'relative', width: 1080, height: 1920, background: '#0a0c0e' } },
       React.createElement('img', {
@@ -398,7 +528,7 @@ describe('share render API field policy regression', () => {
         },
       }),
     )
-    const svg = await renderShareSvg({ element: renderPhoto(false) })
+    const svg = await renderShareSvg({ element: renderPhoto() })
     const brandDataUrl = 'data:image/png;base64,YnJhbmQ='
     const svgWithBrand = svg.replace('</svg>', `<image href="${brandDataUrl}" width="1" height="1"/></svg>`)
     const filteredSvg = applyPhotoGrayscaleSvgFilter(svgWithBrand, rawPhotoDataUrl)
@@ -526,7 +656,8 @@ describe('share render API field policy regression', () => {
 
     assert.ok(thumbnailRow)
     assert.match(thumbnailRow, /data-testid="share-template-progress"/)
-    assert.match(thumbnailRow, /共 10 款/)
+    assert.match(thumbnailRow, /共 \{SHARE_TEMPLATE_OPTIONS\.length\} 款/)
+    assert.doesNotMatch(thumbnailRow, /共 10 款/)
     assert.match(thumbnailRow, /scrollPaddingInline: 16/)
   })
 

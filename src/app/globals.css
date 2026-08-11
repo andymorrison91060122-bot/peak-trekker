@@ -3,6 +3,30 @@
 @import "tailwindcss";
 @import "./components.css";
 
+@font-face {
+  font-family: 'Rajdhani';
+  src: url('/fonts/Rajdhani-SemiBold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rajdhani';
+  src: url('/fonts/Rajdhani-Bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rajdhani';
+  src: url('/fonts/Rajdhani-Bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+}
+
 :root {
   /* === Legacy aliases — migrate to semantic tokens during page rewrites === */
   --bg-primary: #121416;

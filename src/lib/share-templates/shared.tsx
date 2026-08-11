@@ -7,6 +7,7 @@ import type { ShareTemplateData } from './types'
 
 export const POSTER_WIDTH = 1080
 export const POSTER_HEIGHT = 1920
+export const METRIC_FONT_FAMILY = 'Rajdhani'
 
 export const C = {
   bg: '#121416',
@@ -233,6 +234,7 @@ export function SmallMetric({
   unit,
   align = 'left',
   accent = false,
+  metric = true,
   motionValue,
   motionFormat,
 }: {
@@ -241,13 +243,14 @@ export function SmallMetric({
   unit?: string
   align?: 'left' | 'right' | 'center'
   accent?: boolean
+  metric?: boolean
   motionValue?: number
   motionFormat?: 'comma' | 'dec1' | 'plus'
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start' }}>
       <span data-role="text" data-motion-kind="metric-label" data-motion-order="44" style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.14em' }}>{label}</span>
-      <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 14, fontFamily: metric ? METRIC_FONT_FAMILY : 'Noto Sans SC' }}>
         <span
           data-role={typeof motionValue === 'number' ? 'num' : 'text'}
           data-motion-kind="metric-value"
@@ -519,7 +522,7 @@ export function DataRow({ data }: { data: ShareTemplateData }) {
           <span data-role="text" data-motion-kind="metric-label" data-motion-order="44" style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>
             {item.label}
           </span>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', marginTop: 18, fontFamily: METRIC_FONT_FAMILY }}>
             <span data-role="text" data-motion-kind="metric-value" data-motion-order="52" style={{ color: C.fg, fontSize: 50, lineHeight: 1, fontWeight: 800, letterSpacing: '0' }}>
               {item.value}
             </span>

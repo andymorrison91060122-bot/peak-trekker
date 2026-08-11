@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/Icons'
 import { BrandMask } from '@/components/brand/BrandMask'
 import { trackEvent } from '@/lib/analytics/client'
-import { POSTER_HEIGHT, POSTER_WIDTH, formatShareAltitude, hasShareAltitude } from '@/lib/share-templates/shared'
+import { METRIC_FONT_FAMILY, POSTER_HEIGHT, POSTER_WIDTH, formatShareAltitude, hasShareAltitude } from '@/lib/share-templates/shared'
 import { getShareTemplateComponent } from '@/lib/share-templates/registry'
 import type { ShareRenderTemplate, ShareTemplateData } from '@/lib/share-templates/types'
 import { buildShareTrackPreview, buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, SHARE_TRACK_RENDER_PROFILES, type ShareTrackPreview } from '@/lib/share-track-preview'
@@ -26,7 +26,7 @@ type ExportAction = 'save' | 'share' | 'transparent' | null
 type ActiveExportAction = Exclude<ExportAction, null>
 type ExportSuccessAction = 'save' | 'share-fallback' | 'transparent-save' | null
 type TemplateId = ShareRenderTemplate
-type BasicTemplateId = Extract<TemplateId, 'base-classic' | 'base-data'>
+type BasicTemplateId = Extract<TemplateId, 'base-vertical-classic' | 'base-classic' | 'base-data'>
 type AdvancedTemplateId = Exclude<TemplateId, BasicTemplateId>
 type ShareFieldKey =
   | 'altitude'
@@ -82,7 +82,7 @@ type FieldConfig = {
 type BasicTemplate = {
   id: BasicTemplateId
   label: string
-  variant: 'classic' | 'data'
+  variant: 'vertical' | 'classic' | 'data'
 }
 
 type AdvancedTemplate = {
@@ -135,6 +135,7 @@ const FIELD_CONFIGS: FieldConfig[] = [
 ]
 
 const BASIC_TEMPLATES: BasicTemplate[] = [
+  { id: 'base-vertical-classic', label: 'Vertical', variant: 'vertical' },
   { id: 'base-classic', label: 'Classic', variant: 'classic' },
   { id: 'base-data', label: 'Data', variant: 'data' },
 ]
@@ -158,6 +159,8 @@ const SHARE_TEMPLATE_OPTIONS: ShareTemplateOption[] = [
   ...BASIC_TEMPLATES.map((template) => ({ tier: 'basic' as const, template })),
   ...ADVANCED_TEMPLATES.map((template) => ({ tier: 'advanced' as const, template })),
 ]
+
+const DEFAULT_SHARE_CLIENT_TEMPLATE = SHARE_TEMPLATE_OPTIONS[0]!.template.id
 
 const initialFieldToggles = FIELD_CONFIGS.reduce<Record<ShareFieldKey, boolean>>((next, field) => {
   next[field.key] = field.defaultOn
@@ -254,6 +257,12 @@ function syncSharePosterScale(shell: HTMLElement) {
 function formatMotionValue(value: number, format: string | undefined) {
   if (!Number.isFinite(value)) return '--'
   if (format === 'decimal-1') return value.toFixed(1)
+  if (format === 'duration') {
+    const totalSeconds = Math.max(0, Math.round(value))
+    const hours = Math.floor(totalSeconds / 3600)
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+  }
   return String(Math.round(value))
 }
 
@@ -378,19 +387,32 @@ function stripDataUrlPrefix(dataUrl: string | null) {
 function getPosterMotionTargets(root: HTMLElement) {
   const poster = root.querySelector<HTMLElement>('[data-stage="poster"]')
   if (!poster) {
-    return { poster: null, textTargets: [], numberTargets: [], drawTargets: [] }
+    return {
+      poster: null,
+      textTargets: [],
+      numberTargets: [],
+      drawTargets: [],
+      phaseTargets: { data: [], route: [], brand: [] },
+    }
   }
   return {
     poster,
-    textTargets: Array.from(poster.querySelectorAll<HTMLElement>('[data-lit="text"]')),
+    textTargets: Array.from(poster.querySelectorAll<HTMLElement>('[data-lit="text"], [data-role="text"]')),
     numberTargets: Array.from(poster.querySelectorAll<HTMLElement>('[data-role="num"]')),
     drawTargets: Array.from(poster.querySelectorAll<SVGPathElement>('path[data-role="draw"]')),
+    phaseTargets: {
+      data: Array.from(poster.querySelectorAll<HTMLElement>('[data-motion-phase="data"]')),
+      route: Array.from(poster.querySelectorAll<HTMLElement>('[data-motion-phase="route"]')),
+      brand: Array.from(poster.querySelectorAll<HTMLElement>('[data-motion-phase="brand"]')),
+    },
   }
 }
 
 function setPosterMotionTerminal(root: HTMLElement) {
-  const { textTargets, numberTargets, drawTargets } = getPosterMotionTargets(root)
-  gsap.killTweensOf([...textTargets, ...numberTargets, ...drawTargets])
+  const { textTargets, numberTargets, drawTargets, phaseTargets } = getPosterMotionTargets(root)
+  const verticalTargets = Object.values(phaseTargets).flat()
+  gsap.killTweensOf([...textTargets, ...numberTargets, ...drawTargets, ...verticalTargets])
+  gsap.set(verticalTargets, { autoAlpha: 1, y: 0, clearProps: 'willChange' })
   gsap.set(textTargets, { autoAlpha: 1, y: 0, clearProps: 'willChange' })
   numberTargets.forEach((target) => {
     const value = Number.parseFloat(target.dataset.val ?? '')
@@ -403,9 +425,11 @@ function setPosterMotionTerminal(root: HTMLElement) {
 
 function preparePosterMotionInitialState(root: HTMLElement, options: { retry?: boolean } = {}) {
   const retry = options.retry ?? true
-  const { textTargets, drawTargets } = getPosterMotionTargets(root)
-  const targets = [...textTargets, ...drawTargets]
+  const { textTargets, drawTargets, phaseTargets } = getPosterMotionTargets(root)
+  const verticalTargets = Object.values(phaseTargets).flat()
+  const targets = [...textTargets, ...drawTargets, ...verticalTargets]
   gsap.killTweensOf(targets)
+  gsap.set(verticalTargets, { autoAlpha: 0, y: 12, willChange: 'transform, opacity' })
   gsap.set(textTargets, { autoAlpha: 0, y: 0, willChange: 'opacity' })
 
   let prepared = 0
@@ -455,8 +479,12 @@ function preparePosterMotionInitialState(root: HTMLElement, options: { retry?: b
 }
 
 function buildPosterRelightTimeline(root: HTMLElement) {
-  const { textTargets, numberTargets, drawTargets } = getPosterMotionTargets(root)
-  const targets = [...textTargets, ...numberTargets, ...drawTargets]
+  const { poster, textTargets, numberTargets, drawTargets, phaseTargets } = getPosterMotionTargets(root)
+  const verticalTargets = Object.values(phaseTargets).flat()
+  const verticalClassicTextTargets = poster?.querySelector('[data-template="base-vertical-classic"]')
+    ? textTargets
+    : []
+  const targets = [...textTargets, ...numberTargets, ...drawTargets, ...verticalTargets]
   gsap.killTweensOf(targets)
   drawTargets.forEach((target) => {
     if (target.dataset.motionPrepareStatus !== 'prepared' && process.env.NODE_ENV !== 'production') {
@@ -465,6 +493,65 @@ function buildPosterRelightTimeline(root: HTMLElement) {
   })
 
   const timeline = gsap.timeline()
+  if (verticalTargets.length > 0) {
+    timeline.to(phaseTargets.data, {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.42,
+      ease: 'power2.out',
+      clearProps: 'willChange',
+    }, 0)
+    timeline.to(verticalClassicTextTargets, {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.32,
+      ease: 'power2.out',
+      clearProps: 'willChange',
+    }, 0.04)
+
+    numberTargets.forEach((target, index) => {
+      const endValue = Number.parseFloat(target.dataset.val ?? '')
+      if (!Number.isFinite(endValue)) return
+      const format = target.dataset.fmt
+      const state = { value: 0 }
+      target.textContent = formatMotionValue(0, format)
+      timeline.to(state, {
+        value: endValue,
+        duration: 0.8,
+        ease: 'power2.out',
+        onUpdate: () => {
+          target.textContent = formatMotionValue(state.value, format)
+        },
+        onComplete: () => {
+          target.textContent = formatMotionValue(endValue, format)
+        },
+      }, 0.1 + index * 0.05)
+    })
+
+    timeline.to(phaseTargets.route, {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.42,
+      ease: 'power2.out',
+      clearProps: 'willChange',
+    }, 0.44)
+    timeline.to(drawTargets, {
+      strokeDashoffset: 0,
+      duration: 1.12,
+      ease: 'power2.out',
+      stagger: 0.08,
+      clearProps: 'willChange',
+    }, 0.48)
+    timeline.to(phaseTargets.brand, {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.36,
+      ease: 'power2.out',
+      clearProps: 'willChange',
+    }, 0.96)
+    return timeline
+  }
+
   if (textTargets.length > 0) {
     timeline.to(textTargets, {
       autoAlpha: 1,
@@ -1306,7 +1393,7 @@ function BaseHeroPreview({
         {showAltitude ? <div
           style={{
             color: 'var(--color-success)',
-            fontFamily: 'var(--font-mono)',
+            fontFamily: METRIC_FONT_FAMILY,
             fontSize: isData ? 68 : 54,
             lineHeight: 0.95,
             fontWeight: 700,
@@ -1318,7 +1405,7 @@ function BaseHeroPreview({
           <span data-role="num" data-motion-kind="altitude" data-val={formatShareAltitude(data)} data-fmt="integer">
             {formatShareAltitude(data)}
           </span>
-          <span style={{ fontSize: isData ? 22 : 19, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
+          <span style={{ fontSize: isData ? 22 : 19, marginLeft: 3, fontFamily: METRIC_FONT_FAMILY, fontWeight: 800 }}>m</span>
         </div> : null}
         {isData && mountainLine ? (
           <div
@@ -1378,7 +1465,7 @@ function BaseHeroPreview({
             <div
               style={{
                 marginTop: 4,
-                fontFamily: 'var(--font-mono)',
+                fontFamily: METRIC_FONT_FAMILY,
                 fontSize: 18,
                 lineHeight: 1,
                 fontWeight: 700,
@@ -1395,7 +1482,7 @@ function BaseHeroPreview({
                 <span data-lit="text">{item.value}</span>
               )}
               {item.unit ? (
-                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--color-on-surface-variant)', marginLeft: 2 }}>
+                <span style={{ fontFamily: METRIC_FONT_FAMILY, fontSize: 10, color: 'var(--color-on-surface-variant)', marginLeft: 2 }}>
                   {item.unit}
                 </span>
               ) : null}
@@ -1406,6 +1493,37 @@ function BaseHeroPreview({
 
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 18 }}>
         <BrandFooter data={data} />
+      </div>
+    </div>
+  )
+}
+
+function VerticalClassicHeroPreview({
+  data,
+  toggles,
+  template,
+  photoDataUrl,
+}: {
+  data: ShareActivityData
+  toggles: Record<ShareFieldKey, boolean>
+  template: Extract<BasicTemplateId, 'base-vertical-classic'>
+  photoDataUrl: string | null
+}) {
+  const templateData = toShareTemplateData(data, toggles)
+  const templateElement = getShareTemplateComponent(template)({ data: templateData, photoDataUrl })
+
+  return (
+    <div data-testid="share-hero-preview" data-template={template} style={heroPreviewFrameStyle}>
+      <div
+        style={{
+          width: POSTER_WIDTH,
+          height: POSTER_HEIGHT,
+          transform: `scale(${SHARE_POSTER_BASE_WIDTH / POSTER_WIDTH})`,
+          transformOrigin: 'top left',
+          pointerEvents: 'none',
+        }}
+      >
+        {templateElement}
       </div>
     </div>
   )
@@ -1511,9 +1629,9 @@ function PremiumHeroPreview({
           ) : null}
           {showAltitude ? <>
           <div data-lit="text" style={{ color: 'var(--color-on-surface-variant)', fontSize: 8, fontWeight: 800, letterSpacing: '0.14em', marginTop: 16 }}>最高海拔</div>
-          <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 10, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 10, color: 'var(--color-success)', fontFamily: METRIC_FONT_FAMILY }}>
             <span data-role="num" data-motion-kind="altitude" data-val={formatShareAltitude(data)} data-fmt="integer" style={{ fontSize: 62, lineHeight: 0.9, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
-            <span style={{ fontSize: 18, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
+            <span style={{ fontSize: 18, marginLeft: 3, fontFamily: METRIC_FONT_FAMILY, fontWeight: 800 }}>m</span>
           </div>
           </> : null}
         </div>
@@ -1547,9 +1665,9 @@ function PremiumHeroPreview({
         </div>
         <div style={{ position: 'absolute', left: 18, right: 18, bottom: 122, textAlign: 'left' }}>
           {mountainLine ? <div data-lit="text" style={{ color: 'var(--color-on-surface)', fontSize: 13, lineHeight: 1.25, fontWeight: 800 }}>{mountainLine}</div> : null}
-          {showAltitude ? <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+          {showAltitude ? <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: METRIC_FONT_FAMILY }}>
             <span data-role="num" data-motion-kind="altitude" data-val={formatShareAltitude(data)} data-fmt="integer" style={{ fontSize: 44, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
-            <span style={{ fontSize: 16, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
+            <span style={{ fontSize: 16, marginLeft: 3, fontFamily: METRIC_FONT_FAMILY, fontWeight: 800 }}>m</span>
           </div> : null}
         </div>
         <StoryPreviewDataBar data={data} toggles={toggles} />
@@ -1574,9 +1692,9 @@ function PremiumHeroPreview({
         <div style={{ position: 'absolute', left: 18, top: 74, width: 104 }}>
           {overlayName ? <div data-lit="text" style={{ color: 'var(--color-on-surface)', fontSize: 14, lineHeight: 1.18, fontWeight: 800 }}>{overlayName}</div> : null}
           {overlayLocation ? <div data-lit="text" style={{ color: 'var(--color-on-surface-variant)', fontSize: 11, lineHeight: 1.1, fontWeight: 800, marginTop: 9 }}>{overlayLocation}</div> : null}
-          {showAltitude ? <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 20, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+          {showAltitude ? <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 20, color: 'var(--color-success)', fontFamily: METRIC_FONT_FAMILY }}>
             <span data-role="num" data-motion-kind="altitude" data-val={formatShareAltitude(data)} data-fmt="integer" style={{ fontSize: 42, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
-            <span style={{ fontSize: 14, marginLeft: 2, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
+            <span style={{ fontSize: 14, marginLeft: 2, fontFamily: METRIC_FONT_FAMILY, fontWeight: 800 }}>m</span>
           </div> : null}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 13, marginTop: 24 }}>
             <PremiumMetric label="总距离" value={formatDistance(data.distance)} unit="km" />
@@ -1602,7 +1720,7 @@ function PremiumHeroPreview({
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 12%, transparent), color-mix(in srgb, var(--color-surface) 86%, transparent) 78%, var(--color-surface))' }} />
         {showAltitude ? <>
         <div data-lit="text" style={{ position: 'absolute', left: 16, top: 54, color: 'rgba(255,255,255,0.32)', fontSize: 13, fontWeight: 800, letterSpacing: '0.08em' }}>最高海拔</div>
-        <div style={{ position: 'absolute', left: 14, right: 14, top: 78, color: 'rgba(255,255,255,0.25)', fontFamily: 'var(--font-mono)', fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
+        <div style={{ position: 'absolute', left: 14, right: 14, top: 78, color: 'rgba(255,255,255,0.25)', fontFamily: METRIC_FONT_FAMILY, fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
           <span data-role="num" data-motion-kind="altitude" data-val={formatShareAltitude(data)} data-fmt="integer">
             {formatShareAltitude(data)}
           </span>
@@ -1611,9 +1729,9 @@ function PremiumHeroPreview({
         </> : null}
         <div style={{ position: 'absolute', left: 16, right: 16, bottom: 104, textAlign: 'left' }}>
           {mountainLine ? <div data-lit="text" style={{ color: 'var(--color-on-surface)', fontSize: 14, lineHeight: 1.25, fontWeight: 800 }}>{mountainLine}</div> : null}
-          {showAltitude ? <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+          {showAltitude ? <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: 8, color: 'var(--color-success)', fontFamily: METRIC_FONT_FAMILY }}>
             <span data-role="num" data-motion-kind="altitude" data-val={formatShareAltitude(data)} data-fmt="integer" style={{ fontSize: 42, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
-            <span style={{ fontSize: 16, marginLeft: 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
+            <span style={{ fontSize: 16, marginLeft: 3, fontFamily: METRIC_FONT_FAMILY, fontWeight: 800 }}>m</span>
           </div> : null}
         </div>
         <PreviewStats stats={statItems.slice(0, 2)} bottom={52} compact />
@@ -1675,7 +1793,7 @@ function PremiumHeroPreview({
       {template === 'premium-photo-composite' ? <TrailPath trackPreview={data.trackPreview} /> : null}
 
       {bold && showAltitude ? (
-        <div style={{ position: 'absolute', left: 14, right: 14, top: 46, color: 'color-mix(in srgb, var(--color-on-surface) 26%, transparent)', fontFamily: 'var(--font-mono)', fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
+        <div style={{ position: 'absolute', left: 14, right: 14, top: 46, color: 'color-mix(in srgb, var(--color-on-surface) 26%, transparent)', fontFamily: METRIC_FONT_FAMILY, fontSize: 66, lineHeight: 0.92, fontWeight: 800 }}>
           <span data-role="num" data-motion-kind="altitude" data-val={formatShareAltitude(data)} data-fmt="integer">
             {formatShareAltitude(data)}
           </span>
@@ -1692,7 +1810,7 @@ function PremiumHeroPreview({
           </div>
           <div style={{ position: 'absolute', right: 19, bottom: 117, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
             {isVisible('duration', toggles) ? <ProfileMetric label="时长" value={formatDuration(data.duration)} align="right" /> : null}
-            {isVisible('date', toggles) && data.date ? <ProfileMetric label="日期" value={data.date} align="right" /> : null}
+            {isVisible('date', toggles) && data.date ? <ProfileMetric label="日期" value={data.date} align="right" metric={false} /> : null}
           </div>
         </>
       ) : null}
@@ -1701,8 +1819,8 @@ function PremiumHeroPreview({
         <div style={{ position: 'absolute', left: 14, top: 66, width: 92 }}>
           <div data-lit="text" style={{ color: 'var(--color-on-surface)', fontSize: 11, lineHeight: 1.2, fontWeight: 800 }}>{mountainLine}</div>
           {showAltitude ? <>
-          <div data-lit="text" style={{ marginTop: 16, color: 'var(--color-on-surface-variant)', fontSize: 8, fontWeight: 800, letterSpacing: '0.08em' }}>最高海拔</div>
-          <div style={{ color: 'var(--color-success)', fontFamily: 'var(--font-mono)', fontSize: 30, lineHeight: 1, fontWeight: 800 }}><span data-role="num" data-motion-kind="altitude" data-val={formatShareAltitude(data)} data-fmt="integer">{formatShareAltitude(data)}</span><span style={{ fontSize: 10, marginLeft: 2 }}>m</span></div>
+          <div data-lit="text" style={{ marginTop: 16, color: 'var(--color-on-surface-variant)', fontFamily: 'Noto Sans SC', fontSize: 8, fontWeight: 800, letterSpacing: '0.08em' }}>最高海拔</div>
+          <div style={{ color: 'var(--color-success)', fontFamily: METRIC_FONT_FAMILY, fontSize: 30, lineHeight: 1, fontWeight: 800 }}><span data-role="num" data-motion-kind="altitude" data-val={formatShareAltitude(data)} data-fmt="integer">{formatShareAltitude(data)}</span><span style={{ fontSize: 10, marginLeft: 2 }}>m</span></div>
           <div style={{ width: 22, height: 2, borderRadius: 999, background: 'var(--color-success)', marginTop: 14, marginBottom: 10 }} />
           </> : null}
           {statItems.map((item) => <TinyMetric key={item.key} label={item.label} value={item.value} unit={item.unit} />)}
@@ -1722,9 +1840,9 @@ function PremiumHeroPreview({
               {mountainLine}
             </div>
           ) : null}
-          {showAltitude ? <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: profile ? 7 : 8, color: 'var(--color-success)', fontFamily: 'var(--font-mono)' }}>
+          {showAltitude ? <div style={{ display: 'inline-flex', alignItems: 'baseline', marginTop: profile ? 7 : 8, color: 'var(--color-success)', fontFamily: METRIC_FONT_FAMILY }}>
             <span data-role="num" data-motion-kind="altitude" data-val={formatShareAltitude(data)} data-fmt="integer" style={{ fontSize: certificate ? 44 : verticalStory ? 44 : profile ? 24 : 56, lineHeight: 0.92, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
-            <span style={{ fontSize: profile ? 8 : 18, marginLeft: profile ? 2 : 3, fontFamily: 'var(--font-sans)', fontWeight: 800 }}>m</span>
+            <span style={{ fontSize: profile ? 8 : 18, marginLeft: profile ? 2 : 3, fontFamily: METRIC_FONT_FAMILY, fontWeight: 800 }}>m</span>
           </div> : null}
         </div>
       )}
@@ -1751,6 +1869,9 @@ function HeroPreview({
   template: TemplateId
   photoDataUrl: string | null
 }) {
+  if (template === 'base-vertical-classic') {
+    return <VerticalClassicHeroPreview data={data} toggles={toggles} template={template} photoDataUrl={photoDataUrl} />
+  }
   if (template === 'base-classic' || template === 'base-data') {
     return <BaseHeroPreview data={data} toggles={toggles} template={template} photoDataUrl={photoDataUrl} />
   }
@@ -1798,7 +1919,7 @@ function StoryPreviewDataBar({
           }}
         >
           <StoryPreviewIcon kind={item.icon} />
-          <span style={{ marginLeft: 3, color: 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap' }}>
+          <span style={{ marginLeft: 3, color: 'var(--color-on-surface)', fontFamily: METRIC_FONT_FAMILY, fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap' }}>
             {item.key === 'distance' && Number.isFinite(Number.parseFloat(item.value)) ? (
               <span data-role="num" data-motion-kind="distance" data-val={Number.parseFloat(item.value)} data-fmt="decimal-1">{item.value}</span>
             ) : item.key === 'gain' && Number.isFinite(Number.parseFloat(item.value)) ? (
@@ -1809,7 +1930,7 @@ function StoryPreviewDataBar({
               <span data-lit="text">{item.value}</span>
             )}
           </span>
-          {item.unit ? <span style={{ marginLeft: 1, color: 'var(--color-on-surface-variant)', fontSize: 6.5, fontWeight: 800 }}>{item.unit}</span> : null}
+          {item.unit ? <span style={{ marginLeft: 1, color: 'var(--color-on-surface-variant)', fontSize: 6.5, fontWeight: 800, fontFamily: METRIC_FONT_FAMILY }}>{item.unit}</span> : null}
         </div>
       ))}
     </div>
@@ -1859,7 +1980,7 @@ function PremiumMetric({
   return (
     <div style={{ textAlign: align }}>
       <div data-lit="text" style={{ color: 'var(--color-on-surface-variant)', fontSize: 8, lineHeight: 1, fontWeight: 800, letterSpacing: '0.12em' }}>{label}</div>
-      <div style={{ marginTop: 4, color: accent ? 'var(--color-success)' : 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontSize: 17, lineHeight: 1, fontWeight: 800 }}>
+      <div style={{ marginTop: 4, color: accent ? 'var(--color-success)' : 'var(--color-on-surface)', fontFamily: METRIC_FONT_FAMILY, fontSize: 17, lineHeight: 1, fontWeight: 800 }}>
         <span data-lit="text">{value}</span>
         {unit ? <span style={{ fontSize: 8, marginLeft: 2, color: 'var(--color-on-surface-variant)' }}>{unit}</span> : null}
       </div>
@@ -1873,17 +1994,19 @@ function ProfileMetric({
   unit,
   accent = false,
   align = 'left',
+  metric = true,
 }: {
   label: string
   value: string
   unit?: string
   accent?: boolean
   align?: 'left' | 'right'
+  metric?: boolean
 }) {
   return (
     <div style={{ textAlign: align }}>
       <div data-lit="text" style={{ color: 'var(--color-on-surface-variant)', fontSize: 5.5, lineHeight: 1, fontWeight: 800, letterSpacing: '0.08em' }}>{label}</div>
-      <div style={{ marginTop: 2, color: accent ? 'var(--color-success)' : 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontSize: 10.5, lineHeight: 1, fontWeight: 800 }}>
+      <div style={{ marginTop: 2, color: accent ? 'var(--color-success)' : 'var(--color-on-surface)', fontFamily: metric ? METRIC_FONT_FAMILY : 'var(--font-sans)', fontSize: 10.5, lineHeight: 1, fontWeight: 800 }}>
         <span data-lit="text">{value}</span>
         {unit ? <span style={{ fontSize: 5.5, marginLeft: 1, color: 'var(--color-on-surface-variant)' }}>{unit}</span> : null}
       </div>
@@ -1895,7 +2018,7 @@ function TinyMetric({ label, value, unit }: { label: string; value: string; unit
   return (
     <div style={{ marginTop: 10 }}>
       <div data-lit="text" style={{ color: 'var(--color-on-surface-variant)', fontSize: 7, fontWeight: 800, letterSpacing: '0.08em' }}>{label}</div>
-      <div style={{ color: 'var(--color-on-surface)', fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 800, marginTop: 2 }}>
+      <div style={{ color: 'var(--color-on-surface)', fontFamily: METRIC_FONT_FAMILY, fontSize: 13, fontWeight: 800, marginTop: 2 }}>
         <span data-lit="text">{value}</span>
         {unit ? <span style={{ fontSize: 6, color: 'var(--color-on-surface-variant)', marginLeft: 1 }}>{unit}</span> : null}
       </div>
@@ -1942,7 +2065,7 @@ function PreviewStats({
           <div data-lit="text" style={{ color: 'var(--color-on-surface-variant)', fontSize: compact ? 7.5 : 9, lineHeight: 1, fontWeight: 800, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
             {item.label}
           </div>
-          <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: compact ? 13 : 18, lineHeight: 1, fontWeight: 800, color: 'var(--color-on-surface)', whiteSpace: 'nowrap' }}>
+          <div style={{ marginTop: 4, fontFamily: item.key === 'date' ? 'var(--font-sans)' : METRIC_FONT_FAMILY, fontSize: compact ? 13 : 18, lineHeight: 1, fontWeight: 800, color: 'var(--color-on-surface)', whiteSpace: 'nowrap' }}>
             {item.key === 'distance' && Number.isFinite(Number.parseFloat(item.value)) ? (
               <span data-role="num" data-motion-kind="distance" data-val={Number.parseFloat(item.value)} data-fmt="decimal-1">{item.value}</span>
             ) : (item.key === 'elevationGain' || item.key === 'gain') && Number.isFinite(Number.parseFloat(item.value)) ? (
@@ -1952,7 +2075,7 @@ function PreviewStats({
             ) : (
               <span data-lit="text">{item.value}</span>
             )}
-            {item.unit ? <span style={{ fontFamily: 'var(--font-sans)', fontSize: compact ? 7 : 10, color: 'var(--color-on-surface-variant)', marginLeft: 1 }}>{item.unit}</span> : null}
+            {item.unit ? <span style={{ fontFamily: METRIC_FONT_FAMILY, fontSize: compact ? 7 : 10, color: 'var(--color-on-surface-variant)', marginLeft: 1 }}>{item.unit}</span> : null}
           </div>
         </div>
       ))}
@@ -2145,7 +2268,7 @@ function ThumbnailRow({
       >
         <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{ color: '#f5f7f8', fontSize: 14, fontWeight: 700 }}>模板</span>
-          <span style={{ color: '#6f7880', fontSize: 11 }}>共 10 款</span>
+          <span style={{ color: '#6f7880', fontSize: 11 }}>共 {SHARE_TEMPLATE_OPTIONS.length} 款</span>
         </span>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>
           <span style={{ color: '#6ee7a1' }}>{String(selectedIndex + 1).padStart(2, '0')}</span>
@@ -2971,7 +3094,7 @@ function NavBarTitle({ title, onBack }: { title: string; onBack: () => void }) {
 export default function ShareClient({
   initialData,
   checkinId,
-  initialTemplate = 'base-classic',
+  initialTemplate = DEFAULT_SHARE_CLIENT_TEMPLATE,
   paywallEnabled = false,
   premiumUnlocked = true,
   currentUserId = null,

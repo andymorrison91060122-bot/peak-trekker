@@ -5,6 +5,7 @@ import {
   PhotoLayer,
   PhotoShade,
   PosterShell,
+  METRIC_FONT_FAMILY,
   buildMountainLine,
   formatDistance,
   formatShareAltitude,
@@ -24,7 +25,7 @@ export function PremiumBoldNumberTemplate({ data, photoDataUrl, brandMarkSrc }: 
         <span data-role="text" data-motion-kind="altitude-label" data-motion-order="26" style={{ color: 'rgba(255, 255, 255, 0.32)', fontSize: 30, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>
           最高海拔
         </span>
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 32 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 32, fontFamily: METRIC_FONT_FAMILY }}>
           <span
             data-role="num"
             data-motion-kind="altitude-value"
@@ -40,7 +41,7 @@ export function PremiumBoldNumberTemplate({ data, photoDataUrl, brandMarkSrc }: 
 
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 72, right: 72, bottom: 315 }}>
         {mountainLine ? <span data-role="text" data-motion-kind="mountain" data-motion-order="18" style={{ color: C.fg, fontSize: 42, lineHeight: 1.18, fontWeight: 800 }}>{mountainLine}</span> : null}
-        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 36 }}>
+        {showAltitude ? <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 36, fontFamily: METRIC_FONT_FAMILY }}>
           <span
             data-role="num"
             data-motion-kind="altitude-value"
@@ -70,7 +71,7 @@ function BoldMetric({ label, value, unit, align = 'left' }: { label: string; val
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: align === 'right' ? 'flex-end' : 'flex-start', minWidth: 280 }}>
       <span data-role="text" data-motion-kind="metric-label" data-motion-order="44" style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.16em' }}>{label}</span>
-      <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 12, fontFamily: METRIC_FONT_FAMILY }}>
         <span data-role="text" data-motion-kind="metric-value" data-motion-order="52" style={{ color: C.fg, fontSize: 48, lineHeight: 1, fontWeight: 800 }}>{value}</span>
         {unit ? <span data-role="text" data-motion-kind="metric-unit" data-motion-order="58" style={{ color: C.fg2, fontSize: 24, fontWeight: 800, marginLeft: 8 }}>{unit}</span> : null}
       </div>

@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import { BaseClassicTemplate } from './base-classic'
 import { BaseDataTemplate } from './base-data'
+import { BaseVerticalClassicTemplate } from './base-vertical-classic'
 import { PremiumAltitudeProfileTemplate } from './premium-altitude-profile'
 import { PremiumBoldNumberTemplate } from './premium-bold-number'
 import { PremiumDataScatterTemplate } from './premium-data-scatter'
@@ -22,6 +23,7 @@ export type ShareTemplateRegistryEntry = {
 }
 
 export const SHARE_TEMPLATE_REGISTRY = [
+  { id: 'base-vertical-classic', label: 'Vertical', tier: 'basic', Component: BaseVerticalClassicTemplate },
   { id: 'base-classic', label: 'Classic', tier: 'basic', Component: BaseClassicTemplate },
   { id: 'base-data', label: 'Data', tier: 'basic', Component: BaseDataTemplate },
   { id: 'premium-photo-composite', label: 'Photo', tier: 'premium', Component: PremiumPhotoCompositeTemplate },

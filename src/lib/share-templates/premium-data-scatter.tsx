@@ -5,6 +5,7 @@ import {
   PhotoLayer,
   PosterShell,
   TopoSvg,
+  METRIC_FONT_FAMILY,
   buildMountainLine,
   formatDistance,
   formatPlainNumber,
@@ -29,7 +30,7 @@ export function PremiumDataScatterTemplate({ data, photoDataUrl, brandMarkSrc }:
         {mountainLine ? <span style={{ color: C.fg, fontSize: 36, lineHeight: 1.24, fontWeight: 800 }}>{mountainLine}</span> : null}
         {showAltitude ? <div style={{ display: 'flex', flexDirection: 'column', marginTop: 64, flexShrink: 0 }}>
           <span style={{ color: C.fg2, display: 'flex', height: 22, flexShrink: 0, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.14em' }}>最高海拔</span>
-          <div style={{ display: 'flex', alignItems: 'baseline', height: 96, flexShrink: 0, whiteSpace: 'nowrap', marginTop: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', height: 96, flexShrink: 0, whiteSpace: 'nowrap', marginTop: 18, fontFamily: METRIC_FONT_FAMILY }}>
             <span style={{ color: C.success, fontSize: 106, lineHeight: 0.9, fontWeight: 800, flexShrink: 0, whiteSpace: 'nowrap' }}>{formatShareAltitude(data)}</span>
             <span style={{ color: C.success, fontSize: 42, lineHeight: 1, fontWeight: 800, marginLeft: 9, flexShrink: 0, whiteSpace: 'nowrap' }}>m</span>
           </div>
@@ -38,7 +39,7 @@ export function PremiumDataScatterTemplate({ data, photoDataUrl, brandMarkSrc }:
         <ScatterMetric label="总距离" value={formatDistance(data.distance)} unit="km" />
         {data.visibleFields.duration ? <ScatterMetric label="时长" value={data.duration || '--'} /> : null}
         {data.visibleFields.elevationGain ? <ScatterMetric label="爬升" value={formatPlainNumber(data.elevationGain)} unit="m" /> : null}
-        {data.visibleFields.date && data.date ? <ScatterMetric label="日期" value={data.date} compact /> : null}
+        {data.visibleFields.date && data.date ? <ScatterMetric label="日期" value={data.date} compact metric={false} /> : null}
       </div>
 
       <div style={{ display: 'flex', position: 'absolute', left: 0, right: 0, bottom: 64 }}>
@@ -52,11 +53,11 @@ function ScatterDivider() {
   return <div style={{ display: 'flex', width: 52, height: 4, borderRadius: 999, background: C.success, marginTop: 58, marginBottom: 36 }} />
 }
 
-function ScatterMetric({ label, value, unit, compact = false }: { label: string; value: string; unit?: string; compact?: boolean }) {
+function ScatterMetric({ label, value, unit, compact = false, metric = true }: { label: string; value: string; unit?: string; compact?: boolean; metric?: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', marginTop: compact ? 28 : 40 }}>
       <span style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.1em' }}>{label}</span>
-      <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 12, fontFamily: metric ? METRIC_FONT_FAMILY : 'Noto Sans SC' }}>
         <span style={{ color: C.fg, fontSize: compact ? 38 : 54, lineHeight: 1, fontWeight: 800 }}>{value}</span>
         {unit ? <span style={{ color: C.fg2, fontSize: 24, fontWeight: 800, marginLeft: 8 }}>{unit}</span> : null}
       </div>

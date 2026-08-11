@@ -138,15 +138,73 @@ test('FU-75 reduced-motion onboarding is terminal and keeps the colour lockup', 
   await context.close()
 })
 
-test('FU-75 visible tabs put imprint before archive without changing routes', async ({ page }) => {
+test('IA-001 shows the four product tabs in the configured order and keeps the active tab visible', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 })
   await prepareSettledMainPage(page)
   await page.goto('/explore')
-  const tabLabels = await page.locator('.pt-tab-link').evaluateAll((links) => links.map((link) => link.textContent?.trim()))
-  expect(tabLabels).toEqual(['探索', '印迹', '山行', '我的'])
-  const hrefs = await page.locator('.pt-tab-link').evaluateAll((links) => links.map((link) => link.getAttribute('href')))
-  expect(hrefs).toEqual(['/explore', '/imprint', '/archive', '/profile'])
-  await page.screenshot({ path: join(OUTPUT_DIR, 'tab-order-visible-375.png') })
+  const expectedTabs = [
+    { label: '探索', href: '/explore' },
+    { label: '档案', href: '/archive' },
+    { label: '海报', href: '/imprint' },
+    { label: '我的', href: '/profile' },
+  ]
+  const tabLinks = page.locator('.pt-tab-link')
+
+  await expect(tabLinks).toHaveCount(4)
+  const initialTabs = await tabLinks.evaluateAll((links) => links.map((link) => ({
+    label: link.textContent?.trim(),
+    href: link.getAttribute('href'),
+    hasIcon: Boolean(link.querySelector('.pt-tab-icon')),
+  })))
+  expect(initialTabs).toEqual(expectedTabs.map((tab) => ({ ...tab, hasIcon: true })))
+
+  for (const [index, tab] of expectedTabs.entries()) {
+    if (index > 0) await tabLinks.nth(index).click()
+    await expect(page).toHaveURL(new RegExp(`${tab.href}(?:\\?.*)?$`))
+
+    const activeState = await tabLinks.evaluateAll((links) => links.map((link) => {
+      const label = link.querySelector<HTMLElement>(':scope > span:last-child')
+      const icon = link.querySelector<HTMLElement>('.pt-tab-icon')
+      return {
+        href: link.getAttribute('href'),
+        fontWeight: label ? getComputedStyle(label).fontWeight : '',
+        iconWidth: icon?.getBoundingClientRect().width ?? 0,
+        iconHeight: icon?.getBoundingClientRect().height ?? 0,
+      }
+    }))
+    expect(activeState.map((item) => item.fontWeight === '700')).toEqual(expectedTabs.map((_, itemIndex) => itemIndex === index))
+    expect(activeState[index]).toMatchObject({ href: tab.href, iconWidth: 30, iconHeight: 30 })
+  }
+
+  const geometry = await tabLinks.evaluateAll((links) => {
+    const nav = links[0]?.closest('nav')
+    const navBox = nav?.getBoundingClientRect()
+    const linkBoxes = links.map((link) => {
+      const box = link.getBoundingClientRect()
+      const label = link.querySelector<HTMLElement>(':scope > span:last-child')?.getBoundingClientRect()
+      return {
+        left: box.left,
+        right: box.right,
+        textFits: link.scrollWidth <= link.clientWidth,
+        labelBottom: label?.bottom ?? 0,
+      }
+    })
+    return {
+      viewportWidth: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      navBottom: navBox?.bottom ?? 0,
+      minLabelBottomInset: Math.min(...linkBoxes.map((box) => (navBox?.bottom ?? 0) - box.labelBottom)),
+      linkBoxes,
+    }
+  })
+  expect(geometry.documentWidth).toBe(geometry.viewportWidth)
+  expect(geometry.linkBoxes.every((box) => box.left >= 0 && box.right <= geometry.viewportWidth && box.textFits)).toBe(true)
+  expect(geometry.minLabelBottomInset).toBeGreaterThanOrEqual(12)
+
+  await page.evaluate(() => document.querySelectorAll('nextjs-portal').forEach((portal) => portal.remove()))
+  const outputDir = resolve('output/ia-001')
+  mkdirSync(outputDir, { recursive: true })
+  await page.screenshot({ path: join(outputDir, 'bottom-nav-375.png'), fullPage: false })
 })
 
 test('FU-75 DB-free direct previews keep imprint and share fallback semantics', async ({ page }) => {

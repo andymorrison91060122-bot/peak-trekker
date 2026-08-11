@@ -92,8 +92,8 @@ const TabIcons = {
 
 const tabs = [
   { href: '/explore', label: '探索', icon: TabIcons.explore },
-  { href: '/imprint', label: '印迹', icon: TabIcons.imprint },
-  { href: '/archive', label: '山行', icon: TabIcons.archive },
+  { href: '/archive', label: '档案', icon: TabIcons.archive },
+  { href: '/imprint', label: '海报', icon: TabIcons.imprint },
   { href: '/community', label: '山友圈', icon: TabIcons.community },
   { href: '/profile', label: '我的', icon: TabIcons.profile },
 ]

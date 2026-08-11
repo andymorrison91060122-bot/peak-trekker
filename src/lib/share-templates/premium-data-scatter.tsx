@@ -27,14 +27,14 @@ export function PremiumDataScatterTemplate({ data, photoDataUrl, brandMarkSrc }:
 
       <div style={{ display: 'flex', flexDirection: 'column', position: 'absolute', left: 64, top: 190, width: 340 }}>
         {mountainLine ? <span style={{ color: C.fg, fontSize: 36, lineHeight: 1.24, fontWeight: 800 }}>{mountainLine}</span> : null}
-        {showAltitude ? <>
-        <span style={{ color: C.fg2, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.14em', marginTop: 64 }}>最高海拔</span>
-        <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 18 }}>
-          <span style={{ color: C.success, fontSize: 106, lineHeight: 0.9, fontWeight: 800 }}>{formatShareAltitude(data)}</span>
-          <span style={{ color: C.success, fontSize: 42, lineHeight: 1, fontWeight: 800, marginLeft: 9 }}>m</span>
-        </div>
-        <ScatterDivider />
-        </> : <div style={{ display: 'flex', height: 36, marginTop: 44 }} />}
+        {showAltitude ? <div style={{ display: 'flex', flexDirection: 'column', marginTop: 64, flexShrink: 0 }}>
+          <span style={{ color: C.fg2, display: 'flex', height: 22, flexShrink: 0, fontSize: 22, lineHeight: 1, fontWeight: 800, letterSpacing: '0.14em' }}>最高海拔</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', height: 96, flexShrink: 0, whiteSpace: 'nowrap', marginTop: 18 }}>
+            <span style={{ color: C.success, fontSize: 106, lineHeight: 0.9, fontWeight: 800, flexShrink: 0, whiteSpace: 'nowrap' }}>{formatShareAltitude(data)}</span>
+            <span style={{ color: C.success, fontSize: 42, lineHeight: 1, fontWeight: 800, marginLeft: 9, flexShrink: 0, whiteSpace: 'nowrap' }}>m</span>
+          </div>
+          <ScatterDivider />
+        </div> : <div style={{ display: 'flex', height: 36, marginTop: 44 }} />}
         <ScatterMetric label="总距离" value={formatDistance(data.distance)} unit="km" />
         {data.visibleFields.duration ? <ScatterMetric label="时长" value={data.duration || '--'} /> : null}
         {data.visibleFields.elevationGain ? <ScatterMetric label="爬升" value={formatPlainNumber(data.elevationGain)} unit="m" /> : null}

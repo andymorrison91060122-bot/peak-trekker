@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { BRAND_ASSETS } from '@/lib/brand-assets'
-import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, SHARE_TRACK_RENDER_PROFILES, type ShareTrackFrame, type ShareTrackPreview } from '../share-track-preview'
+import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, SHARE_TRACK_RENDER_PROFILES, type ShareTrackFrame, type ShareTrackPreview, type ShareTrackRenderStyle } from '../share-track-preview'
 import type { ShareTemplateData } from './types'
 
 export const POSTER_WIDTH = 1080
@@ -416,12 +416,22 @@ export function TrailSvg({
   lineWidth = 8,
   trackPreview,
   contentBounds,
+  renderStyle,
+  endOutlineWidth,
+  endOutlineColor,
 }: {
   glow?: number
   lineWidth?: number
   trackPreview?: ShareTrackPreview | null
   contentBounds?: Pick<ShareTrackFrame, 'x' | 'y' | 'width' | 'height' | 'padding'>
+  renderStyle?: ShareTrackRenderStyle
+  endOutlineWidth?: number
+  endOutlineColor?: string
 }) {
+  const routeStyle = {
+    ...SHARE_TRACK_RENDER_PROFILES.posterTrail({ lineWidth, glow }),
+    ...renderStyle,
+  }
   const route = buildShareTrackRender(trackPreview, {
     x: 240,
     y: 120,
@@ -430,7 +440,7 @@ export function TrailSvg({
     padding: 96,
     ...SHARE_TRACK_CONTENT_FIT,
     ...contentBounds,
-  }, SHARE_TRACK_RENDER_PROFILES.posterTrail({ lineWidth, glow }))
+  }, routeStyle)
 
   if (!route) return null
 
@@ -464,7 +474,17 @@ export function TrailSvg({
         />
       ) : null}
       {route ? <circle data-role="pop" data-motion-kind="route-endpoint" cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} /> : null}
-      {route?.d ? <circle data-role="pop" data-motion-kind="route-endpoint" cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={C.success} /> : null}
+      {route?.d ? (
+        <circle
+          data-role="pop"
+          data-motion-kind="route-endpoint"
+          cx={route.end.x}
+          cy={route.end.y}
+          r={route.endRadius}
+          fill={C.success}
+          {...(endOutlineWidth && endOutlineColor ? { stroke: endOutlineColor, strokeWidth: endOutlineWidth } : {})}
+        />
+      ) : null}
     </svg>
   )
 }

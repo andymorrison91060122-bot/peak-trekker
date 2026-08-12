@@ -23,6 +23,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import WeatherSection from '@/components/mountain/WeatherSection'
 import DifficultyAdvisory from '@/components/mountain/DifficultyAdvisory'
 import DifficultyChip from '@/components/mountain/DifficultyChip'
+import { ImportRecordSheet } from '@/components/mountain/ImportRecordSheet'
 import SanitizedMountainDescription, {
   stripTagsForFallback,
 } from '@/components/mountain/SanitizedMountainDescription'
@@ -67,6 +68,7 @@ type MountainDetailClientProps = {
   routeGeometry: MountainRouteGeometry | null
   featuredPosts: CommunityPostViewModel[]
   heroImages: string[]
+  hasCheckedIn: boolean
 }
 
 function hasMountainWeatherTarget(
@@ -356,11 +358,13 @@ function DecisionRow({
 function HeroSection({
   mountain,
   heroImages,
+  hasCheckedIn,
   onBack,
   onShare,
 }: {
   mountain: Mountain
   heroImages: string[]
+  hasCheckedIn: boolean
   onBack: () => void
   onShare: () => void
 }) {
@@ -518,6 +522,21 @@ function HeroSection({
       >
         <div data-mountain-hero-item="chip" style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
           <DifficultyChip difficulty={mountain.difficulty} />
+          {hasCheckedIn ? (
+            <span
+              data-testid="mountain-detail-checked-in"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 7px',
+                borderRadius: 'var(--radius-xs)', color: 'var(--color-success)',
+                background: 'color-mix(in srgb, var(--color-success) 12%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--color-success) 28%, transparent)',
+                fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)', fontWeight: 700,
+              }}
+            >
+              <CheckIcon size={13} />
+              已打卡
+            </span>
+          ) : null}
         </div>
         <h1
           data-mountain-hero-item="title"
@@ -966,11 +985,11 @@ function FeaturedSection({ posts }: { posts: CommunityPostViewModel[] }) {
 function BottomCTA({
   mountain,
   requiresLogin,
-  hasWaypoints,
+  onOpenImport,
 }: {
   mountain: Mountain
   requiresLogin: boolean
-  hasWaypoints: boolean
+  onOpenImport: () => void
 }) {
   const accessDisplay = getMountainAccessDisplay(mountain.access_status, mountain.entity_type)
   const loginHref = `/auth/login?from=${encodeURIComponent(`/mountain/${mountain.id}`)}`
@@ -1020,15 +1039,15 @@ function BottomCTA({
       >
         <SecondaryButton
           className="pt-pressable"
-          as="a"
-          href={hasWaypoints ? '#waypoints' : '#route'}
+          type="button"
+          onClick={onOpenImport}
           onPointerDown={markPressFallback}
           onPointerUp={clearPressFallback}
           onPointerCancel={clearPressFallback}
           onPointerLeave={clearPressFallback}
           onBlur={clearPressFallback}
         >
-          查看路线
+          导入记录
         </SecondaryButton>
         {accessDisplay.canStartTrek ? (
           <PrimaryButton
@@ -1067,6 +1086,7 @@ export default function MountainDetailClient({
   routeGeometry,
   featuredPosts,
   heroImages,
+  hasCheckedIn,
 }: MountainDetailClientProps) {
   const router = useRouter()
   const motionScopeRef = useRef<HTMLDivElement | null>(null)
@@ -1075,6 +1095,7 @@ export default function MountainDetailClient({
   const weatherMountain = hasMountainWeatherTarget(mountain) ? mountain : null
   const communityEnabled = isFeatureEnabled('COMMUNITY_ENABLED')
   const [licenseSheetOpen, setLicenseSheetOpen] = useState(false)
+  const [importSheetOpen, setImportSheetOpen] = useState(false)
 
   useEffect(() => {
     trackEvent({
@@ -1380,6 +1401,7 @@ export default function MountainDetailClient({
       <HeroSection
         mountain={mountain}
         heroImages={heroImages}
+        hasCheckedIn={hasCheckedIn}
         onBack={handleBack}
         onShare={handleShare}
       />
@@ -1447,8 +1469,11 @@ export default function MountainDetailClient({
       <BottomCTA
         mountain={mountain}
         requiresLogin={requiresLogin}
-        hasWaypoints={waypoints.length > 0}
+        onOpenImport={() => setImportSheetOpen(true)}
       />
+      {importSheetOpen ? (
+        <ImportRecordSheet mountain={{ id: mountain.id, name: mountain.name }} onClose={() => setImportSheetOpen(false)} />
+      ) : null}
       <LicenseProgressSheet
         open={licenseSheetOpen}
         progress={licenseProgress}

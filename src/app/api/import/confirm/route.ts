@@ -54,6 +54,8 @@ const CLIENT_METRIC_KEYS = [
 ] as const
 
 const IMPORT_CONFIRM_GENERIC_ERROR = '活动记录暂时没有生成成功，请再试一次。'
+const DETAIL_MOUNTAIN_CONTEXT_MISMATCH_ERROR = '当前山峰信息已变更，请返回山峰详情后重新导入。'
+const DETAIL_MOUNTAIN_CONTEXT_OUT_OF_RANGE_ERROR = '这条轨迹似乎不在当前山峰附近，请检查后重新导入。'
 
 function logImportConfirmFailure(context: string, error: unknown) {
   console.error(`[import-confirm] ${context}`, error)
@@ -66,6 +68,17 @@ type NormalizeImportedTrackResult =
 function toSafeNote(value: unknown) {
   if (typeof value !== 'string') return ''
   return value.trim().slice(0, 240)
+}
+
+function toMountainId(value: unknown) {
+  return typeof value === 'string' ? (value.trim() || null) : null
+}
+
+function contextMountainMismatchResponse() {
+  return NextResponse.json({
+    error: DETAIL_MOUNTAIN_CONTEXT_MISMATCH_ERROR,
+    code: 'mountain_context_mismatch',
+  }, { status: 400 })
 }
 
 function toSafeTrackName(value: unknown) {
@@ -285,7 +298,11 @@ async function handleScreenshotRecognitionConfirm({
     }, { status: 400 })
   }
 
-  const mountainId = typeof body.mountainId === 'string' ? (body.mountainId.trim() || null) : null
+  const mountainId = toMountainId(body.mountainId)
+  const contextMountainId = toMountainId(body.contextMountainId)
+  if (contextMountainId && contextMountainId !== mountainId) {
+    return contextMountainMismatchResponse()
+  }
   const { mountain, response } = await fetchImportMountain(supabase, mountainId)
   if (response) return response
 
@@ -408,9 +425,11 @@ export async function POST(request: Request) {
     if (duplicateTrack) return trackDuplicateResponse(duplicateTrack)
   }
 
-  const mountainId = typeof (body as { mountainId?: unknown } | null)?.mountainId === 'string'
-    ? ((body as { mountainId: string }).mountainId.trim() || null)
-    : null
+  const mountainId = toMountainId((body as { mountainId?: unknown } | null)?.mountainId)
+  const contextMountainId = toMountainId((body as { contextMountainId?: unknown } | null)?.contextMountainId)
+  if (contextMountainId && contextMountainId !== mountainId) {
+    return contextMountainMismatchResponse()
+  }
   const note = toSafeNote((body as { note?: unknown } | null)?.note)
   const anchorPoint = findHighestTrackPoint(parsedData.trackPoints)
 
@@ -445,7 +464,7 @@ export async function POST(request: Request) {
     const distanceValidation = validateImportMountainSelectionDistance(parsedData.trackPoints, mountain)
     if (!distanceValidation.ok) {
       return NextResponse.json({
-        error: distanceValidation.error,
+        error: contextMountainId ? DETAIL_MOUNTAIN_CONTEXT_OUT_OF_RANGE_ERROR : distanceValidation.error,
         code: distanceValidation.code,
         distanceMeters: distanceValidation.distanceMeters,
         thresholdMeters: distanceValidation.thresholdMeters,

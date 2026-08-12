@@ -170,10 +170,12 @@ export default async function MountainDetailPage({
   const featuredPosts = isFeatureEnabled('COMMUNITY_ENABLED')
     ? await loadFeaturedPosts(supabase, mountain.id)
     : []
+  const hasCheckedIn = profileTrips.some((trip) => trip.mountainId === mountain.id)
 
   return (
     <MountainDetailClient
       mountain={mountain}
+      hasCheckedIn={hasCheckedIn}
       userLicense={(profileRes.data?.license_level ?? 'none') as User['license_level']}
       licenseProgress={buildLicenseProgressSummary({
         storedLevel: profileRes.data?.license_level ?? 'none',

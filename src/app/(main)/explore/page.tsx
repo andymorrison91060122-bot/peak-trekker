@@ -50,7 +50,7 @@ export default async function ExplorePage({
   const currentMonth = getShanghaiYearMonth()
   const previousMonth = getPreviousShanghaiYearMonth(currentMonth)
 
-  const [mountainsRes, profileRes, currentRankings, previousRankings] = await Promise.all([
+  const [mountainsRes, profileRes, currentRankings, previousRankings, checkinsRes] = await Promise.all([
     supabase
       .from('mountains')
       .select('*')
@@ -65,10 +65,15 @@ export default async function ExplorePage({
     user && provinceRankingEnabled
       ? listProvinceMonthlyRankings(previousMonth.year, previousMonth.month)
       : Promise.resolve(undefined),
+    user
+      ? supabase.from('checkins').select('mountain_id').eq('user_id', user.id).not('mountain_id', 'is', null)
+      : Promise.resolve({ data: [] }),
   ])
 
   const mountains = mountainsRes.data ?? []
   const hometownProvince = profileRes.data?.province ?? null
+  const checkedMountainIds = (checkinsRes.data ?? [])
+    .flatMap((checkin) => typeof checkin.mountain_id === 'string' ? [checkin.mountain_id] : [])
   let provinceBanner: ProvinceBannerData | null | undefined = user && provinceRankingEnabled ? null : undefined
 
   if (user && provinceRankingEnabled && hometownProvince) {
@@ -93,6 +98,7 @@ export default async function ExplorePage({
         hometownProvince={hometownProvince}
         provinceBanner={provinceBanner}
         shareTemplateIntent={resolveShareTemplateParam(resolvedSearchParams.shareTemplate)}
+        checkedMountainIds={checkedMountainIds}
       />
     </div>
   )

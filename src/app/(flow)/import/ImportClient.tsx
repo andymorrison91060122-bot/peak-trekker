@@ -15,6 +15,7 @@ import type { MountainRequestInput } from '@/lib/mountain-requests'
 import ArchiveCreationSuccess from '@/components/activity/ArchiveCreationSuccess'
 import Card from '@/components/ui/Card'
 import PrimaryButton from '@/components/ui/PrimaryButton'
+import SecondaryButton from '@/components/ui/SecondaryButton'
 import Spinner from '@/components/ui/Spinner'
 import { useHelpSheet } from '@/components/help/useHelpSheet'
 import { useAppToast } from '@/components/ui/AppToastProvider'
@@ -2512,6 +2513,64 @@ function ImportMatch({
   )
 }
 
+function ImportDetailMountainMatch({
+  mountain,
+  matched,
+  confirmError,
+  confirmAuthRequired,
+  onBack,
+  onPickAnother,
+  onConfirm,
+  onLogin,
+}: {
+  mountain: { id: string; name: string }
+  matched: boolean
+  confirmError: string | null
+  confirmAuthRequired: boolean
+  onBack: () => void
+  onPickAnother: () => void
+  onConfirm: () => void
+  onLogin: () => void
+}) {
+  const mismatchMessage = '这条轨迹似乎不在当前山峰附近，请检查后重新导入。'
+  const error = matched ? confirmError : mismatchMessage
+
+  return (
+    <ImportScreen
+      step="match"
+      title={matched ? '确认这次山行' : '轨迹与当前山峰不匹配'}
+      onBack={onBack}
+      footer={(
+        <>
+          {error ? (
+            <p style={{ margin: '0 0 var(--space-2)', color: confirmAuthRequired ? 'var(--color-warning)' : 'var(--color-error)', fontSize: 'var(--font-label-s-size)', lineHeight: 1.5, textAlign: 'center' }}>
+              {error}
+            </p>
+          ) : null}
+          {matched ? (
+            <PrimaryButton className="pt-pressable-hero" onClick={confirmAuthRequired ? onLogin : onConfirm} style={{ width: '100%' }}>
+              {confirmAuthRequired ? '去登录' : '确认并保存'}
+            </PrimaryButton>
+          ) : (
+            <SecondaryButton className="pt-pressable" onClick={onPickAnother} style={{ width: '100%' }}>重新选择轨迹</SecondaryButton>
+          )}
+        </>
+      )}
+    >
+      <p style={{ margin: 0, color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-m-size)', lineHeight: 1.7 }}>
+        这次导入将只关联到当前山峰。
+      </p>
+      <div
+        data-testid="import-detail-mountain-context"
+        style={{ marginTop: 'var(--space-4)', padding: 'var(--space-4)', border: '1px solid var(--color-outline)', borderRadius: 'var(--radius-md)', background: 'var(--color-surface-variant)' }}
+      >
+        <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>当前山峰</div>
+        <div style={{ marginTop: 4, color: 'var(--color-on-surface)', fontSize: 'var(--font-title-m-size)', lineHeight: 'var(--font-title-m-line)', fontWeight: 700 }}>{mountain.name}</div>
+      </div>
+    </ImportScreen>
+  )
+}
+
 function MountainChoiceRow({
   selected,
   title,
@@ -3190,9 +3249,11 @@ function ConfirmingScreen() {
 export default function ImportClient({
   initialTemplate = null,
   returnToImprint = false,
+  initialMountainContext = null,
 }: {
   initialTemplate?: ShareRenderTemplate | null
   returnToImprint?: boolean
+  initialMountainContext?: { id: string; name: string } | null
 }) {
   const router = useRouter()
   const motionScopeRef = useRef<HTMLDivElement | null>(null)
@@ -3214,8 +3275,9 @@ export default function ImportClient({
   const [parseErrorKind, setParseErrorKind] = useState<ParseErrorKind | null>(null)
   const [parseProgress, setParseProgress] = useState(0)
   const [authRequired, setAuthRequired] = useState(false)
-  const [selectedMountainId, setSelectedMountainId] = useState<string | null>(null)
-  const [selectedMountainName, setSelectedMountainName] = useState<string | null>(null)
+  const isMountainContextLocked = Boolean(initialMountainContext)
+  const [selectedMountainId, setSelectedMountainId] = useState<string | null>(() => initialMountainContext?.id ?? null)
+  const [selectedMountainName, setSelectedMountainName] = useState<string | null>(() => initialMountainContext?.name ?? null)
   const [selectionSearchInitiallyOpen, setSelectionSearchInitiallyOpen] = useState(false)
   const [confirmResult, setConfirmResult] = useState<ConfirmResult | null>(null)
   const [confirmError, setConfirmError] = useState<string | null>(null)
@@ -3434,8 +3496,8 @@ export default function ImportClient({
     setParseErrorKind(null)
     setParseProgress(0)
     setAuthRequired(false)
-    setSelectedMountainId(null)
-    setSelectedMountainName(null)
+    setSelectedMountainId(initialMountainContext?.id ?? null)
+    setSelectedMountainName(initialMountainContext?.name ?? null)
     setSelectionSearchInitiallyOpen(false)
     setConfirmResult(null)
     setConfirmError(null)
@@ -3452,8 +3514,8 @@ export default function ImportClient({
     setParseErrorKind(null)
     setParseProgress(0)
     setAuthRequired(false)
-    setSelectedMountainId(null)
-    setSelectedMountainName(null)
+    setSelectedMountainId(initialMountainContext?.id ?? null)
+    setSelectedMountainName(initialMountainContext?.name ?? null)
     setSelectionSearchInitiallyOpen(false)
     setConfirmResult(null)
     setConfirmError(null)
@@ -3536,8 +3598,8 @@ export default function ImportClient({
       setParseResult(payload.parsedData)
       setDuplicateTrack(payload.duplicateTrack ?? null)
       setTimeEditorSkipped(false)
-      setSelectedMountainId(payload.parsedData.suggestedMountain?.id ?? null)
-      setSelectedMountainName(payload.parsedData.suggestedMountain?.name ?? null)
+      setSelectedMountainId(initialMountainContext?.id ?? payload.parsedData.suggestedMountain?.id ?? null)
+      setSelectedMountainName(initialMountainContext?.name ?? payload.parsedData.suggestedMountain?.name ?? null)
       setSelectionSearchInitiallyOpen(false)
       setStep('preview')
     } catch {
@@ -3550,8 +3612,12 @@ export default function ImportClient({
   async function handleConfirm(mountainId?: string | null, returnStepOverride?: ImportStep, mountainName?: string | null) {
     if (!parseResult) return
 
-    const returnStep: ImportStep = returnStepOverride ?? (mountainId ? 'match' : 'no_match')
-    const confirmedMountainName = mountainId ? (mountainName ?? selectedMountainName) : null
+    const confirmedMountainId = initialMountainContext?.id ?? mountainId ?? null
+    const contextMountainId = initialMountainContext?.id ?? null
+    const returnStep: ImportStep = returnStepOverride ?? (confirmedMountainId ? 'match' : 'no_match')
+    const confirmedMountainName = confirmedMountainId
+      ? (initialMountainContext?.name ?? mountainName ?? selectedMountainName)
+      : null
     setConfirmError(null)
     setConfirmAuthRequired(false)
     setStep('confirming')
@@ -3562,7 +3628,8 @@ export default function ImportClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           parsedData: parseResult,
-          mountainId: mountainId || null,
+          mountainId: confirmedMountainId,
+          contextMountainId,
           source: 'track_import',
         }),
       })
@@ -3588,7 +3655,7 @@ export default function ImportClient({
         return
       }
 
-      setSelectedMountainId(mountainId ?? null)
+      setSelectedMountainId(confirmedMountainId)
       setSelectedMountainName(confirmedMountainName)
       setConfirmResult({ checkinId: payload.checkinId })
       setStep('success')
@@ -3761,7 +3828,14 @@ export default function ImportClient({
 	          onContinue={() => {
 	            setConfirmError(null)
 	            setConfirmAuthRequired(false)
-	            const candidates = getSuggestedCandidates(parseResult)
+            if (isMountainContextLocked) {
+              setSelectedMountainId(initialMountainContext.id)
+              setSelectedMountainName(initialMountainContext.name)
+              setSelectionSearchInitiallyOpen(false)
+              setStep('match')
+              return
+            }
+            const candidates = getSuggestedCandidates(parseResult)
 	            const suggestedMountain = parseResult.suggestedMountain ?? null
 	            if (suggestedMountain?.id) {
 	              setSelectedMountainId(suggestedMountain.id)
@@ -3793,6 +3867,22 @@ export default function ImportClient({
     }
 
 	    if (step === 'match' && parseResult) {
+	      if (isMountainContextLocked && initialMountainContext) {
+            const isCurrentMountainMatched = getSuggestedCandidates(parseResult)
+              .some((candidate) => candidate.id === initialMountainContext.id)
+            return (
+              <ImportDetailMountainMatch
+                mountain={initialMountainContext}
+                matched={isCurrentMountainMatched}
+                confirmError={confirmError}
+                confirmAuthRequired={confirmAuthRequired}
+                onBack={handleBack}
+                onPickAnother={pickAnotherFile}
+                onConfirm={() => void handleConfirm(initialMountainContext.id, 'match', initialMountainContext.name)}
+                onLogin={() => router.replace(buildLoginHref())}
+              />
+            )
+          }
 	      const candidates = getSuggestedCandidates(parseResult)
 	      const suggestedMountain = parseResult.suggestedMountain ?? null
 	      const suggestedMountainId = suggestedMountain?.id ?? null

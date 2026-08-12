@@ -435,6 +435,7 @@
   transform: translateY(18px) scale(.96);
 }
 
+[data-explore-motion-card][data-explore-mount-state='pending'],
 [data-testid='explore-mountain-card'][data-explore-mount-state='pending'] {
   opacity: 0;
   transform: translateY(18px) scale(.96);
@@ -447,6 +448,7 @@
   }
 
 
+  [data-explore-motion-card][data-explore-mount-state='pending'],
   [data-testid='explore-mountain-card'][data-explore-mount-state='pending'] {
     opacity: 1;
     transform: none;
@@ -722,6 +724,10 @@
   opacity: .62;
 }
 
+.explore-card__link-wrap {
+  position: relative;
+}
+
 .explore-card {
   position: relative;
   height: 186px;
@@ -784,6 +790,43 @@
   line-height: 1;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+}
+
+.explore-card__checkin-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.explore-card__checkin-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 13, 12, 0.78);
+  color: var(--color-success);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.explore-card__checkin-button:focus-visible {
+  outline: 2px solid var(--color-success);
+  outline-offset: -2px;
 }
 
 .explore-card__topline,

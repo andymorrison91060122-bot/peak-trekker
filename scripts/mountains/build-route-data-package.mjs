@@ -50,6 +50,17 @@ const CONTENT_STATUS = Object.freeze({
   READY: 'ready',
   BLOCKED: 'blocked',
 })
+const ACCEPTED_GEOGRAPHY_STATUSES = new Set([
+  'parsed_geo_match',
+  'product_approved_missing_canonical_coordinate',
+  'product_approved_province_disambiguation',
+])
+const INCREMENTAL_ADMISSION_DECISIONS = Object.freeze({
+  parsed_geo_match: 102,
+  product_approved_shared_content_sha_multi_mountain: 4,
+  product_approved_province_disambiguation: 9,
+  product_approved_missing_canonical_coordinate: 7,
+})
 const NO_TRACK_KEYS = Object.freeze([
   'aotai-traverse-route',
   'bogeda-grand-loop-route',
@@ -214,14 +225,54 @@ function assertSourceClosure(manifest, geometries, covers, content) {
     assert.equal(sha256File(sourceFiles[key]), expected.sha256, `${key} SHA drift`)
   }
 
-  assert.equal(manifest.attachment_counts.total, 92)
-  assert.equal(manifest.attachment_counts.unique_paths, 92)
-  assert.equal(manifest.attachment_counts.tracks, 74)
-  assert.equal(manifest.attachment_counts.covers, 18)
-  assert.equal(manifest.attachment_counts.total_bytes, 72270202)
-  assert.equal(manifest.attachments.length, 92)
+  assert.equal(manifest.attachment_counts.total, manifest.attachments.length)
+  assert.equal(
+    manifest.attachment_counts.unique_paths,
+    new Set(manifest.attachments.map((row) => row.relative_path)).size,
+  )
+  assert.equal(
+    manifest.attachment_counts.tracks,
+    manifest.attachments.filter((row) => row.kind === 'track').length,
+  )
+  assert.equal(
+    manifest.attachment_counts.covers,
+    manifest.attachments.filter((row) => row.kind === 'cover').length,
+  )
+  assert.equal(
+    manifest.attachment_counts.total_bytes,
+    manifest.attachments.reduce((total, row) => total + row.bytes, 0),
+  )
   assertUnique(manifest.attachments, 'relative_path', 'attachment manifest')
   assertUnique(manifest.attachments, 'file_token', 'attachment manifest')
+
+  assert.deepEqual(
+    manifest.incremental_admission?.decisions,
+    {
+      ...INCREMENTAL_ADMISSION_DECISIONS,
+      already_present_not_reimported: 2,
+      off_target_not_admitted: 8,
+    },
+  )
+  assert.equal(manifest.incremental_admission?.geometry_rows_added, 122)
+  assert.equal(manifest.incremental_admission?.attachment_tokens_added, 121)
+
+  const incrementalRows = geometries.filter((row) => row.admission)
+  assert.equal(incrementalRows.length, 122)
+  const observedDecisions = Object.fromEntries(
+    Object.entries(INCREMENTAL_ADMISSION_DECISIONS).map(([decision]) => [
+      decision,
+      incrementalRows.filter((row) => row.admission.decision === decision).length,
+    ]),
+  )
+  assert.deepEqual(observedDecisions, INCREMENTAL_ADMISSION_DECISIONS)
+  const sourcePairs = new Set()
+  for (const row of geometries) {
+    assert(ACCEPTED_GEOGRAPHY_STATUSES.has(row.terminal_status), 'unsupported geometry terminal status')
+    assert.equal(row.geography_check?.status, row.terminal_status)
+    const pair = `${row.geography_check.reference.effective_canonical_key}:${row.source_file_sha256}`
+    assert(!sourcePairs.has(pair), `duplicate geometry source pair: ${pair}`)
+    sourcePairs.add(pair)
+  }
 
   const attachmentsByToken = new Map(manifest.attachments.map((row) => [
     row.file_token,
@@ -254,8 +305,8 @@ function existingMountainIds() {
 function buildGeometryImports(sourceRows, contentKeys, parentIds) {
   return sourceRows
     .map((source) => {
-      assert.equal(source.terminal_status, 'parsed_geo_match')
-      assert.equal(source.geography_check?.status, 'parsed_geo_match')
+      assert(ACCEPTED_GEOGRAPHY_STATUSES.has(source.terminal_status))
+      assert.equal(source.geography_check?.status, source.terminal_status)
       const canonicalKey = source.geography_check.reference.effective_canonical_key
       assert(
         parentIds.has(canonicalKey) || contentKeys.has(canonicalKey),
@@ -283,6 +334,7 @@ function buildGeometryImports(sourceRows, contentKeys, parentIds) {
         point_count: facts.point_count,
         segment_count: facts.segment_count,
         source_bucket: 'mountain-route-source',
+        ...(source.admission ? { source_admission: source.admission } : {}),
         source_file_bytes: source.source_file_bytes,
         source_file_name: source.source_name,
         source_file_sha256: source.source_file_sha256,
@@ -567,6 +619,7 @@ function buildSummary({
 
 function reviewMarkdown(pkg) {
   const langta = pkg.blockers[0]
+  const incremental = pkg.geometryImports.filter((row) => row.source_admission)
   return `# Route Data Import Review
 
 ## Candidate closure
@@ -575,6 +628,7 @@ function reviewMarkdown(pkg) {
 - New route corridor content: ${pkg.contentImports.length} (ready ${pkg.summary.content.ready}, blocked ${pkg.summary.content.blocked})
 - User-supplied cover plan: ${pkg.coverImports.length} images across ${pkg.summary.covers.project_count} projects
 - Existing entity association proposals: ${pkg.existingEntityUpdates.length}
+- Incremental Base geometries: ${incremental.length}; product-approved missing-coordinate rows: ${incremental.filter((row) => row.source_admission.decision === 'product_approved_missing_canonical_coordinate').length}
 - Product distance, duration, ascent, difficulty, and route copy overwritten: 0
 
 ## Hard blocker
@@ -594,6 +648,7 @@ function reviewMarkdown(pkg) {
 - Langta remains the sole hard blocker.
 - All new rows remain \`is_active=false\` and \`is_readable=false\`.
 - Original track attachments are planned for a private \`mountain-route-source\` bucket; this package creates no bucket, object, or public URL.
+- Product-approved canonical-coordinate gaps remain \`geometry_review_status=pending\`; their missing coordinate is not fabricated and their distance screen is recorded as not run.
 `
 }
 
@@ -604,11 +659,11 @@ export function buildRouteDataPackage() {
   const sourceContent = readJsonl(SOURCE_PATHS.content)
   assertSourceClosure(manifest, sourceGeometries, sourceCovers, sourceContent)
 
-  assert.equal(sourceGeometries.length, 74)
+  assert.equal(sourceGeometries.length, 196)
   assert.equal(sourceContent.length, 12)
   assert.equal(
     sourceGeometries.filter((row) => row.display_mode === 'map_candidate').length,
-    70,
+    192,
   )
   assert.equal(
     sourceGeometries.filter((row) => (

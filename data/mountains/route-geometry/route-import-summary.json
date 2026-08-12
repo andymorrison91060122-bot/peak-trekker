@@ -3,9 +3,9 @@
     "existing-entity-updates.jsonl": "7a83e88414ff44138929979e39f9a82424f29a1e11656ffdc77f844203307120",
     "route-content-import.jsonl": "fefb072d776d033833a1a1ee62836ff93bdcc499ddee709437cd77408902f581",
     "route-cover-import.jsonl": "9733218984620bb35be874cfbd571720b748ca08e8edeae65ca683f6dd457f40",
-    "route-geometry-import.jsonl": "a1bd5e9efd151f4908c0a4f180221986dd165e93e57c1b8079595435c93d906e",
+    "route-geometry-import.jsonl": "2558ef22f27f712985e81a2f6507bf464378fad986f88b163625e3150efbd78a",
     "route-import-blockers.csv": "5516eb701f76ed51adfe7faf4cb40bf8f93298e7973575e5eb1cb47c98da917d",
-    "route-import-review.md": "3fcebac03113f64934e02210ec6e556d9146f8c713f223cf1e64650bc35ee08c"
+    "route-import-review.md": "545ad41814c85a7352d709565f7e1ae54f04579e9227eec3c7e657d5b951edd3"
   },
   "association_updates": {
     "count": 2,
@@ -42,12 +42,12 @@
     "entity_semantics": "45e8685f42968cedfa6b3f7adbb998c5cdbe28af74b823b77975be838aa0cd8a"
   },
   "geometry": {
-    "count": 74,
+    "count": 196,
     "display_mode": {
-      "map": 70,
+      "map": 192,
       "trace_only": 4
     },
-    "geo_conflicts": 0
+    "geo_conflicts": 8
   },
   "product_metrics_overwritten": 0,
   "production_side_effects": {
@@ -57,10 +57,10 @@
   },
   "schema_version": "route-data-import-summary-v1",
   "source_manifest": {
-    "attachment_bytes": 72270202,
-    "attachment_count": 92,
+    "attachment_bytes": 127386616,
+    "attachment_count": 213,
     "coordinator_source_manifest_sha256": "c434e0042e83ece7be424f33916dca70b053a69f8d3fc902dbeb4d1af81caf84",
-    "durable_manifest_sha256": "303750dc20b01e354e82cc998b476dfeafe697d7090b5c04ebf0d5d3069f64b4"
+    "durable_manifest_sha256": "828d6e1c5d4fd4935f7ebd321da4bf246ab3225a7cec600efecaae51fd8b48bc"
   },
   "status": "candidate_review_package_only"
 }

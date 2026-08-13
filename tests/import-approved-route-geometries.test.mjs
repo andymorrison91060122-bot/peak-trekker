@@ -5,6 +5,7 @@ import path from 'node:path'
 import test from 'node:test'
 
 import {
+  assertStorageObjectMatches,
   buildApprovedGeometryPayload,
   loadIncrementalAdmissionRows,
   verifyAdmissionAttachment,
@@ -59,5 +60,24 @@ test('attachment verification rejects byte or sha drift', () => {
   assert.throws(
     () => verifyAdmissionAttachment(row, root),
     /attachment byte mismatch/,
+  )
+})
+
+test('storage collision check reads bytes and custom sha from their real metadata fields', () => {
+  const [row] = loadIncrementalAdmissionRows(SOURCE_PATH)
+
+  assert.doesNotThrow(() =>
+    assertStorageObjectMatches(row, {
+      metadata: { size: row.source_file_bytes },
+      user_metadata: { sha256: row.source_file_sha256 },
+    }),
+  )
+  assert.throws(
+    () =>
+      assertStorageObjectMatches(row, {
+        metadata: { size: row.source_file_bytes },
+        user_metadata: { sha256: '0'.repeat(64) },
+      }),
+    /storage SHA collision/,
   )
 })

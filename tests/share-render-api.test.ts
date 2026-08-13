@@ -13,6 +13,10 @@ async function loadShareTemplateTypes() {
   return import(`../src/lib/share-templates/types.${sourceExtension}`)
 }
 
+async function loadShareFonts() {
+  return import(`../src/lib/fonts/load-share-fonts.${sourceExtension}`)
+}
+
 function matchesPolicyError(
   error: unknown,
   errorClass: typeof import('../src/lib/share-render-policy.ts').ShareRenderPayloadPolicyError,
@@ -436,7 +440,8 @@ describe('share render API field policy regression', () => {
     const posterSource = readSource('../src/app/api/poster/route.ts')
 
     assert.doesNotMatch(fontSource, /from 'fs\/promises'|from 'path'|readFile\(|process\.cwd\(\)/)
-    assert.match(fontSource, /fetch\(new URL\(`\/fonts\/\$\{fileName\}`, origin\)/)
+    assert.match(fontSource, /import \{ getCloudflareContext \} from '@opennextjs\/cloudflare'/)
+    assert.match(fontSource, /env\.ASSETS\?\.fetch\(new Request\(assetUrl\)\)/)
     assert.doesNotMatch(pngSource, /from 'fs\/promises'|from 'path'|readFile\(|process\.cwd\(\)/)
     assert.match(pngSource, /renderShareSvg/)
     assert.doesNotMatch(pngSource, /share-render-png\.worker|index_bg\.wasm/)
@@ -452,6 +457,82 @@ describe('share render API field policy regression', () => {
     assert.match(posterSource, /renderSvgPng/)
     const renderPngBlock = posterSource.match(/async function renderPngResponse[\s\S]*?\n}\n/)?.[0] ?? ''
     assert.doesNotMatch(renderPngBlock, /import\('sharp'\)|sharp\(/)
+  })
+
+  test('Cloudflare share font loading reads all local font assets through the injected asset fetcher', async () => {
+    const fontSource = readSource('../src/lib/fonts/load-share-fonts.ts')
+    const { loadShareFontBuffersFromAssetFetcher } = await loadShareFonts()
+    const requestedPaths: string[] = []
+
+    const buffers = await loadShareFontBuffersFromAssetFetcher('https://peaktrekker.cc', async (assetUrl) => {
+      requestedPaths.push(assetUrl.pathname)
+      return new Response(new Uint8Array([requestedPaths.length]).buffer, { status: 200 })
+    })
+
+    assert.deepEqual(requestedPaths, [
+      '/fonts/NotoSansSC-Regular.otf',
+      '/fonts/NotoSansSC-Bold.otf',
+      '/fonts/Rajdhani-SemiBold.ttf',
+      '/fonts/Rajdhani-Bold.ttf',
+    ])
+    assert.equal(buffers.regular.byteLength, 1)
+    assert.equal(buffers.bold.byteLength, 1)
+    assert.equal(buffers.rajdhaniSemiBold.byteLength, 1)
+    assert.equal(buffers.rajdhaniBold.byteLength, 1)
+    assert.match(fontSource, /isCloudflareRuntime\(\)[\s\S]*?env\.ASSETS\?\.fetch\(new Request\(assetUrl\)\)/)
+    assert.doesNotMatch(fontSource.match(/if \(isCloudflareRuntime\(\)\)[\s\S]*?return async \(assetUrl: URL\)/)?.[0] ?? '', /fetch\(assetUrl/)
+  })
+
+  test('Cloudflare Noto fallback still reads local Rajdhani through the asset fetcher without an origin fetch', async () => {
+    const { loadShareFontBuffersWithFetchers } = await loadShareFonts()
+    const assetPaths: string[] = []
+    const remoteUrls: string[] = []
+    const unexpectedOriginFetches: string[] = []
+    const originalFetch = globalThis.fetch
+    const originalWarn = console.warn
+
+    globalThis.fetch = async (input) => {
+      unexpectedOriginFetches.push(typeof input === 'string' ? input : input.toString())
+      throw new Error('origin fetch is not allowed in this fallback contract')
+    }
+    console.warn = () => {}
+
+    try {
+      const buffers = await loadShareFontBuffersWithFetchers(
+        'https://peaktrekker.cc',
+        async (assetUrl) => {
+          assetPaths.push(assetUrl.pathname)
+          const isNoto = assetUrl.pathname.includes('NotoSansSC')
+          return new Response(isNoto ? null : new Uint8Array([assetPaths.length]).buffer, { status: isNoto ? 404 : 200 })
+        },
+        async (remoteUrl) => {
+          remoteUrls.push(remoteUrl)
+          return new Uint8Array([remoteUrls.length]).buffer
+        },
+      )
+
+      assert.deepEqual(assetPaths, [
+        '/fonts/NotoSansSC-Regular.otf',
+        '/fonts/NotoSansSC-Bold.otf',
+        '/fonts/Rajdhani-SemiBold.ttf',
+        '/fonts/Rajdhani-Bold.ttf',
+        '/fonts/Rajdhani-SemiBold.ttf',
+        '/fonts/Rajdhani-Bold.ttf',
+      ])
+      assert.deepEqual(assetPaths.slice(-2), [
+        '/fonts/Rajdhani-SemiBold.ttf',
+        '/fonts/Rajdhani-Bold.ttf',
+      ])
+      assert.equal(remoteUrls.length, 2)
+      assert.equal(buffers.regular.byteLength, 1)
+      assert.equal(buffers.bold.byteLength, 1)
+      assert.equal(buffers.rajdhaniSemiBold.byteLength, 1)
+      assert.equal(buffers.rajdhaniBold.byteLength, 1)
+      assert.deepEqual(unexpectedOriginFetches, [])
+    } finally {
+      globalThis.fetch = originalFetch
+      console.warn = originalWarn
+    }
   })
 
   test('Worker Satori uses a precompiled Yoga module while Node keeps the default renderer', () => {
@@ -659,6 +740,16 @@ describe('share render API field policy regression', () => {
     assert.doesNotMatch(relightBlock, /strokeDasharray:\s*length/)
     assert.doesNotMatch(relightBlock, /strokeDashoffset:\s*length/)
     assert.doesNotMatch(relightBlock, /getTotalLength\(\)/)
+  })
+
+  test('share editor clears route dash state when a relight reaches its terminal frame', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const terminalBlock = clientSource.match(/function setPosterMotionTerminal\(root: HTMLElement\) \{[\s\S]*?\n}\n\nfunction preparePosterMotionInitialState/)?.[0] ?? ''
+    const relightBlock = clientSource.match(/function buildPosterRelightTimeline\(root: HTMLElement\) \{[\s\S]*?\n}\n\nfunction getExportMotionTargets/)?.[0] ?? ''
+
+    assert.match(terminalBlock, /settlePosterDrawTargets\(drawTargets\)/)
+    assert.match(relightBlock, /timeline\.call\(\(\) => settlePosterDrawTargets\(drawTargets\)\)/)
+    assert.match(clientSource, /function settlePosterDrawTargets\(drawTargets: SVGPathElement\[\]\) \{[\s\S]*?strokeDasharray = ''[\s\S]*?strokeDashoffset = '0'/)
   })
 
   test('share editor altitude profile preview does not add a profile-only TIME DATE column', () => {

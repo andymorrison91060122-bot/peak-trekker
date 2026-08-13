@@ -399,6 +399,13 @@ export default function ImprintClient({
     }
   }
 
+  function settleCardDrawTargets(drawTargets: SVGGeometryElement[]) {
+    drawTargets.forEach((draw) => {
+      draw.style.strokeDasharray = ''
+      draw.style.strokeDashoffset = '0'
+    })
+  }
+
   function layoutDeck(animated: boolean) {
     const cards = getCards()
     const width = getCardWidth()
@@ -442,10 +449,7 @@ export default function ImprintClient({
         if (Number.isFinite(target)) num.textContent = formatMotionValue(target, format)
         gsap.set(num, { autoAlpha: 1, y: 0, clearProps: 'willChange' })
       })
-      drawTargets.forEach((draw) => {
-        draw.style.strokeDasharray = ''
-        draw.style.strokeDashoffset = '0'
-      })
+      settleCardDrawTargets(drawTargets)
       if (popTargets.length) gsap.set(popTargets, { autoAlpha: 1, scale: 1, transformOrigin: 'center', clearProps: 'willChange' })
       fillTargets.forEach((fill) => {
         const targetOpacity = Number((fill as HTMLElement).dataset.op ?? 0.2)
@@ -479,6 +483,7 @@ export default function ImprintClient({
     cardMotionTargetsRef.current = motionTargets
     const tl = gsap.timeline({
       onComplete: () => {
+        settleCardDrawTargets(drawTargets)
         if (cardMotionTimelineRef.current === tl) {
           if (cardMotionTargetsRef.current.length) gsap.set(cardMotionTargetsRef.current, { clearProps: 'willChange' })
           cardMotionTargetsRef.current = []

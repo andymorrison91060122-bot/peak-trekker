@@ -98,6 +98,13 @@ test('imprint facade uses imperative deck motion without full entrance replay on
   assert.doesNotMatch(imprintClient, /dependencies: \[activeIndex/)
 })
 
+test('imprint route drawing clears its dash state at the animated terminal frame', () => {
+  const playCard = imprintClient.match(/function playCard\(scope: HTMLElement \| null, animate = true\) \{[\s\S]*?\n  }\n\n  function resetRim/)?.[0] ?? ''
+
+  assert.match(playCard, /settleCardDrawTargets\(drawTargets\)/)
+  assert.match(imprintClient, /function settleCardDrawTargets\(drawTargets: SVGGeometryElement\[\]\) \{[\s\S]*?strokeDasharray = ''[\s\S]*?strokeDashoffset = '0'/)
+})
+
 test('imprint method source options use interrupt-safe fromTo terminal reveal', () => {
   assert.match(imprintClient, /const sourceOptions = to\.querySelectorAll\('\.imprint-source-option'\)/)
   assert.match(imprintClient, /tl\.fromTo\(sourceOptions, \{\s*y: 16,\s*autoAlpha: 0,\s*\}, \{\s*y: 0,\s*autoAlpha: 1,/)

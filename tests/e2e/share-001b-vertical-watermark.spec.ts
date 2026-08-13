@@ -56,6 +56,12 @@ type VerticalTerminalContent = {
   routeOpacity: number
 }
 
+type DrawTerminalState = {
+  count: number
+  dasharrays: string[]
+  dashoffsets: string[]
+}
+
 async function installNoMutationRoutes(page: Page) {
   await page.route('**/api/analytics/event', (route) => route.fulfill({ status: 204, body: '' }))
 }
@@ -183,6 +189,14 @@ async function readVerticalTerminalContent(poster: Locator) {
   }) as Promise<VerticalTerminalContent>
 }
 
+async function readDrawTerminalState(scope: Locator) {
+  return scope.locator('path[data-role="draw"]').evaluateAll((nodes) => ({
+    count: nodes.length,
+    dasharrays: nodes.map((node) => getComputedStyle(node).strokeDasharray),
+    dashoffsets: nodes.map((node) => getComputedStyle(node).strokeDashoffset),
+  })) as Promise<DrawTerminalState>
+}
+
 function isTerminallyVisible(target: TerminalContentTarget) {
   return target.opacity >= 0.99 && target.visibility !== 'hidden' && target.width > 0 && target.height > 0
 }
@@ -199,6 +213,12 @@ function hasCompleteVerticalTerminalContent(content: VerticalTerminalContent) {
     && content.routeCount > 0
     && content.routeOpacity >= 0.99
   )
+}
+
+function hasSettledDrawTerminal(state: DrawTerminalState) {
+  return state.count > 0
+    && state.dasharrays.every((dasharray) => dasharray === 'none')
+    && state.dashoffsets.every((dashoffset) => dashoffset === '0px')
 }
 
 test('SHARE-001B makes Vertical first, free, motion-complete, and horizontally stable at 375px', async ({ browser, baseURL }) => {
@@ -346,6 +366,33 @@ test('base Vertical Share preview restores every template text target at motion 
     reduced: reducedContent,
     screenshot: join(OUTPUT_DIR, 'share-vertical-editor-terminal-r1-375.png'),
   }, null, 2)}\n`)
+})
+
+test('Share and Imprint route draws settle after replay and reduced-motion rendering', async ({ browser, baseURL }) => {
+  const routes = [
+    { name: 'Share', path: '/share?template=base-vertical-classic', selector: '[data-testid="share-main-poster-preview"]' },
+    { name: 'Imprint', path: '/imprint', selector: '[data-imprint-card][data-index="0"]' },
+  ]
+
+  for (const reducedMotion of ['no-preference', 'reduce'] as const) {
+    const { context, page } = await openContext(browser, reducedMotion)
+    try {
+      for (const route of routes) {
+        await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' })
+        const scope = page.locator(route.selector)
+        await expect(scope).toBeVisible()
+        await expect.poll(async () => hasSettledDrawTerminal(await readDrawTerminalState(scope))).toBe(true)
+
+        if (reducedMotion === 'no-preference') {
+          await page.reload({ waitUntil: 'domcontentloaded' })
+          await expect(scope).toBeVisible()
+          await expect.poll(async () => hasSettledDrawTerminal(await readDrawTerminalState(scope))).toBe(true)
+        }
+      }
+    } finally {
+      await context.close()
+    }
+  }
 })
 
 test('Share defaults to the first listed template while a valid URL template remains selected', async ({ browser, baseURL }) => {

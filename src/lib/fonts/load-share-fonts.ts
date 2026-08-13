@@ -1,3 +1,5 @@
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+
 type ShareFont = {
   name: string
   data: ArrayBuffer
@@ -30,6 +32,9 @@ const REMOTE_FONT_URLS = {
 const fontBufferCache = new Map<string, Promise<ShareFontBuffers>>()
 const fontCache = new Map<string, ShareFont[]>()
 
+type StaticFontAssetFetcher = (assetUrl: URL) => Promise<Response>
+type RemoteFontFetcher = (url: string) => Promise<ArrayBuffer>
+
 function buildFonts(regular: ArrayBuffer, bold: ArrayBuffer, rajdhaniSemiBold: ArrayBuffer, rajdhaniBold: ArrayBuffer) {
   return [
     { name: FONT_FAMILY, data: regular, weight: 400, style: 'normal' as const },
@@ -43,10 +48,25 @@ function buildFonts(regular: ArrayBuffer, bold: ArrayBuffer, rajdhaniSemiBold: A
   ] satisfies ShareFont[]
 }
 
-async function fetchStaticFont(origin: string, fileName: string) {
-  const response = await fetch(new URL(`/fonts/${fileName}`, origin), {
-    cache: 'force-cache',
-  })
+function isCloudflareRuntime() {
+  return process.env.NEXT_PUBLIC_PEAK_TREKKER_RUNTIME === 'cloudflare'
+}
+
+async function staticFontAssetFetcher(): Promise<StaticFontAssetFetcher> {
+  if (isCloudflareRuntime()) {
+    const { env } = await getCloudflareContext({ async: true })
+    return async (assetUrl: URL) => {
+      const response = await env.ASSETS?.fetch(new Request(assetUrl))
+      if (!response) throw new Error('Worker font asset binding is unavailable')
+      return response
+    }
+  }
+
+  return (assetUrl: URL) => fetch(assetUrl, { cache: 'force-cache' })
+}
+
+async function fetchStaticFont(assetFetcher: StaticFontAssetFetcher, origin: string, fileName: string) {
+  const response = await assetFetcher(new URL(`/fonts/${fileName}`, origin))
   if (!response.ok) {
     throw new Error(`Static font responded ${response.status}`)
   }
@@ -66,37 +86,48 @@ async function fetchRemoteFont(url: string) {
   return response.arrayBuffer()
 }
 
-async function loadStaticFontBuffers(origin: string): Promise<ShareFontBuffers> {
+export async function loadShareFontBuffersFromAssetFetcher(
+  origin: string,
+  assetFetcher: StaticFontAssetFetcher,
+): Promise<ShareFontBuffers> {
   const [regular, bold, rajdhaniSemiBold, rajdhaniBold] = await Promise.all([
-    fetchStaticFont(origin, LOCAL_FONT_FILES.regular),
-    fetchStaticFont(origin, LOCAL_FONT_FILES.bold),
-    fetchStaticFont(origin, LOCAL_FONT_FILES.rajdhaniSemiBold),
-    fetchStaticFont(origin, LOCAL_FONT_FILES.rajdhaniBold),
+    fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES.regular),
+    fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES.bold),
+    fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES.rajdhaniSemiBold),
+    fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES.rajdhaniBold),
   ])
 
   return { regular, bold, rajdhaniSemiBold, rajdhaniBold }
 }
 
-async function loadRemoteFontBuffers(origin: string): Promise<ShareFontBuffers> {
+async function loadRemoteFontBuffers(
+  origin: string,
+  assetFetcher: StaticFontAssetFetcher,
+  remoteFontFetcher: RemoteFontFetcher,
+): Promise<ShareFontBuffers> {
   const [regular, bold, rajdhaniSemiBold, rajdhaniBold] = await Promise.all([
-    fetchRemoteFont(REMOTE_FONT_URLS.regular),
-    fetchRemoteFont(REMOTE_FONT_URLS.bold),
-    fetchStaticFont(origin, LOCAL_FONT_FILES.rajdhaniSemiBold),
-    fetchStaticFont(origin, LOCAL_FONT_FILES.rajdhaniBold),
+    remoteFontFetcher(REMOTE_FONT_URLS.regular),
+    remoteFontFetcher(REMOTE_FONT_URLS.bold),
+    fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES.rajdhaniSemiBold),
+    fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES.rajdhaniBold),
   ])
 
   return { regular, bold, rajdhaniSemiBold, rajdhaniBold }
 }
 
-async function fetchShareFontBuffers(origin: string) {
+export async function loadShareFontBuffersWithFetchers(
+  origin: string,
+  assetFetcher: StaticFontAssetFetcher,
+  remoteFontFetcher: RemoteFontFetcher,
+): Promise<ShareFontBuffers> {
   try {
-    return await loadStaticFontBuffers(origin)
+    return await loadShareFontBuffersFromAssetFetcher(origin, assetFetcher)
   } catch {
     console.warn('Static share fonts not found, trying remote Noto Sans SC fonts...')
   }
 
   try {
-    return await loadRemoteFontBuffers(origin)
+    return await loadRemoteFontBuffers(origin, assetFetcher, remoteFontFetcher)
   } catch (error) {
     throw new Error(
       `Font loading failed: no static fonts and remote Noto Sans SC fonts are unreachable. Please add ${LOCAL_FONT_FILES.regular}, ${LOCAL_FONT_FILES.bold}, ${LOCAL_FONT_FILES.rajdhaniSemiBold}, and ${LOCAL_FONT_FILES.rajdhaniBold} to public/fonts/. Cause: ${
@@ -104,6 +135,10 @@ async function fetchShareFontBuffers(origin: string) {
       }`,
     )
   }
+}
+
+async function fetchShareFontBuffers(origin: string) {
+  return loadShareFontBuffersWithFetchers(origin, await staticFontAssetFetcher(), fetchRemoteFont)
 }
 
 export async function loadShareFontBuffers(origin: string): Promise<ShareFontBuffers> {

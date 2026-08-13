@@ -408,6 +408,14 @@ function getPosterMotionTargets(root: HTMLElement) {
   }
 }
 
+function settlePosterDrawTargets(drawTargets: SVGPathElement[]) {
+  drawTargets.forEach((target) => {
+    target.style.strokeDasharray = ''
+    target.style.strokeDashoffset = '0'
+    gsap.set(target, { clearProps: 'willChange' })
+  })
+}
+
 function setPosterMotionTerminal(root: HTMLElement) {
   const { textTargets, numberTargets, drawTargets, phaseTargets } = getPosterMotionTargets(root)
   const verticalTargets = Object.values(phaseTargets).flat()
@@ -418,9 +426,7 @@ function setPosterMotionTerminal(root: HTMLElement) {
     const value = Number.parseFloat(target.dataset.val ?? '')
     target.textContent = formatMotionValue(value, target.dataset.fmt)
   })
-  drawTargets.forEach((target) => {
-    gsap.set(target, { strokeDashoffset: 0, clearProps: 'willChange' })
-  })
+  settlePosterDrawTargets(drawTargets)
 }
 
 function preparePosterMotionInitialState(root: HTMLElement, options: { retry?: boolean } = {}) {
@@ -549,6 +555,7 @@ function buildPosterRelightTimeline(root: HTMLElement) {
       ease: 'power2.out',
       clearProps: 'willChange',
     }, 0.96)
+    timeline.call(() => settlePosterDrawTargets(drawTargets))
     return timeline
   }
 
@@ -591,6 +598,7 @@ function buildPosterRelightTimeline(root: HTMLElement) {
     }, 0.24)
   }
 
+  timeline.call(() => settlePosterDrawTargets(drawTargets))
   return timeline
 }
 

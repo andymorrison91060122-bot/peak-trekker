@@ -661,6 +661,16 @@ describe('share render API field policy regression', () => {
     assert.doesNotMatch(relightBlock, /getTotalLength\(\)/)
   })
 
+  test('share editor clears route dash state when a relight reaches its terminal frame', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const terminalBlock = clientSource.match(/function setPosterMotionTerminal\(root: HTMLElement\) \{[\s\S]*?\n}\n\nfunction preparePosterMotionInitialState/)?.[0] ?? ''
+    const relightBlock = clientSource.match(/function buildPosterRelightTimeline\(root: HTMLElement\) \{[\s\S]*?\n}\n\nfunction getExportMotionTargets/)?.[0] ?? ''
+
+    assert.match(terminalBlock, /settlePosterDrawTargets\(drawTargets\)/)
+    assert.match(relightBlock, /timeline\.call\(\(\) => settlePosterDrawTargets\(drawTargets\)\)/)
+    assert.match(clientSource, /function settlePosterDrawTargets\(drawTargets: SVGPathElement\[\]\) \{[\s\S]*?strokeDasharray = ''[\s\S]*?strokeDashoffset = '0'/)
+  })
+
   test('share editor altitude profile preview does not add a profile-only TIME DATE column', () => {
     const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
     const premiumPreview = clientSource.match(/function PremiumHeroPreview[\s\S]*?function HeroPreview/)?.[0]

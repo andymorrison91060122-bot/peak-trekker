@@ -22,7 +22,7 @@
     "route_geometries": {
       "path": "data/mountains/route-geometry/source-route-geometries.jsonl",
       "rows": 196,
-      "sha256": "437f8bdbfc293c7a61fa37d85606fdeca187521989cb8089a93a984eb63baebb"
+      "sha256": "56e8b3e1aeb1a93ad1774a8b716314bc1254e2359e5d72765e58e1c6a2d781cd"
     },
     "route_covers": {
       "path": "data/mountains/route-geometry/source-route-covers.jsonl",

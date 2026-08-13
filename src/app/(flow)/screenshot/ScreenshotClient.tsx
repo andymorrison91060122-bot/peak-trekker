@@ -1761,6 +1761,7 @@ function ConfirmScreen({
   onBack,
   onSubmit,
   onUpgrade,
+  initialMountainContext,
 }: {
   result: RecognizeResult
   imagePreview: string | null
@@ -1785,6 +1786,7 @@ function ConfirmScreen({
   onBack: () => void
   onSubmit: () => void
   onUpgrade: () => void
+  initialMountainContext: { id: string; name: string } | null
 }) {
   const fields = result.parsedFields
   const tone = validationTone(fields)
@@ -1900,15 +1902,30 @@ function ConfirmScreen({
           })}
         </div>
 
-        <MountainMatchSection
-          options={mountainOptions}
-          selectedMountainId={selectedMountainId}
-          status={mountainSearchStatus}
-          error={mountainSearchError}
-          motionIndex={visibleFieldConfigs.length}
-          onSelect={onSelectMountain}
-          onSearch={onSearchMountain}
-        />
+        {initialMountainContext ? (
+          <div
+            data-testid="screenshot-detail-mountain-context"
+            data-screenshot-recognition-item="match"
+            style={{
+              marginTop: 'var(--space-4)', padding: 'var(--space-3)', borderRadius: 'var(--radius-md)',
+              border: '1px solid color-mix(in srgb, var(--color-success) 28%, transparent)',
+              background: 'color-mix(in srgb, var(--color-success) 8%, transparent)',
+            }}
+          >
+            <div style={{ color: 'var(--color-on-surface-variant)', fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)' }}>本次记录将关联到</div>
+            <div style={{ marginTop: 3, color: 'var(--color-on-surface)', fontSize: 'var(--font-body-m-size)', lineHeight: 'var(--font-body-m-line)', fontWeight: 700 }}>{initialMountainContext.name}</div>
+          </div>
+        ) : (
+          <MountainMatchSection
+            options={mountainOptions}
+            selectedMountainId={selectedMountainId}
+            status={mountainSearchStatus}
+            error={mountainSearchError}
+            motionIndex={visibleFieldConfigs.length}
+            onSelect={onSelectMountain}
+            onSearch={onSearchMountain}
+          />
+        )}
 
         <div style={{ marginTop: 'var(--space-4)', marginBottom: 'var(--space-5)' }}>
           <ValidationBar tone={tone} />
@@ -2008,9 +2025,11 @@ function UpgradeSheet({
 export default function ScreenshotClient({
   initialTemplate = null,
   returnToImprint = false,
+  initialMountainContext = null,
 }: {
   initialTemplate?: ShareRenderTemplate | null
   returnToImprint?: boolean
+  initialMountainContext?: { id: string; name: string } | null
 }) {
   const router = useRouter()
   const { open: openHelpSheet } = useHelpSheet()
@@ -2039,8 +2058,9 @@ export default function ScreenshotClient({
   const [fieldToggles, setFieldToggles] = useState<FieldToggles>(EMPTY_FIELD_TOGGLES)
   const [editableFields, setEditableFields] = useState<EditableFields>(EMPTY_EDITABLE_FIELDS)
   const [routeCalibration, setRouteCalibration] = useState<ScreenshotRouteCalibration>(() => createEmptyScreenshotRouteCalibration())
+  const isMountainContextLocked = Boolean(initialMountainContext)
   const [mountainOptions, setMountainOptions] = useState<MountainOption[]>([])
-  const [selectedMountainId, setSelectedMountainId] = useState<string | null>(null)
+  const [selectedMountainId, setSelectedMountainId] = useState<string | null>(() => initialMountainContext?.id ?? null)
   const [mountainSearchStatus, setMountainSearchStatus] = useState<MountainSearchStatus>('idle')
   const [mountainSearchError, setMountainSearchError] = useState<string | null>(null)
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null)
@@ -2356,6 +2376,7 @@ export default function ScreenshotClient({
   }, [])
 
   async function searchMountains(query: string) {
+    if (isMountainContextLocked) return
     const trimmed = query.trim()
     if (trimmed.length < 2) {
       setMountainOptions([])
@@ -2497,7 +2518,7 @@ export default function ScreenshotClient({
       const nextEditableFields = buildEditableFields(payload.parsedFields)
       setEditableFields(nextEditableFields)
       setFieldToggles(buildInitialFieldToggles(payload.parsedFields))
-      void searchMountains(nextEditableFields.location)
+      if (!isMountainContextLocked) void searchMountains(nextEditableFields.location)
       setSubmitError(null)
       setRouteShapeRecoveryOpen(false)
       setSubmitResult(null)
@@ -2548,7 +2569,7 @@ export default function ScreenshotClient({
     setEditableFields(EMPTY_EDITABLE_FIELDS)
     setRouteCalibration(createEmptyScreenshotRouteCalibration())
     setMountainOptions([])
-    setSelectedMountainId(null)
+    setSelectedMountainId(initialMountainContext?.id ?? null)
     setMountainSearchStatus('idle')
     setMountainSearchError(null)
     setSubmitError(null)
@@ -2597,7 +2618,7 @@ export default function ScreenshotClient({
     setEditableFields(EMPTY_EDITABLE_FIELDS)
     setRouteCalibration(createEmptyScreenshotRouteCalibration())
     setMountainOptions([])
-    setSelectedMountainId(null)
+    setSelectedMountainId(initialMountainContext?.id ?? null)
     setMountainSearchStatus('idle')
     setMountainSearchError(null)
     setSubmitError(null)
@@ -2775,7 +2796,8 @@ export default function ScreenshotClient({
         body: JSON.stringify({
           source: SCREENSHOT_RECOGNITION_SOURCE,
           requestId: recognitionRequestIdRef.current,
-          mountainId: selectedMountainId,
+          mountainId: initialMountainContext?.id ?? selectedMountainId,
+          contextMountainId: initialMountainContext?.id ?? null,
           parsedData,
           routeShape,
         }),
@@ -2797,7 +2819,7 @@ export default function ScreenshotClient({
         properties: {
           source: SCREENSHOT_RECOGNITION_SOURCE,
           proof_status: 'uploaded',
-          mountain_id: selectedMountainId,
+          mountain_id: initialMountainContext?.id ?? selectedMountainId,
           checkin_id: payload.checkinId,
         },
       })
@@ -2828,7 +2850,7 @@ export default function ScreenshotClient({
     }
   }
 
-  const selectedMountain = mountainOptions.find((option) => option.id === selectedMountainId) ?? null
+    const selectedMountain = initialMountainContext ?? mountainOptions.find((option) => option.id === selectedMountainId) ?? null
 
   return (
     <div ref={motionScopeRef} data-screenshot-motion-scope="true" style={{ display: 'contents' }}>
@@ -2902,6 +2924,7 @@ export default function ScreenshotClient({
           onBack={handleBack}
           onSubmit={handleSubmit}
           onUpgrade={openUpgradeSheet}
+          initialMountainContext={initialMountainContext}
         />
       ) : null}
 

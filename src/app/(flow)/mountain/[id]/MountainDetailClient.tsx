@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
+import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
 import type { Waypoint, WaypointType } from '@/lib/waypoints'
 import { getDifficultySuitabilityCopy } from '@/lib/license-ui'
@@ -20,9 +21,11 @@ import { HelpTrigger } from '@/components/help/HelpTrigger'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import EmptyState from '@/components/ui/EmptyState'
+import PmtilesSnapshotMap from '@/components/map/PmtilesSnapshotMap'
 import WeatherSection from '@/components/mountain/WeatherSection'
 import DifficultyAdvisory from '@/components/mountain/DifficultyAdvisory'
 import DifficultyChip from '@/components/mountain/DifficultyChip'
+import { ImportRecordSheet } from '@/components/mountain/ImportRecordSheet'
 import SanitizedMountainDescription, {
   stripTagsForFallback,
 } from '@/components/mountain/SanitizedMountainDescription'
@@ -43,8 +46,10 @@ import {
 } from '@/lib/mountain-route-display'
 import {
   buildRouteTraceViewModel,
+  routeGeometryToFeature,
   type MountainRouteGeometry,
 } from '@/lib/mountain-route-geometry'
+import { getMountainPmtilesAsset } from '@/lib/map/map-assets'
 
 gsap.registerPlugin(useGSAP)
 
@@ -67,6 +72,7 @@ type MountainDetailClientProps = {
   routeGeometry: MountainRouteGeometry | null
   featuredPosts: CommunityPostViewModel[]
   heroImages: string[]
+  hasCheckedIn: boolean
 }
 
 function hasMountainWeatherTarget(
@@ -356,11 +362,13 @@ function DecisionRow({
 function HeroSection({
   mountain,
   heroImages,
+  hasCheckedIn,
   onBack,
   onShare,
 }: {
   mountain: Mountain
   heroImages: string[]
+  hasCheckedIn: boolean
   onBack: () => void
   onShare: () => void
 }) {
@@ -518,6 +526,21 @@ function HeroSection({
       >
         <div data-mountain-hero-item="chip" style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
           <DifficultyChip difficulty={mountain.difficulty} />
+          {hasCheckedIn ? (
+            <span
+              data-testid="mountain-detail-checked-in"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 7px',
+                borderRadius: 'var(--radius-xs)', color: 'var(--color-success)',
+                background: 'color-mix(in srgb, var(--color-success) 12%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--color-success) 28%, transparent)',
+                fontSize: 'var(--font-label-s-size)', lineHeight: 'var(--font-label-s-line)', fontWeight: 700,
+              }}
+            >
+              <CheckIcon size={13} />
+              已打卡
+            </span>
+          ) : null}
         </div>
         <h1
           data-mountain-hero-item="title"
@@ -823,7 +846,7 @@ function RouteTraceCard({ geometry }: { geometry: MountainRouteGeometry }) {
 
   return (
     <section id="route" data-testid="mountain-route-section">
-      <SectionHeader title="路线参考" right="完整轨迹" />
+      <SectionHeader title="路线参考" right="仅供决策参考" />
       <div style={{ padding: '0 var(--space-4)' }}>
         <div
           data-mountain-route-card
@@ -870,9 +893,107 @@ function RouteTraceCard({ geometry }: { geometry: MountainRouteGeometry }) {
   )
 }
 
+function resolveMountainPmtilesAsset(mountainId: string) {
+  try {
+    return getMountainPmtilesAsset(mountainId)
+  } catch {
+    return null
+  }
+}
+
+function addRouteMapLayers(map: MapLibreMap, geometry: MountainRouteGeometry) {
+  const route = routeGeometryToFeature(geometry)
+  const points = geometry.lines.flat()
+  const start = points[0]
+  const end = points.at(-1)
+  if (!start || !end) throw new Error('route geometry must contain endpoint coordinates')
+
+  map.addSource('mountain-detail-route', {
+    type: 'geojson',
+    data: route,
+  })
+  map.addLayer({
+    id: 'mountain-detail-route-line',
+    type: 'line',
+    source: 'mountain-detail-route',
+    paint: {
+      'line-color': '#7ef0b4',
+      'line-width': 3.2,
+      'line-opacity': 0.94,
+    },
+    layout: {
+      'line-cap': 'round',
+      'line-join': 'round',
+    },
+  })
+  map.addSource('mountain-detail-route-endpoints', {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { endpoint: 'start' },
+          geometry: { type: 'Point', coordinates: [start.lng, start.lat] },
+        },
+        {
+          type: 'Feature',
+          properties: { endpoint: 'end' },
+          geometry: { type: 'Point', coordinates: [end.lng, end.lat] },
+        },
+      ],
+    },
+  })
+  map.addLayer({
+    id: 'mountain-detail-route-endpoints',
+    type: 'circle',
+    source: 'mountain-detail-route-endpoints',
+    paint: {
+      'circle-radius': ['match', ['get', 'endpoint'], 'start', 5.5, 7],
+      'circle-color': ['match', ['get', 'endpoint'], 'start', '#d7dde2', '#7ef0b4'],
+      'circle-stroke-color': '#07130f',
+      'circle-stroke-width': 1.8,
+    },
+  })
+}
+
+function RouteMapCard({ geometry }: { geometry: MountainRouteGeometry }) {
+  const [mapFailed, setMapFailed] = useState(false)
+  const asset = resolveMountainPmtilesAsset(geometry.mountainId)
+
+  if (geometry.displayMode === 'trace_only' || !asset || mapFailed) {
+    return <RouteTraceCard geometry={geometry} />
+  }
+
+  return (
+    <section id="route" data-testid="mountain-route-section">
+      <SectionHeader title="路线参考" right="仅供决策参考" />
+      <div style={{ padding: '0 var(--space-4)' }}>
+        <PmtilesSnapshotMap
+          asset={asset}
+          ariaLabel="路线参考地图"
+          onMapReady={(map) => {
+            try {
+              addRouteMapLayers(map, geometry)
+            } catch {
+              setMapFailed(true)
+            }
+          }}
+          onError={() => setMapFailed(true)}
+          style={{
+            aspectRatio: '16 / 11',
+            border: '1px solid var(--color-outline)',
+            borderRadius: 'var(--radius-lg)',
+          }}
+        />
+      </div>
+    </section>
+  )
+}
+
 function RouteReferenceSection({ routeGeometry }: { routeGeometry: MountainRouteGeometry | null }) {
   if (!routeGeometry) return <RouteUnavailable />
-  return <RouteTraceCard geometry={routeGeometry} />
+  return <RouteMapCard geometry={routeGeometry} />
 }
 
 function FeaturedSection({ posts }: { posts: CommunityPostViewModel[] }) {
@@ -966,11 +1087,11 @@ function FeaturedSection({ posts }: { posts: CommunityPostViewModel[] }) {
 function BottomCTA({
   mountain,
   requiresLogin,
-  hasWaypoints,
+  onOpenImport,
 }: {
   mountain: Mountain
   requiresLogin: boolean
-  hasWaypoints: boolean
+  onOpenImport: () => void
 }) {
   const accessDisplay = getMountainAccessDisplay(mountain.access_status, mountain.entity_type)
   const loginHref = `/auth/login?from=${encodeURIComponent(`/mountain/${mountain.id}`)}`
@@ -1020,15 +1141,15 @@ function BottomCTA({
       >
         <SecondaryButton
           className="pt-pressable"
-          as="a"
-          href={hasWaypoints ? '#waypoints' : '#route'}
+          type="button"
+          onClick={onOpenImport}
           onPointerDown={markPressFallback}
           onPointerUp={clearPressFallback}
           onPointerCancel={clearPressFallback}
           onPointerLeave={clearPressFallback}
           onBlur={clearPressFallback}
         >
-          查看路线
+          导入记录
         </SecondaryButton>
         {accessDisplay.canStartTrek ? (
           <PrimaryButton
@@ -1067,6 +1188,7 @@ export default function MountainDetailClient({
   routeGeometry,
   featuredPosts,
   heroImages,
+  hasCheckedIn,
 }: MountainDetailClientProps) {
   const router = useRouter()
   const motionScopeRef = useRef<HTMLDivElement | null>(null)
@@ -1075,6 +1197,7 @@ export default function MountainDetailClient({
   const weatherMountain = hasMountainWeatherTarget(mountain) ? mountain : null
   const communityEnabled = isFeatureEnabled('COMMUNITY_ENABLED')
   const [licenseSheetOpen, setLicenseSheetOpen] = useState(false)
+  const [importSheetOpen, setImportSheetOpen] = useState(false)
 
   useEffect(() => {
     trackEvent({
@@ -1380,6 +1503,7 @@ export default function MountainDetailClient({
       <HeroSection
         mountain={mountain}
         heroImages={heroImages}
+        hasCheckedIn={hasCheckedIn}
         onBack={handleBack}
         onShare={handleShare}
       />
@@ -1447,8 +1571,11 @@ export default function MountainDetailClient({
       <BottomCTA
         mountain={mountain}
         requiresLogin={requiresLogin}
-        hasWaypoints={waypoints.length > 0}
+        onOpenImport={() => setImportSheetOpen(true)}
       />
+      {importSheetOpen ? (
+        <ImportRecordSheet mountain={{ id: mountain.id, name: mountain.name }} onClose={() => setImportSheetOpen(false)} />
+      ) : null}
       <LicenseProgressSheet
         open={licenseSheetOpen}
         progress={licenseProgress}

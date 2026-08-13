@@ -5,6 +5,11 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { createClient } from '@supabase/supabase-js'
+import { ROUTE_MAP_MODE_PROMOTIONS } from './route-mode-promotions.mjs'
+
+export const MAP_MODE_PROMOTIONS = new Map(
+  ROUTE_MAP_MODE_PROMOTIONS.map((entry) => [entry.geometryId, entry]),
+)
 
 const REPO_ROOT = path.resolve(fileURLToPath(new URL('../..', import.meta.url)))
 const DEFAULT_INPUT = path.join(
@@ -121,6 +126,33 @@ export function buildApprovedGeometryPayload(row) {
   }
 }
 
+export function buildModePromotionExpectedPayload(row) {
+  assert.equal(row.geometry_review_status, 'pending')
+  assert.equal(row.geometry?.type, 'MultiLineString')
+  assert.equal(row.geometry.coordinates.length, row.segment_count)
+  assert.equal(countPoints(row.geometry), row.point_count)
+  assert.match(row.source_file_sha256, /^[0-9a-f]{64}$/)
+  return {
+    bbox: [
+      row.bbox.min_longitude,
+      row.bbox.min_latitude,
+      row.bbox.max_longitude,
+      row.bbox.max_latitude,
+    ],
+    display_mode: row.display_mode,
+    id: row.id,
+    mountain_id: row.mountain_id,
+    point_count: row.point_count,
+    review_status: 'approved',
+    segment_count: row.segment_count,
+    simplified_geometry: row.geometry,
+    source_field_name: '轨迹文件',
+    source_file_name: row.source_file_name,
+    source_file_sha256: row.source_file_sha256,
+    source_record_id: row.source_record_id,
+  }
+}
+
 export function verifyAdmissionAttachment(row, attachmentsRoot) {
   assert(path.isAbsolute(attachmentsRoot), 'attachments root must be absolute')
   const filePath = path.join(attachmentsRoot, `${row.source_file_token}.kml`)
@@ -162,6 +194,15 @@ async function fetchRowsByIds(supabase, ids) {
   return result
 }
 
+async function fetchMountainCanonicals(supabase, mountainIds) {
+  const { data, error } = await supabase
+    .from('mountains')
+    .select('id,effective_canonical_key')
+    .in('id', mountainIds)
+  if (error) throw error
+  return data
+}
+
 async function fetchApprovedByMountainIds(supabase, mountainIds) {
   const result = []
   for (let index = 0; index < mountainIds.length; index += 40) {
@@ -183,6 +224,134 @@ function assertExistingMatches(row, existing) {
     stableJson(expected),
     `existing geometry differs: ${row.id}`,
   )
+}
+
+function assertModePromotionRowMatches(sourceRow, currentRow, allowedModes) {
+  const expected = buildModePromotionExpectedPayload(sourceRow)
+  assert.equal(expected.display_mode, 'map', `source mode is not map: ${sourceRow.id}`)
+  assert(
+    allowedModes.includes(currentRow.display_mode),
+    `invalid current display mode: ${sourceRow.id}`,
+  )
+  const { display_mode: expectedMode, ...expectedFields } = expected
+  const { display_mode: currentMode, ...currentFields } = currentRow
+  assert.equal(
+    stableJson(currentFields),
+    stableJson(expectedFields),
+    `mode promotion field drift: ${sourceRow.id}`,
+  )
+  return { currentMode, expectedMode }
+}
+
+export function buildModePromotionPlan(sourceRows, currentRows) {
+  assert.equal(sourceRows.length, MAP_MODE_PROMOTIONS.size, 'mode promotion source closure changed')
+  assert.equal(currentRows.length, MAP_MODE_PROMOTIONS.size, 'mode promotion production closure changed')
+  const currentById = new Map(currentRows.map((row) => [row.id, row]))
+  return [...sourceRows]
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map((sourceRow) => {
+      const promotion = MAP_MODE_PROMOTIONS.get(sourceRow.id)
+      assert(promotion, `unauthorized mode promotion: ${sourceRow.id}`)
+      assert.equal(sourceRow.mountain_id, promotion.mountainId)
+      assert.equal(
+        sourceRow.geography_check?.reference?.effective_canonical_key,
+        promotion.effectiveCanonicalKey,
+        `promotion source canonical drift: ${sourceRow.id}`,
+      )
+      assert.equal(
+        sourceRow.source_file_sha256,
+        promotion.sourceFileSha256,
+        `promotion source SHA drift: ${sourceRow.id}`,
+      )
+      const currentRow = currentById.get(sourceRow.id)
+      assert(currentRow, `missing production geometry: ${sourceRow.id}`)
+      const modes = assertModePromotionRowMatches(
+        sourceRow,
+        currentRow,
+        ['trace_only', 'map'],
+      )
+      return {
+        id: sourceRow.id,
+        mountainId: sourceRow.mountain_id,
+        currentDisplayMode: modes.currentMode,
+        expectedDisplayMode: modes.expectedMode,
+      }
+    })
+}
+
+export function assertModePromotionMountainCanonicals(currentMountains) {
+  assert.equal(
+    currentMountains.length,
+    MAP_MODE_PROMOTIONS.size,
+    'mode promotion production mountain closure changed',
+  )
+  assert.equal(
+    new Set(currentMountains.map((mountain) => mountain.id)).size,
+    currentMountains.length,
+    'mode promotion production mountain IDs must be unique',
+  )
+
+  const mountainsById = new Map(currentMountains.map((mountain) => [mountain.id, mountain]))
+  for (const promotion of MAP_MODE_PROMOTIONS.values()) {
+    const mountain = mountainsById.get(promotion.mountainId)
+    assert(mountain, `missing production mountain for promotion: ${promotion.mountainId}`)
+    assert.equal(
+      mountain.effective_canonical_key,
+      promotion.effectiveCanonicalKey,
+      `promotion mountain canonical drift: ${promotion.mountainId}`,
+    )
+  }
+}
+
+async function runModePromotions({ apply, inputPath, outputPath }) {
+  const sourceRows = readJsonl(inputPath).filter((row) => MAP_MODE_PROMOTIONS.has(row.id))
+  const supabase = createAdminClient()
+  const currentMountains = await fetchMountainCanonicals(
+    supabase,
+    [...MAP_MODE_PROMOTIONS.values()].map((promotion) => promotion.mountainId),
+  )
+  assertModePromotionMountainCanonicals(currentMountains)
+  const currentRows = await fetchRowsByIds(supabase, [...MAP_MODE_PROMOTIONS.keys()])
+  const plan = buildModePromotionPlan(sourceRows, currentRows)
+  const summary = {
+    schema_version: 'approved-route-mode-promotion-v1',
+    mode: apply ? 'apply' : 'check',
+    total: plan.length,
+    pending: plan.filter((entry) => entry.currentDisplayMode === 'trace_only').length,
+    already_map: plan.filter((entry) => entry.currentDisplayMode === 'map').length,
+    updated: 0,
+    verified_map: 0,
+  }
+  if (apply) {
+    for (const entry of plan) {
+      if (entry.currentDisplayMode === 'map') continue
+      const { data, error } = await supabase
+        .from('mountain_route_geometries')
+        .update({ display_mode: 'map' })
+        .eq('id', entry.id)
+        .eq('mountain_id', entry.mountainId)
+        .eq('review_status', 'approved')
+        .eq('display_mode', 'trace_only')
+        .select(SELECT_COLUMNS)
+        .single()
+      if (error) throw error
+      assertModePromotionRowMatches(
+        sourceRows.find((row) => row.id === entry.id),
+        data,
+        ['map'],
+      )
+      summary.updated += 1
+      writeJsonAtomic(outputPath, summary)
+    }
+  }
+  const verifiedRows = await fetchRowsByIds(supabase, [...MAP_MODE_PROMOTIONS.keys()])
+  for (const row of sourceRows) {
+    const current = verifiedRows.find((candidate) => candidate.id === row.id)
+    assertModePromotionRowMatches(row, current, apply ? ['map'] : ['trace_only', 'map'])
+  }
+  summary.verified_map = verifiedRows.filter((row) => row.display_mode === 'map').length
+  writeJsonAtomic(outputPath, summary)
+  process.stdout.write(`${JSON.stringify(summary)}\n`)
 }
 
 async function findStorageObject(bucket, objectPath) {
@@ -296,17 +465,21 @@ function parseCli(argv) {
     return index === -1 ? null : argv[index + 1]
   }
   const attachmentsRoot = valueAfter('--attachments-root')
-  assert(attachmentsRoot, '--attachments-root is required')
+  const modePromotion = argv.includes('--promote-map-modes')
+  if (!modePromotion) assert(attachmentsRoot, '--attachments-root is required')
   return {
     apply: argv.includes('--apply'),
-    attachmentsRoot: path.resolve(attachmentsRoot),
+    attachmentsRoot: attachmentsRoot ? path.resolve(attachmentsRoot) : null,
     inputPath: path.resolve(valueAfter('--input') ?? DEFAULT_INPUT),
+    modePromotion,
     outputPath: path.resolve(valueAfter('--output') ?? DEFAULT_OUTPUT),
   }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  run(parseCli(process.argv.slice(2))).catch((error) => {
+  const options = parseCli(process.argv.slice(2))
+  const command = options.modePromotion ? runModePromotions : run
+  command(options).catch((error) => {
     process.stderr.write(`${error.stack ?? error.message}\n`)
     process.exitCode = 1
   })

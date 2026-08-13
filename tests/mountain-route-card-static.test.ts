@@ -40,11 +40,30 @@ test('route reference without approved geometry stays honest even when a basemap
   assert.doesNotMatch(mountainDetailClient, /暂无 · 不可用/)
 })
 
-test('every approved geometry renders its full trace shape without depending on a basemap', () => {
-  assert.match(routeReferenceSection, /<RouteTraceCard geometry=\{routeGeometry\} \/>/)
-  assert.match(mountainDetailClient, /轨迹形状示意，不是导航地图/)
-  assert.match(mountainDetailClient, /data-testid="mountain-route-trace-shape"/)
-  assert.doesNotMatch(mountainDetailClient, /function RoutePmtilesCard|function addRouteMapLayers|PmtilesSnapshotMap/)
+test('registered PMTiles assets render in Detail while trace-only, missing, and failed maps retain the SVG fallback', () => {
+  assert.match(mountainDetailClient, /import PmtilesSnapshotMap from '@\/components\/map\/PmtilesSnapshotMap'/)
+  assert.match(mountainDetailClient, /import \{ getMountainPmtilesAsset \} from '@\/lib\/map\/map-assets'/)
+  assert.match(mountainDetailClient, /routeGeometryToFeature,/)
+  assert.match(routeReferenceSection, /<RouteMapCard geometry=\{routeGeometry\} \/>/)
+  assert.match(mountainDetailClient, /function resolveMountainPmtilesAsset[\s\S]*?return getMountainPmtilesAsset\(mountainId\)/)
+  assert.match(mountainDetailClient, /function RouteMapCard\(/)
+  assert.match(mountainDetailClient, /const asset = resolveMountainPmtilesAsset\(geometry\.mountainId\)/)
+  assert.match(mountainDetailClient, /geometry\.displayMode === 'trace_only' \|\| !asset \|\| mapFailed/)
+  assert.match(mountainDetailClient, /onError=\{\(\) => setMapFailed\(true\)\}/)
+  assert.match(mountainDetailClient, /routeGeometryToFeature\(geometry\)/)
+  assert.match(mountainDetailClient, /'line-color': '#7ef0b4'/)
+  assert.match(mountainDetailClient, /'line-width': 3\.2/)
+  assert.match(mountainDetailClient, /'line-opacity': 0\.94/)
+  assert.match(mountainDetailClient, /'line-cap': 'round'/)
+  assert.match(mountainDetailClient, /'line-join': 'round'/)
+  assert.match(mountainDetailClient, /circle-radius': \['match', \['get', 'endpoint'\], 'start', 5\.5, 7\]/)
+  assert.match(mountainDetailClient, /circle-stroke-color': '#07130f'/)
+  assert.match(mountainDetailClient, /circle-stroke-width': 1\.8/)
+})
+
+test('route reference copy states its decision-support boundary in both render paths', () => {
+  assert.equal((mountainDetailClient.match(/right="仅供决策参考"/g) ?? []).length, 2)
+  assert.doesNotMatch(mountainDetailClient, /right="完整轨迹"/)
 })
 
 test('route reference never connects waypoints or a summit point into fake geometry', () => {

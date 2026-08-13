@@ -52,7 +52,6 @@ function resolveIdentity({
   return {
     userId,
     username,
-    province: profile?.province?.trim() || null,
     avatarUrl: profile?.avatar_url ?? null,
     licenseLevel: profile?.license_level ?? 'none',
     joinedAt,

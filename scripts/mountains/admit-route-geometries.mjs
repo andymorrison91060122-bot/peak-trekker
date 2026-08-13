@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { parseKml } from '../../src/lib/import/kml-parser.ts'
 import { haversineMeters } from '../../src/lib/import/track-stats.ts'
 import { simplifyPolyline } from '../../src/lib/polyline-simplify.ts'
+import { applyRouteMapModePromotions } from './route-mode-promotions.mjs'
 
 const REPO_ROOT = path.resolve(fileURLToPath(new URL('../..', import.meta.url)))
 const PACKAGE_ROOT = path.join(REPO_ROOT, 'data/mountains/route-geometry')
@@ -455,7 +456,10 @@ export function applyRouteGeometryAdmission({ classificationPath, attachmentsRoo
     { reject_off_target: 8, skip_existing: 2 },
   )
 
-  const rows = [...existingSourceRows, ...result.admitted].sort((left, right) => (
+  const rows = applyRouteMapModePromotions([
+    ...existingSourceRows,
+    ...result.admitted,
+  ]).sort((left, right) => (
     left.geography_check.reference.effective_canonical_key.localeCompare(
       right.geography_check.reference.effective_canonical_key,
       'en',
@@ -481,9 +485,15 @@ export function checkRouteGeometryAdmission({ classificationPath, attachmentsRoo
     readAttachment: (candidate) => fs.readFileSync(path.join(attachmentsRoot, `${candidate.file_token}.kml`)),
   })
   assert.equal(expected.admitted.length, 122)
-  assert.equal(stableJsonl(incrementalRows), stableJsonl(expected.admitted), 'incremental source geometry drift')
+  const expectedRows = applyRouteMapModePromotions([...legacyRows, ...expected.admitted])
+  const expectedIncrementalRows = expectedRows.filter((row) => row.admission)
+  assert.equal(
+    stableJsonl(incrementalRows),
+    stableJsonl(expectedIncrementalRows),
+    'incremental source geometry drift',
+  )
 
-  const rows = [...legacyRows, ...expected.admitted].sort((left, right) => (
+  const rows = expectedRows.sort((left, right) => (
     left.geography_check.reference.effective_canonical_key.localeCompare(
       right.geography_check.reference.effective_canonical_key,
       'en',

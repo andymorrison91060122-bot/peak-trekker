@@ -18,6 +18,7 @@ import { useGSAP } from '@gsap/react'
 import ProvinceBannerStrip, { type ProvinceBannerData } from '@/components/explore/ProvinceBannerStrip'
 import { isFeatureEnabled } from '@/lib/feature-flags'
 import ExploreMountainCard from '@/components/ui/ExploreMountainCard'
+import { ExploreImportMethodCard } from '@/components/explore/ExploreImportMethodCard'
 import { useAppToast } from '@/components/ui/AppToastProvider'
 import Chip from '@/components/ui/Chip'
 import EmptyState from '@/components/ui/EmptyState'
@@ -139,14 +140,17 @@ export default function ExploreClient({
   list,
   provinceBanner,
   shareTemplateIntent,
+  checkedMountainIds = [],
 }: {
   list: Mountain[]
   hometownProvince: string | null
   provinceBanner?: ProvinceBannerData | null
   shareTemplateIntent?: ShareRenderTemplate | null
+  checkedMountainIds?: string[]
 }) {
   const router = useRouter()
   const { showToast } = useAppToast()
+  const checkedMountainIdSet = useMemo(() => new Set(checkedMountainIds), [checkedMountainIds])
   const motionScopeRef = useRef<HTMLDivElement | null>(null)
   const sceneVideoRef = useRef<HTMLVideoElement | null>(null)
   const replayExploreListRef = useRef<((reasons: ExploreReplayReason[]) => void) | null>(null)
@@ -450,6 +454,10 @@ export default function ExploreClient({
     })
   }
 
+  function showCheckedMountainFeedback() {
+    showToast({ tone: 'success', message: '你已打卡这座山' })
+  }
+
   useGSAP((_context, contextSafe) => {
     const root = motionScopeRef.current
     if (!root) return
@@ -471,6 +479,9 @@ export default function ExploreClient({
     const getScopedTargets = (selector: string, scope: ParentNode = root) =>
       uniqueConnectedTargets(gsap.utils.toArray<HTMLElement>(scope.querySelectorAll(selector)))
     const getFirstScreenMountainCards = () => getScopedTargets('[data-testid="explore-mountain-card"]').slice(0, 4)
+    const getFirstScreenMountainMotionTargets = (cards = getFirstScreenMountainCards()) => uniqueConnectedTargets(
+      cards.map((card) => card.closest<HTMLElement>('[data-explore-motion-card]') ?? card),
+    )
     const getPathwayIconPaths = () => getScopedTargets('[data-explore-pathway-icon-path]')
     const settleMountGates = (targets: HTMLElement[]) => {
       uniqueConnectedTargets(targets).forEach((target) => {
@@ -484,7 +495,7 @@ export default function ExploreClient({
     }
     const getLiveExploreListTargets = () => {
       const listSubheading = getScopedTargets('[data-explore-motion="list-subheading"]')
-      const firstScreenCards = getFirstScreenMountainCards()
+      const firstScreenCards = getFirstScreenMountainMotionTargets()
       const emptyState = getScopedTargets('[data-explore-list-empty]')
       return {
         listSubheading,
@@ -500,7 +511,7 @@ export default function ExploreClient({
       ...getScopedTargets('[data-explore-motion]'),
       ...getScopedTargets('[data-explore-pathway-card]'),
       ...getScopedTargets('.explore-filter-chip'),
-      ...getFirstScreenMountainCards(),
+      ...getFirstScreenMountainMotionTargets(),
       ...getScopedTargets('[data-explore-list-empty]'),
     ])
 
@@ -626,7 +637,7 @@ export default function ExploreClient({
           const id = getMountainCardId(card)
           return id !== '' && previousFirst4Set.has(id) && previousFirst4Ids[index] !== id
         })
-        const geoMotionTargets = [...newFirstScreenCards, ...reorderedFirstScreenCards]
+        const geoMotionTargets = getFirstScreenMountainMotionTargets([...newFirstScreenCards, ...reorderedFirstScreenCards])
         if (geoMotionTargets.length === 0) {
           recordExploreReplayReasons('firedReplayReasons', reasons)
           terminalizeExploreListMotion()
@@ -717,7 +728,7 @@ export default function ExploreClient({
           const pathwayCards = getScopedTargets('[data-explore-pathway-card]')
           const pathwayIconPaths = getPathwayIconPaths()
           const quickTagChips = getScopedTargets('.explore-filter-chip')
-          const firstScreenCards = getFirstScreenMountainCards()
+          const firstScreenCards = getFirstScreenMountainMotionTargets()
           const animatedTargets = getExploreMotionTargets()
 
           if (animatedTargets.length > 0) setOutsideContext(animatedTargets, { willChange: 'transform, opacity' })
@@ -1189,6 +1200,8 @@ export default function ExploreClient({
                   filterLengthKm={length}
                   mountPending={index < 4 && !mountSettledRef.current}
                   imagePriority={index < 2}
+                  isCheckedIn={checkedMountainIdSet.has(mountain.id)}
+                  onCheckedInPress={showCheckedMountainFeedback}
                   loadMoreSentinelRef={
                     canLoadMore && index === loadMoreTriggerIndex
                       ? loadMoreSentinelRef
@@ -1341,7 +1354,7 @@ function ExploreSearchEmptyState({
       </div>
 
       <div className="explore-search-empty__actions">
-        <ExploreSearchEmptyAction
+        <ExploreImportMethodCard
           kind="import"
           title="导入轨迹记录"
           description="GPX / FIT · 自动匹配最近的山"
@@ -1351,7 +1364,7 @@ function ExploreSearchEmptyState({
           poster="/explore/explore-empty-import-poster.jpg"
           primary
         />
-        <ExploreSearchEmptyAction
+        <ExploreImportMethodCard
           kind="screenshot"
           title="识别成绩截图"
           description="把别家 App 的记录变成一次山行"
@@ -1376,92 +1389,6 @@ function ExploreSearchEmptyState({
   )
 }
 
-function ExploreSearchEmptyAction({
-  kind,
-  title,
-  description,
-  onClick,
-  videoRef,
-  src,
-  poster,
-  primary = false,
-}: {
-  kind: 'import' | 'screenshot'
-  title: string
-  description: string
-  onClick: () => void
-  videoRef: (video: HTMLVideoElement | null) => void
-  src: string
-  poster: string
-  primary?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      className={`pt-pressable-card explore-search-empty__action${primary ? ' explore-search-empty__action--primary' : ''}`}
-      aria-label={title}
-      onClick={(event) => {
-        clearPressFallback(event)
-        onClick()
-      }}
-      onPointerDown={markPressFallback}
-      onPointerUp={clearPressFallback}
-      onPointerCancel={clearPressFallback}
-      onPointerLeave={clearPressFallback}
-      onKeyDown={markKeyboardPressFallback}
-      onKeyUp={clearPressFallback}
-      onBlur={clearPressFallback}
-    >
-      <video
-        ref={videoRef}
-        className="explore-search-empty__action-video"
-        src={src}
-        poster={poster}
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        aria-hidden="true"
-        data-explore-empty-video-state="poster"
-      />
-      <span className="explore-search-empty__action-scrim" aria-hidden="true" />
-      <span className="explore-search-empty__action-icon" aria-hidden="true">
-        <ExploreSearchEmptyActionIcon kind={kind} />
-      </span>
-      <span className="explore-search-empty__action-copy">
-        <span className="explore-search-empty__action-title">{title}</span>
-        <span className="explore-search-empty__action-description">{description}</span>
-      </span>
-      <svg className="explore-search-empty__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-        <path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </button>
-  )
-}
-
-function ExploreSearchEmptyActionIcon({ kind }: { kind: 'import' | 'screenshot' }) {
-  if (kind === 'import') {
-    return (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-        <path d="M12 15V4.5m0 0-4 4m4-4 4 4M5 13.5v4A2 2 0 0 0 7 19.5h10a2 2 0 0 0 2-2v-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    )
-  }
-  if (kind === 'screenshot') {
-    return (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-        <path d="M4 8.5v-2A2.5 2.5 0 0 1 6.5 4H8m8 0h1.5A2.5 2.5 0 0 1 20 6.5v2m0 7v2a2.5 2.5 0 0 1-2.5 2.5H16M8 20H6.5A2.5 2.5 0 0 1 4 17.5v-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        <rect x="8" y="9.5" width="8" height="5" rx="1" stroke="currentColor" strokeWidth="1.6" />
-      </svg>
-    )
-  }
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-      <path d="M4 8.5v-2A2.5 2.5 0 0 1 6.5 4H8m8 0h1.5A2.5 2.5 0 0 1 20 6.5v2m0 7v2a2.5 2.5 0 0 1-2.5 2.5H16M8 20H6.5A2.5 2.5 0 0 1 4 17.5v-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="8" y="9.5" width="8" height="5" rx="1" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
-  )
-}
 
 function ScenePathwayButton({
   kind,

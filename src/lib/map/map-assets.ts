@@ -1,3 +1,5 @@
+import registry from '../../generated/mountain-map-assets.json' with { type: 'json' }
+
 export const MAP_TILES_BUCKET = 'map-tiles'
 
 export type MapTileFlavor = 'dark' | 'light' | 'black' | 'grayscale' | 'white'
@@ -15,17 +17,10 @@ export type MapTileAsset = {
   sizeBytes?: number
 }
 
-const MOUNTAIN_PMTILES_ASSETS: Record<string, Omit<MapTileAsset, 'url'>> = {
-  '216508c9-ffca-4164-8010-534d8650ee64': {
-    id: 'huashan-bbox30-z9-12',
-    objectPath: 'basemap/huashan-bbox30-z9-12.pmtiles',
-    minZoom: 9,
-    maxZoom: 12,
-    bbox: [109.924223, 34.352153, 110.251177, 34.621647],
-    flavor: 'dark',
-    sizeBytes: 649_374,
-  },
-}
+const MOUNTAIN_PMTILES_ASSETS = registry.assets as unknown as Record<
+  string,
+  Omit<MapTileAsset, 'url'>
+>
 
 export function getMapTilesPublicUrlForPath(objectPath: string) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL

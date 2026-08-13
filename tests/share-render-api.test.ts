@@ -194,6 +194,48 @@ describe('share render API field policy regression', () => {
     assert.equal(registeredTemplates.includes(removedPremiumTemplate), false)
   })
 
+  test('SHARE-001B scopes its route and endpoint marker treatment to the shared Vertical component', () => {
+    const sharedSource = readSource('../src/lib/share-templates/shared.tsx')
+    const verticalSource = readSource('../src/lib/share-templates/base-vertical-classic.tsx')
+    const transparentSource = readSource('../src/lib/share-templates/transparent-watermark.tsx')
+
+    assert.match(sharedSource, /type ShareTrackRenderStyle/)
+    assert.match(sharedSource, /renderStyle\?: ShareTrackRenderStyle/)
+    assert.match(sharedSource, /endOutlineWidth\?: number/)
+    assert.match(sharedSource, /endOutlineColor\?: string/)
+    assert.match(
+      sharedSource,
+      /SHARE_TRACK_RENDER_PROFILES\.posterTrail\(\{ lineWidth, glow \}\)[\s\S]*?\.\.\.renderStyle/,
+      'all callers without a renderStyle must keep the existing posterTrail profile',
+    )
+
+    assert.match(
+      verticalSource,
+      /const VERTICAL_CLASSIC_TRAIL_RENDER_STYLE = \{[\s\S]*?lineWidth: 10,[\s\S]*?glowWidth: 40,[\s\S]*?startRadius: 11,[\s\S]*?startStrokeWidth: 3,[\s\S]*?endRadius: 9,/,
+    )
+    const verticalRenderStyle = verticalSource.match(/const VERTICAL_CLASSIC_TRAIL_RENDER_STYLE = \{([\s\S]*?)\} as const/)
+    assert.ok(verticalRenderStyle)
+    assert.doesNotMatch(
+      verticalRenderStyle[1],
+      /glowOpacity/,
+      'Vertical must inherit the posterTrail halo opacity rather than define a second opacity profile',
+    )
+    assert.match(
+      verticalSource,
+      /<TrailSvg[\s\S]*?renderStyle=\{VERTICAL_CLASSIC_TRAIL_RENDER_STYLE\}[\s\S]*?endOutlineWidth=\{2\}[\s\S]*?endOutlineColor=\{C\.bgDeep\}/,
+    )
+    assert.match(
+      sharedSource,
+      /endOutlineWidth && endOutlineColor \? \{ stroke: endOutlineColor, strokeWidth: endOutlineWidth \} : \{\}/,
+      'the End outline must remain a TrailSvg-only presentation option',
+    )
+    assert.match(
+      transparentSource,
+      /template === 'base-vertical-classic'[\s\S]*?<BaseVerticalClassicTemplate data=\{data\} transparent brandMarkSrc=\{brandMarkSrc\} \/>/,
+      'transparent Vertical export must share the normal component rather than fork its route treatment',
+    )
+  })
+
   test('server render delegates template selection to the shared pure registry', () => {
     const routeSource = readSource('../src/app/api/share/render/route.ts')
     const registrySource = readSource('../src/lib/share-templates/registry.tsx')

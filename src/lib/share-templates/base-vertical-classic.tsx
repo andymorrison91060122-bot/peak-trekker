@@ -33,6 +33,14 @@ const VERTICAL_CLASSIC_TRAIL_BOUNDS = {
   padding: 72,
 } as const
 
+const VERTICAL_CLASSIC_TRAIL_RENDER_STYLE = {
+  lineWidth: 10,
+  glowWidth: 40,
+  startRadius: 11,
+  startStrokeWidth: 3,
+  endRadius: 9,
+} as const
+
 function durationToSeconds(duration: string) {
   const match = /^(\d+):([0-5]\d)$/.exec(duration.trim())
   if (!match) return undefined
@@ -180,7 +188,13 @@ export function BaseVerticalClassicTemplate({
 
         {hasShareTrackPoint(data.trackPreview) ? (
           <div data-motion-phase="route" style={{ display: 'flex', position: 'absolute', inset: 0 }}>
-            <TrailSvg glow={20} lineWidth={12} trackPreview={data.trackPreview} contentBounds={VERTICAL_CLASSIC_TRAIL_BOUNDS} />
+            <TrailSvg
+              trackPreview={data.trackPreview}
+              contentBounds={VERTICAL_CLASSIC_TRAIL_BOUNDS}
+              renderStyle={VERTICAL_CLASSIC_TRAIL_RENDER_STYLE}
+              endOutlineWidth={2}
+              endOutlineColor={C.bgDeep}
+            />
           </div>
         ) : null}
 

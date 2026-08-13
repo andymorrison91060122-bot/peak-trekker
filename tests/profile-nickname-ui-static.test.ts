@@ -51,7 +51,8 @@ test('archive and profile identity hide province UI while persistence-facing pag
 
   assert.match(archivePageSource, /type ProfileRow = \{[\s\S]*?province\?: string \| null/)
   assert.match(archivePageSource, /PROFILE_SELECT_VARIANTS = \[[\s\S]*?province/)
-  assert.match(profilePageSource, /province:\s*profile\?\.province\?\.trim\(\) \|\| null/)
+  assert.match(profilePageSource, /type ProfileRow = \{[\s\S]*?province\?: string \| null/)
+  assert.doesNotMatch(profilePageSource, /province:\s*profile\?\.province\?\.trim\(\) \|\| null/)
 
   assert.match(archiveClientSource, /function buildLocationLine\(user: ArchiveUserViewModel\) \{\s*return user\.city\?\.trim\(\) \|\| ''/)
   assert.doesNotMatch(archiveIdentity, /province|未设置省份/)

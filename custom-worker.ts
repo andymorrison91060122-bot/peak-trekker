@@ -30,6 +30,7 @@ type WorkerEnv = Record<string, unknown> & {
 }
 
 const MAX_INTERNAL_SVG_BYTES = 5 * 1024 * 1024
+const SHARE_RENDER_REQUEST_ID_HEADER = 'x-peak-trekker-render-id'
 let workerFontBuffersReady: Promise<ArrayBuffer[]> | null = null
 
 function loadWorkerFontBuffers(env: WorkerEnv, requestUrl: string) {
@@ -44,29 +45,75 @@ function loadWorkerFontBuffers(env: WorkerEnv, requestUrl: string) {
   return workerFontBuffersReady
 }
 
+function workerRenderFailure(errorId: string, code: 'SR-FONT' | 'SR-SVG-SIZE' | 'SR-PNG' | 'SR-UNKNOWN') {
+  return Response.json(
+    {
+      error: 'Unable to render share image',
+      code,
+      errorId,
+    },
+    {
+      status: 500,
+      headers: {
+        'Cache-Control': 'no-store',
+        [SHARE_RENDER_REQUEST_ID_HEADER]: errorId,
+      },
+    },
+  )
+}
+
 async function renderWorkerSvgResponse(request: Request, env: WorkerEnv, response: Response) {
   if (response.headers.get(WORKER_SVG_RESPONSE_HEADER) !== '1') return response
 
+  const isShareRender = new URL(request.url).pathname === '/api/share/render'
+  const errorId = response.headers.get(SHARE_RENDER_REQUEST_ID_HEADER) ?? crypto.randomUUID()
+
   const contentLength = Number(response.headers.get('Content-Length'))
   if (!Number.isFinite(contentLength) || contentLength <= 0 || contentLength > MAX_INTERNAL_SVG_BYTES) {
+    if (isShareRender) return workerRenderFailure(errorId, 'SR-SVG-SIZE')
     throw new Error('Invalid internal SVG response size')
   }
-  const svg = await response.text()
-  const [renderer, fontBuffers] = await Promise.all([
-    ensureWorkerShareRenderer(),
-    loadWorkerFontBuffers(env, request.url),
-  ])
-  const png = await renderer({
-    svg,
-    fontBuffers,
-    transparent: response.headers.get(WORKER_SVG_TRANSPARENT_HEADER) === '1',
-  })
-  const headers = new Headers(response.headers)
-  headers.set('Content-Type', 'image/png')
-  headers.set('Content-Length', String(png.byteLength))
-  headers.delete(WORKER_SVG_RESPONSE_HEADER)
-  headers.delete(WORKER_SVG_TRANSPARENT_HEADER)
-  return new Response(png, { status: response.status, headers })
+
+  let svg: string
+  try {
+    svg = await response.text()
+  } catch (error) {
+    if (isShareRender) return workerRenderFailure(errorId, 'SR-UNKNOWN')
+    throw error
+  }
+
+  let renderer: Awaited<ReturnType<typeof ensureWorkerShareRenderer>>
+  try {
+    renderer = await ensureWorkerShareRenderer()
+  } catch (error) {
+    if (isShareRender) return workerRenderFailure(errorId, 'SR-PNG')
+    throw error
+  }
+
+  let fontBuffers: ArrayBuffer[]
+  try {
+    fontBuffers = await loadWorkerFontBuffers(env, request.url)
+  } catch (error) {
+    if (isShareRender) return workerRenderFailure(errorId, 'SR-FONT')
+    throw error
+  }
+
+  try {
+    const png = await renderer({
+      svg,
+      fontBuffers,
+      transparent: response.headers.get(WORKER_SVG_TRANSPARENT_HEADER) === '1',
+    })
+    const headers = new Headers(response.headers)
+    headers.set('Content-Type', 'image/png')
+    headers.set('Content-Length', String(png.byteLength))
+    headers.delete(WORKER_SVG_RESPONSE_HEADER)
+    headers.delete(WORKER_SVG_TRANSPARENT_HEADER)
+    return new Response(png, { status: response.status, headers })
+  } catch (error) {
+    if (isShareRender) return workerRenderFailure(errorId, 'SR-PNG')
+    throw error
+  }
 }
 
 export default {

@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'next/navigation'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
+import type { Map as MapLibreMap } from 'maplibre-gl'
 import type { CommunityPostViewModel, Mountain, User } from '@/types'
 import type { Waypoint, WaypointType } from '@/lib/waypoints'
 import { getDifficultySuitabilityCopy } from '@/lib/license-ui'
@@ -20,6 +21,7 @@ import { HelpTrigger } from '@/components/help/HelpTrigger'
 import PrimaryButton from '@/components/ui/PrimaryButton'
 import SecondaryButton from '@/components/ui/SecondaryButton'
 import EmptyState from '@/components/ui/EmptyState'
+import PmtilesSnapshotMap from '@/components/map/PmtilesSnapshotMap'
 import WeatherSection from '@/components/mountain/WeatherSection'
 import DifficultyAdvisory from '@/components/mountain/DifficultyAdvisory'
 import DifficultyChip from '@/components/mountain/DifficultyChip'
@@ -44,8 +46,10 @@ import {
 } from '@/lib/mountain-route-display'
 import {
   buildRouteTraceViewModel,
+  routeGeometryToFeature,
   type MountainRouteGeometry,
 } from '@/lib/mountain-route-geometry'
+import { getMountainPmtilesAsset } from '@/lib/map/map-assets'
 
 gsap.registerPlugin(useGSAP)
 
@@ -842,7 +846,7 @@ function RouteTraceCard({ geometry }: { geometry: MountainRouteGeometry }) {
 
   return (
     <section id="route" data-testid="mountain-route-section">
-      <SectionHeader title="路线参考" right="完整轨迹" />
+      <SectionHeader title="路线参考" right="仅供决策参考" />
       <div style={{ padding: '0 var(--space-4)' }}>
         <div
           data-mountain-route-card
@@ -889,9 +893,107 @@ function RouteTraceCard({ geometry }: { geometry: MountainRouteGeometry }) {
   )
 }
 
+function resolveMountainPmtilesAsset(mountainId: string) {
+  try {
+    return getMountainPmtilesAsset(mountainId)
+  } catch {
+    return null
+  }
+}
+
+function addRouteMapLayers(map: MapLibreMap, geometry: MountainRouteGeometry) {
+  const route = routeGeometryToFeature(geometry)
+  const points = geometry.lines.flat()
+  const start = points[0]
+  const end = points.at(-1)
+  if (!start || !end) throw new Error('route geometry must contain endpoint coordinates')
+
+  map.addSource('mountain-detail-route', {
+    type: 'geojson',
+    data: route,
+  })
+  map.addLayer({
+    id: 'mountain-detail-route-line',
+    type: 'line',
+    source: 'mountain-detail-route',
+    paint: {
+      'line-color': '#7ef0b4',
+      'line-width': 3.2,
+      'line-opacity': 0.94,
+    },
+    layout: {
+      'line-cap': 'round',
+      'line-join': 'round',
+    },
+  })
+  map.addSource('mountain-detail-route-endpoints', {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { endpoint: 'start' },
+          geometry: { type: 'Point', coordinates: [start.lng, start.lat] },
+        },
+        {
+          type: 'Feature',
+          properties: { endpoint: 'end' },
+          geometry: { type: 'Point', coordinates: [end.lng, end.lat] },
+        },
+      ],
+    },
+  })
+  map.addLayer({
+    id: 'mountain-detail-route-endpoints',
+    type: 'circle',
+    source: 'mountain-detail-route-endpoints',
+    paint: {
+      'circle-radius': ['match', ['get', 'endpoint'], 'start', 5.5, 7],
+      'circle-color': ['match', ['get', 'endpoint'], 'start', '#d7dde2', '#7ef0b4'],
+      'circle-stroke-color': '#07130f',
+      'circle-stroke-width': 1.8,
+    },
+  })
+}
+
+function RouteMapCard({ geometry }: { geometry: MountainRouteGeometry }) {
+  const [mapFailed, setMapFailed] = useState(false)
+  const asset = resolveMountainPmtilesAsset(geometry.mountainId)
+
+  if (geometry.displayMode === 'trace_only' || !asset || mapFailed) {
+    return <RouteTraceCard geometry={geometry} />
+  }
+
+  return (
+    <section id="route" data-testid="mountain-route-section">
+      <SectionHeader title="路线参考" right="仅供决策参考" />
+      <div style={{ padding: '0 var(--space-4)' }}>
+        <PmtilesSnapshotMap
+          asset={asset}
+          ariaLabel="路线参考地图"
+          onMapReady={(map) => {
+            try {
+              addRouteMapLayers(map, geometry)
+            } catch {
+              setMapFailed(true)
+            }
+          }}
+          onError={() => setMapFailed(true)}
+          style={{
+            aspectRatio: '16 / 11',
+            border: '1px solid var(--color-outline)',
+            borderRadius: 'var(--radius-lg)',
+          }}
+        />
+      </div>
+    </section>
+  )
+}
+
 function RouteReferenceSection({ routeGeometry }: { routeGeometry: MountainRouteGeometry | null }) {
   if (!routeGeometry) return <RouteUnavailable />
-  return <RouteTraceCard geometry={routeGeometry} />
+  return <RouteMapCard geometry={routeGeometry} />
 }
 
 function FeaturedSection({ posts }: { posts: CommunityPostViewModel[] }) {

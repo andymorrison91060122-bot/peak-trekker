@@ -26,9 +26,20 @@ test('builds the incremental source closure without promoting route candidates t
   assert.equal(pkg.summary.content.blocked, 1)
   assert.equal(pkg.summary.geometry.geo_conflicts, 8)
   assert.deepEqual(pkg.summary.geometry.display_mode, {
-    map: 192,
-    trace_only: 4,
+    map: 196,
+    trace_only: 0,
   })
+
+  const promotedIds = new Set([
+    'cf7e49b4-e88f-5857-9616-f5412e0e45df',
+    '21596c67-fe44-5129-a850-0009761ca8c2',
+    '18f70a02-59eb-5686-bcef-1a73ea36430d',
+    'd9984023-d6b6-5b27-be7d-0b21696cb3a4',
+  ])
+  assert.equal(
+    pkg.geometryImports.filter((row) => promotedIds.has(row.id)).every((row) => row.display_mode === 'map'),
+    true,
+  )
   assert.deepEqual(pkg.summary.content.no_track_keys, [
     'aotai-traverse-route',
     'bogeda-grand-loop-route',

@@ -2,7 +2,7 @@
 
 ## Candidate closure
 
-- Geometry candidates: 196 (map 192, trace-only 4)
+- Geometry candidates: 196 (map 196, trace-only 0)
 - New route corridor content: 12 (ready 11, blocked 1)
 - User-supplied cover plan: 16 images across 12 projects
 - Existing entity association proposals: 2

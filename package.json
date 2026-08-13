@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "eslint",
     "fonts:download": "node scripts/download-fonts.js",
+    "maps": "node scripts/maps/maps.mjs",
     "test:screenshot-route-focus": "node --test --experimental-strip-types tests/screenshot-route-initial-focus.test.ts",
     "test:profile-nickname": "node --test --experimental-strip-types tests/profile-nickname.test.ts tests/profile-nickname-route.test.ts tests/profile-nickname-ui-static.test.ts tests/register-static.test.ts tests/profile-trigger-migration.test.ts",
     "test:trek-offline": "node --test --experimental-strip-types tests/trek-utils.test.ts tests/trek-track-metrics.test.ts tests/trek-append-rpc-static.test.ts tests/trek-stability-static.test.ts",

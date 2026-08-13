@@ -663,13 +663,13 @@ export function buildRouteDataPackage() {
   assert.equal(sourceContent.length, 12)
   assert.equal(
     sourceGeometries.filter((row) => row.display_mode === 'map_candidate').length,
-    192,
+    196,
   )
   assert.equal(
     sourceGeometries.filter((row) => (
       row.display_mode === 'trace_only_candidate'
     )).length,
-    4,
+    0,
   )
 
   const contentKeys = new Set(

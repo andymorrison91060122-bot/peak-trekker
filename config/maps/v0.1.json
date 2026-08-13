@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "mountain-map-batch-config-v1",
+  "generatorVersion": "map-package-v2",
+  "basemapSourceUrl": "https://build.protomaps.com/20260812.pmtiles",
+  "basemapSourceVersion": "protomaps-20260812-v4.15.2",
+  "pmtilesCliImage": "ghcr.io/protomaps/go-pmtiles:v1.31.2",
+  "pmtilesCliDigest": "sha256:06574f01f55a78f78f887bc7ebf729a5c093c0d6e17d9876300cfcb0758b59d3",
+  "productMaxZoom": 15,
+  "viewportPixels": 343,
+  "runtimeViewportAspect": {
+    "width": 16,
+    "height": 11
+  },
+  "paddingRatio": 0.095238,
+  "paddingMaxMeters": 3000,
+  "concurrency": 2,
+  "storage": {
+    "provider": "supabase",
+    "bucket": "map-tiles",
+    "contentType": "application/vnd.pmtiles",
+    "hardLimitBytes": 52428800
+  }
+}

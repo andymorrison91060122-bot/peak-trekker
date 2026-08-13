@@ -3,9 +3,9 @@
     "existing-entity-updates.jsonl": "7a83e88414ff44138929979e39f9a82424f29a1e11656ffdc77f844203307120",
     "route-content-import.jsonl": "fefb072d776d033833a1a1ee62836ff93bdcc499ddee709437cd77408902f581",
     "route-cover-import.jsonl": "9733218984620bb35be874cfbd571720b748ca08e8edeae65ca683f6dd457f40",
-    "route-geometry-import.jsonl": "2558ef22f27f712985e81a2f6507bf464378fad986f88b163625e3150efbd78a",
+    "route-geometry-import.jsonl": "82ab9b03917c5ffb50a3355b3cd80299aa05e72b4fb2dab631ad1a802870400f",
     "route-import-blockers.csv": "5516eb701f76ed51adfe7faf4cb40bf8f93298e7973575e5eb1cb47c98da917d",
-    "route-import-review.md": "545ad41814c85a7352d709565f7e1ae54f04579e9227eec3c7e657d5b951edd3"
+    "route-import-review.md": "882270089615c823c0757029cb42fccfe232de93a90fc5b4e05bc402806abed3"
   },
   "association_updates": {
     "count": 2,
@@ -44,8 +44,8 @@
   "geometry": {
     "count": 196,
     "display_mode": {
-      "map": 192,
-      "trace_only": 4
+      "map": 196,
+      "trace_only": 0
     },
     "geo_conflicts": 8
   },
@@ -60,7 +60,7 @@
     "attachment_bytes": 127386616,
     "attachment_count": 213,
     "coordinator_source_manifest_sha256": "c434e0042e83ece7be424f33916dca70b053a69f8d3fc902dbeb4d1af81caf84",
-    "durable_manifest_sha256": "828d6e1c5d4fd4935f7ebd321da4bf246ab3225a7cec600efecaae51fd8b48bc"
+    "durable_manifest_sha256": "3eb9f8f30d71cd41e013f10ffe5adab70e977ed0c5d0afc774a1f195d69df336"
   },
   "status": "candidate_review_package_only"
 }

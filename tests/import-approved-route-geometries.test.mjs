@@ -68,15 +68,15 @@ test('storage collision check reads bytes and custom sha from their real metadat
 
   assert.doesNotThrow(() =>
     assertStorageObjectMatches(row, {
-      metadata: { size: row.source_file_bytes },
-      user_metadata: { sha256: row.source_file_sha256 },
+      size: row.source_file_bytes,
+      metadata: { sha256: row.source_file_sha256 },
     }),
   )
   assert.throws(
     () =>
       assertStorageObjectMatches(row, {
-        metadata: { size: row.source_file_bytes },
-        user_metadata: { sha256: '0'.repeat(64) },
+        size: row.source_file_bytes,
+        metadata: { sha256: '0'.repeat(64) },
       }),
     /storage SHA collision/,
   )

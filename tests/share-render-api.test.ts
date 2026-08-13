@@ -2,6 +2,7 @@ import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import ts from 'typescript'
 
 const sourceExtension = 'ts'
 
@@ -40,6 +41,211 @@ function matchesPolicyError(
 
 function readSource(path: string) {
   return readFileSync(new URL(path, import.meta.url), 'utf8')
+}
+
+function executeCommonJsModule<T>(source: string, requireImpl: (id: string) => unknown): T {
+  const compiled = ts.transpileModule(source, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.CommonJS,
+      esModuleInterop: true,
+    },
+  }).outputText
+  const runtimeModule = { exports: {} as Record<string, unknown> }
+  new Function('module', 'exports', 'require', compiled)(runtimeModule, runtimeModule.exports, requireImpl)
+  return runtimeModule.exports as T
+}
+
+async function loadShareClientDiagnosticParser() {
+  const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+  const diagnosticBlock = clientSource.match(
+    /type ShareRenderDiagnosticCode =[\s\S]*?(?=\nfunction markPressFallback)/,
+  )?.[0]
+  assert.ok(diagnosticBlock, 'ShareClient diagnostic parser block must be extractable')
+
+  return executeCommonJsModule<{
+    readShareRenderDiagnostic: (
+      response: Response,
+      fallbackErrorId: string,
+    ) => Promise<{ code: string; errorId: string }>
+  }>(
+    `${diagnosticBlock}\nexport { readShareRenderDiagnostic }\n`,
+    (id) => {
+      throw new Error(`Unexpected ShareClient diagnostic dependency: ${id}`)
+    },
+  )
+}
+
+function streamResponse(body: Uint8Array, headers: HeadersInit = {}) {
+  let canceled = false
+  let emitted = false
+  const response = new Response(
+    new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (emitted) {
+          controller.close()
+          return
+        }
+        emitted = true
+        controller.enqueue(body)
+      },
+      cancel() {
+        canceled = true
+      },
+    }),
+    { headers },
+  )
+
+  return { response, wasCanceled: () => canceled }
+}
+
+const SHARE_RENDER_ERROR_ID = '11111111-1111-4111-8111-111111111111'
+
+function shareRenderRequest(body: Record<string, unknown>, requestId = SHARE_RENDER_ERROR_ID) {
+  return new Request('https://example.test/api/share/render', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-peak-trekker-render-id': requestId,
+    },
+    body: JSON.stringify(body),
+  })
+}
+
+function validShareRenderBody(overrides: Record<string, unknown> = {}) {
+  return {
+    template: 'base-classic',
+    checkinId: 'checkin-1',
+    fieldVisibility: {},
+    transparent: false,
+    ...overrides,
+  }
+}
+
+function loadShareRenderRoute({
+  user = { id: 'user-1' },
+  workerSvgResponse = async () => null,
+  renderSvgPng = async () => ({ buffer: new Uint8Array([1, 2, 3]) }),
+}: {
+  user?: { id: string } | null
+  workerSvgResponse?: (args: unknown) => Promise<Response | null>
+  renderSvgPng?: (args: unknown) => Promise<{ buffer: Uint8Array }>
+} = {}) {
+  const routeSource = readSource('../src/app/api/share/render/route.ts')
+  const checkin = {
+    id: 'checkin-1',
+    user_id: 'user-1',
+    source: 'gpx',
+    created_at: '2026-08-14T00:00:00.000Z',
+    start_time: null,
+    end_time: null,
+    distance_meters: 21300,
+    duration_seconds: 1440,
+    elevation_gain_meters: 625,
+    max_elevation_meters: 5077,
+    session_id: null,
+    track_name: 'Test track',
+    track_points: null,
+    screenshot_route_shape: null,
+    mountains: { id: 'mountain-1', name: 'Test mountain', altitude: 5077, province: 'Test province' },
+  }
+  const supabase = {
+    auth: {
+      getUser: async () => ({ data: { user } }),
+    },
+    from: (table: string) => {
+      assert.equal(table, 'checkins')
+      return {
+        select: () => ({
+          eq: () => ({
+            single: async () => ({ data: checkin, error: null }),
+          }),
+        }),
+      }
+    },
+  }
+
+  return executeCommonJsModule<{
+    POST: (request: Request) => Promise<Response>
+  }>(routeSource, (id) => {
+    switch (id) {
+      case '@/lib/brand-assets.server':
+        return { loadBrandMarkMaskDataUri: async () => 'data:image/png;base64,brand' }
+      case '@/lib/share-templates/shared':
+        return { RenderRoot: (props: unknown) => props }
+      case '@/lib/share-templates/registry':
+        return { getShareTemplateComponent: () => (props: unknown) => props }
+      case '@/lib/share-templates/transparent-watermark':
+        return { TransparentWatermarkTemplate: (props: unknown) => props }
+      case '@/lib/share-templates/types':
+        return { SHARE_RENDER_TEMPLATE_IDS: ['base-classic'] }
+      case '@/lib/fonts/load-share-fonts':
+        return { loadShareFonts: async () => [] }
+      case '@/lib/premium':
+        return { checkTemplateAccess: async () => ({ allowed: true }), isPremiumPaywallEnabled: () => false }
+      case '@/lib/schema-compat':
+        return { isSchemaCompatibilityErrorMessage: () => false }
+      case '@/lib/share-render-png':
+        return { renderShareSvg: async () => '<svg />', renderSvgPng }
+      case '@/lib/share-render-runtime':
+        return { createWorkerSvgResponse: workerSvgResponse }
+      case '@/lib/share-render-policy':
+        return {
+          ShareRenderPayloadPolicyError: class ShareRenderPayloadPolicyError extends Error {},
+          assertShareRenderPayload: () => undefined,
+        }
+      case '@/lib/share-svg-filters':
+        return { applyPhotoGrayscaleSvgFilter: (svg: string) => svg }
+      case '@/lib/share-track-preview':
+        return {
+          buildShareTrackPreview: () => null,
+          buildShareTrackPreviewFromScreenshotRouteShape: () => null,
+        }
+      case '@/lib/share-data':
+        return {
+          resolveMeasuredShareAltitude: (altitude: number | null) => altitude,
+          resolveShareMountainName: ({ mountainName }: { mountainName?: string | null }) => mountainName ?? '',
+          resolveShareRenderSource: () => 'uploaded',
+        }
+      case '@/lib/supabase-server':
+        return { createSupabaseServerClient: async () => supabase }
+      case '@/lib/trek-utils':
+        return { isScreenshotRecognitionSource: () => false }
+      default:
+        throw new Error(`Unexpected share route dependency: ${id}`)
+    }
+  })
+}
+
+function loadWorkerModule({
+  renderer,
+  openNextFetch,
+}: {
+  renderer: (args: { transparent: boolean }) => Promise<Uint8Array>
+  openNextFetch: (request: Request) => Promise<Response>
+}) {
+  const workerSource = readSource('../custom-worker.ts')
+  return executeCommonJsModule<{
+    default: {
+      fetch: (request: Request, env: { ASSETS: { fetch: (request: Request) => Promise<Response> } }, context: unknown) => Promise<Response>
+    }
+  }>(workerSource, (id) => {
+    switch (id) {
+      case './src/lib/share-render-png.worker':
+        return { ensureWorkerShareRenderer: async () => renderer }
+      case './node_modules/satori/yoga.wasm?module':
+        return { __esModule: true, default: {} }
+      case './src/lib/share-render-runtime':
+        return {
+          WORKER_SVG_RESPONSE_HEADER: 'x-peak-trekker-worker-svg',
+          WORKER_SVG_TRANSPARENT_HEADER: 'x-peak-trekker-worker-transparent',
+        }
+      case './.open-next/worker.js':
+        return { __esModule: true, default: { fetch: openNextFetch } }
+      default:
+        throw new Error(`Unexpected custom worker dependency: ${id}`)
+    }
+  }).default
 }
 
 async function measureChannelDelta(
@@ -849,6 +1055,214 @@ describe('share render API field policy regression', () => {
     assert.match(clientSource, /disabled=\{disabled \|\| transparentExporting\}/)
     assert.match(clientSource, /disabled=\{unavailable\}/)
     assert.match(clientSource, /data-export-dim="true"/)
+  })
+
+  test('share render diagnostics cap JSON bodies by actual streamed bytes', async () => {
+    const { readShareRenderDiagnostic } = await loadShareClientDiagnosticParser()
+    const serverErrorId = '11111111-1111-4111-8111-111111111111'
+    const clientErrorId = '22222222-2222-4222-8222-222222222222'
+    const encoder = new TextEncoder()
+
+    assert.deepEqual(
+      await readShareRenderDiagnostic(
+        new Response(JSON.stringify({ code: 'SR-PNG', errorId: serverErrorId }), {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+        clientErrorId,
+      ),
+      { code: 'SR-PNG', errorId: serverErrorId },
+      'small safe JSON must retain the server diagnostic',
+    )
+
+    const oversizedPayload = encoder.encode(`${JSON.stringify({ code: 'SR-PNG', errorId: serverErrorId })}${' '.repeat(4097)}`)
+    const noLength = streamResponse(oversizedPayload, { 'Content-Type': 'application/json' })
+    assert.deepEqual(
+      await readShareRenderDiagnostic(noLength.response, clientErrorId),
+      { code: 'SR-UNKNOWN', errorId: clientErrorId },
+      'a body without Content-Length must still be capped',
+    )
+    assert.equal(noLength.wasCanceled(), true, 'oversized streams must be canceled instead of fully consumed')
+
+    const falseSmallLength = streamResponse(oversizedPayload, {
+      'Content-Type': 'application/json',
+      'Content-Length': '42',
+    })
+    assert.deepEqual(
+      await readShareRenderDiagnostic(falseSmallLength.response, clientErrorId),
+      { code: 'SR-UNKNOWN', errorId: clientErrorId },
+      'a forged small Content-Length must not bypass the byte cap',
+    )
+    assert.equal(falseSmallLength.wasCanceled(), true, 'forged-size streams must also be canceled')
+
+    assert.deepEqual(
+      await readShareRenderDiagnostic(
+        new Response('{not-json', { headers: { 'Content-Type': 'application/json' } }),
+        clientErrorId,
+      ),
+      { code: 'SR-UNKNOWN', errorId: clientErrorId },
+      'malformed JSON must keep the client request ID and safe unknown code',
+    )
+  })
+
+  test('normal share render failures retain only safe diagnostic fields in source contracts', () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    const routeSource = readSource('../src/app/api/share/render/route.ts')
+    const workerSource = readSource('../custom-worker.ts')
+
+    assert.match(clientSource, /response\.body\?\.getReader\(\)/)
+    assert.match(clientSource, /SHARE_RENDER_DIAGNOSTIC_MAX_BYTES = 4 \* 1024/)
+    assert.doesNotMatch(clientSource, /response\.json\(\)/)
+    assert.match(clientSource, /code:\s*diagnostic\.code/)
+    assert.match(clientSource, /render_error_id:\s*diagnostic\.errorId/)
+    assert.match(clientSource, /new ShareRenderResponseError\(diagnostic\)/)
+    assert.match(clientSource, /const SHARE_RENDER_FAILURE_MESSAGE = '分享图生成失败，请稍后再试'/)
+    assert.match(clientSource, /super\(`\$\{SHARE_RENDER_FAILURE_MESSAGE\}（\$\{code\} · \$\{errorId\}）`\)/)
+    assert.doesNotMatch(clientSource, /diagnostic\.stack|diagnostic\.hint|diagnostic\.error\b/)
+
+    for (const code of [
+      'SR-AUTH',
+      'SR-DATA',
+      'SR-INVALID',
+      'SR-PHOTO',
+      'SR-FONT',
+      'SR-BRAND',
+      'SR-SVG',
+      'SR-PNG',
+      'SR-UNKNOWN',
+    ]) {
+      assert.match(routeSource, new RegExp(`shareRenderFailure\\(requestId, '${code}'`), `${code} must map to its route branch`)
+    }
+
+    assert.match(routeSource, /function shareRenderFailure\(requestId: string, code: ShareRenderFailureCode, status: number\)/)
+    assert.match(routeSource, /loadShareFonts[\s\S]*?SR-FONT/)
+    assert.match(routeSource, /photoDataUrlForTemplate[\s\S]*?SR-PHOTO/)
+    assert.match(routeSource, /loadBrandMarkMaskDataUri[\s\S]*?SR-BRAND/)
+    assert.match(routeSource, /renderShareSvg[\s\S]*?SR-SVG/)
+    assert.match(routeSource, /renderSvgPng[\s\S]*?SR-PNG/)
+    assert.match(workerSource, /const isShareRender = new URL\(request\.url\)\.pathname === '\/api\/share\/render'/)
+    assert.match(workerSource, /workerRenderFailure\(errorId, 'SR-SVG-SIZE'\)/)
+    assert.match(workerSource, /workerRenderFailure\(errorId, 'SR-FONT'\)/)
+    assert.match(workerSource, /workerRenderFailure\(errorId, 'SR-PNG'\)/)
+    assert.match(workerSource, /if \(isShareRender\) return workerRenderFailure/)
+    assert.match(workerSource, /throw error/)
+    assert.match(workerSource, /errorId/)
+    assert.doesNotMatch(workerSource, /stack:/)
+  })
+
+  test('share render route executes safe invalid, auth, handoff, and PNG success contracts', async () => {
+    const { POST: invalidPost } = loadShareRenderRoute()
+    const invalidResponse = await invalidPost(shareRenderRequest(validShareRenderBody({ template: 'unknown-template' })))
+    assert.equal(invalidResponse.status, 400)
+    assert.deepEqual(await invalidResponse.json(), {
+      error: 'Unable to render share image',
+      code: 'SR-INVALID',
+      errorId: SHARE_RENDER_ERROR_ID,
+    })
+    assert.equal(invalidResponse.headers.get('cache-control'), 'no-store')
+    assert.equal(invalidResponse.headers.get('x-peak-trekker-render-id'), SHARE_RENDER_ERROR_ID)
+
+    const { POST: authPost } = loadShareRenderRoute({ user: null })
+    const authResponse = await authPost(shareRenderRequest(validShareRenderBody()))
+    assert.equal(authResponse.status, 403)
+    assert.deepEqual(await authResponse.json(), {
+      error: 'Unable to render share image',
+      code: 'SR-AUTH',
+      errorId: SHARE_RENDER_ERROR_ID,
+    })
+    assert.equal(authResponse.headers.get('cache-control'), 'no-store')
+    assert.equal(authResponse.headers.get('x-peak-trekker-render-id'), SHARE_RENDER_ERROR_ID)
+
+    const { POST: handoffPost } = loadShareRenderRoute({
+      workerSvgResponse: async () => {
+        throw new Error('worker handoff failed')
+      },
+    })
+    const handoffResponse = await handoffPost(shareRenderRequest(validShareRenderBody()))
+    assert.equal(handoffResponse.status, 500)
+    assert.deepEqual(await handoffResponse.json(), {
+      error: 'Unable to render share image',
+      code: 'SR-UNKNOWN',
+      errorId: SHARE_RENDER_ERROR_ID,
+    })
+    assert.equal(handoffResponse.headers.get('cache-control'), 'no-store')
+    assert.equal(handoffResponse.headers.get('x-peak-trekker-render-id'), SHARE_RENDER_ERROR_ID)
+
+    const { POST: successPost } = loadShareRenderRoute()
+    for (const transparent of [false, true]) {
+      const response = await successPost(shareRenderRequest(validShareRenderBody({ transparent })))
+      assert.equal(response.status, 200)
+      assert.equal(response.headers.get('content-type'), 'image/png')
+      assert.equal(response.headers.get('cache-control'), 'no-store')
+      assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [1, 2, 3])
+    }
+  })
+
+  test('custom Worker isolates share JSON failures while poster routes retain their throw contract', async () => {
+    const workerRequestId = '33333333-3333-4333-8333-333333333333'
+    const internalSvg = (transparent = false) => new Response('<svg/>', {
+      headers: {
+        'x-peak-trekker-worker-svg': '1',
+        'x-peak-trekker-worker-transparent': transparent ? '1' : '0',
+        'x-peak-trekker-render-id': workerRequestId,
+        'content-length': '6',
+        'cache-control': 'no-store',
+      },
+    })
+    const assets = {
+      fetch: async () => new Response(new Uint8Array([1, 2, 3])),
+    }
+    const context = { waitUntil: () => undefined, passThroughOnException: () => undefined }
+
+    const failingWorker = loadWorkerModule({
+      renderer: async () => {
+        throw new Error('resvg failed')
+      },
+      openNextFetch: async () => internalSvg(),
+    })
+    const shareFailure = await failingWorker.fetch(
+      new Request('https://example.test/api/share/render'),
+      { ASSETS: assets },
+      context,
+    )
+    assert.equal(shareFailure.status, 500)
+    assert.deepEqual(await shareFailure.json(), {
+      error: 'Unable to render share image',
+      code: 'SR-PNG',
+      errorId: workerRequestId,
+    })
+    assert.equal(shareFailure.headers.get('cache-control'), 'no-store')
+    assert.equal(shareFailure.headers.get('x-peak-trekker-render-id'), workerRequestId)
+
+    for (const route of ['/api/poster', '/api/poster-preview']) {
+      await assert.rejects(
+        () => failingWorker.fetch(new Request(`https://example.test${route}`), { ASSETS: assets }, context),
+        /resvg failed/,
+        `${route} must retain its existing Worker throw behavior`,
+      )
+    }
+
+    const renderCalls: boolean[] = []
+    const successfulWorker = loadWorkerModule({
+      renderer: async ({ transparent }) => {
+        renderCalls.push(transparent)
+        return new Uint8Array([7, 8, 9])
+      },
+      openNextFetch: async (request) => internalSvg(new URL(request.url).searchParams.get('transparent') === '1'),
+    })
+    for (const transparent of [false, true]) {
+      const response = await successfulWorker.fetch(
+        new Request(`https://example.test/api/share/render?transparent=${transparent ? '1' : '0'}`),
+        { ASSETS: assets },
+        context,
+      )
+      assert.equal(response.status, 200)
+      assert.equal(response.headers.get('content-type'), 'image/png')
+      assert.equal(response.headers.get('cache-control'), 'no-store')
+      assert.equal(response.headers.get('x-peak-trekker-render-id'), workerRequestId)
+      assert.equal(response.headers.get('x-peak-trekker-worker-svg'), null)
+      assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [7, 8, 9])
+    }
+    assert.deepEqual(renderCalls, [false, true])
   })
 
   test('share editor export ceremony distinguishes save, native share, fallback, abort, and failure semantics', () => {

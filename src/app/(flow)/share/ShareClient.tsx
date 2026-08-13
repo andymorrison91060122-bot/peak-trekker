@@ -41,6 +41,117 @@ type ShareFieldKey =
 type ShareActivitySource = 'gps' | 'uploaded'
 type PressFallbackEvent = PointerEvent<HTMLElement> | FocusEvent<HTMLElement>
 
+type ShareRenderDiagnosticCode =
+  | 'SR-AUTH'
+  | 'SR-DATA'
+  | 'SR-INVALID'
+  | 'SR-PHOTO'
+  | 'SR-FONT'
+  | 'SR-BRAND'
+  | 'SR-SVG'
+  | 'SR-SVG-SIZE'
+  | 'SR-PNG'
+  | 'SR-UNKNOWN'
+
+type ShareRenderDiagnostic = {
+  code: ShareRenderDiagnosticCode
+  errorId: string
+}
+
+const SHARE_RENDER_FAILURE_MESSAGE = '分享图生成失败，请稍后再试'
+const SHARE_RENDER_REQUEST_ID_HEADER = 'x-peak-trekker-render-id'
+const SHARE_RENDER_DIAGNOSTIC_MAX_BYTES = 4 * 1024
+const SHARE_RENDER_DIAGNOSTIC_CODES = new Set<ShareRenderDiagnosticCode>([
+  'SR-AUTH',
+  'SR-DATA',
+  'SR-INVALID',
+  'SR-PHOTO',
+  'SR-FONT',
+  'SR-BRAND',
+  'SR-SVG',
+  'SR-SVG-SIZE',
+  'SR-PNG',
+  'SR-UNKNOWN',
+])
+
+class ShareRenderResponseError extends Error {
+  code: ShareRenderDiagnosticCode
+  errorId: string
+
+  constructor({ code, errorId }: ShareRenderDiagnostic) {
+    super(`${SHARE_RENDER_FAILURE_MESSAGE}（${code} · ${errorId}）`)
+    this.name = 'ShareRenderResponseError'
+    this.code = code
+    this.errorId = errorId
+  }
+}
+
+function isShareRenderDiagnosticCode(value: unknown): value is ShareRenderDiagnosticCode {
+  return typeof value === 'string' && SHARE_RENDER_DIAGNOSTIC_CODES.has(value as ShareRenderDiagnosticCode)
+}
+
+function isShareRenderErrorId(value: unknown): value is string {
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(value)
+}
+
+async function readShareRenderDiagnostic(response: Response, fallbackErrorId: string): Promise<ShareRenderDiagnostic> {
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) {
+    return { code: 'SR-UNKNOWN', errorId: fallbackErrorId }
+  }
+
+  const reader = response.body?.getReader()
+  if (!reader) return { code: 'SR-UNKNOWN', errorId: fallbackErrorId }
+
+  const chunks: Uint8Array[] = []
+  let byteLength = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (!value) continue
+
+      byteLength += value.byteLength
+      if (byteLength > SHARE_RENDER_DIAGNOSTIC_MAX_BYTES) {
+        try {
+          await reader.cancel()
+        } catch {
+          // The error body is optional and must never block the client fallback.
+        }
+        return { code: 'SR-UNKNOWN', errorId: fallbackErrorId }
+      }
+
+      chunks.push(value)
+    }
+
+    const body = new Uint8Array(byteLength)
+    let offset = 0
+    for (const chunk of chunks) {
+      body.set(chunk, offset)
+      offset += chunk.byteLength
+    }
+
+    const diagnostic: unknown = JSON.parse(new TextDecoder().decode(body))
+    if (
+      diagnostic
+      && typeof diagnostic === 'object'
+      && isShareRenderDiagnosticCode((diagnostic as { code?: unknown }).code)
+      && isShareRenderErrorId((diagnostic as { errorId?: unknown }).errorId)
+    ) {
+      return {
+        code: (diagnostic as { code: ShareRenderDiagnosticCode }).code,
+        errorId: (diagnostic as { errorId: string }).errorId,
+      }
+    }
+  } catch {
+    // The server error body is deliberately optional; retain the client request ID if it is unavailable.
+  } finally {
+    reader.releaseLock()
+  }
+
+  return { code: 'SR-UNKNOWN', errorId: fallbackErrorId }
+}
+
 function markPressFallback(event: PointerEvent<HTMLElement>) {
   event.currentTarget.dataset.ptPressActive = 'true'
 }
@@ -3467,26 +3578,32 @@ export default function ShareClient({
     }
 
     const startedAt = performance.now()
-    const response = await fetch('/api/share/render', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        template: snapshot.template,
-        checkinId,
-        fieldVisibility: {
-          duration: snapshot.fieldToggles.duration,
-          elevationGain: snapshot.fieldToggles.elevationGain,
-          date: snapshot.fieldToggles.date,
-          location: snapshot.fieldToggles.location,
-          pace: snapshot.fieldToggles.pace,
-          mountainName: snapshot.fieldToggles.mountainName,
+    const requestId = crypto.randomUUID()
+    let response: Response
+    try {
+      response = await fetch('/api/share/render', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          [SHARE_RENDER_REQUEST_ID_HEADER]: requestId,
         },
-        photoBase64: stripDataUrlPrefix(snapshot.photoDataUrl),
-        transparent: snapshot.transparent,
-      }),
-    })
-
-    if (!response.ok) {
+        body: JSON.stringify({
+          template: snapshot.template,
+          checkinId,
+          fieldVisibility: {
+            duration: snapshot.fieldToggles.duration,
+            elevationGain: snapshot.fieldToggles.elevationGain,
+            date: snapshot.fieldToggles.date,
+            location: snapshot.fieldToggles.location,
+            pace: snapshot.fieldToggles.pace,
+            mountainName: snapshot.fieldToggles.mountainName,
+          },
+          photoBase64: stripDataUrlPrefix(snapshot.photoDataUrl),
+          transparent: snapshot.transparent,
+        }),
+      })
+    } catch {
+      const diagnostic = { code: 'SR-UNKNOWN' as const, errorId: requestId }
       trackEvent({
         event_type: 'business',
         event_name: 'business.share_template_generate',
@@ -3494,9 +3611,27 @@ export default function ShareClient({
           template_id: snapshot.template,
           success: false,
           generate_duration_ms: Math.round(performance.now() - startedAt),
+          render_error_code: diagnostic.code,
+          render_error_id: diagnostic.errorId,
         },
       })
-      throw new Error('分享图生成失败，请稍后再试')
+      throw new ShareRenderResponseError(diagnostic)
+    }
+
+    if (!response.ok) {
+      const diagnostic = await readShareRenderDiagnostic(response, requestId)
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.share_template_generate',
+        properties: {
+          template_id: snapshot.template,
+          success: false,
+          generate_duration_ms: Math.round(performance.now() - startedAt),
+          render_error_code: diagnostic.code,
+          render_error_id: diagnostic.errorId,
+        },
+      })
+      throw new ShareRenderResponseError(diagnostic)
     }
 
     trackEvent({
@@ -3509,7 +3644,23 @@ export default function ShareClient({
         transparent: snapshot.transparent,
       },
     })
-    return response.blob()
+    try {
+      return await response.blob()
+    } catch {
+      const diagnostic = { code: 'SR-UNKNOWN' as const, errorId: requestId }
+      trackEvent({
+        event_type: 'business',
+        event_name: 'business.share_template_generate',
+        properties: {
+          template_id: snapshot.template,
+          success: false,
+          generate_duration_ms: Math.round(performance.now() - startedAt),
+          render_error_code: diagnostic.code,
+          render_error_id: diagnostic.errorId,
+        },
+      })
+      throw new ShareRenderResponseError(diagnostic)
+    }
   }
 
   async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {

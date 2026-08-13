@@ -31,9 +31,52 @@ const GRAYSCALE_PHOTO_TEMPLATES = new Set<ShareRenderTemplate>([
   'premium-mono-film',
   'premium-vertical-story',
 ])
+const SHARE_RENDER_REQUEST_ID_HEADER = 'x-peak-trekker-render-id'
+
+type ShareRenderFailureCode =
+  | 'SR-AUTH'
+  | 'SR-DATA'
+  | 'SR-INVALID'
+  | 'SR-PHOTO'
+  | 'SR-FONT'
+  | 'SR-BRAND'
+  | 'SR-SVG'
+  | 'SR-SVG-SIZE'
+  | 'SR-PNG'
+  | 'SR-UNKNOWN'
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+function isRequestId(value: string | null): value is string {
+  return value !== null && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(value)
+}
+
+function requestIdFor(request: Request) {
+  const supplied = request.headers.get(SHARE_RENDER_REQUEST_ID_HEADER)
+  return isRequestId(supplied) ? supplied : crypto.randomUUID()
+}
+
+function shareRenderFailure(requestId: string, code: ShareRenderFailureCode, status: number) {
+  return Response.json(
+    {
+      error: 'Unable to render share image',
+      code,
+      errorId: requestId,
+    },
+    {
+      status,
+      headers: {
+        'Cache-Control': 'no-store',
+        [SHARE_RENDER_REQUEST_ID_HEADER]: requestId,
+      },
+    },
+  )
+}
+
+function isBase64(value: string) {
+  return value.length > 0 && value.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(value)
 }
 
 type ShareRenderApiRequest = {
@@ -160,27 +203,21 @@ function formatShareDuration(value?: number | null) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }
 
-function parseRequestBody(body: unknown): ShareRenderApiRequest | Response {
+function parseRequestBody(body: unknown, requestId: string): ShareRenderApiRequest | Response {
   if (!isObject(body)) {
-    return Response.json({ error: 'Invalid share render request' }, { status: 400 })
+    return shareRenderFailure(requestId, 'SR-INVALID', 400)
   }
 
   const template = body.template
   if (typeof template !== 'string' || !VALID_TEMPLATES.includes(template as ShareRenderTemplate)) {
-    return Response.json({ error: 'Invalid share render request' }, { status: 400 })
+    return shareRenderFailure(requestId, 'SR-INVALID', 400)
   }
 
   try {
     assertShareRenderPayload(body)
   } catch (error) {
     if (error instanceof ShareRenderPayloadPolicyError) {
-      return Response.json(
-        {
-          error: error.message,
-          ...(error.hint ? { hint: error.hint } : {}),
-        },
-        { status: 400 },
-      )
+      return shareRenderFailure(requestId, 'SR-INVALID', 400)
     }
     throw error
   }
@@ -189,6 +226,9 @@ function parseRequestBody(body: unknown): ShareRenderApiRequest | Response {
   const photoBase64 = typeof body.photoBase64 === 'string'
     ? body.photoBase64.replace(/^data:image\/[a-zA-Z+.-]+;base64,/, '').trim()
     : undefined
+  if (photoBase64 && !isBase64(photoBase64)) {
+    return shareRenderFailure(requestId, 'SR-PHOTO', 400)
+  }
 
   return {
     template: template as ShareRenderTemplate,
@@ -255,25 +295,28 @@ async function fetchTrekSession(
   return (legacyResult.data ?? null) as TrekSessionRow | null
 }
 
-async function buildServerRenderPayload(apiRequest: ShareRenderApiRequest): Promise<{ payload: ShareRenderRequest; userId: string } | Response> {
+async function buildServerRenderPayload(
+  apiRequest: ShareRenderApiRequest,
+  requestId: string,
+): Promise<{ payload: ShareRenderRequest; userId: string } | Response> {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return Response.json({ error: 'forbidden' }, { status: 403 })
+    return shareRenderFailure(requestId, 'SR-AUTH', 403)
   }
 
   const { data: checkin, error } = await fetchShareCheckin(supabase, apiRequest.checkinId)
 
   if (error || !checkin) {
-    return Response.json({ error: 'checkin not found' }, { status: 404 })
+    return shareRenderFailure(requestId, 'SR-DATA', 404)
   }
 
   const row = checkin as ShareCheckinRow
   if (row.user_id !== user.id) {
-    return Response.json({ error: 'forbidden' }, { status: 403 })
+    return shareRenderFailure(requestId, 'SR-AUTH', 403)
   }
 
   const mountain = firstRelation(row.mountains)
@@ -381,6 +424,7 @@ function fontText(data: ShareTemplateData) {
 }
 
 export async function POST(request: Request) {
+  const requestId = requestIdFor(request)
   let body: unknown = null
 
   try {
@@ -389,59 +433,101 @@ export async function POST(request: Request) {
     body = null
   }
 
-  const apiRequest = parseRequestBody(body)
+  let apiRequest: ShareRenderApiRequest | Response
+  try {
+    apiRequest = parseRequestBody(body, requestId)
+  } catch (error) {
+    console.error('share render failed to parse request', error)
+    return shareRenderFailure(requestId, 'SR-UNKNOWN', 500)
+  }
   if (apiRequest instanceof Response) {
     return apiRequest
   }
 
   let serverPayload: { payload: ShareRenderRequest; userId: string } | Response
   try {
-    serverPayload = await buildServerRenderPayload(apiRequest)
+    serverPayload = await buildServerRenderPayload(apiRequest, requestId)
   } catch (error) {
     console.error('share render failed to load server data', error)
-    return Response.json({ error: 'Unable to load share data' }, { status: 500 })
+    return shareRenderFailure(requestId, 'SR-DATA', 500)
   }
 
   if (serverPayload instanceof Response) {
     return serverPayload
   }
 
-  try {
-    const { payload, userId } = serverPayload
-    const paywallEnabled = isPremiumPaywallEnabled()
-    const [fonts, photoDataUrl, brandMarkSrc] = await Promise.all([
+  const { payload, userId } = serverPayload
+  const [fontsResult, photoResult, brandResult] = await Promise.allSettled([
       loadShareFonts(fontText(payload.data), request.url),
       payload.transparent ? null : photoDataUrlForTemplate(payload.template, payload.photoBase64),
       loadBrandMarkMaskDataUri(request.url),
-    ])
-    const access = paywallEnabled
+  ])
+  if (fontsResult.status === 'rejected') {
+    console.error('share render failed to load fonts', fontsResult.reason)
+    return shareRenderFailure(requestId, 'SR-FONT', 500)
+  }
+  if (photoResult.status === 'rejected') {
+    console.error('share render failed to prepare photo input', photoResult.reason)
+    return shareRenderFailure(requestId, 'SR-PHOTO', 400)
+  }
+  if (brandResult.status === 'rejected') {
+    console.error('share render failed to load brand asset', brandResult.reason)
+    return shareRenderFailure(requestId, 'SR-BRAND', 500)
+  }
+
+  let access: { allowed: boolean }
+  try {
+    const paywallEnabled = isPremiumPaywallEnabled()
+    access = paywallEnabled
       ? await checkTemplateAccess(payload.template, userId)
       : { allowed: true }
-    const templateElement = renderPayload(payload, photoDataUrl, brandMarkSrc)
+  } catch (error) {
+    console.error('share render failed to load access data', error)
+    return shareRenderFailure(requestId, 'SR-DATA', 500)
+  }
 
+  let svg: string
+  try {
+    const fonts = fontsResult.value
+    const photoDataUrl = photoResult.value
+    const brandMarkSrc = brandResult.value
+    const templateElement = renderPayload(payload, photoDataUrl, brandMarkSrc)
     const element = access.allowed
       ? templateElement
       : RenderRoot({
           paywallWatermark: true,
           children: templateElement,
         })
-    let svg = await renderShareSvg({
+    svg = await renderShareSvg({
       element,
       fonts,
     })
     if (GRAYSCALE_PHOTO_TEMPLATES.has(payload.template) && photoDataUrl) {
       svg = applyPhotoGrayscaleSvgFilter(svg, photoDataUrl)
     }
+  } catch (error) {
+    console.error('share render failed to create SVG', error)
+    return shareRenderFailure(requestId, 'SR-SVG', 500)
+  }
+
+  try {
     const workerSvgResponse = await createWorkerSvgResponse({
       request,
       svg,
       transparent: payload.transparent,
-      headers: { 'Cache-Control': 'no-store' },
+      headers: {
+        'Cache-Control': 'no-store',
+        [SHARE_RENDER_REQUEST_ID_HEADER]: requestId,
+      },
     })
     if (workerSvgResponse) return workerSvgResponse
+  } catch (error) {
+    console.error('share render failed to hand off SVG', error)
+    return shareRenderFailure(requestId, 'SR-UNKNOWN', 500)
+  }
 
+  try {
     const png = await renderSvgPng({ svg, transparent: payload.transparent })
-
     return new Response(new Blob([png.buffer], { type: 'image/png' }), {
       headers: {
         'Content-Type': 'image/png',
@@ -449,7 +535,7 @@ export async function POST(request: Request) {
       },
     })
   } catch (error) {
-    console.error('share render failed', error)
-    return Response.json({ error: 'Unable to render share image' }, { status: 500 })
+    console.error('share render failed to create PNG', error)
+    return shareRenderFailure(requestId, 'SR-PNG', 500)
   }
 }

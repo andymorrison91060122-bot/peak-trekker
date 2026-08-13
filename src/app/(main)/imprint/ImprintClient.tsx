@@ -437,6 +437,9 @@ export default function ImprintClient({
     const nums = gsap.utils.toArray<HTMLElement>(scope.querySelectorAll('[data-role="num"]'))
     const drawTargets = gsap.utils.toArray<SVGGeometryElement>(scope.querySelectorAll('[data-role="draw"]'))
     const popTargets = gsap.utils.toArray<HTMLElement | SVGElement>(scope.querySelectorAll('[data-role="pop"]'))
+    const routeStartTargets = popTargets.filter((target) => target.getAttribute('data-motion-position') === 'route-start')
+    const routeEndTargets = popTargets.filter((target) => target.getAttribute('data-motion-position') === 'route-end')
+    const decorativePopTargets = popTargets.filter((target) => !routeStartTargets.includes(target) && !routeEndTargets.includes(target))
     const fillTargets = gsap.utils.toArray<HTMLElement | SVGElement>(scope.querySelectorAll('[data-role="fill"]'))
     const ruleTargets = gsap.utils.toArray<HTMLElement | SVGElement>(scope.querySelectorAll('[data-role="rule"]'))
     gsap.killTweensOf([...textTargets, ...nums, ...drawTargets, ...popTargets, ...fillTargets, ...ruleTargets])
@@ -551,8 +554,8 @@ export default function ImprintClient({
       }, 0.62)
     }
 
-    if (popTargets.length) {
-      tl.to(popTargets, {
+    if (decorativePopTargets.length) {
+      tl.to(decorativePopTargets, {
         autoAlpha: 1,
         duration: 0.55,
         ease: 'power3.out',
@@ -560,6 +563,26 @@ export default function ImprintClient({
         overwrite: 'auto',
         clearProps: 'willChange',
       }, 1.08)
+    }
+    if (routeStartTargets.length) {
+      tl.to(routeStartTargets, {
+        autoAlpha: 1,
+        duration: 0.55,
+        ease: 'power3.out',
+        stagger: 0.08,
+        overwrite: 'auto',
+        clearProps: 'willChange',
+      }, 0.68)
+    }
+    if (routeEndTargets.length) {
+      tl.to(routeEndTargets, {
+        autoAlpha: 1,
+        duration: 0.55,
+        ease: 'power3.out',
+        stagger: 0.08,
+        overwrite: 'auto',
+        clearProps: 'willChange',
+      }, 2.13)
     }
   }
 

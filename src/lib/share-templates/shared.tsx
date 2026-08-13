@@ -216,8 +216,8 @@ export function MiniTrailCircle({ size = 156, trackPreview }: { size?: number; t
         <svg width={size - 42} height={size - 42} viewBox="0 0 120 120">
           {route.d ? <path data-role="draw" data-motion-kind="route" d={route.d} stroke={C.success} strokeWidth={route.glowWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={route.glowOpacity} vectorEffect="non-scaling-stroke" /> : null}
           {route.d ? <path data-role="draw" data-motion-kind="route" d={route.d} stroke={C.fg} strokeWidth={route.lineWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" vectorEffect="non-scaling-stroke" /> : null}
-          <circle data-role="pop" data-motion-kind="route-endpoint" cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} />
-          {route.d ? <circle data-role="pop" data-motion-kind="route-endpoint" cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={C.success} /> : null}
+          <circle data-role="pop" data-motion-kind="route-endpoint" data-motion-position="route-start" cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} />
+          {route.d ? <circle data-role="pop" data-motion-kind="route-endpoint" data-motion-position="route-end" cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={C.success} /> : null}
         </svg>
       ) : null}
     </div>
@@ -473,11 +473,12 @@ export function TrailSvg({
           vectorEffect="non-scaling-stroke"
         />
       ) : null}
-      {route ? <circle data-role="pop" data-motion-kind="route-endpoint" cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} /> : null}
+      {route ? <circle data-role="pop" data-motion-kind="route-endpoint" data-motion-position="route-start" cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} /> : null}
       {route?.d ? (
         <circle
           data-role="pop"
           data-motion-kind="route-endpoint"
+          data-motion-position="route-end"
           cx={route.end.x}
           cy={route.end.y}
           r={route.endRadius}

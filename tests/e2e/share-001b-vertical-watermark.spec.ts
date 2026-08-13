@@ -62,6 +62,15 @@ type DrawTerminalState = {
   dashoffsets: string[]
 }
 
+type DrawMotionState = {
+  draw: Array<{
+    length: number
+    dasharray: string
+    dashoffset: number
+  }>
+  endMarkerOpacities: number[]
+}
+
 async function installNoMutationRoutes(page: Page) {
   await page.route('**/api/analytics/event', (route) => route.fulfill({ status: 204, body: '' }))
 }
@@ -197,6 +206,21 @@ async function readDrawTerminalState(scope: Locator) {
   })) as Promise<DrawTerminalState>
 }
 
+async function readDrawMotionState(scope: Locator) {
+  return scope.evaluate((root) => ({
+    draw: Array.from(root.querySelectorAll<SVGPathElement>('path[data-role="draw"]')).map((path) => {
+      const style = getComputedStyle(path)
+      return {
+        length: path.getTotalLength(),
+        dasharray: style.strokeDasharray,
+        dashoffset: Math.abs(Number.parseFloat(style.strokeDashoffset || '0')),
+      }
+    }),
+    endMarkerOpacities: Array.from(root.querySelectorAll<SVGCircleElement>('circle[data-role="pop"][data-motion-position="route-end"]'))
+      .map((marker) => Number.parseFloat(getComputedStyle(marker).opacity || '1')),
+  })) as Promise<DrawMotionState>
+}
+
 function isTerminallyVisible(target: TerminalContentTarget) {
   return target.opacity >= 0.99 && target.visibility !== 'hidden' && target.width > 0 && target.height > 0
 }
@@ -219,6 +243,30 @@ function hasSettledDrawTerminal(state: DrawTerminalState) {
   return state.count > 0
     && state.dasharrays.every((dasharray) => dasharray === 'none')
     && state.dashoffsets.every((dashoffset) => dashoffset === '0px')
+}
+
+function hasMidRouteDraw(state: DrawMotionState) {
+  return state.draw.some(({ length, dasharray, dashoffset }) => (
+    dasharray !== 'none'
+    && Number.isFinite(length)
+    && dashoffset > length * 0.25
+    && dashoffset < length * 0.65
+  ))
+}
+
+function hasHiddenRouteEndMarkers(state: DrawMotionState) {
+  return state.endMarkerOpacities.length > 0 && state.endMarkerOpacities.every((opacity) => opacity <= 0.01)
+}
+
+async function waitForMidRouteDraw(page: Page, scope: Locator) {
+  const deadline = Date.now() + 5_000
+  let state = await readDrawMotionState(scope)
+  while (!hasMidRouteDraw(state) && Date.now() < deadline) {
+    await page.waitForTimeout(16)
+    state = await readDrawMotionState(scope)
+  }
+  expect(hasMidRouteDraw(state)).toBe(true)
+  return state
 }
 
 test('SHARE-001B makes Vertical first, free, motion-complete, and horizontally stable at 375px', async ({ browser, baseURL }) => {
@@ -368,7 +416,7 @@ test('base Vertical Share preview restores every template text target at motion 
   }, null, 2)}\n`)
 })
 
-test('Share and Imprint route draws settle after replay and reduced-motion rendering', async ({ browser, baseURL }) => {
+test('Share and Imprint draw routes continuously before revealing endpoint markers', async ({ browser, baseURL }) => {
   const routes = [
     { name: 'Share', path: '/share?template=base-vertical-classic', selector: '[data-testid="share-main-poster-preview"]' },
     { name: 'Imprint', path: '/imprint', selector: '[data-imprint-card][data-index="0"]' },
@@ -381,12 +429,19 @@ test('Share and Imprint route draws settle after replay and reduced-motion rende
         await page.goto(`${baseURL}${route.path}`, { waitUntil: 'domcontentloaded' })
         const scope = page.locator(route.selector)
         await expect(scope).toBeVisible()
+
+        if (reducedMotion === 'no-preference') {
+          expect(hasHiddenRouteEndMarkers(await waitForMidRouteDraw(page, scope))).toBe(true)
+        }
         await expect.poll(async () => hasSettledDrawTerminal(await readDrawTerminalState(scope))).toBe(true)
+        expect((await readDrawMotionState(scope)).endMarkerOpacities.every((opacity) => opacity >= 0.99)).toBe(true)
 
         if (reducedMotion === 'no-preference') {
           await page.reload({ waitUntil: 'domcontentloaded' })
           await expect(scope).toBeVisible()
+          expect(hasHiddenRouteEndMarkers(await waitForMidRouteDraw(page, scope))).toBe(true)
           await expect.poll(async () => hasSettledDrawTerminal(await readDrawTerminalState(scope))).toBe(true)
+          expect((await readDrawMotionState(scope)).endMarkerOpacities.every((opacity) => opacity >= 0.99)).toBe(true)
         }
       }
     } finally {

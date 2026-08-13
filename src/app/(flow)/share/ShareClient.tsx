@@ -392,6 +392,8 @@ function getPosterMotionTargets(root: HTMLElement) {
       textTargets: [],
       numberTargets: [],
       drawTargets: [],
+      routeStartTargets: [],
+      routeEndTargets: [],
       phaseTargets: { data: [], route: [], brand: [] },
     }
   }
@@ -400,6 +402,8 @@ function getPosterMotionTargets(root: HTMLElement) {
     textTargets: Array.from(poster.querySelectorAll<HTMLElement>('[data-lit="text"], [data-role="text"]')),
     numberTargets: Array.from(poster.querySelectorAll<HTMLElement>('[data-role="num"]')),
     drawTargets: Array.from(poster.querySelectorAll<SVGPathElement>('path[data-role="draw"]')),
+    routeStartTargets: Array.from(poster.querySelectorAll<SVGElement>('[data-role="pop"][data-motion-position="route-start"]')),
+    routeEndTargets: Array.from(poster.querySelectorAll<SVGElement>('[data-role="pop"][data-motion-position="route-end"]')),
     phaseTargets: {
       data: Array.from(poster.querySelectorAll<HTMLElement>('[data-motion-phase="data"]')),
       route: Array.from(poster.querySelectorAll<HTMLElement>('[data-motion-phase="route"]')),
@@ -417,11 +421,13 @@ function settlePosterDrawTargets(drawTargets: SVGPathElement[]) {
 }
 
 function setPosterMotionTerminal(root: HTMLElement) {
-  const { textTargets, numberTargets, drawTargets, phaseTargets } = getPosterMotionTargets(root)
+  const { textTargets, numberTargets, drawTargets, routeStartTargets, routeEndTargets, phaseTargets } = getPosterMotionTargets(root)
   const verticalTargets = Object.values(phaseTargets).flat()
-  gsap.killTweensOf([...textTargets, ...numberTargets, ...drawTargets, ...verticalTargets])
+  const routeMarkerTargets = [...routeStartTargets, ...routeEndTargets]
+  gsap.killTweensOf([...textTargets, ...numberTargets, ...drawTargets, ...routeMarkerTargets, ...verticalTargets])
   gsap.set(verticalTargets, { autoAlpha: 1, y: 0, clearProps: 'willChange' })
   gsap.set(textTargets, { autoAlpha: 1, y: 0, clearProps: 'willChange' })
+  gsap.set(routeMarkerTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' })
   numberTargets.forEach((target) => {
     const value = Number.parseFloat(target.dataset.val ?? '')
     target.textContent = formatMotionValue(value, target.dataset.fmt)
@@ -431,12 +437,14 @@ function setPosterMotionTerminal(root: HTMLElement) {
 
 function preparePosterMotionInitialState(root: HTMLElement, options: { retry?: boolean } = {}) {
   const retry = options.retry ?? true
-  const { textTargets, drawTargets, phaseTargets } = getPosterMotionTargets(root)
+  const { textTargets, drawTargets, routeStartTargets, routeEndTargets, phaseTargets } = getPosterMotionTargets(root)
   const verticalTargets = Object.values(phaseTargets).flat()
-  const targets = [...textTargets, ...drawTargets, ...verticalTargets]
+  const routeMarkerTargets = [...routeStartTargets, ...routeEndTargets]
+  const targets = [...textTargets, ...drawTargets, ...routeMarkerTargets, ...verticalTargets]
   gsap.killTweensOf(targets)
   gsap.set(verticalTargets, { autoAlpha: 0, y: 12, willChange: 'transform, opacity' })
   gsap.set(textTargets, { autoAlpha: 0, y: 0, willChange: 'opacity' })
+  gsap.set(routeMarkerTargets, { autoAlpha: 0, scale: 1, willChange: 'opacity' })
 
   let prepared = 0
   let failed = 0
@@ -485,12 +493,13 @@ function preparePosterMotionInitialState(root: HTMLElement, options: { retry?: b
 }
 
 function buildPosterRelightTimeline(root: HTMLElement) {
-  const { poster, textTargets, numberTargets, drawTargets, phaseTargets } = getPosterMotionTargets(root)
+  const { poster, textTargets, numberTargets, drawTargets, routeStartTargets, routeEndTargets, phaseTargets } = getPosterMotionTargets(root)
   const verticalTargets = Object.values(phaseTargets).flat()
   const verticalClassicTextTargets = poster?.querySelector('[data-template="base-vertical-classic"]')
     ? textTargets
     : []
-  const targets = [...textTargets, ...numberTargets, ...drawTargets, ...verticalTargets]
+  const routeMarkerTargets = [...routeStartTargets, ...routeEndTargets]
+  const targets = [...textTargets, ...numberTargets, ...drawTargets, ...routeMarkerTargets, ...verticalTargets]
   gsap.killTweensOf(targets)
   drawTargets.forEach((target) => {
     if (target.dataset.motionPrepareStatus !== 'prepared' && process.env.NODE_ENV !== 'production') {
@@ -500,6 +509,8 @@ function buildPosterRelightTimeline(root: HTMLElement) {
 
   const timeline = gsap.timeline()
   if (verticalTargets.length > 0) {
+    const routeDrawStart = 0.48
+    const routeDrawEnd = routeDrawStart + 1.12 + Math.max(0, drawTargets.length - 1) * 0.08
     timeline.to(phaseTargets.data, {
       autoAlpha: 1,
       y: 0,
@@ -541,13 +552,15 @@ function buildPosterRelightTimeline(root: HTMLElement) {
       ease: 'power2.out',
       clearProps: 'willChange',
     }, 0.44)
+    timeline.set(routeStartTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, routeDrawStart)
     timeline.to(drawTargets, {
       strokeDashoffset: 0,
       duration: 1.12,
       ease: 'power2.out',
       stagger: 0.08,
       clearProps: 'willChange',
-    }, 0.48)
+    }, routeDrawStart)
+    timeline.set(routeEndTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, routeDrawEnd)
     timeline.to(phaseTargets.brand, {
       autoAlpha: 1,
       y: 0,
@@ -589,13 +602,19 @@ function buildPosterRelightTimeline(root: HTMLElement) {
   })
 
   if (drawTargets.length > 0) {
+    const routeDrawStart = 0.24
+    const routeDrawEnd = routeDrawStart + 1.45 + Math.max(0, drawTargets.length - 1) * 0.08
+    timeline.set(routeStartTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, routeDrawStart)
     timeline.to(drawTargets, {
       strokeDashoffset: 0,
       duration: 1.45,
       ease: 'power2.out',
       stagger: 0.08,
       clearProps: 'willChange',
-    }, 0.24)
+    }, routeDrawStart)
+    timeline.set(routeEndTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, routeDrawEnd)
+  } else if (routeMarkerTargets.length) {
+    timeline.set(routeMarkerTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, 0)
   }
 
   timeline.call(() => settlePosterDrawTargets(drawTargets))

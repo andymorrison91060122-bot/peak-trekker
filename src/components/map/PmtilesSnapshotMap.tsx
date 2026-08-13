@@ -43,6 +43,30 @@ export type PmtilesSnapshotMapHandle = {
 
 let pmtilesProtocolRegistered = false
 
+type SymbolStyleLayer = Extract<StyleSpecification['layers'][number], { type: 'symbol' }>
+
+const PEAK_ONLY_LABEL_LAYER_ID = 'pois_peak'
+
+function buildPeakOnlyLabelLayer(layer: StyleSpecification['layers'][number]): SymbolStyleLayer | null {
+  if (layer.id !== 'pois' || layer.type !== 'symbol') return null
+
+  const layout = { ...layer.layout }
+  delete layout['icon-image']
+  delete layout['text-offset']
+  delete layout['text-variable-anchor']
+
+  return {
+    ...layer,
+    id: PEAK_ONLY_LABEL_LAYER_ID,
+    filter: [
+      'all',
+      ['==', ['get', 'kind'], 'peak'],
+      ['>=', ['zoom'], ['+', ['get', 'min_zoom'], 0]],
+    ],
+    layout,
+  }
+}
+
 function buildMinimalBasemapStyle(
   tileUrl: string,
   basemaps: typeof import('@protomaps/basemaps'),
@@ -73,11 +97,18 @@ function buildMinimalBasemapStyle(
     'water_label_lakes',
     'places_region',
     'places_locality',
+    'places_subplace',
     'places_country',
+    'roads_labels_major',
+    'roads_labels_minor',
   ])
   const baseLayers = basemaps
     .layers('protomaps', basemaps.namedFlavor(flavorName), { lang: 'zh' })
-    .filter((layer) => allowedLayerIds.has(layer.id))
+    .flatMap((layer) => {
+      if (allowedLayerIds.has(layer.id)) return [layer]
+      const peakLabelLayer = buildPeakOnlyLabelLayer(layer)
+      return peakLabelLayer ? [peakLabelLayer] : []
+    })
 
   return {
     version: 8,

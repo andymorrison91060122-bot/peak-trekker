@@ -196,9 +196,9 @@ async function findStorageObject(bucket, objectPath) {
   return data.find((entry) => entry.id && entry.name === name) ?? null
 }
 
-function assertStorageObjectMatches(row, object) {
+export function assertStorageObjectMatches(row, object) {
   const bytes = Number(object.metadata?.size)
-  const digest = object.metadata?.sha256 ?? object.metadata?.metadata?.sha256
+  const digest = object.user_metadata?.sha256
   assert.equal(bytes, row.source_file_bytes, `storage byte collision: ${row.id}`)
   assert.equal(digest, row.source_file_sha256, `storage SHA collision: ${row.id}`)
 }

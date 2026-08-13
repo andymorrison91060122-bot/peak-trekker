@@ -186,19 +186,15 @@ function assertExistingMatches(row, existing) {
 }
 
 async function findStorageObject(bucket, objectPath) {
-  const directory = path.posix.dirname(objectPath)
-  const name = path.posix.basename(objectPath)
-  const { data, error } = await bucket.list(directory, {
-    limit: 10,
-    search: name,
-  })
-  if (error) throw error
-  return data.find((entry) => entry.id && entry.name === name) ?? null
+  const { data, error } = await bucket.info(objectPath)
+  if (!error) return data
+  if (Number(error.statusCode ?? error.status) === 404) return null
+  throw error
 }
 
 export function assertStorageObjectMatches(row, object) {
-  const bytes = Number(object.metadata?.size)
-  const digest = object.user_metadata?.sha256
+  const bytes = Number(object.size)
+  const digest = object.metadata?.sha256
   assert.equal(bytes, row.source_file_bytes, `storage byte collision: ${row.id}`)
   assert.equal(digest, row.source_file_sha256, `storage SHA collision: ${row.id}`)
 }

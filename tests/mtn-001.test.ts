@@ -12,6 +12,7 @@ const mountainClient = readFileSync('src/app/(flow)/mountain/[id]/MountainDetail
 const importRecordSheet = readFileSync('src/components/mountain/ImportRecordSheet.tsx', 'utf8')
 const importPage = readFileSync('src/app/(flow)/import/page.tsx', 'utf8')
 const importClient = readFileSync('src/app/(flow)/import/ImportClient.tsx', 'utf8')
+const importMethodCard = readFileSync('src/components/explore/ExploreImportMethodCard.tsx', 'utf8')
 const screenshotPage = readFileSync('src/app/(flow)/screenshot/page.tsx', 'utf8')
 const screenshotClient = readFileSync('src/app/(flow)/screenshot/ScreenshotClient.tsx', 'utf8')
 const confirmRoute = readFileSync('src/app/api/import/confirm/route.ts', 'utf8')
@@ -59,6 +60,17 @@ test('MTN-001 passes an active mountain context through both acquisition flows',
   assert.match(screenshotPage, /initialMountainContext/)
   assert.match(screenshotClient, /initialMountainContext/)
   assert.match(screenshotClient, /contextMountainId/)
+})
+
+test('MTN-001 narrows the detail mountain context before using it and keeps press fallback handlers event-specific', () => {
+  assert.match(
+    importClient,
+    /onContinue=\{\(\) => \{[\s\S]*?if \(isMountainContextLocked && initialMountainContext\) \{[\s\S]*?setSelectedMountainId\(initialMountainContext\.id\)/
+  )
+  assert.match(
+    importMethodCard,
+    /type PressFallbackEvent = PointerEvent<HTMLButtonElement> \| MouseEvent<HTMLButtonElement> \| KeyboardEvent<HTMLButtonElement> \| FocusEvent<HTMLButtonElement>/
+  )
 })
 
 test('MTN-001 keeps detail track binding locked and makes confirm the authority before insert', () => {

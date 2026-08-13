@@ -1,8 +1,8 @@
 'use client'
 
-import type { FocusEvent, KeyboardEvent, PointerEvent, Ref } from 'react'
+import type { FocusEvent, KeyboardEvent, MouseEvent, PointerEvent, Ref } from 'react'
 
-type PressFallbackEvent = PointerEvent<HTMLButtonElement> | FocusEvent<HTMLButtonElement>
+type PressFallbackEvent = PointerEvent<HTMLButtonElement> | MouseEvent<HTMLButtonElement> | KeyboardEvent<HTMLButtonElement> | FocusEvent<HTMLButtonElement>
 
 function markPressFallback(event: PointerEvent<HTMLButtonElement>) {
   event.currentTarget.dataset.ptPressActive = 'true'

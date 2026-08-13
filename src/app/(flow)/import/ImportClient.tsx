@@ -3828,7 +3828,7 @@ export default function ImportClient({
 	          onContinue={() => {
 	            setConfirmError(null)
 	            setConfirmAuthRequired(false)
-            if (isMountainContextLocked) {
+            if (isMountainContextLocked && initialMountainContext) {
               setSelectedMountainId(initialMountainContext.id)
               setSelectedMountainName(initialMountainContext.name)
               setSelectionSearchInitiallyOpen(false)

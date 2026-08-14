@@ -29,11 +29,23 @@ const REMOTE_FONT_URLS = {
   bold: 'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf',
 }
 
+const NOTO_FONT_IDENTITIES = {
+  regular: {
+    bytes: 16_437_364,
+    sha256: '2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b',
+  },
+  bold: {
+    bytes: 17_002_248,
+    sha256: 'b5f0d1a190a7f9b43c310a8850630af12553df32c4c050543f9059732d9b4c0a',
+  },
+} as const
+
 const fontBufferCache = new Map<string, Promise<ShareFontBuffers>>()
 const fontCache = new Map<string, ShareFont[]>()
 
 type StaticFontAssetFetcher = (assetUrl: URL) => Promise<Response>
 type RemoteFontFetcher = (url: string) => Promise<ArrayBuffer>
+type NotoFontKey = keyof typeof NOTO_FONT_IDENTITIES
 
 function buildFonts(regular: ArrayBuffer, bold: ArrayBuffer, rajdhaniSemiBold: ArrayBuffer, rajdhaniBold: ArrayBuffer) {
   return [
@@ -73,6 +85,27 @@ async function fetchStaticFont(assetFetcher: StaticFontAssetFetcher, origin: str
   return response.arrayBuffer()
 }
 
+async function sha256Hex(buffer: ArrayBuffer) {
+  const digest = await crypto.subtle.digest('SHA-256', buffer)
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+export async function assertValidNotoFontBuffer(key: NotoFontKey, buffer: ArrayBuffer) {
+  const expected = NOTO_FONT_IDENTITIES[key]
+  if (buffer.byteLength !== expected.bytes || await sha256Hex(buffer) !== expected.sha256) {
+    throw new Error(`Invalid Noto Sans SC ${key} font identity`)
+  }
+  return buffer
+}
+
+async function fetchValidatedStaticNotoFont(
+  assetFetcher: StaticFontAssetFetcher,
+  origin: string,
+  key: NotoFontKey,
+) {
+  return assertValidNotoFontBuffer(key, await fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES[key]))
+}
+
 async function fetchRemoteFont(url: string) {
   const response = await fetch(url, {
     cache: 'no-store',
@@ -86,13 +119,17 @@ async function fetchRemoteFont(url: string) {
   return response.arrayBuffer()
 }
 
+async function fetchValidatedRemoteNotoFont(remoteFontFetcher: RemoteFontFetcher, key: NotoFontKey) {
+  return assertValidNotoFontBuffer(key, await remoteFontFetcher(REMOTE_FONT_URLS[key]))
+}
+
 export async function loadShareFontBuffersFromAssetFetcher(
   origin: string,
   assetFetcher: StaticFontAssetFetcher,
 ): Promise<ShareFontBuffers> {
   const [regular, bold, rajdhaniSemiBold, rajdhaniBold] = await Promise.all([
-    fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES.regular),
-    fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES.bold),
+    fetchValidatedStaticNotoFont(assetFetcher, origin, 'regular'),
+    fetchValidatedStaticNotoFont(assetFetcher, origin, 'bold'),
     fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES.rajdhaniSemiBold),
     fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES.rajdhaniBold),
   ])
@@ -106,8 +143,8 @@ async function loadRemoteFontBuffers(
   remoteFontFetcher: RemoteFontFetcher,
 ): Promise<ShareFontBuffers> {
   const [regular, bold, rajdhaniSemiBold, rajdhaniBold] = await Promise.all([
-    remoteFontFetcher(REMOTE_FONT_URLS.regular),
-    remoteFontFetcher(REMOTE_FONT_URLS.bold),
+    fetchValidatedRemoteNotoFont(remoteFontFetcher, 'regular'),
+    fetchValidatedRemoteNotoFont(remoteFontFetcher, 'bold'),
     fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES.rajdhaniSemiBold),
     fetchStaticFont(assetFetcher, origin, LOCAL_FONT_FILES.rajdhaniBold),
   ])

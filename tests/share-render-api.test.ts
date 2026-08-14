@@ -43,6 +43,11 @@ function readSource(path: string) {
   return readFileSync(new URL(path, import.meta.url), 'utf8')
 }
 
+function fontArrayBuffer(fileName: string) {
+  const bytes = readFileSync(new URL(`../public/fonts/${fileName}`, import.meta.url))
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+}
+
 function executeCommonJsModule<T>(source: string, requireImpl: (id: string) => unknown): T {
   const compiled = ts.transpileModule(source, {
     compilerOptions: {
@@ -697,7 +702,12 @@ describe('share render API field policy regression', () => {
 
     const buffers = await loadShareFontBuffersFromAssetFetcher('https://peaktrekker.cc', async (assetUrl) => {
       requestedPaths.push(assetUrl.pathname)
-      return new Response(new Uint8Array([requestedPaths.length]).buffer, { status: 200 })
+      const noto = assetUrl.pathname.endsWith('NotoSansSC-Regular.otf')
+        ? fontArrayBuffer('NotoSansSC-Regular.otf')
+        : assetUrl.pathname.endsWith('NotoSansSC-Bold.otf')
+          ? fontArrayBuffer('NotoSansSC-Bold.otf')
+          : new Uint8Array([requestedPaths.length]).buffer
+      return new Response(noto, { status: 200 })
     })
 
     assert.deepEqual(requestedPaths, [
@@ -706,8 +716,8 @@ describe('share render API field policy regression', () => {
       '/fonts/Rajdhani-SemiBold.ttf',
       '/fonts/Rajdhani-Bold.ttf',
     ])
-    assert.equal(buffers.regular.byteLength, 1)
-    assert.equal(buffers.bold.byteLength, 1)
+    assert.equal(buffers.regular.byteLength, 16_437_364)
+    assert.equal(buffers.bold.byteLength, 17_002_248)
     assert.equal(buffers.rajdhaniSemiBold.byteLength, 1)
     assert.equal(buffers.rajdhaniBold.byteLength, 1)
     assert.match(fontSource, /isCloudflareRuntime\(\)[\s\S]*?env\.ASSETS\?\.fetch\(new Request\(assetUrl\)\)/)
@@ -738,7 +748,9 @@ describe('share render API field policy regression', () => {
         },
         async (remoteUrl) => {
           remoteUrls.push(remoteUrl)
-          return new Uint8Array([remoteUrls.length]).buffer
+          return remoteUrl.includes('Regular')
+            ? fontArrayBuffer('NotoSansSC-Regular.otf')
+            : fontArrayBuffer('NotoSansSC-Bold.otf')
         },
       )
 
@@ -755,8 +767,8 @@ describe('share render API field policy regression', () => {
         '/fonts/Rajdhani-Bold.ttf',
       ])
       assert.equal(remoteUrls.length, 2)
-      assert.equal(buffers.regular.byteLength, 1)
-      assert.equal(buffers.bold.byteLength, 1)
+      assert.equal(buffers.regular.byteLength, 16_437_364)
+      assert.equal(buffers.bold.byteLength, 17_002_248)
       assert.equal(buffers.rajdhaniSemiBold.byteLength, 1)
       assert.equal(buffers.rajdhaniBold.byteLength, 1)
       assert.deepEqual(unexpectedOriginFetches, [])
@@ -764,6 +776,50 @@ describe('share render API field policy regression', () => {
       globalThis.fetch = originalFetch
       console.warn = originalWarn
     }
+  })
+
+  test('Cloudflare invalid static Noto falls back to validated remote fonts before Satori receives a buffer', async () => {
+    const { loadShareFontBuffersWithFetchers } = await loadShareFonts()
+    const goodRegular = fontArrayBuffer('NotoSansSC-Regular.otf')
+    const goodBold = fontArrayBuffer('NotoSansSC-Bold.otf')
+    const corruptBold = goodBold.slice(0, 2_710_485)
+    const assetPaths: string[] = []
+    const remoteUrls: string[] = []
+
+    const buffers = await loadShareFontBuffersWithFetchers(
+      'https://peaktrekker.cc',
+      async (assetUrl) => {
+        assetPaths.push(assetUrl.pathname)
+        if (assetUrl.pathname.endsWith('NotoSansSC-Regular.otf')) return new Response(goodRegular, { status: 200 })
+        if (assetUrl.pathname.endsWith('NotoSansSC-Bold.otf')) return new Response(corruptBold, { status: 200 })
+        return new Response(new Uint8Array([assetPaths.length]).buffer, { status: 200 })
+      },
+      async (remoteUrl) => {
+        remoteUrls.push(remoteUrl)
+        return remoteUrl.includes('Regular') ? goodRegular : goodBold
+      },
+    )
+
+    assert.deepEqual(remoteUrls, [
+      'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf',
+      'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf',
+    ])
+    assert.equal(buffers.regular.byteLength, 16_437_364)
+    assert.equal(buffers.bold.byteLength, 17_002_248)
+    assert.deepEqual(assetPaths.slice(-2), [
+      '/fonts/Rajdhani-SemiBold.ttf',
+      '/fonts/Rajdhani-Bold.ttf',
+    ])
+
+    await assert.rejects(
+      () => loadShareFontBuffersWithFetchers(
+        'https://peaktrekker.cc',
+        async (assetUrl) => new Response(null, { status: assetUrl.pathname.includes('NotoSansSC') ? 404 : 200 }),
+        async (remoteUrl) => remoteUrl.includes('Regular') ? goodRegular : corruptBold,
+      ),
+      /Font loading failed/,
+      'an invalid remote Noto buffer must not reach Satori',
+    )
   })
 
   test('Worker Satori uses a precompiled Yoga module while Node keeps the default renderer', () => {

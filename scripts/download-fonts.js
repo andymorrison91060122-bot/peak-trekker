@@ -1,31 +1,31 @@
 #!/usr/bin/env node
 /* eslint-disable @typescript-eslint/no-require-imports */
 
-// Downloads Noto Sans SC fonts to public/fonts/ for share template rendering.
-// Idempotent: skips download if files already exist with valid sizes.
-// Fails loudly on network/IO errors so build does not silently produce broken posters.
-//
-// Runs automatically via predev / prebuild hooks; can be invoked manually with:
-// npm run fonts:download
+// Downloads pinned Noto Sans SC fonts to public/fonts/ for share rendering.
+// A font becomes live only after its exact bytes and SHA-256 are verified.
 
+const crypto = require('crypto')
 const fs = require('fs')
 const https = require('https')
 const path = require('path')
 
 const FONTS_DIR = path.join(__dirname, '..', 'public', 'fonts')
-const MIN_SIZE_BYTES = 1_000_000
 const DOWNLOAD_TIMEOUT_MS = 60_000
 const MAX_DOWNLOAD_ATTEMPTS = 2
 
 const FONTS = [
   {
     name: 'NotoSansSC-Regular.otf',
+    bytes: 16_437_364,
+    sha256: '2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b',
     url: 'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf',
     fallbackUrl:
       'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf',
   },
   {
     name: 'NotoSansSC-Bold.otf',
+    bytes: 17_002_248,
+    sha256: 'b5f0d1a190a7f9b43c310a8850630af12553df32c4c050543f9059732d9b4c0a',
     url: 'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf',
     fallbackUrl:
       'https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Bold.otf',
@@ -36,26 +36,43 @@ function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
 }
 
-function removePartial(filePath) {
+function removeFile(filePath) {
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
 }
 
-function fileIsValid(filePath) {
+function sha256File(filePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex')
+}
+
+function fontFileIsValid(filePath, font) {
   if (!fs.existsSync(filePath)) return false
   const stats = fs.statSync(filePath)
-  return stats.size >= MIN_SIZE_BYTES
+  return stats.isFile() && stats.size === font.bytes && sha256File(filePath) === font.sha256
+}
+
+function assertValidFontFile(filePath, font) {
+  if (!fontFileIsValid(filePath, font)) {
+    throw new Error(`${font.name} failed exact size or SHA-256 validation`)
+  }
+}
+
+function temporaryPathFor(destPath) {
+  return path.join(
+    path.dirname(destPath),
+    `.${path.basename(destPath)}.${process.pid}.${crypto.randomUUID()}.tmp`,
+  )
 }
 
 function download(url, destPath) {
   return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(destPath)
+    const file = fs.createWriteStream(destPath, { flags: 'w' })
 
     const request = https.get(url, (response) => {
       const statusCode = response.statusCode ?? 0
 
       if (statusCode >= 300 && statusCode < 400 && response.headers.location) {
         file.close(() => {
-          removePartial(destPath)
+          removeFile(destPath)
           download(response.headers.location, destPath).then(resolve).catch(reject)
         })
         return
@@ -63,7 +80,7 @@ function download(url, destPath) {
 
       if (statusCode !== 200) {
         file.close(() => {
-          removePartial(destPath)
+          removeFile(destPath)
           reject(new Error(`HTTP ${statusCode} for ${url}`))
         })
         return
@@ -75,7 +92,7 @@ function download(url, destPath) {
 
     request.on('error', (error) => {
       file.close(() => {
-        removePartial(destPath)
+        removeFile(destPath)
         reject(error)
       })
     })
@@ -87,21 +104,33 @@ function download(url, destPath) {
     file.on('error', (error) => {
       request.destroy()
       file.close(() => {
-        removePartial(destPath)
+        removeFile(destPath)
         reject(error)
       })
     })
   })
 }
 
-async function downloadWithAttempts(sourceName, url, destPath) {
+async function downloadAndInstallFont({ font, destPath, url, download: downloadFile = download }) {
+  const temporaryPath = temporaryPathFor(destPath)
+  removeFile(temporaryPath)
+
+  try {
+    await downloadFile(url, temporaryPath)
+    assertValidFontFile(temporaryPath, font)
+    fs.renameSync(temporaryPath, destPath)
+  } catch (error) {
+    removeFile(temporaryPath)
+    throw error
+  }
+}
+
+async function downloadWithAttempts(sourceName, url, font, destPath) {
   let lastError = null
 
   for (let attempt = 1; attempt <= MAX_DOWNLOAD_ATTEMPTS; attempt += 1) {
-    removePartial(destPath)
-
     try {
-      await download(url, destPath)
+      await downloadAndInstallFont({ font, destPath, url })
       return
     } catch (error) {
       lastError = error
@@ -116,33 +145,27 @@ async function downloadWithAttempts(sourceName, url, destPath) {
   throw lastError instanceof Error ? lastError : new Error(`${sourceName} failed`)
 }
 
-async function downloadFont({ name, url, fallbackUrl }) {
-  const destPath = path.join(FONTS_DIR, name)
+async function downloadFont(font) {
+  const destPath = path.join(FONTS_DIR, font.name)
 
-  if (fileIsValid(destPath)) {
-    const sizeMb = (fs.statSync(destPath).size / 1_000_000).toFixed(1)
-    console.log(`${name} already exists (${sizeMb}MB)`)
+  if (fontFileIsValid(destPath, font)) {
+    console.log(`${font.name} already exists with verified identity`)
     return
   }
 
-  removePartial(destPath)
-  console.log(`Downloading ${name} from jsDelivr...`)
+  removeFile(destPath)
+  console.log(`Downloading ${font.name} from jsDelivr...`)
 
   try {
-    await downloadWithAttempts('jsDelivr', url, destPath)
+    await downloadWithAttempts('jsDelivr', font.url, font, destPath)
   } catch (error) {
     console.warn(`jsDelivr failed: ${error instanceof Error ? error.message : 'unknown error'}`)
     console.log('Retrying from GitHub raw...')
-    await downloadWithAttempts('GitHub raw', fallbackUrl, destPath)
+    await downloadWithAttempts('GitHub raw', font.fallbackUrl, font, destPath)
   }
 
-  if (!fileIsValid(destPath)) {
-    removePartial(destPath)
-    throw new Error(`${name} downloaded but size is too small`)
-  }
-
-  const sizeMb = (fs.statSync(destPath).size / 1_000_000).toFixed(1)
-  console.log(`${name} downloaded (${sizeMb}MB)`)
+  assertValidFontFile(destPath, font)
+  console.log(`${font.name} downloaded with verified identity`)
 }
 
 async function main() {
@@ -157,8 +180,17 @@ async function main() {
     console.error(`Font download failed: ${error instanceof Error ? error.message : 'unknown error'}`)
     console.error('Share template rendering will produce broken Chinese characters.')
     console.error('Investigate network connectivity or upstream URL changes.')
-    process.exit(1)
+    process.exitCode = 1
   }
 }
 
-main()
+module.exports = {
+  FONTS,
+  downloadAndInstallFont,
+  fontFileIsValid,
+  main,
+}
+
+if (require.main === module) {
+  void main()
+}

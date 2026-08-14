@@ -60,6 +60,11 @@ type ShareRenderDiagnosticPhase =
   | 'http-safe-envelope'
   | 'blob-read'
 
+type ShareRenderSvgStage =
+  | 'template-construction'
+  | 'satori-render'
+  | 'grayscale-postprocess'
+
 type ShareRenderContentType = 'json' | 'non-json' | 'missing' | 'unavailable'
 type ShareRenderResponseRequestId = 'match' | 'mismatch' | 'missing' | 'unavailable'
 
@@ -70,6 +75,7 @@ type ShareRenderDiagnostic = {
   status: number | null
   contentType: ShareRenderContentType
   responseRequestId: ShareRenderResponseRequestId
+  svgStage?: ShareRenderSvgStage
 }
 
 type ShareRenderResult =
@@ -91,6 +97,11 @@ const SHARE_RENDER_DIAGNOSTIC_CODES = new Set<ShareRenderDiagnosticCode>([
   'SR-PNG',
   'SR-UNKNOWN',
 ])
+const SHARE_RENDER_SVG_STAGES = new Set<ShareRenderSvgStage>([
+  'template-construction',
+  'satori-render',
+  'grayscale-postprocess',
+])
 
 class ShareRenderResponseError extends Error {
   code: ShareRenderDiagnosticCode
@@ -102,6 +113,7 @@ class ShareRenderResponseError extends Error {
 
   constructor(diagnostic: ShareRenderDiagnostic) {
     const details = [diagnostic.code, diagnostic.errorId, diagnostic.phase]
+    if (diagnostic.svgStage) details.push(`svg:${diagnostic.svgStage}`)
     if (diagnostic.status !== null) details.push(`http:${diagnostic.status}`)
     if (diagnostic.contentType !== 'unavailable') details.push(diagnostic.contentType)
     if (diagnostic.responseRequestId !== 'unavailable') {
@@ -121,6 +133,10 @@ class ShareRenderResponseError extends Error {
 
 function isShareRenderDiagnosticCode(value: unknown): value is ShareRenderDiagnosticCode {
   return typeof value === 'string' && SHARE_RENDER_DIAGNOSTIC_CODES.has(value as ShareRenderDiagnosticCode)
+}
+
+function isShareRenderSvgStage(value: unknown): value is ShareRenderSvgStage {
+  return typeof value === 'string' && SHARE_RENDER_SVG_STAGES.has(value as ShareRenderSvgStage)
 }
 
 function isShareRenderErrorId(value: unknown): value is string {
@@ -211,13 +227,18 @@ async function readShareRenderDiagnostic(response: Response, fallbackErrorId: st
       && isShareRenderDiagnosticCode((diagnostic as { code?: unknown }).code)
       && isShareRenderErrorId((diagnostic as { errorId?: unknown }).errorId)
     ) {
+      const code = (diagnostic as { code: ShareRenderDiagnosticCode }).code
+      const svgStage = code === 'SR-SVG' && isShareRenderSvgStage((diagnostic as { svgStage?: unknown }).svgStage)
+        ? (diagnostic as { svgStage: ShareRenderSvgStage }).svgStage
+        : undefined
       return {
-        code: (diagnostic as { code: ShareRenderDiagnosticCode }).code,
+        code,
         errorId: (diagnostic as { errorId: string }).errorId,
         phase: 'http-safe-envelope',
         status: response.status,
         contentType: 'json',
         responseRequestId: getShareRenderResponseRequestId(response, fallbackErrorId),
+        ...(svgStage ? { svgStage } : {}),
       }
     }
   } catch {
@@ -3724,6 +3745,7 @@ export default function ShareClient({
           render_error_code: diagnostic.code,
           render_error_id: diagnostic.errorId,
           render_error_phase: diagnostic.phase,
+          render_svg_stage: diagnostic.svgStage ?? null,
           render_http_status: diagnostic.status,
           render_content_type: diagnostic.contentType,
           render_response_request_id: diagnostic.responseRequestId,

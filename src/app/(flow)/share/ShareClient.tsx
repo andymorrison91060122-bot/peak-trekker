@@ -53,10 +53,28 @@ type ShareRenderDiagnosticCode =
   | 'SR-PNG'
   | 'SR-UNKNOWN'
 
+type ShareRenderDiagnosticPhase =
+  | 'fetch-transport'
+  | 'http-non-json'
+  | 'http-invalid-envelope'
+  | 'http-safe-envelope'
+  | 'blob-read'
+
+type ShareRenderContentType = 'json' | 'non-json' | 'missing' | 'unavailable'
+type ShareRenderResponseRequestId = 'match' | 'mismatch' | 'missing' | 'unavailable'
+
 type ShareRenderDiagnostic = {
   code: ShareRenderDiagnosticCode
   errorId: string
+  phase: ShareRenderDiagnosticPhase
+  status: number | null
+  contentType: ShareRenderContentType
+  responseRequestId: ShareRenderResponseRequestId
 }
+
+type ShareRenderResult =
+  | { ok: true; blob: Blob }
+  | { ok: false; diagnostic: ShareRenderDiagnostic }
 
 const SHARE_RENDER_FAILURE_MESSAGE = '分享图生成失败，请稍后再试'
 const SHARE_RENDER_REQUEST_ID_HEADER = 'x-peak-trekker-render-id'
@@ -77,12 +95,27 @@ const SHARE_RENDER_DIAGNOSTIC_CODES = new Set<ShareRenderDiagnosticCode>([
 class ShareRenderResponseError extends Error {
   code: ShareRenderDiagnosticCode
   errorId: string
+  phase: ShareRenderDiagnosticPhase
+  status: number | null
+  contentType: ShareRenderContentType
+  responseRequestId: ShareRenderResponseRequestId
 
-  constructor({ code, errorId }: ShareRenderDiagnostic) {
-    super(`${SHARE_RENDER_FAILURE_MESSAGE}（${code} · ${errorId}）`)
+  constructor(diagnostic: ShareRenderDiagnostic) {
+    const details = [diagnostic.code, diagnostic.errorId, diagnostic.phase]
+    if (diagnostic.status !== null) details.push(`http:${diagnostic.status}`)
+    if (diagnostic.contentType !== 'unavailable') details.push(diagnostic.contentType)
+    if (diagnostic.responseRequestId !== 'unavailable') {
+      details.push(`response-id:${diagnostic.responseRequestId}`)
+    }
+
+    super(`${SHARE_RENDER_FAILURE_MESSAGE}（${details.join(' · ')}）`)
     this.name = 'ShareRenderResponseError'
-    this.code = code
-    this.errorId = errorId
+    this.code = diagnostic.code
+    this.errorId = diagnostic.errorId
+    this.phase = diagnostic.phase
+    this.status = diagnostic.status
+    this.contentType = diagnostic.contentType
+    this.responseRequestId = diagnostic.responseRequestId
   }
 }
 
@@ -91,17 +124,57 @@ function isShareRenderDiagnosticCode(value: unknown): value is ShareRenderDiagno
 }
 
 function isShareRenderErrorId(value: unknown): value is string {
-  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(value)
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
+
+function getShareRenderContentType(response: Response): ShareRenderContentType {
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? ''
+  if (!contentType) return 'missing'
+  return contentType.includes('application/json') ? 'json' : 'non-json'
+}
+
+function getShareRenderResponseRequestId(
+  response: Response,
+  fallbackErrorId: string,
+): ShareRenderResponseRequestId {
+  const responseRequestId = response.headers.get(SHARE_RENDER_REQUEST_ID_HEADER)
+  if (!responseRequestId) return 'missing'
+  return responseRequestId === fallbackErrorId ? 'match' : 'mismatch'
+}
+
+function createShareRenderDiagnostic(
+  fallbackErrorId: string,
+  phase: ShareRenderDiagnosticPhase,
+  response?: Response,
+): ShareRenderDiagnostic {
+  if (!response) {
+    return {
+      code: 'SR-UNKNOWN',
+      errorId: fallbackErrorId,
+      phase,
+      status: null,
+      contentType: 'unavailable',
+      responseRequestId: 'unavailable',
+    }
+  }
+
+  return {
+    code: 'SR-UNKNOWN',
+    errorId: fallbackErrorId,
+    phase,
+    status: response.status,
+    contentType: getShareRenderContentType(response),
+    responseRequestId: getShareRenderResponseRequestId(response, fallbackErrorId),
+  }
 }
 
 async function readShareRenderDiagnostic(response: Response, fallbackErrorId: string): Promise<ShareRenderDiagnostic> {
-  const contentType = response.headers.get('content-type') ?? ''
-  if (!contentType.includes('application/json')) {
-    return { code: 'SR-UNKNOWN', errorId: fallbackErrorId }
+  if (getShareRenderContentType(response) !== 'json') {
+    return createShareRenderDiagnostic(fallbackErrorId, 'http-non-json', response)
   }
 
   const reader = response.body?.getReader()
-  if (!reader) return { code: 'SR-UNKNOWN', errorId: fallbackErrorId }
+  if (!reader) return createShareRenderDiagnostic(fallbackErrorId, 'http-invalid-envelope', response)
 
   const chunks: Uint8Array[] = []
   let byteLength = 0
@@ -118,7 +191,7 @@ async function readShareRenderDiagnostic(response: Response, fallbackErrorId: st
         } catch {
           // The error body is optional and must never block the client fallback.
         }
-        return { code: 'SR-UNKNOWN', errorId: fallbackErrorId }
+        return createShareRenderDiagnostic(fallbackErrorId, 'http-invalid-envelope', response)
       }
 
       chunks.push(value)
@@ -141,6 +214,10 @@ async function readShareRenderDiagnostic(response: Response, fallbackErrorId: st
       return {
         code: (diagnostic as { code: ShareRenderDiagnosticCode }).code,
         errorId: (diagnostic as { errorId: string }).errorId,
+        phase: 'http-safe-envelope',
+        status: response.status,
+        contentType: 'json',
+        responseRequestId: getShareRenderResponseRequestId(response, fallbackErrorId),
       }
     }
   } catch {
@@ -149,7 +226,38 @@ async function readShareRenderDiagnostic(response: Response, fallbackErrorId: st
     reader.releaseLock()
   }
 
-  return { code: 'SR-UNKNOWN', errorId: fallbackErrorId }
+  return createShareRenderDiagnostic(fallbackErrorId, 'http-invalid-envelope', response)
+}
+
+async function readShareRenderResult(
+  request: () => Promise<Response>,
+  fallbackErrorId: string,
+): Promise<ShareRenderResult> {
+  let response: Response
+  try {
+    response = await request()
+  } catch {
+    return {
+      ok: false,
+      diagnostic: createShareRenderDiagnostic(fallbackErrorId, 'fetch-transport'),
+    }
+  }
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      diagnostic: await readShareRenderDiagnostic(response, fallbackErrorId),
+    }
+  }
+
+  try {
+    return { ok: true, blob: await response.blob() }
+  } catch {
+    return {
+      ok: false,
+      diagnostic: createShareRenderDiagnostic(fallbackErrorId, 'blob-read', response),
+    }
+  }
 }
 
 function markPressFallback(event: PointerEvent<HTMLElement>) {
@@ -3579,9 +3687,8 @@ export default function ShareClient({
 
     const startedAt = performance.now()
     const requestId = crypto.randomUUID()
-    let response: Response
-    try {
-      response = await fetch('/api/share/render', {
+    const result = await readShareRenderResult(
+      () => fetch('/api/share/render', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3601,25 +3708,12 @@ export default function ShareClient({
           photoBase64: stripDataUrlPrefix(snapshot.photoDataUrl),
           transparent: snapshot.transparent,
         }),
-      })
-    } catch {
-      const diagnostic = { code: 'SR-UNKNOWN' as const, errorId: requestId }
-      trackEvent({
-        event_type: 'business',
-        event_name: 'business.share_template_generate',
-        properties: {
-          template_id: snapshot.template,
-          success: false,
-          generate_duration_ms: Math.round(performance.now() - startedAt),
-          render_error_code: diagnostic.code,
-          render_error_id: diagnostic.errorId,
-        },
-      })
-      throw new ShareRenderResponseError(diagnostic)
-    }
+      }),
+      requestId,
+    )
 
-    if (!response.ok) {
-      const diagnostic = await readShareRenderDiagnostic(response, requestId)
+    if (!result.ok) {
+      const { diagnostic } = result
       trackEvent({
         event_type: 'business',
         event_name: 'business.share_template_generate',
@@ -3629,6 +3723,10 @@ export default function ShareClient({
           generate_duration_ms: Math.round(performance.now() - startedAt),
           render_error_code: diagnostic.code,
           render_error_id: diagnostic.errorId,
+          render_error_phase: diagnostic.phase,
+          render_http_status: diagnostic.status,
+          render_content_type: diagnostic.contentType,
+          render_response_request_id: diagnostic.responseRequestId,
         },
       })
       throw new ShareRenderResponseError(diagnostic)
@@ -3644,23 +3742,7 @@ export default function ShareClient({
         transparent: snapshot.transparent,
       },
     })
-    try {
-      return await response.blob()
-    } catch {
-      const diagnostic = { code: 'SR-UNKNOWN' as const, errorId: requestId }
-      trackEvent({
-        event_type: 'business',
-        event_name: 'business.share_template_generate',
-        properties: {
-          template_id: snapshot.template,
-          success: false,
-          generate_duration_ms: Math.round(performance.now() - startedAt),
-          render_error_code: diagnostic.code,
-          render_error_id: diagnostic.errorId,
-        },
-      })
-      throw new ShareRenderResponseError(diagnostic)
-    }
+    return result.blob
   }
 
   async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {

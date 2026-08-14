@@ -31,10 +31,9 @@ type WorkerEnv = Record<string, unknown> & {
 
 const MAX_INTERNAL_SVG_BYTES = 5 * 1024 * 1024
 const SHARE_RENDER_REQUEST_ID_HEADER = 'x-peak-trekker-render-id'
-let workerFontBuffersReady: Promise<ArrayBuffer[]> | null = null
 
 function loadWorkerFontBuffers(env: WorkerEnv, requestUrl: string) {
-  workerFontBuffersReady ??= Promise.all([
+  return Promise.all([
     '/fonts/NotoSansSC-Regular.otf',
     '/fonts/NotoSansSC-Bold.otf',
   ].map(async (path) => {
@@ -42,7 +41,6 @@ function loadWorkerFontBuffers(env: WorkerEnv, requestUrl: string) {
     if (!response.ok) throw new Error(`Worker font asset unavailable: ${path}`)
     return response.arrayBuffer()
   }))
-  return workerFontBuffersReady
 }
 
 function workerRenderFailure(errorId: string, code: 'SR-FONT' | 'SR-SVG-SIZE' | 'SR-PNG' | 'SR-UNKNOWN') {
@@ -90,18 +88,14 @@ async function renderWorkerSvgResponse(request: Request, env: WorkerEnv, respons
     throw error
   }
 
-  let fontBuffers: ArrayBuffer[]
-  try {
-    fontBuffers = await loadWorkerFontBuffers(env, request.url)
-  } catch (error) {
-    if (isShareRender) return workerRenderFailure(errorId, 'SR-FONT')
-    throw error
-  }
+  // Satori share SVGs contain glyph paths, so Resvg needs no duplicate Noto buffers.
+  // Legacy poster SVGs may still contain text and keep their invocation-local fonts.
+  const fontBuffers = isShareRender ? undefined : await loadWorkerFontBuffers(env, request.url)
 
   try {
     const png = await renderer({
       svg,
-      fontBuffers,
+      ...(fontBuffers ? { fontBuffers } : {}),
       transparent: response.headers.get(WORKER_SVG_TRANSPARENT_HEADER) === '1',
     })
     const headers = new Headers(response.headers)

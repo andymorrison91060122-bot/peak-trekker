@@ -537,34 +537,28 @@ export function buildShareTrackRender(
   const route = buildShareTrackPath(preview, frame)
   if (!route) return null
   const epsilon = Math.max(0, style.simplifyEpsilonPx ?? DEFAULT_SIMPLIFY_EPSILON_PX)
-  const simplifiedSegments = route.projectedSegments
-    .map((segment) => simplifyPolyline(segment, {
-      epsilon,
-      project: (point) => point,
-      distanceMode: 'line',
-      degenerateEpsilon: COORDINATE_EPSILON,
-    }))
-    .map((segment) => {
-      const first = segment[0]
-      const last = segment.at(-1)
-      if (!first || !last) return segment
-      const original = route.projectedSegments.find((candidate) => pointsEqual(candidate[0] ?? first, first) && pointsEqual(candidate.at(-1) ?? last, last))
-      const originalFirst = original?.[0]
-      const originalLast = original?.at(-1)
-      const withExactStart = originalFirst && !pointsEqual(segment[0]!, originalFirst) ? [originalFirst, ...segment.slice(1)] : segment
-      const withExactEnd = originalLast && !pointsEqual(withExactStart.at(-1)!, originalLast) ? [...withExactStart.slice(0, -1), originalLast] : withExactStart
-      return withExactEnd
-    })
-    .filter((segment) => segment.length >= 1)
-  const segmentPaths = simplifiedSegments
-    .flatMap((segment, index) => {
-      const d = buildQuadraticPath(segment)
-      const start = segment[0]
-      const end = segment.at(-1)
-      return d && start && end ? [{ index, d, start, end }] : []
-    })
-  const smoothedPath = segmentPaths.map((segment) => segment.d).join(' ')
-  const renderBounds = getPointBounds(simplifiedSegments.flatMap((segment) => segment))
+  const projectedPoints = route.projectedSegments.flatMap((segment) => segment).filter((point, index, points) => (
+    index === 0 || !pointsEqual(point, points[index - 1]!)
+  ))
+  const originalStart = projectedPoints[0]
+  const originalEnd = projectedPoints.at(-1)
+  const simplifiedPoints = simplifyPolyline(projectedPoints, {
+    epsilon,
+    project: (point) => point,
+    distanceMode: 'line',
+    degenerateEpsilon: COORDINATE_EPSILON,
+  })
+  const withExactStart = originalStart && simplifiedPoints[0] && !pointsEqual(simplifiedPoints[0], originalStart)
+    ? [originalStart, ...simplifiedPoints.slice(1)]
+    : simplifiedPoints
+  const withExactEndpoints = originalEnd && withExactStart.at(-1) && !pointsEqual(withExactStart.at(-1)!, originalEnd)
+    ? [...withExactStart.slice(0, -1), originalEnd]
+    : withExactStart
+  const d = buildQuadraticPath(withExactEndpoints)
+  const segmentPaths = d && originalStart && originalEnd
+    ? [{ index: 0, d, start: originalStart, end: originalEnd }]
+    : []
+  const renderBounds = getPointBounds(withExactEndpoints)
 
   const lineWidth = Math.max(1, style.lineWidth ?? 8)
   const glowWidth = Math.max(lineWidth, style.glowWidth ?? lineWidth * 4)
@@ -574,9 +568,9 @@ export function buildShareTrackRender(
 
   return {
     ...route,
-    d: smoothedPath || null,
+    d: d || null,
     bounds: renderBounds,
-    projectedSegments: simplifiedSegments,
+    projectedSegments: [withExactEndpoints],
     segmentPaths,
     lineWidth,
     glowWidth,

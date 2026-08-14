@@ -304,9 +304,8 @@ describe('share track preview projection', () => {
     assert.ok(ySpan < 30, `expected wide route not to stretch vertically, got y span ${ySpan}`)
   })
 
-  test('builds disconnected poster subpaths for screenshot accepted gaps without bridging', async () => {
+  test('flattens screenshot accepted gaps into one continuous poster path', async () => {
     const { buildShareTrackPreviewFromScreenshotRouteShape, buildShareTrackRender } = await loadTrackPreview()
-    const { buildRouteDrawPlan } = await loadRouteMotion()
     const shape = {
       schemaVersion: 1,
       kind: 'screenshot_route_shape',
@@ -351,22 +350,16 @@ describe('share track preview projection', () => {
     assert.equal(preview?.segments?.length, 2)
     assert.equal(preview?.pointCount, 4)
     assert.ok(route?.d)
-    assert.equal([...route.d.matchAll(/\bM\b/g)].length, 2)
-    assert.equal(route?.segmentPaths.length, 2, 'accepted-gap geometry must stay as two independently drawable paths')
-    assert.equal(route?.segmentPaths[0]?.d.includes(route?.segmentPaths[1]?.d ?? ''), false, 'an accepted gap must not be joined into the first drawable segment')
-    assert.doesNotMatch(route.d, /0 0 [LQC] 87.5 87.5/, 'no command may bridge from the first subpath toward the second across the accepted gap')
-    assert.doesNotMatch(route.d, /12.5 12.5 [LQC] 87.5 87.5/, 'no command may bridge accepted-gap endpoints')
-
-    const plan = buildRouteDrawPlan(route.segmentPaths.map((segment) => ({
-      segmentIndex: segment.index,
-      length: 100,
-    })), 1)
-    assert.deepEqual(plan.map((step) => step.segmentIndex), [0, 1])
-    assert.equal(plan[0]?.end, plan[1]?.start, 'the second real subpath begins only after the first completes')
-    assert.equal(route.segmentPaths[0]?.end.x === route.segmentPaths[1]?.start.x && route.segmentPaths[0]?.end.y === route.segmentPaths[1]?.start.y, false, 'ordered motion must not fabricate a connector across an accepted gap')
+    assert.equal([...route.d.matchAll(/\bM\b/g)].length, 1)
+    assert.equal(route.projectedSegments.length, 1)
+    assert.equal(route.segmentPaths.length, 1, 'all drawable screenshot segments must share one animation path')
+    assert.equal(route.segmentPaths[0]?.index, 0)
+    assert.equal([...((route.segmentPaths[0]?.d ?? '').matchAll(/\bM\b/g))].length, 1)
+    assertPointClose(route.segmentPaths[0]?.start, route.start, 'the continuous path starts at the overall route start')
+    assertPointClose(route.segmentPaths[0]?.end, route.end, 'the continuous path ends at the overall route end')
   })
 
-  test('keeps three endpoint-contiguous screenshot segments independently drawable in route order', async () => {
+  test('flattens three endpoint-contiguous screenshot segments into one drawable path', async () => {
     const { buildShareTrackPreviewFromScreenshotRouteShape, buildShareTrackRender } = await loadTrackPreview()
     const shape = {
       schemaVersion: 1,
@@ -394,12 +387,13 @@ describe('share track preview projection', () => {
     )
 
     assert.ok(route?.d)
-    assert.equal([...route.d.matchAll(/\bM\b/g)].length, 3, 'aggregate compatibility path must still retain the three source segments')
-    assert.equal(route?.segmentPaths.length, 3, 'each contiguous source segment needs its own drawable path for ordered GSAP drawing')
-    assert.equal(route?.segmentPaths.map((segment) => segment.index).join(','), '0,1,2')
-    assert.ok(route?.segmentPaths.every((segment) => !/\bM\b[\s\S]*\bM\b/.test(segment.d)), 'a drawable segment path cannot contain a second subpath front')
+    assert.equal([...route.d.matchAll(/\bM\b/g)].length, 1, 'the rendered route must contain one continuous subpath')
+    assert.equal(route?.projectedSegments.length, 1)
+    assert.equal(route?.segmentPaths.length, 1, 'all source segments must share one drawable path')
+    assert.equal(route?.segmentPaths[0]?.index, 0)
+    assert.equal([...((route?.segmentPaths[0]?.d ?? '').matchAll(/\bM\b/g))].length, 1)
     assertPointClose(route?.segmentPaths[0]?.start, route!.start, 'first segment starts at the overall route start')
-    assertPointClose(route?.segmentPaths.at(-1)?.end, route!.end, 'last segment ends at the overall route end')
+    assertPointClose(route?.segmentPaths[0]?.end, route!.end, 'single segment ends at the overall route end')
   })
 
   test('assigns one advancing route front at a time while preserving the fixed total draw duration', async () => {
@@ -543,7 +537,7 @@ describe('share track preview projection', () => {
     assert.ok(sampledMaxX < 0.25, `unsampled far boundary point should still define bbox scale; sampled max x ${sampledMaxX} would be much larger if bbox were sampled first`)
   })
 
-  test('smooths noisy target-space polylines without moving endpoints or bridging gaps', async () => {
+  test('smooths a continuous target-space route without moving endpoints', async () => {
     const { buildShareTrackPreviewFromScreenshotRouteShape, buildShareTrackRender, SHARE_TRACK_CONTENT_FIT } = await loadTrackPreview()
     const noisySegment = Array.from({ length: 200 }, (_, index) => {
       const t = index / 199
@@ -608,11 +602,11 @@ describe('share track preview projection', () => {
     })
 
     assert.ok(route?.d)
-    assert.equal(route.projectedSegments.length, 2)
-    assert.ok(route.projectedSegments[0]!.length < 30, `expected noisy segment to simplify, got ${route.projectedSegments[0]!.length} points`)
+    assert.equal(route.projectedSegments.length, 1)
+    assert.ok(route.projectedSegments[0]!.length < 60, `expected the continuous noisy route to simplify, got ${route.projectedSegments[0]!.length} points`)
     assert.match(route.d, /\b[QC]\b/, 'smoothed route should use curve commands')
     assert.doesNotMatch(route.d, /(?:\bL\b\s+[-0-9.]+\s+[-0-9.]+\s*){12,}/, 'smoothed route should not keep long runs of jittery line commands')
-    assert.equal([...route.d.matchAll(/\bM\b/g)].length, 2, 'accepted gap should keep disconnected subpaths')
+    assert.equal([...route.d.matchAll(/\bM\b/g)].length, 1, 'accepted gaps must still render as one continuous path')
     assertPointClose(route.projectedSegments[0]![0], route.start, 'first endpoint should stay exact after smoothing')
     assertPointClose(route.projectedSegments.at(-1)!.at(-1), route.end, 'last endpoint should stay exact after smoothing')
   })

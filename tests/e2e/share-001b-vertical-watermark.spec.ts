@@ -61,11 +61,12 @@ type RouteSegmentMotionState = {
   segments: Array<{
     index: number
     d: string
-    layers: Array<{
-      layer: string
-      length: number
-      dasharray: string
-      dashoffset: number
+      layers: Array<{
+        layer: string
+        d: string
+        length: number
+        dasharray: string
+        dashoffset: number
     }>
   }>
   startMarkerOpacities: number[]
@@ -215,6 +216,7 @@ async function readRouteSegmentMotionState(scope: Locator) {
       const segment = segments.get(index) ?? { index, d: path.getAttribute('d') ?? '', layers: [] }
       segment.layers.push({
         layer: path.dataset.routeLayer ?? '',
+        d: path.getAttribute('d') ?? '',
         length: path.getTotalLength(),
         dasharray: style.strokeDasharray,
         dashoffset: Math.abs(Number.parseFloat(style.strokeDashoffset || '0')),
@@ -258,43 +260,45 @@ function routeLayerState(layer: RouteSegmentMotionState['segments'][number]['lay
   return 'partial'
 }
 
-function hasOrderedSegmentFrame(state: RouteSegmentMotionState) {
-  if (state.segments.length !== 3 || state.startMarkerOpacities.some((opacity) => opacity < 0.99)) return false
-  const partialIndexes = state.segments.flatMap((segment, index) => (
-    segment.layers.some((layer) => routeLayerState(layer) === 'partial') ? [index] : []
-  ))
-  if (partialIndexes.length !== 1) return false
-  const currentIndex = partialIndexes[0]!
+function hasSingleContinuousRouteTopology(state: RouteSegmentMotionState) {
+  const segment = state.segments[0]
+  if (!segment || state.segments.length !== 1 || segment.index !== 0 || segment.layers.length !== 2) return false
+  const d = segment.layers[0]?.d ?? ''
 
-  return state.segments.every((segment, index) => (
-    segment.layers.length === 2
+  return (
+    [...d.matchAll(/\bM\b/g)].length === 1
+    && segment.layers.map((layer) => layer.layer).sort().join(',') === 'glow,main'
+    && segment.layers.every((layer) => layer.d === d)
+  )
+}
+
+function hasContinuousDrawFrame(state: RouteSegmentMotionState) {
+  const segment = state.segments[0]
+  return Boolean(
+    segment
+    && hasSingleContinuousRouteTopology(state)
+    && state.startMarkerOpacities.every((opacity) => opacity >= 0.99)
     && Math.abs(segment.layers[0]!.dashoffset - segment.layers[1]!.dashoffset) < 0.5
-    && segment.layers.every((layer) => (
-      index < currentIndex
-        ? routeLayerState(layer) === 'complete'
-        : index === currentIndex
-          ? routeLayerState(layer) === 'partial'
-          : routeLayerState(layer) === 'hidden'
-    ))
-  ))
+    && segment.layers.every((layer) => routeLayerState(layer) === 'partial'),
+  )
 }
 
 function hasFinalDrawBarrierFrame(state: RouteSegmentMotionState) {
   return state.routeDrawState === 'final-draw'
-    && state.segments.length === 3
-    && state.segments.every((segment) => segment.layers.length === 2 && segment.layers.every((layer) => (
+    && hasSingleContinuousRouteTopology(state)
+    && state.segments[0]!.layers.every((layer) => (
       layer.dasharray !== 'none'
       && layer.dashoffset <= 0.5
-    )))
+    ))
     && state.endMarkerOpacities.every((opacity) => opacity <= 0.01)
 }
 
 function hasTerminalRouteFrame(state: RouteSegmentMotionState) {
   return state.routeDrawState === 'terminal'
-    && state.segments.length === 3
-    && state.segments.every((segment) => segment.layers.length === 2 && segment.layers.every((layer) => (
+    && hasSingleContinuousRouteTopology(state)
+    && state.segments[0]!.layers.every((layer) => (
       layer.dasharray === 'none' && layer.dashoffset === 0
-    )))
+    ))
     && state.endMarkerOpacities.every((opacity) => opacity >= 0.99)
 }
 
@@ -303,14 +307,14 @@ function preservesSegmentGeometry(before: RouteSegmentMotionState, after: RouteS
     .every((segment, index) => segment.index === after.segments[index]?.index && segment.d === after.segments[index]?.d)
 }
 
-async function waitForOrderedSegmentFrame(page: Page, scope: Locator) {
+async function waitForContinuousRouteFrame(page: Page, scope: Locator) {
   const deadline = Date.now() + 5_000
   let state = await readRouteSegmentMotionState(scope)
-  while (!hasOrderedSegmentFrame(state) && Date.now() < deadline) {
+  while (!hasContinuousDrawFrame(state) && Date.now() < deadline) {
     await page.waitForTimeout(16)
     state = await readRouteSegmentMotionState(scope)
   }
-  expect(hasOrderedSegmentFrame(state)).toBe(true)
+  expect(hasContinuousDrawFrame(state)).toBe(true)
   return state
 }
 
@@ -500,8 +504,8 @@ test('Share and Imprint draw routes continuously before revealing endpoint marke
         await expect(scope).toBeVisible()
 
         if (reducedMotion === 'no-preference') {
-          const firstSegmentFrame = await waitForOrderedSegmentFrame(page, scope)
-          expect(firstSegmentFrame.endMarkerOpacities.every((opacity) => opacity <= 0.01)).toBe(true)
+          const continuousDrawFrame = await waitForContinuousRouteFrame(page, scope)
+          expect(continuousDrawFrame.endMarkerOpacities.every((opacity) => opacity <= 0.01)).toBe(true)
           await hideDevPortal(page)
           await page.screenshot({ path: join(OUTPUT_DIR, `${route.name.toLowerCase()}-route-ordered-mid-375.png`), fullPage: false })
           const finalDrawBarrierFrame = await waitForFinalDrawBarrierFrame(page, scope)
@@ -513,12 +517,12 @@ test('Share and Imprint draw routes continuously before revealing endpoint marke
           await page.screenshot({ path: join(OUTPUT_DIR, `${route.name.toLowerCase()}-route-terminal-375.png`), fullPage: false })
           evidence.routes = {
             ...(evidence.routes as Record<string, unknown>),
-            [`${route.name.toLowerCase()}-normal`]: { firstSegmentFrame, finalDrawBarrierFrame, terminalFrame },
+            [`${route.name.toLowerCase()}-normal`]: { continuousDrawFrame, finalDrawBarrierFrame, terminalFrame },
           }
         } else {
           const terminalFrame = await waitForTerminalRouteFrame(page, scope)
-          expect(terminalFrame.segments).toHaveLength(3)
-          expect(terminalFrame.segments.every((segment) => segment.layers.every((layer) => layer.dasharray === 'none' && layer.dashoffset === 0))).toBe(true)
+          expect(hasSingleContinuousRouteTopology(terminalFrame)).toBe(true)
+          expect(terminalFrame.segments[0]!.layers.every((layer) => layer.dasharray === 'none' && layer.dashoffset === 0)).toBe(true)
           expect(terminalFrame.endMarkerOpacities.every((opacity) => opacity >= 0.99)).toBe(true)
           evidence.routes = {
             ...(evidence.routes as Record<string, unknown>),
@@ -529,7 +533,7 @@ test('Share and Imprint draw routes continuously before revealing endpoint marke
         if (reducedMotion === 'no-preference') {
           await page.reload({ waitUntil: 'domcontentloaded' })
           await expect(scope).toBeVisible()
-          const replayFrame = await waitForOrderedSegmentFrame(page, scope)
+          const replayFrame = await waitForContinuousRouteFrame(page, scope)
           expect(replayFrame.endMarkerOpacities.every((opacity) => opacity <= 0.01)).toBe(true)
           const replayFinalDrawBarrierFrame = await waitForFinalDrawBarrierFrame(page, scope)
           const replayTerminal = await waitForTerminalRouteFrame(page, scope)

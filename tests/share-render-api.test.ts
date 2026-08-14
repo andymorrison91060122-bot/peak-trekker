@@ -67,36 +67,53 @@ async function loadShareClientDiagnosticParser() {
     readShareRenderDiagnostic: (
       response: Response,
       fallbackErrorId: string,
-    ) => Promise<{ code: string; errorId: string }>
+    ) => Promise<ShareRenderDiagnosticResult>
+    readShareRenderResult: (
+      request: () => Promise<Response>,
+      fallbackErrorId: string,
+    ) => Promise<ShareRenderResult>
   }>(
-    `${diagnosticBlock}\nexport { readShareRenderDiagnostic }\n`,
+    `${diagnosticBlock}\nexport { readShareRenderDiagnostic, readShareRenderResult }\n`,
     (id) => {
       throw new Error(`Unexpected ShareClient diagnostic dependency: ${id}`)
     },
   )
 }
 
-function streamResponse(body: Uint8Array, headers: HeadersInit = {}) {
+type ShareRenderDiagnosticResult = {
+  code: string
+  errorId: string
+  phase: string
+  status: number | null
+  contentType: string
+  responseRequestId: string
+}
+
+type ShareRenderResult =
+  | { ok: true; blob: Blob }
+  | { ok: false; diagnostic: ShareRenderDiagnosticResult }
+
+function streamResponse(body: Uint8Array, headers: HeadersInit = {}, status = 500) {
   let canceled = false
-  let emitted = false
   const response = new Response(
     new ReadableStream<Uint8Array>({
-      pull(controller) {
-        if (emitted) {
-          controller.close()
-          return
-        }
-        emitted = true
+      start(controller) {
         controller.enqueue(body)
       },
       cancel() {
         canceled = true
       },
     }),
-    { headers },
+    { headers, status },
   )
 
   return { response, wasCanceled: () => canceled }
+}
+
+function assertShareRenderFailure(result: ShareRenderResult): ShareRenderDiagnosticResult {
+  assert.equal(result.ok, false, 'the diagnostic fixture must return a failure result')
+  if (result.ok) assert.fail('expected a share render failure result')
+  return result.diagnostic
 }
 
 const SHARE_RENDER_ERROR_ID = '11111111-1111-4111-8111-111111111111'
@@ -1057,28 +1074,89 @@ describe('share render API field policy regression', () => {
     assert.match(clientSource, /data-export-dim="true"/)
   })
 
-  test('share render diagnostics cap JSON bodies by actual streamed bytes', async () => {
-    const { readShareRenderDiagnostic } = await loadShareClientDiagnosticParser()
+  test('share render client diagnostics distinguish every safe failure boundary', async () => {
+    const { readShareRenderResult } = await loadShareClientDiagnosticParser()
     const serverErrorId = '11111111-1111-4111-8111-111111111111'
     const clientErrorId = '22222222-2222-4222-8222-222222222222'
     const encoder = new TextEncoder()
 
     assert.deepEqual(
-      await readShareRenderDiagnostic(
-        new Response(JSON.stringify({ code: 'SR-PNG', errorId: serverErrorId }), {
-          headers: { 'Content-Type': 'application/json' },
-        }),
-        clientErrorId,
+      assertShareRenderFailure(
+        await readShareRenderResult(
+          () => Promise.reject(new TypeError('network unavailable')),
+          clientErrorId,
+        ),
       ),
-      { code: 'SR-PNG', errorId: serverErrorId },
-      'small safe JSON must retain the server diagnostic',
+      {
+        code: 'SR-UNKNOWN',
+        errorId: clientErrorId,
+        phase: 'fetch-transport',
+        status: null,
+        contentType: 'unavailable',
+        responseRequestId: 'unavailable',
+      },
+      'a transport rejection before Response must remain distinguishable',
+    )
+
+    assert.deepEqual(
+      assertShareRenderFailure(
+        await readShareRenderResult(
+          () => Promise.resolve(new Response('<html>gateway</html>', {
+            status: 502,
+            headers: {
+              'Content-Type': 'text/html',
+              'x-peak-trekker-render-id': '33333333-3333-4333-8333-333333333333',
+            },
+          })),
+          clientErrorId,
+        ),
+      ),
+      {
+        code: 'SR-UNKNOWN',
+        errorId: clientErrorId,
+        phase: 'http-non-json',
+        status: 502,
+        contentType: 'non-json',
+        responseRequestId: 'mismatch',
+      },
+      'a non-JSON HTTP failure must not read or display its body',
+    )
+
+    assert.deepEqual(
+      assertShareRenderFailure(
+        await readShareRenderResult(
+          () => Promise.resolve(new Response(null, {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          })),
+          clientErrorId,
+        ),
+      ),
+      {
+        code: 'SR-UNKNOWN',
+        errorId: clientErrorId,
+        phase: 'http-invalid-envelope',
+        status: 500,
+        contentType: 'json',
+        responseRequestId: 'missing',
+      },
+      'a missing JSON body must retain only safe response metadata',
     )
 
     const oversizedPayload = encoder.encode(`${JSON.stringify({ code: 'SR-PNG', errorId: serverErrorId })}${' '.repeat(4097)}`)
     const noLength = streamResponse(oversizedPayload, { 'Content-Type': 'application/json' })
     assert.deepEqual(
-      await readShareRenderDiagnostic(noLength.response, clientErrorId),
-      { code: 'SR-UNKNOWN', errorId: clientErrorId },
+      assertShareRenderFailure(
+        await readShareRenderResult(() => Promise.resolve(noLength.response), clientErrorId),
+      ),
+      {
+        code: 'SR-UNKNOWN',
+        errorId: clientErrorId,
+        phase: 'http-invalid-envelope',
+        status: 500,
+        contentType: 'json',
+        responseRequestId: 'missing',
+      },
       'a body without Content-Length must still be capped',
     )
     assert.equal(noLength.wasCanceled(), true, 'oversized streams must be canceled instead of fully consumed')
@@ -1088,19 +1166,120 @@ describe('share render API field policy regression', () => {
       'Content-Length': '42',
     })
     assert.deepEqual(
-      await readShareRenderDiagnostic(falseSmallLength.response, clientErrorId),
-      { code: 'SR-UNKNOWN', errorId: clientErrorId },
+      assertShareRenderFailure(
+        await readShareRenderResult(() => Promise.resolve(falseSmallLength.response), clientErrorId),
+      ),
+      {
+        code: 'SR-UNKNOWN',
+        errorId: clientErrorId,
+        phase: 'http-invalid-envelope',
+        status: 500,
+        contentType: 'json',
+        responseRequestId: 'missing',
+      },
       'a forged small Content-Length must not bypass the byte cap',
     )
     assert.equal(falseSmallLength.wasCanceled(), true, 'forged-size streams must also be canceled')
 
     assert.deepEqual(
-      await readShareRenderDiagnostic(
-        new Response('{not-json', { headers: { 'Content-Type': 'application/json' } }),
-        clientErrorId,
+      assertShareRenderFailure(
+        await readShareRenderResult(
+          () => Promise.resolve(new Response('{not-json', {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+              'x-peak-trekker-render-id': clientErrorId,
+            },
+          })),
+          clientErrorId,
+        ),
       ),
-      { code: 'SR-UNKNOWN', errorId: clientErrorId },
-      'malformed JSON must keep the client request ID and safe unknown code',
+      {
+        code: 'SR-UNKNOWN',
+        errorId: clientErrorId,
+        phase: 'http-invalid-envelope',
+        status: 500,
+        contentType: 'json',
+        responseRequestId: 'match',
+      },
+      'malformed JSON must retain only safe response metadata',
+    )
+
+    assert.deepEqual(
+      assertShareRenderFailure(
+        await readShareRenderResult(
+          () => Promise.resolve(new Response(JSON.stringify({ code: 'SR-UNKNOWN', errorId: serverErrorId }), {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+              'x-peak-trekker-render-id': clientErrorId,
+            },
+          })),
+          clientErrorId,
+        ),
+      ),
+      {
+        code: 'SR-UNKNOWN',
+        errorId: serverErrorId,
+        phase: 'http-safe-envelope',
+        status: 500,
+        contentType: 'json',
+        responseRequestId: 'match',
+      },
+      'a valid safe server envelope must remain distinguishable from a client fallback',
+    )
+
+    assert.deepEqual(
+      assertShareRenderFailure(
+        await readShareRenderResult(
+          () => Promise.resolve(new Response(JSON.stringify({
+            code: 'SR-UNKNOWN',
+            errorId: '11111111----------------------------',
+          }), {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+              'x-peak-trekker-render-id': clientErrorId,
+            },
+          })),
+          clientErrorId,
+        ),
+      ),
+      {
+        code: 'SR-UNKNOWN',
+        errorId: clientErrorId,
+        phase: 'http-invalid-envelope',
+        status: 500,
+        contentType: 'json',
+        responseRequestId: 'match',
+      },
+      'a malformed server error ID must not become a safe envelope or replace the client UUID',
+    )
+
+    const blobFailureResponse = {
+      ok: true,
+      status: 200,
+      headers: new Headers({
+        'Content-Type': 'image/png',
+        'x-peak-trekker-render-id': clientErrorId,
+      }),
+      blob: async () => {
+        throw new TypeError('body read failed')
+      },
+    } as unknown as Response
+    assert.deepEqual(
+      assertShareRenderFailure(
+        await readShareRenderResult(() => Promise.resolve(blobFailureResponse), clientErrorId),
+      ),
+      {
+        code: 'SR-UNKNOWN',
+        errorId: clientErrorId,
+        phase: 'blob-read',
+        status: 200,
+        contentType: 'non-json',
+        responseRequestId: 'match',
+      },
+      'an OK response whose PNG body fails to read must remain distinguishable',
     )
   })
 
@@ -1112,11 +1291,18 @@ describe('share render API field policy regression', () => {
     assert.match(clientSource, /response\.body\?\.getReader\(\)/)
     assert.match(clientSource, /SHARE_RENDER_DIAGNOSTIC_MAX_BYTES = 4 \* 1024/)
     assert.doesNotMatch(clientSource, /response\.json\(\)/)
+    assert.doesNotMatch(clientSource, /response\.text\(\)/)
     assert.match(clientSource, /code:\s*diagnostic\.code/)
     assert.match(clientSource, /render_error_id:\s*diagnostic\.errorId/)
     assert.match(clientSource, /new ShareRenderResponseError\(diagnostic\)/)
     assert.match(clientSource, /const SHARE_RENDER_FAILURE_MESSAGE = '分享图生成失败，请稍后再试'/)
-    assert.match(clientSource, /super\(`\$\{SHARE_RENDER_FAILURE_MESSAGE\}（\$\{code\} · \$\{errorId\}）`\)/)
+    assert.match(clientSource, /async function readShareRenderResult\(/)
+    assert.match(clientSource, /const result = await readShareRenderResult\(/)
+    assert.match(clientSource, /super\(`\$\{SHARE_RENDER_FAILURE_MESSAGE\}（\$\{details\.join\(' · '\)\}）`\)/)
+    assert.match(clientSource, /render_error_phase:\s*diagnostic\.phase/)
+    assert.match(clientSource, /render_http_status:\s*diagnostic\.status/)
+    assert.match(clientSource, /render_content_type:\s*diagnostic\.contentType/)
+    assert.match(clientSource, /render_response_request_id:\s*diagnostic\.responseRequestId/)
     assert.doesNotMatch(clientSource, /diagnostic\.stack|diagnostic\.hint|diagnostic\.error\b/)
 
     for (const code of [

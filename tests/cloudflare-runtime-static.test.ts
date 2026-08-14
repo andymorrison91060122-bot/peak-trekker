@@ -82,7 +82,12 @@ test('Cloudflare candidate defines one minimal OpenNext Worker without storage o
     /buildCommand: 'NEXT_PUBLIC_PEAK_TREKKER_RUNTIME=cloudflare npm run build -- --webpack'/,
   )
   assert.match(openNextConfig, /satisfies OpenNextConfig/)
+  assert.equal(packageJson.scripts?.['precf:build'], 'node scripts/download-fonts.js')
   assert.equal(packageJson.scripts?.['cf:build'], 'opennextjs-cloudflare build')
+  assert.equal(
+    packageJson.scripts?.['postcf:build'],
+    'PEAK_TREKKER_ASSERT_OPENNEXT_FONT_ARTIFACTS=1 node --test --test-name-pattern="Satori opentype artifact gate" tests/share-font-integrity.test.mjs',
+  )
   assert.equal(packageJson.scripts?.['cf:preview'], 'opennextjs-cloudflare preview')
   assert.equal(packageJson.scripts?.['cf:upload'], 'opennextjs-cloudflare upload')
   assert.equal(packageJson.scripts?.['cf:deploy'], 'opennextjs-cloudflare deploy')

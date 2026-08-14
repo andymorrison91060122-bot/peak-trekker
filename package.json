@@ -17,7 +17,9 @@
     "test:field-policy": "node --test --experimental-strip-types tests/activity-field-policy.test.ts tests/share-render-api.test.ts tests/import-parser.test.ts tests/share-track-preview.test.ts && npm run test:field-policy-static",
     "test:field-policy-static": "! rg -q 'EditPencil|aria-label=.*编辑' 'src/app/(flow)/screenshot/' 'src/app/(flow)/share/'",
     "test:e2e": "playwright test",
+    "precf:build": "node scripts/download-fonts.js",
     "cf:build": "opennextjs-cloudflare build",
+    "postcf:build": "PEAK_TREKKER_ASSERT_OPENNEXT_FONT_ARTIFACTS=1 node --test --test-name-pattern=\"Satori opentype artifact gate\" tests/share-font-integrity.test.mjs",
     "cf:preview": "opennextjs-cloudflare preview",
     "cf:upload": "opennextjs-cloudflare upload",
     "cf:deploy": "opennextjs-cloudflare deploy"

@@ -19,6 +19,7 @@ import { METRIC_FONT_FAMILY, POSTER_HEIGHT, POSTER_WIDTH, formatShareAltitude, h
 import { getShareTemplateComponent } from '@/lib/share-templates/registry'
 import type { ShareRenderTemplate, ShareTemplateData } from '@/lib/share-templates/types'
 import { buildShareTrackPreview, buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, SHARE_TRACK_RENDER_PROFILES, type ShareTrackPreview } from '@/lib/share-track-preview'
+import { buildRouteDrawPlan, ROUTE_FINAL_DRAW_BARRIER_SECONDS } from '@/lib/share-route-motion'
 import { buildImprintSourceUrl } from '@/lib/share-template-intent'
 
 type ShareViewMode = 'editor' | 'watermarkPreview'
@@ -398,6 +399,20 @@ const SHARE_PREVIEW_MOCK_TRACK_POINTS = [
   { lat: 23.49, lng: 120.9571, altitude: 3952 },
 ]
 
+function buildSegmentedPreviewMockTrack(points: typeof SHARE_PREVIEW_MOCK_TRACK_POINTS) {
+  const preview = buildShareTrackPreview(points)
+  if (!preview || preview.points.length < 7) return preview
+
+  return {
+    ...preview,
+    segments: [
+      preview.points.slice(0, 4),
+      preview.points.slice(3, 7),
+      preview.points.slice(6),
+    ],
+  }
+}
+
 const MOCK_DATA: ShareActivityData = {
   mountainName: '玉山主峰',
   altitude: 3952,
@@ -407,7 +422,7 @@ const MOCK_DATA: ShareActivityData = {
   date: '2026.04.28',
   location: '台湾',
   source: 'gps',
-  trackPreview: buildShareTrackPreview(SHARE_PREVIEW_MOCK_TRACK_POINTS),
+  trackPreview: buildSegmentedPreviewMockTrack(SHARE_PREVIEW_MOCK_TRACK_POINTS),
 }
 
 const FIELD_CONFIGS: FieldConfig[] = [
@@ -699,6 +714,67 @@ function getPosterMotionTargets(root: HTMLElement) {
   }
 }
 
+type RouteDrawGroup = {
+  segmentIndex: number
+  targets: SVGPathElement[]
+  length: number
+}
+
+function getRouteDrawGroups(drawTargets: SVGPathElement[]) {
+  const grouped = new Map<number, SVGPathElement[]>()
+
+  drawTargets.forEach((target) => {
+    if (target.dataset.motionKind !== 'route') return
+    const parsedIndex = Number.parseInt(target.dataset.routeSegment ?? '0', 10)
+    const segmentIndex = Number.isInteger(parsedIndex) && parsedIndex >= 0 ? parsedIndex : 0
+    const targets = grouped.get(segmentIndex) ?? []
+    targets.push(target)
+    grouped.set(segmentIndex, targets)
+  })
+
+  return [...grouped.entries()]
+    .sort(([left], [right]) => left - right)
+    .flatMap(([segmentIndex, targets]) => {
+      const measurementTarget = targets.find((target) => target.dataset.routeLayer === 'main') ?? targets[0]
+      if (!measurementTarget) return []
+
+      try {
+        const length = measurementTarget.getTotalLength()
+        return Number.isFinite(length) && length > 0 ? [{ segmentIndex, targets, length }] : []
+      } catch {
+        return []
+      }
+    }) as RouteDrawGroup[]
+}
+
+function addRouteDrawTimeline(
+  timeline: gsap.core.Timeline,
+  groups: RouteDrawGroup[],
+  {
+    start,
+    duration,
+    ease,
+  }: {
+    start: number
+    duration: number
+    ease: string
+  },
+) {
+  const plan = buildRouteDrawPlan(groups, duration)
+  plan.forEach((step) => {
+    const group = groups.find((candidate) => candidate.segmentIndex === step.segmentIndex)
+    if (!group) return
+    timeline.to(group.targets, {
+      strokeDashoffset: 0,
+      duration: step.duration,
+      ease,
+      clearProps: 'willChange',
+    }, start + step.start)
+  })
+
+  return start + (plan.at(-1)?.end ?? 0)
+}
+
 function settlePosterDrawTargets(drawTargets: SVGPathElement[]) {
   drawTargets.forEach((target) => {
     target.style.strokeDasharray = ''
@@ -707,8 +783,36 @@ function settlePosterDrawTargets(drawTargets: SVGPathElement[]) {
   })
 }
 
+function addPosterRouteFinalDrawBarrier(
+  timeline: gsap.core.Timeline,
+  {
+    poster,
+    drawTargets,
+    routeEndTargets,
+    routeDrawEnd,
+  }: {
+    poster: HTMLElement | null
+    drawTargets: SVGPathElement[]
+    routeEndTargets: SVGElement[]
+    routeDrawEnd: number
+  },
+) {
+  const barrierClock = { progress: 0 }
+  const barrierEnd = routeDrawEnd + ROUTE_FINAL_DRAW_BARRIER_SECONDS
+  timeline.call(() => {
+    if (poster) poster.dataset.routeDrawState = 'final-draw'
+  }, undefined, routeDrawEnd)
+  timeline.to(barrierClock, { progress: 1, duration: ROUTE_FINAL_DRAW_BARRIER_SECONDS, ease: 'none' }, routeDrawEnd)
+  timeline.call(() => settlePosterDrawTargets(drawTargets), undefined, barrierEnd)
+  timeline.set(routeEndTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, barrierEnd)
+  timeline.call(() => {
+    if (poster) poster.dataset.routeDrawState = 'terminal'
+  }, undefined, barrierEnd)
+  return barrierEnd
+}
+
 function setPosterMotionTerminal(root: HTMLElement) {
-  const { textTargets, numberTargets, drawTargets, routeStartTargets, routeEndTargets, phaseTargets } = getPosterMotionTargets(root)
+  const { poster, textTargets, numberTargets, drawTargets, routeStartTargets, routeEndTargets, phaseTargets } = getPosterMotionTargets(root)
   const verticalTargets = Object.values(phaseTargets).flat()
   const routeMarkerTargets = [...routeStartTargets, ...routeEndTargets]
   gsap.killTweensOf([...textTargets, ...numberTargets, ...drawTargets, ...routeMarkerTargets, ...verticalTargets])
@@ -720,11 +824,12 @@ function setPosterMotionTerminal(root: HTMLElement) {
     target.textContent = formatMotionValue(value, target.dataset.fmt)
   })
   settlePosterDrawTargets(drawTargets)
+  if (poster) poster.dataset.routeDrawState = 'terminal'
 }
 
 function preparePosterMotionInitialState(root: HTMLElement, options: { retry?: boolean } = {}) {
   const retry = options.retry ?? true
-  const { textTargets, drawTargets, routeStartTargets, routeEndTargets, phaseTargets } = getPosterMotionTargets(root)
+  const { poster, textTargets, drawTargets, routeStartTargets, routeEndTargets, phaseTargets } = getPosterMotionTargets(root)
   const verticalTargets = Object.values(phaseTargets).flat()
   const routeMarkerTargets = [...routeStartTargets, ...routeEndTargets]
   const targets = [...textTargets, ...drawTargets, ...routeMarkerTargets, ...verticalTargets]
@@ -732,6 +837,7 @@ function preparePosterMotionInitialState(root: HTMLElement, options: { retry?: b
   gsap.set(verticalTargets, { autoAlpha: 0, y: 12, willChange: 'transform, opacity' })
   gsap.set(textTargets, { autoAlpha: 0, y: 0, willChange: 'opacity' })
   gsap.set(routeMarkerTargets, { autoAlpha: 0, scale: 1, willChange: 'opacity' })
+  if (poster) poster.dataset.routeDrawState = 'drawing'
 
   let prepared = 0
   let failed = 0
@@ -781,6 +887,8 @@ function preparePosterMotionInitialState(root: HTMLElement, options: { retry?: b
 
 function buildPosterRelightTimeline(root: HTMLElement) {
   const { poster, textTargets, numberTargets, drawTargets, routeStartTargets, routeEndTargets, phaseTargets } = getPosterMotionTargets(root)
+  const routeDrawGroups = getRouteDrawGroups(drawTargets)
+  const nonRouteDrawTargets = drawTargets.filter((target) => target.dataset.motionKind !== 'route')
   const verticalTargets = Object.values(phaseTargets).flat()
   const verticalClassicTextTargets = poster?.querySelector('[data-template="base-vertical-classic"]')
     ? textTargets
@@ -797,7 +905,9 @@ function buildPosterRelightTimeline(root: HTMLElement) {
   const timeline = gsap.timeline()
   if (verticalTargets.length > 0) {
     const routeDrawStart = 0.48
-    const routeDrawEnd = routeDrawStart + 1.12 + Math.max(0, drawTargets.length - 1) * 0.08
+    const routeDrawEnd = routeDrawGroups.length
+      ? addRouteDrawTimeline(timeline, routeDrawGroups, { start: routeDrawStart, duration: 1.2, ease: 'power2.out' })
+      : routeDrawStart
     timeline.to(phaseTargets.data, {
       autoAlpha: 1,
       y: 0,
@@ -840,14 +950,20 @@ function buildPosterRelightTimeline(root: HTMLElement) {
       clearProps: 'willChange',
     }, 0.44)
     timeline.set(routeStartTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, routeDrawStart)
-    timeline.to(drawTargets, {
-      strokeDashoffset: 0,
-      duration: 1.12,
-      ease: 'power2.out',
-      stagger: 0.08,
-      clearProps: 'willChange',
-    }, routeDrawStart)
-    timeline.set(routeEndTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, routeDrawEnd)
+    if (nonRouteDrawTargets.length) {
+      timeline.to(nonRouteDrawTargets, {
+        strokeDashoffset: 0,
+        duration: 1.12,
+        ease: 'power2.out',
+        stagger: 0.08,
+        clearProps: 'willChange',
+      }, routeDrawStart)
+    }
+    if (routeDrawGroups.length) {
+      addPosterRouteFinalDrawBarrier(timeline, { poster, drawTargets, routeEndTargets, routeDrawEnd })
+    } else {
+      timeline.set(routeEndTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, routeDrawEnd)
+    }
     timeline.to(phaseTargets.brand, {
       autoAlpha: 1,
       y: 0,
@@ -855,7 +971,12 @@ function buildPosterRelightTimeline(root: HTMLElement) {
       ease: 'power2.out',
       clearProps: 'willChange',
     }, 0.96)
-    timeline.call(() => settlePosterDrawTargets(drawTargets))
+    if (!routeDrawGroups.length) {
+      timeline.call(() => {
+        settlePosterDrawTargets(drawTargets)
+        if (poster) poster.dataset.routeDrawState = 'terminal'
+      })
+    }
     return timeline
   }
 
@@ -890,21 +1011,34 @@ function buildPosterRelightTimeline(root: HTMLElement) {
 
   if (drawTargets.length > 0) {
     const routeDrawStart = 0.24
-    const routeDrawEnd = routeDrawStart + 1.45 + Math.max(0, drawTargets.length - 1) * 0.08
+    const routeDrawEnd = routeDrawGroups.length
+      ? addRouteDrawTimeline(timeline, routeDrawGroups, { start: routeDrawStart, duration: 1.53, ease: 'power2.out' })
+      : routeDrawStart
     timeline.set(routeStartTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, routeDrawStart)
-    timeline.to(drawTargets, {
-      strokeDashoffset: 0,
-      duration: 1.45,
-      ease: 'power2.out',
-      stagger: 0.08,
-      clearProps: 'willChange',
-    }, routeDrawStart)
-    timeline.set(routeEndTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, routeDrawEnd)
+    if (nonRouteDrawTargets.length) {
+      timeline.to(nonRouteDrawTargets, {
+        strokeDashoffset: 0,
+        duration: 1.45,
+        ease: 'power2.out',
+        stagger: 0.08,
+        clearProps: 'willChange',
+      }, routeDrawStart)
+    }
+    if (routeDrawGroups.length) {
+      addPosterRouteFinalDrawBarrier(timeline, { poster, drawTargets, routeEndTargets, routeDrawEnd })
+    } else {
+      timeline.set(routeEndTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, routeDrawEnd)
+    }
   } else if (routeMarkerTargets.length) {
     timeline.set(routeMarkerTargets, { autoAlpha: 1, scale: 1, clearProps: 'willChange' }, 0)
   }
 
-  timeline.call(() => settlePosterDrawTargets(drawTargets))
+  if (!routeDrawGroups.length) {
+    timeline.call(() => {
+      settlePosterDrawTargets(drawTargets)
+      if (poster) poster.dataset.routeDrawState = 'terminal'
+    })
+  }
   return timeline
 }
 
@@ -1309,12 +1443,15 @@ function TrailPath({ trackPreview }: { trackPreview?: ShareTrackPreview | null }
       style={{ position: 'absolute', inset: 0 }}
       aria-hidden="true"
     >
-      {route?.d ? (
-        <>
+      {route.segmentPaths.map((segment) => (
+        <g key={segment.index}>
           <path
             data-real-track="true"
             data-role="draw"
-            d={route.d}
+            data-motion-kind="route"
+            data-route-segment={segment.index}
+            data-route-layer="glow"
+            d={segment.d}
             stroke="var(--color-success)"
             strokeWidth={route.glowWidth}
             fill="none"
@@ -1326,7 +1463,10 @@ function TrailPath({ trackPreview }: { trackPreview?: ShareTrackPreview | null }
           <path
             data-real-track="true"
             data-role="draw"
-            d={route.d}
+            data-motion-kind="route"
+            data-route-segment={segment.index}
+            data-route-layer="main"
+            d={segment.d}
             stroke="var(--color-success)"
             strokeWidth={route.lineWidth}
             fill="none"
@@ -1334,8 +1474,8 @@ function TrailPath({ trackPreview }: { trackPreview?: ShareTrackPreview | null }
             strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
           />
-        </>
-      ) : null}
+        </g>
+      ))}
       {route ? (
         <circle
           data-real-track={route.d ? undefined : 'single-point'}

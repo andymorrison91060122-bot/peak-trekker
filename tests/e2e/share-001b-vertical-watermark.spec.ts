@@ -2,7 +2,7 @@ import { expect, test, type Browser, type Locator, type Page } from '@playwright
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const OUTPUT_DIR = join(process.cwd(), 'output', 'share-001b')
+const OUTPUT_DIR = join(process.cwd(), 'output', 'incident-share-route-03')
 
 type MotionPhase = {
   phase: string
@@ -56,18 +56,19 @@ type VerticalTerminalContent = {
   routeOpacity: number
 }
 
-type DrawTerminalState = {
-  count: number
-  dasharrays: string[]
-  dashoffsets: string[]
-}
-
-type DrawMotionState = {
-  draw: Array<{
-    length: number
-    dasharray: string
-    dashoffset: number
+type RouteSegmentMotionState = {
+  routeDrawState: string | null
+  segments: Array<{
+    index: number
+    d: string
+    layers: Array<{
+      layer: string
+      length: number
+      dasharray: string
+      dashoffset: number
+    }>
   }>
+  startMarkerOpacities: number[]
   endMarkerOpacities: number[]
 }
 
@@ -198,27 +199,38 @@ async function readVerticalTerminalContent(poster: Locator) {
   }) as Promise<VerticalTerminalContent>
 }
 
-async function readDrawTerminalState(scope: Locator) {
-  return scope.locator('path[data-role="draw"]').evaluateAll((nodes) => ({
-    count: nodes.length,
-    dasharrays: nodes.map((node) => getComputedStyle(node).strokeDasharray),
-    dashoffsets: nodes.map((node) => getComputedStyle(node).strokeDashoffset),
-  })) as Promise<DrawTerminalState>
-}
+async function readRouteSegmentMotionState(scope: Locator) {
+  return scope.evaluate((root) => {
+    const stateHost = (root as HTMLElement).closest<HTMLElement>('[data-stage="poster"]') ?? root as HTMLElement
+    const segments = new Map<number, {
+      index: number
+      d: string
+      layers: Array<{ layer: string; length: number; dasharray: string; dashoffset: number }>
+    }>()
 
-async function readDrawMotionState(scope: Locator) {
-  return scope.evaluate((root) => ({
-    draw: Array.from(root.querySelectorAll<SVGPathElement>('path[data-role="draw"]')).map((path) => {
+    root.querySelectorAll<SVGPathElement>('path[data-role="draw"][data-motion-kind="route"][data-route-segment]').forEach((path) => {
+      const index = Number.parseInt(path.dataset.routeSegment ?? '', 10)
+      if (!Number.isInteger(index)) return
       const style = getComputedStyle(path)
-      return {
+      const segment = segments.get(index) ?? { index, d: path.getAttribute('d') ?? '', layers: [] }
+      segment.layers.push({
+        layer: path.dataset.routeLayer ?? '',
         length: path.getTotalLength(),
         dasharray: style.strokeDasharray,
         dashoffset: Math.abs(Number.parseFloat(style.strokeDashoffset || '0')),
-      }
-    }),
-    endMarkerOpacities: Array.from(root.querySelectorAll<SVGCircleElement>('circle[data-role="pop"][data-motion-position="route-end"]'))
-      .map((marker) => Number.parseFloat(getComputedStyle(marker).opacity || '1')),
-  })) as Promise<DrawMotionState>
+      })
+      segments.set(index, segment)
+    })
+
+    return {
+      routeDrawState: stateHost.dataset.routeDrawState ?? null,
+      segments: [...segments.values()].sort((left, right) => left.index - right.index),
+      startMarkerOpacities: Array.from(root.querySelectorAll<SVGCircleElement>('circle[data-role="pop"][data-motion-position="route-start"]'))
+        .map((marker) => Number.parseFloat(getComputedStyle(marker).opacity || '1')),
+      endMarkerOpacities: Array.from(root.querySelectorAll<SVGCircleElement>('circle[data-role="pop"][data-motion-position="route-end"]'))
+        .map((marker) => Number.parseFloat(getComputedStyle(marker).opacity || '1')),
+    }
+  }) as Promise<RouteSegmentMotionState>
 }
 
 function isTerminallyVisible(target: TerminalContentTarget) {
@@ -239,33 +251,88 @@ function hasCompleteVerticalTerminalContent(content: VerticalTerminalContent) {
   )
 }
 
-function hasSettledDrawTerminal(state: DrawTerminalState) {
-  return state.count > 0
-    && state.dasharrays.every((dasharray) => dasharray === 'none')
-    && state.dashoffsets.every((dashoffset) => dashoffset === '0px')
+function routeLayerState(layer: RouteSegmentMotionState['segments'][number]['layers'][number]) {
+  if (!Number.isFinite(layer.length) || layer.length <= 0) return 'invalid'
+  if (layer.dasharray === 'none' || layer.dashoffset <= layer.length * 0.01) return 'complete'
+  if (layer.dashoffset >= layer.length * 0.99) return 'hidden'
+  return 'partial'
 }
 
-function hasMidRouteDraw(state: DrawMotionState) {
-  return state.draw.some(({ length, dasharray, dashoffset }) => (
-    dasharray !== 'none'
-    && Number.isFinite(length)
-    && dashoffset > length * 0.25
-    && dashoffset < length * 0.65
+function hasOrderedSegmentFrame(state: RouteSegmentMotionState) {
+  if (state.segments.length !== 3 || state.startMarkerOpacities.some((opacity) => opacity < 0.99)) return false
+  const partialIndexes = state.segments.flatMap((segment, index) => (
+    segment.layers.some((layer) => routeLayerState(layer) === 'partial') ? [index] : []
+  ))
+  if (partialIndexes.length !== 1) return false
+  const currentIndex = partialIndexes[0]!
+
+  return state.segments.every((segment, index) => (
+    segment.layers.length === 2
+    && Math.abs(segment.layers[0]!.dashoffset - segment.layers[1]!.dashoffset) < 0.5
+    && segment.layers.every((layer) => (
+      index < currentIndex
+        ? routeLayerState(layer) === 'complete'
+        : index === currentIndex
+          ? routeLayerState(layer) === 'partial'
+          : routeLayerState(layer) === 'hidden'
+    ))
   ))
 }
 
-function hasHiddenRouteEndMarkers(state: DrawMotionState) {
-  return state.endMarkerOpacities.length > 0 && state.endMarkerOpacities.every((opacity) => opacity <= 0.01)
+function hasFinalDrawBarrierFrame(state: RouteSegmentMotionState) {
+  return state.routeDrawState === 'final-draw'
+    && state.segments.length === 3
+    && state.segments.every((segment) => segment.layers.length === 2 && segment.layers.every((layer) => (
+      layer.dasharray !== 'none'
+      && layer.dashoffset <= 0.5
+    )))
+    && state.endMarkerOpacities.every((opacity) => opacity <= 0.01)
 }
 
-async function waitForMidRouteDraw(page: Page, scope: Locator) {
+function hasTerminalRouteFrame(state: RouteSegmentMotionState) {
+  return state.routeDrawState === 'terminal'
+    && state.segments.length === 3
+    && state.segments.every((segment) => segment.layers.length === 2 && segment.layers.every((layer) => (
+      layer.dasharray === 'none' && layer.dashoffset === 0
+    )))
+    && state.endMarkerOpacities.every((opacity) => opacity >= 0.99)
+}
+
+function preservesSegmentGeometry(before: RouteSegmentMotionState, after: RouteSegmentMotionState) {
+  return before.segments.map((segment) => ({ index: segment.index, d: segment.d }))
+    .every((segment, index) => segment.index === after.segments[index]?.index && segment.d === after.segments[index]?.d)
+}
+
+async function waitForOrderedSegmentFrame(page: Page, scope: Locator) {
   const deadline = Date.now() + 5_000
-  let state = await readDrawMotionState(scope)
-  while (!hasMidRouteDraw(state) && Date.now() < deadline) {
+  let state = await readRouteSegmentMotionState(scope)
+  while (!hasOrderedSegmentFrame(state) && Date.now() < deadline) {
     await page.waitForTimeout(16)
-    state = await readDrawMotionState(scope)
+    state = await readRouteSegmentMotionState(scope)
   }
-  expect(hasMidRouteDraw(state)).toBe(true)
+  expect(hasOrderedSegmentFrame(state)).toBe(true)
+  return state
+}
+
+async function waitForFinalDrawBarrierFrame(page: Page, scope: Locator) {
+  const deadline = Date.now() + 5_000
+  let state = await readRouteSegmentMotionState(scope)
+  while (!hasFinalDrawBarrierFrame(state) && Date.now() < deadline) {
+    await page.waitForTimeout(16)
+    state = await readRouteSegmentMotionState(scope)
+  }
+  expect(hasFinalDrawBarrierFrame(state)).toBe(true)
+  return state
+}
+
+async function waitForTerminalRouteFrame(page: Page, scope: Locator) {
+  const deadline = Date.now() + 5_000
+  let state = await readRouteSegmentMotionState(scope)
+  while (!hasTerminalRouteFrame(state) && Date.now() < deadline) {
+    await page.waitForTimeout(16)
+    state = await readRouteSegmentMotionState(scope)
+  }
+  expect(hasTerminalRouteFrame(state)).toBe(true)
   return state
 }
 
@@ -417,10 +484,12 @@ test('base Vertical Share preview restores every template text target at motion 
 })
 
 test('Share and Imprint draw routes continuously before revealing endpoint markers', async ({ browser, baseURL }) => {
+  mkdirSync(OUTPUT_DIR, { recursive: true })
   const routes = [
     { name: 'Share', path: '/share?template=base-vertical-classic', selector: '[data-testid="share-main-poster-preview"]' },
     { name: 'Imprint', path: '/imprint', selector: '[data-imprint-card][data-index="0"]' },
   ]
+  const evidence: Record<string, unknown> = { viewport: { width: 375, height: 812 }, routes: {} }
 
   for (const reducedMotion of ['no-preference', 'reduce'] as const) {
     const { context, page } = await openContext(browser, reducedMotion)
@@ -431,23 +500,52 @@ test('Share and Imprint draw routes continuously before revealing endpoint marke
         await expect(scope).toBeVisible()
 
         if (reducedMotion === 'no-preference') {
-          expect(hasHiddenRouteEndMarkers(await waitForMidRouteDraw(page, scope))).toBe(true)
+          const firstSegmentFrame = await waitForOrderedSegmentFrame(page, scope)
+          expect(firstSegmentFrame.endMarkerOpacities.every((opacity) => opacity <= 0.01)).toBe(true)
+          await hideDevPortal(page)
+          await page.screenshot({ path: join(OUTPUT_DIR, `${route.name.toLowerCase()}-route-ordered-mid-375.png`), fullPage: false })
+          const finalDrawBarrierFrame = await waitForFinalDrawBarrierFrame(page, scope)
+          await page.screenshot({ path: join(OUTPUT_DIR, `${route.name.toLowerCase()}-route-final-draw-barrier-375.png`), fullPage: false })
+          const terminalFrame = await waitForTerminalRouteFrame(page, scope)
+          expect(preservesSegmentGeometry(finalDrawBarrierFrame, terminalFrame)).toBe(true)
+          expect(terminalFrame.segments.every((segment) => segment.layers.every((layer) => layer.dasharray === 'none' && layer.dashoffset === 0))).toBe(true)
+          expect(terminalFrame.endMarkerOpacities.every((opacity) => opacity >= 0.99)).toBe(true)
+          await page.screenshot({ path: join(OUTPUT_DIR, `${route.name.toLowerCase()}-route-terminal-375.png`), fullPage: false })
+          evidence.routes = {
+            ...(evidence.routes as Record<string, unknown>),
+            [`${route.name.toLowerCase()}-normal`]: { firstSegmentFrame, finalDrawBarrierFrame, terminalFrame },
+          }
+        } else {
+          const terminalFrame = await waitForTerminalRouteFrame(page, scope)
+          expect(terminalFrame.segments).toHaveLength(3)
+          expect(terminalFrame.segments.every((segment) => segment.layers.every((layer) => layer.dasharray === 'none' && layer.dashoffset === 0))).toBe(true)
+          expect(terminalFrame.endMarkerOpacities.every((opacity) => opacity >= 0.99)).toBe(true)
+          evidence.routes = {
+            ...(evidence.routes as Record<string, unknown>),
+            [`${route.name.toLowerCase()}-reduced`]: terminalFrame,
+          }
         }
-        await expect.poll(async () => hasSettledDrawTerminal(await readDrawTerminalState(scope))).toBe(true)
-        expect((await readDrawMotionState(scope)).endMarkerOpacities.every((opacity) => opacity >= 0.99)).toBe(true)
 
         if (reducedMotion === 'no-preference') {
           await page.reload({ waitUntil: 'domcontentloaded' })
           await expect(scope).toBeVisible()
-          expect(hasHiddenRouteEndMarkers(await waitForMidRouteDraw(page, scope))).toBe(true)
-          await expect.poll(async () => hasSettledDrawTerminal(await readDrawTerminalState(scope))).toBe(true)
-          expect((await readDrawMotionState(scope)).endMarkerOpacities.every((opacity) => opacity >= 0.99)).toBe(true)
+          const replayFrame = await waitForOrderedSegmentFrame(page, scope)
+          expect(replayFrame.endMarkerOpacities.every((opacity) => opacity <= 0.01)).toBe(true)
+          const replayFinalDrawBarrierFrame = await waitForFinalDrawBarrierFrame(page, scope)
+          const replayTerminal = await waitForTerminalRouteFrame(page, scope)
+          expect(replayTerminal.endMarkerOpacities.every((opacity) => opacity >= 0.99)).toBe(true)
+          evidence.routes = {
+            ...(evidence.routes as Record<string, unknown>),
+            [`${route.name.toLowerCase()}-replay`]: { replayFrame, replayFinalDrawBarrierFrame, replayTerminal },
+          }
         }
       }
     } finally {
       await context.close()
     }
   }
+
+  writeFileSync(join(OUTPUT_DIR, 'route-segment-motion-evidence.json'), `${JSON.stringify(evidence, null, 2)}\n`)
 })
 
 test('Share defaults to the first listed template while a valid URL template remains selected', async ({ browser, baseURL }) => {

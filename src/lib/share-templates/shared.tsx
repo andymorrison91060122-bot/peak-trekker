@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { BRAND_ASSETS } from '@/lib/brand-assets'
 import { buildShareTrackRender, SHARE_TRACK_CONTENT_FIT, SHARE_TRACK_RENDER_PROFILES, type ShareTrackFrame, type ShareTrackPreview, type ShareTrackRenderStyle } from '../share-track-preview'
 import type { ShareTemplateData } from './types'
@@ -214,8 +214,12 @@ export function MiniTrailCircle({ size = 156, trackPreview }: { size?: number; t
     >
       {route ? (
         <svg width={size - 42} height={size - 42} viewBox="0 0 120 120">
-          {route.d ? <path data-role="draw" data-motion-kind="route" d={route.d} stroke={C.success} strokeWidth={route.glowWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={route.glowOpacity} vectorEffect="non-scaling-stroke" /> : null}
-          {route.d ? <path data-role="draw" data-motion-kind="route" d={route.d} stroke={C.fg} strokeWidth={route.lineWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" vectorEffect="non-scaling-stroke" /> : null}
+          {route.segmentPaths.map((segment) => (
+            <Fragment key={segment.index}>
+              <path data-role="draw" data-motion-kind="route" data-route-segment={segment.index} data-route-layer="glow" d={segment.d} stroke={C.success} strokeWidth={route.glowWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={route.glowOpacity} vectorEffect="non-scaling-stroke" />
+              <path data-role="draw" data-motion-kind="route" data-route-segment={segment.index} data-route-layer="main" d={segment.d} stroke={C.fg} strokeWidth={route.lineWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" vectorEffect="non-scaling-stroke" />
+            </Fragment>
+          ))}
           <circle data-role="pop" data-motion-kind="route-endpoint" data-motion-position="route-start" cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} />
           {route.d ? <circle data-role="pop" data-motion-kind="route-endpoint" data-motion-position="route-end" cx={route.end.x} cy={route.end.y} r={route.endRadius} fill={C.success} /> : null}
         </svg>
@@ -446,33 +450,37 @@ export function TrailSvg({
 
   return (
     <svg width={POSTER_WIDTH} height={POSTER_HEIGHT} viewBox={`0 0 ${POSTER_WIDTH} ${POSTER_HEIGHT}`} style={{ position: 'absolute', inset: 0 }}>
-      {route.d ? (
-        <path
-          data-role="draw"
-          data-motion-kind="route"
-          d={route.d}
-          stroke={C.success}
-          strokeWidth={route.glowWidth}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          opacity={route.glowOpacity}
-          vectorEffect="non-scaling-stroke"
-        />
-      ) : null}
-      {route.d ? (
-        <path
-          data-role="draw"
-          data-motion-kind="route"
-          d={route.d}
-          stroke={C.success}
-          strokeWidth={route.lineWidth}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-          vectorEffect="non-scaling-stroke"
-        />
-      ) : null}
+      {route.segmentPaths.map((segment) => (
+        <Fragment key={segment.index}>
+          <path
+            data-role="draw"
+            data-motion-kind="route"
+            data-route-segment={segment.index}
+            data-route-layer="glow"
+            d={segment.d}
+            stroke={C.success}
+            strokeWidth={route.glowWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            opacity={route.glowOpacity}
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            data-role="draw"
+            data-motion-kind="route"
+            data-route-segment={segment.index}
+            data-route-layer="main"
+            d={segment.d}
+            stroke={C.success}
+            strokeWidth={route.lineWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            vectorEffect="non-scaling-stroke"
+          />
+        </Fragment>
+      ))}
       {route ? <circle data-role="pop" data-motion-kind="route-endpoint" data-motion-position="route-start" cx={route.start.x} cy={route.start.y} r={route.startRadius} fill={C.bg} stroke={C.success} strokeWidth={route.startStrokeWidth} /> : null}
       {route?.d ? (
         <circle

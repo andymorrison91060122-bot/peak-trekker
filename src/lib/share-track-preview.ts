@@ -41,7 +41,15 @@ export type ShareTrackPath = {
   projectedSegments: ShareTrackPreviewPoint[][]
 }
 
+export type ShareTrackRenderSegment = {
+  index: number
+  d: string
+  start: ShareTrackPreviewPoint
+  end: ShareTrackPreviewPoint
+}
+
 export type ShareTrackRender = ShareTrackPath & {
+  segmentPaths: ShareTrackRenderSegment[]
   lineWidth: number
   glowWidth: number
   glowOpacity: number
@@ -548,12 +556,14 @@ export function buildShareTrackRender(
       return withExactEnd
     })
     .filter((segment) => segment.length >= 1)
-  const smoothedPath = simplifiedSegments
-    .flatMap((segment) => {
+  const segmentPaths = simplifiedSegments
+    .flatMap((segment, index) => {
       const d = buildQuadraticPath(segment)
-      return d ? [d] : []
+      const start = segment[0]
+      const end = segment.at(-1)
+      return d && start && end ? [{ index, d, start, end }] : []
     })
-    .join(' ')
+  const smoothedPath = segmentPaths.map((segment) => segment.d).join(' ')
   const renderBounds = getPointBounds(simplifiedSegments.flatMap((segment) => segment))
 
   const lineWidth = Math.max(1, style.lineWidth ?? 8)
@@ -567,6 +577,7 @@ export function buildShareTrackRender(
     d: smoothedPath || null,
     bounds: renderBounds,
     projectedSegments: simplifiedSegments,
+    segmentPaths,
     lineWidth,
     glowWidth,
     glowOpacity: Math.max(0, Math.min(1, style.glowOpacity ?? 0.16)),

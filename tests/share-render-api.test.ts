@@ -1008,7 +1008,7 @@ describe('share render API field policy regression', () => {
     const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
     const sharedTemplateSource = readSource('../src/lib/share-templates/shared.tsx')
 
-    assert.match(clientSource, /trackPreview:\s*buildShareTrackPreview\(SHARE_PREVIEW_MOCK_TRACK_POINTS\)/)
+    assert.match(clientSource, /trackPreview:\s*buildSegmentedPreviewMockTrack\(SHARE_PREVIEW_MOCK_TRACK_POINTS\)/)
     assert.match(clientSource, /mountainName: '玉山主峰'/)
     assert.match(clientSource, /location: '台湾'/)
     assert.match(clientSource, /altitude: 3952/)
@@ -1018,6 +1018,9 @@ describe('share render API field policy regression', () => {
     assert.doesNotMatch(clientSource, /buildShareTrackPath/)
     assert.match(clientSource, /data-role="draw" d="M26 222 C 58 190/)
     assert.match(sharedTemplateSource, /buildShareTrackRender\(trackPreview/)
+    assert.match(sharedTemplateSource, /route\.segmentPaths\.map\(\(segment\) => \(/)
+    assert.match(sharedTemplateSource, /data-route-segment=\{segment\.index\}[\s\S]*?data-route-layer="glow"[\s\S]*?data-route-segment=\{segment\.index\}[\s\S]*?data-route-layer="main"/)
+    assert.match(clientSource, /function addRouteDrawTimeline\([\s\S]*?buildRouteDrawPlan\(groups, duration\)/)
     assert.doesNotMatch(sharedTemplateSource, /filter id="poster-trail-glow"|filter id="share-trail-glow"/)
     assert.match(sharedTemplateSource, /vectorEffect="non-scaling-stroke"/)
   })
@@ -1056,9 +1059,15 @@ describe('share render API field policy regression', () => {
     const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
     const terminalBlock = clientSource.match(/function setPosterMotionTerminal\(root: HTMLElement\) \{[\s\S]*?\n}\n\nfunction preparePosterMotionInitialState/)?.[0] ?? ''
     const relightBlock = clientSource.match(/function buildPosterRelightTimeline\(root: HTMLElement\) \{[\s\S]*?\n}\n\nfunction getExportMotionTargets/)?.[0] ?? ''
+    const finalDrawBarrierBlock = clientSource.match(/function addPosterRouteFinalDrawBarrier\([\s\S]*?\n}\n\nfunction setPosterMotionTerminal/)?.[0] ?? ''
 
     assert.match(terminalBlock, /settlePosterDrawTargets\(drawTargets\)/)
-    assert.match(relightBlock, /timeline\.call\(\(\) => settlePosterDrawTargets\(drawTargets\)\)/)
+    assert.match(relightBlock, /addPosterRouteFinalDrawBarrier\(timeline, \{ poster, drawTargets, routeEndTargets, routeDrawEnd \}\)/)
+    assert.match(finalDrawBarrierBlock, /poster\.dataset\.routeDrawState = 'final-draw'/)
+    assert.match(finalDrawBarrierBlock, /ROUTE_FINAL_DRAW_BARRIER_SECONDS/)
+    assert.match(finalDrawBarrierBlock, /settlePosterDrawTargets\(drawTargets\)/)
+    assert.match(finalDrawBarrierBlock, /routeEndTargets[\s\S]*?barrierEnd/)
+    assert.match(finalDrawBarrierBlock, /poster\.dataset\.routeDrawState = 'terminal'/)
     assert.match(clientSource, /function settlePosterDrawTargets\(drawTargets: SVGPathElement\[\]\) \{[\s\S]*?strokeDasharray = ''[\s\S]*?strokeDashoffset = '0'/)
   })
 

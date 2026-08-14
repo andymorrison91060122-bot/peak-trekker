@@ -11,6 +11,10 @@ async function loadPolylineSimplifier() {
   return import(`../src/lib/polyline-simplify.${sourceExtension}`)
 }
 
+async function loadRouteMotion() {
+  return import(`../src/lib/share-route-motion.${sourceExtension}`)
+}
+
 function assertPointClose(
   actual: { x: number; y: number } | undefined,
   expected: { x: number; y: number },
@@ -301,7 +305,8 @@ describe('share track preview projection', () => {
   })
 
   test('builds disconnected poster subpaths for screenshot accepted gaps without bridging', async () => {
-    const { buildShareTrackPreviewFromScreenshotRouteShape, buildShareTrackPath } = await loadTrackPreview()
+    const { buildShareTrackPreviewFromScreenshotRouteShape, buildShareTrackRender } = await loadTrackPreview()
+    const { buildRouteDrawPlan } = await loadRouteMotion()
     const shape = {
       schemaVersion: 1,
       kind: 'screenshot_route_shape',
@@ -341,14 +346,76 @@ describe('share track preview projection', () => {
     }
 
     const preview = buildShareTrackPreviewFromScreenshotRouteShape(shape)
-    const route = buildShareTrackPath(preview, { width: 100, height: 100, padding: 0 })
+    const route = buildShareTrackRender(preview, { width: 100, height: 100, padding: 0 })
 
     assert.equal(preview?.segments?.length, 2)
     assert.equal(preview?.pointCount, 4)
     assert.ok(route?.d)
     assert.equal([...route.d.matchAll(/\bM\b/g)].length, 2)
+    assert.equal(route?.segmentPaths.length, 2, 'accepted-gap geometry must stay as two independently drawable paths')
+    assert.equal(route?.segmentPaths[0]?.d.includes(route?.segmentPaths[1]?.d ?? ''), false, 'an accepted gap must not be joined into the first drawable segment')
     assert.doesNotMatch(route.d, /0 0 [LQC] 87.5 87.5/, 'no command may bridge from the first subpath toward the second across the accepted gap')
     assert.doesNotMatch(route.d, /12.5 12.5 [LQC] 87.5 87.5/, 'no command may bridge accepted-gap endpoints')
+
+    const plan = buildRouteDrawPlan(route.segmentPaths.map((segment) => ({
+      segmentIndex: segment.index,
+      length: 100,
+    })), 1)
+    assert.deepEqual(plan.map((step) => step.segmentIndex), [0, 1])
+    assert.equal(plan[0]?.end, plan[1]?.start, 'the second real subpath begins only after the first completes')
+    assert.equal(route.segmentPaths[0]?.end.x === route.segmentPaths[1]?.start.x && route.segmentPaths[0]?.end.y === route.segmentPaths[1]?.start.y, false, 'ordered motion must not fabricate a connector across an accepted gap')
+  })
+
+  test('keeps three endpoint-contiguous screenshot segments independently drawable in route order', async () => {
+    const { buildShareTrackPreviewFromScreenshotRouteShape, buildShareTrackRender } = await loadTrackPreview()
+    const shape = {
+      schemaVersion: 1,
+      kind: 'screenshot_route_shape',
+      coordinateSpace: 'normalized_screenshot',
+      source: 'user_seeded_livewire',
+      image: { width: 1000, height: 1000 },
+      controlPoints: [
+        { id: 'a', x: 0.12, y: 0.78 },
+        { id: 'b', x: 0.32, y: 0.58 },
+        { id: 'c', x: 0.56, y: 0.42 },
+        { id: 'd', x: 0.82, y: 0.2 },
+      ],
+      segments: [
+        { id: 'seg-a-b', fromId: 'a', toId: 'b', resolution: 'snapped', points: [{ x: 0.12, y: 0.78 }, { x: 0.22, y: 0.66 }, { x: 0.32, y: 0.58 }] },
+        { id: 'seg-b-c', fromId: 'b', toId: 'c', resolution: 'user_confirmed_shape', points: [{ x: 0.32, y: 0.58 }, { x: 0.44, y: 0.49 }, { x: 0.56, y: 0.42 }] },
+        { id: 'seg-c-d', fromId: 'c', toId: 'd', resolution: 'snapped', points: [{ x: 0.56, y: 0.42 }, { x: 0.7, y: 0.29 }, { x: 0.82, y: 0.2 }] },
+      ],
+      createdAt: '2026-08-15T00:00:00.000Z',
+    }
+
+    const route = buildShareTrackRender(
+      buildShareTrackPreviewFromScreenshotRouteShape(shape),
+      { width: 300, height: 420, padding: 24 },
+    )
+
+    assert.ok(route?.d)
+    assert.equal([...route.d.matchAll(/\bM\b/g)].length, 3, 'aggregate compatibility path must still retain the three source segments')
+    assert.equal(route?.segmentPaths.length, 3, 'each contiguous source segment needs its own drawable path for ordered GSAP drawing')
+    assert.equal(route?.segmentPaths.map((segment) => segment.index).join(','), '0,1,2')
+    assert.ok(route?.segmentPaths.every((segment) => !/\bM\b[\s\S]*\bM\b/.test(segment.d)), 'a drawable segment path cannot contain a second subpath front')
+    assertPointClose(route?.segmentPaths[0]?.start, route!.start, 'first segment starts at the overall route start')
+    assertPointClose(route?.segmentPaths.at(-1)?.end, route!.end, 'last segment ends at the overall route end')
+  })
+
+  test('assigns one advancing route front at a time while preserving the fixed total draw duration', async () => {
+    const { buildRouteDrawPlan } = await loadRouteMotion()
+    const plan = buildRouteDrawPlan([
+      { segmentIndex: 0, length: 40 },
+      { segmentIndex: 1, length: 80 },
+      { segmentIndex: 2, length: 120 },
+    ], 1.2)
+
+    assert.deepEqual(plan.map((step) => step.segmentIndex), [0, 1, 2])
+    assert.equal(plan[0]?.start, 0)
+    assert.equal(plan[0]?.end, plan[1]?.start, 'the next segment cannot start before the current one is complete')
+    assert.equal(plan[1]?.end, plan[2]?.start, 'there must be only one advancing segment front')
+    assert.equal(plan.at(-1)?.end, 1.2, 'segment durations must sum to the existing fixed route duration')
+    assert.deepEqual(plan.map((step) => step.duration), [0.2, 0.4, 0.6])
   })
 
   test('returns no screenshot share preview for null or accepted-gap-only shapes', async () => {

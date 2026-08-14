@@ -24,6 +24,7 @@ import {
 import { getShareTemplateComponent, getShareTemplateRegistryEntry } from '@/lib/share-templates/registry'
 import type { ShareRenderTemplate, ShareTemplateData } from '@/lib/share-templates/types'
 import { buildShareTrackPreview } from '@/lib/share-track-preview'
+import { buildRouteDrawPlan, ROUTE_FINAL_DRAW_BARRIER_SECONDS } from '@/lib/share-route-motion'
 
 gsap.registerPlugin(useGSAP)
 
@@ -53,6 +54,67 @@ function clearPressFallback(event: PressFallbackEvent) {
   delete event.currentTarget.dataset.ptPressActive
 }
 
+type RouteDrawGroup = {
+  segmentIndex: number
+  targets: SVGGeometryElement[]
+  length: number
+}
+
+function getRouteDrawGroups(drawTargets: SVGGeometryElement[]) {
+  const grouped = new Map<number, SVGGeometryElement[]>()
+
+  drawTargets.forEach((target) => {
+    if (target.getAttribute('data-motion-kind') !== 'route') return
+    const parsedIndex = Number.parseInt(target.getAttribute('data-route-segment') ?? '0', 10)
+    const segmentIndex = Number.isInteger(parsedIndex) && parsedIndex >= 0 ? parsedIndex : 0
+    const targets = grouped.get(segmentIndex) ?? []
+    targets.push(target)
+    grouped.set(segmentIndex, targets)
+  })
+
+  return [...grouped.entries()]
+    .sort(([left], [right]) => left - right)
+    .flatMap(([segmentIndex, targets]) => {
+      const measurementTarget = targets.find((target) => target.getAttribute('data-route-layer') === 'main') ?? targets[0]
+      if (!measurementTarget) return []
+
+      try {
+        const length = measurementTarget.getTotalLength()
+        return Number.isFinite(length) && length > 0 ? [{ segmentIndex, targets, length }] : []
+      } catch {
+        return []
+      }
+    }) as RouteDrawGroup[]
+}
+
+function addRouteDrawTimeline(
+  timeline: gsap.core.Timeline,
+  groups: RouteDrawGroup[],
+  {
+    start,
+    duration,
+    ease,
+  }: {
+    start: number
+    duration: number
+    ease: string
+  },
+) {
+  const plan = buildRouteDrawPlan(groups, duration)
+  plan.forEach((step) => {
+    const group = groups.find((candidate) => candidate.segmentIndex === step.segmentIndex)
+    if (!group) return
+    timeline.to(group.targets, {
+      strokeDashoffset: 0,
+      duration: step.duration,
+      ease,
+      overwrite: 'auto',
+    }, start + step.start)
+  })
+
+  return start + (plan.at(-1)?.end ?? 0)
+}
+
 const TEMPLATE_ITEMS: FacadeTemplate[] = [
   { key: 'vertical', template: 'base-vertical-classic', photoDataUrl: PHOTO_ALPINE },
   { key: 'minimal', template: 'base-classic' },
@@ -74,6 +136,20 @@ const IMPRINT_SAMPLE_TRACK_POINTS = [
   { lat: 38.2987, lng: 75.1388, altitude: 7546 },
 ]
 
+function buildSegmentedImprintPreview() {
+  const preview = buildShareTrackPreview(IMPRINT_SAMPLE_TRACK_POINTS)
+  if (!preview || preview.points.length < 7) return preview
+
+  return {
+    ...preview,
+    segments: [
+      preview.points.slice(0, 4),
+      preview.points.slice(3, 7),
+      preview.points.slice(6),
+    ],
+  }
+}
+
 function buildImprintSampleShareData(): ShareTemplateData {
   return {
     mountainName: '慕士塔格峰',
@@ -84,7 +160,7 @@ function buildImprintSampleShareData(): ShareTemplateData {
     duration: '30:00',
     elevationGain: 3146,
     source: 'uploaded',
-    trackPreview: buildShareTrackPreview(IMPRINT_SAMPLE_TRACK_POINTS),
+    trackPreview: buildSegmentedImprintPreview(),
     visibleFields: {
       duration: true,
       elevationGain: true,
@@ -436,6 +512,8 @@ export default function ImprintClient({
     const textTargets = sortMotionTargets(gsap.utils.toArray<HTMLElement>(scope.querySelectorAll('[data-role="text"]')))
     const nums = gsap.utils.toArray<HTMLElement>(scope.querySelectorAll('[data-role="num"]'))
     const drawTargets = gsap.utils.toArray<SVGGeometryElement>(scope.querySelectorAll('[data-role="draw"]'))
+    const routeDrawGroups = getRouteDrawGroups(drawTargets)
+    const nonRouteDrawTargets = drawTargets.filter((target) => target.getAttribute('data-motion-kind') !== 'route')
     const popTargets = gsap.utils.toArray<HTMLElement | SVGElement>(scope.querySelectorAll('[data-role="pop"]'))
     const routeStartTargets = popTargets.filter((target) => target.getAttribute('data-motion-position') === 'route-start')
     const routeEndTargets = popTargets.filter((target) => target.getAttribute('data-motion-position') === 'route-end')
@@ -459,6 +537,7 @@ export default function ImprintClient({
         gsap.set(fill, { opacity: targetOpacity, clearProps: 'willChange' })
       })
       if (ruleTargets.length) gsap.set(ruleTargets, { scaleX: 1, transformOrigin: 'left center', clearProps: 'willChange' })
+      scope.dataset.routeDrawState = 'terminal'
       return
     }
 
@@ -478,6 +557,7 @@ export default function ImprintClient({
       } catch {}
       gsap.set(draw, { strokeDasharray: length, strokeDashoffset: length })
     })
+    scope.dataset.routeDrawState = 'drawing'
     if (popTargets.length) gsap.set(popTargets, { scale: 1, autoAlpha: 0, transformOrigin: 'center', willChange: 'opacity' })
     fillTargets.forEach((fill) => gsap.set(fill, { opacity: 0, willChange: 'opacity' }))
     if (ruleTargets.length) gsap.set(ruleTargets, { scaleX: 0, transformOrigin: 'left center', willChange: 'transform' })
@@ -486,7 +566,10 @@ export default function ImprintClient({
     cardMotionTargetsRef.current = motionTargets
     const tl = gsap.timeline({
       onComplete: () => {
-        settleCardDrawTargets(drawTargets)
+        if (!routeDrawGroups.length) {
+          settleCardDrawTargets(drawTargets)
+          scope.dataset.routeDrawState = 'terminal'
+        }
         if (cardMotionTimelineRef.current === tl) {
           if (cardMotionTargetsRef.current.length) gsap.set(cardMotionTargetsRef.current, { clearProps: 'willChange' })
           cardMotionTargetsRef.current = []
@@ -525,8 +608,22 @@ export default function ImprintClient({
       }, 0.5)
     })
 
-    if (drawTargets.length) {
-      tl.to(drawTargets, {
+    const routeDrawEnd = routeDrawGroups.length
+      ? addRouteDrawTimeline(tl, routeDrawGroups, { start: 0.68, duration: 1.45, ease: 'power2.inOut' })
+      : 0.68
+    const routeFinalDrawBarrierEnd = routeDrawGroups.length
+      ? routeDrawEnd + ROUTE_FINAL_DRAW_BARRIER_SECONDS
+      : routeDrawEnd
+    if (routeDrawGroups.length) {
+      const barrierClock = { progress: 0 }
+      tl.call(() => {
+        scope.dataset.routeDrawState = 'final-draw'
+      }, undefined, routeDrawEnd)
+      tl.to(barrierClock, { progress: 1, duration: ROUTE_FINAL_DRAW_BARRIER_SECONDS, ease: 'none' }, routeDrawEnd)
+      tl.call(() => settleCardDrawTargets(drawTargets), undefined, routeFinalDrawBarrierEnd)
+    }
+    if (nonRouteDrawTargets.length) {
+      tl.to(nonRouteDrawTargets, {
         strokeDashoffset: 0,
         duration: 1.45,
         ease: 'power2.inOut',
@@ -582,7 +679,16 @@ export default function ImprintClient({
         stagger: 0.08,
         overwrite: 'auto',
         clearProps: 'willChange',
-      }, 2.13)
+      }, routeFinalDrawBarrierEnd)
+      if (routeDrawGroups.length) {
+        tl.call(() => {
+          scope.dataset.routeDrawState = 'terminal'
+        }, undefined, routeFinalDrawBarrierEnd + 0.55)
+      }
+    } else if (routeDrawGroups.length) {
+      tl.call(() => {
+        scope.dataset.routeDrawState = 'terminal'
+      }, undefined, routeFinalDrawBarrierEnd)
     }
   }
 

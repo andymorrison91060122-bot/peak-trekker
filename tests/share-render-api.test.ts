@@ -251,7 +251,7 @@ function loadWorkerModule({
   renderer,
   openNextFetch,
 }: {
-  renderer: (args: { transparent: boolean }) => Promise<Uint8Array>
+  renderer: (args: { svg: string; transparent: boolean; fontBuffers?: ArrayBuffer[] }) => Promise<Uint8Array>
   openNextFetch: (request: Request) => Promise<Response>
 }) {
   const workerSource = readSource('../custom-worker.ts')
@@ -1441,7 +1441,7 @@ describe('share render API field policy regression', () => {
     assert.match(routeSource, /renderSvgPng[\s\S]*?SR-PNG/)
     assert.match(workerSource, /const isShareRender = new URL\(request\.url\)\.pathname === '\/api\/share\/render'/)
     assert.match(workerSource, /workerRenderFailure\(errorId, 'SR-SVG-SIZE'\)/)
-    assert.match(workerSource, /workerRenderFailure\(errorId, 'SR-FONT'\)/)
+    assert.doesNotMatch(workerSource, /workerRenderFailure\(errorId, 'SR-FONT'\)/)
     assert.match(workerSource, /workerRenderFailure\(errorId, 'SR-PNG'\)/)
     assert.match(workerSource, /if \(isShareRender\) return workerRenderFailure/)
     assert.match(workerSource, /throw error/)
@@ -1620,6 +1620,129 @@ describe('share render API field policy regression', () => {
       assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [7, 8, 9])
     }
     assert.deepEqual(renderCalls, [false, true])
+  })
+
+  test('custom Worker renders Satori share SVGs without duplicate font buffers while posters load fonts per invocation', async () => {
+    const workerRequestId = '44444444-4444-4444-8444-444444444444'
+    const internalSvg = (transparent = false) => new Response('<svg/>', {
+      headers: {
+        'x-peak-trekker-worker-svg': '1',
+        'x-peak-trekker-worker-transparent': transparent ? '1' : '0',
+        'x-peak-trekker-render-id': workerRequestId,
+        'content-length': '6',
+        'cache-control': 'no-store',
+      },
+    })
+    const context = { waitUntil: () => undefined, passThroughOnException: () => undefined }
+    const shareAssetPaths: string[] = []
+    const shareRenderInputs: Array<{ svg: string; transparent: boolean; fontBuffers?: ArrayBuffer[] }> = []
+    const shareWorker = loadWorkerModule({
+      renderer: async (input) => {
+        shareRenderInputs.push(input)
+        return new Uint8Array([7, 8, 9])
+      },
+      openNextFetch: async (request) => internalSvg(new URL(request.url).searchParams.get('transparent') === '1'),
+    })
+    const shareAssets = {
+      fetch: async (request: Request) => {
+        shareAssetPaths.push(new URL(request.url).pathname)
+        return new Response(new Uint8Array([1, 2, 3]))
+      },
+    }
+
+    for (const transparent of [false, true]) {
+      const response = await shareWorker.fetch(
+        new Request(`https://example.test/api/share/render?transparent=${transparent ? '1' : '0'}`),
+        { ASSETS: shareAssets },
+        context,
+      )
+      assert.equal(response.status, 200)
+      assert.equal(response.headers.get('content-type'), 'image/png')
+      assert.equal(response.headers.get('cache-control'), 'no-store')
+      assert.equal(response.headers.get('x-peak-trekker-render-id'), workerRequestId)
+      assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [7, 8, 9])
+    }
+    assert.deepEqual(shareAssetPaths, [], 'Satori share SVGs already embed text paths and must not reload Noto for Resvg')
+    assert.deepEqual(
+      shareRenderInputs.map((input) => input.fontBuffers ?? []),
+      [[], []],
+      'normal and transparent share PNG conversion must receive no font buffers',
+    )
+
+    const posterAssetPaths: string[] = []
+    const posterRenderInputs: Array<{ svg: string; transparent: boolean; fontBuffers?: ArrayBuffer[] }> = []
+    const posterWorker = loadWorkerModule({
+      renderer: async (input) => {
+        posterRenderInputs.push(input)
+        return new Uint8Array([4, 5, 6])
+      },
+      openNextFetch: async () => internalSvg(),
+    })
+    const posterAssets = {
+      fetch: async (request: Request) => {
+        posterAssetPaths.push(new URL(request.url).pathname)
+        return new Response(new Uint8Array([1, 2, 3]))
+      },
+    }
+
+    for (const route of ['/api/poster', '/api/poster-preview']) {
+      const response = await posterWorker.fetch(new Request(`https://example.test${route}`), { ASSETS: posterAssets }, context)
+      assert.equal(response.status, 200)
+      assert.equal(response.headers.get('content-type'), 'image/png')
+      assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [4, 5, 6])
+    }
+    assert.deepEqual(posterAssetPaths, [
+      '/fonts/NotoSansSC-Regular.otf',
+      '/fonts/NotoSansSC-Bold.otf',
+      '/fonts/NotoSansSC-Regular.otf',
+      '/fonts/NotoSansSC-Bold.otf',
+    ])
+    assert.deepEqual(posterRenderInputs.map((input) => input.fontBuffers?.length), [2, 2])
+
+    const workerSource = readSource('../custom-worker.ts')
+    assert.doesNotMatch(workerSource, /workerFontBuffersReady/, 'worker font buffers must not be process-global')
+  })
+
+  test('actual Satori share SVG rasterizes through Resvg WASM without font buffers', async () => {
+    const React = await import('react')
+    const { renderShareSvg, renderSvgPng } = await import('../src/lib/share-render-png.ts')
+    const fonts = [{
+      name: 'Noto Sans SC',
+      data: fontArrayBuffer('NotoSansSC-Regular.otf'),
+      weight: 400 as const,
+      style: 'normal' as const,
+    }]
+    const photoDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+
+    for (const transparent of [false, true]) {
+      const element = React.createElement(
+        'div',
+        {
+          style: {
+            display: 'flex',
+            position: 'relative',
+            width: 1080,
+            height: 1920,
+            background: transparent ? 'rgba(0, 0, 0, 0)' : '#121416',
+            color: '#f6f8f8',
+            fontFamily: 'Noto Sans SC',
+            fontSize: 72,
+          },
+        },
+        transparent ? null : React.createElement('img', {
+          src: photoDataUrl,
+          width: 1080,
+          height: 1920,
+          style: { position: 'absolute', inset: 0, objectFit: 'cover', opacity: 0.18 },
+        }),
+        React.createElement('span', { style: { display: 'flex', margin: 96 } }, transparent ? '透明轨迹 21.3 km' : '山行记录 21.3 km'),
+      )
+      const svg = await renderShareSvg({ element, fonts })
+      assert.doesNotMatch(svg, /<text\b/i, 'Satori must embed share text as SVG paths before the Worker PNG conversion')
+      const png = await renderSvgPng({ svg, transparent })
+      assert.deepEqual([...png.slice(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10])
+      assert.ok(png.byteLength > 100, 'Resvg WASM must produce a non-empty PNG without any font buffers')
+    }
   })
 
   test('share editor export ceremony distinguishes save, native share, fallback, abort, and failure semantics', () => {

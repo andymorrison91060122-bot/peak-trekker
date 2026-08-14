@@ -132,6 +132,10 @@ test('OpenNext artifact gate fails closed for missing or corrupt fonts', () => {
   try {
     mkdirSync(fixtureDir, { recursive: true })
     mkdirSync(fixturePublicFontDir, { recursive: true })
+    for (const name of Object.keys(expectedFonts)) {
+      copyFileSync(join(fontDir, name), join(fixtureDir, name))
+      copyFileSync(join(fontDir, name), join(fixturePublicFontDir, name))
+    }
 
     const runArtifactGate = ({ candidateArtifactDir, cwd = process.cwd(), allowTestOverride = true }) => spawnSync(
       process.execPath,
@@ -149,9 +153,9 @@ test('OpenNext artifact gate fails closed for missing or corrupt fonts', () => {
     )
 
     assert.equal(
-      runArtifactGate({ candidateArtifactDir: artifactFontDir }).status,
+      runArtifactGate({ candidateArtifactDir: fixtureDir }).status,
       0,
-      'a complete valid OpenNext font artifact set must pass',
+      'a complete fixture-isolated OpenNext font artifact set must pass',
     )
 
     assert.notEqual(
@@ -160,10 +164,6 @@ test('OpenNext artifact gate fails closed for missing or corrupt fonts', () => {
       'a missing OpenNext font artifact must fail the gate',
     )
 
-    for (const name of Object.keys(expectedFonts)) {
-      copyFileSync(join(fontDir, name), join(fixtureDir, name))
-      copyFileSync(join(fontDir, name), join(fixturePublicFontDir, name))
-    }
     const corrupt = Buffer.from(readFileSync(join(fixtureDir, 'NotoSansSC-Bold.otf')))
     corrupt[0] ^= 0xff
     writeFileSync(join(fixtureDir, 'NotoSansSC-Bold.otf'), corrupt)

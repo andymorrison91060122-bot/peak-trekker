@@ -291,10 +291,57 @@ function clearPressFallback(event: PressFallbackEvent) {
 
 type ExportSnapshot = {
   action: ActiveExportAction
+  checkinId: string | null
   template: TemplateId
   fieldToggles: Record<ShareFieldKey, boolean>
   photoDataUrl: string | null
   transparent: boolean
+}
+
+type NormalPosterBlobCacheEntry = {
+  snapshot: ExportSnapshot
+  blob: Blob
+}
+
+const NORMAL_POSTER_RENDER_FIELD_KEYS: readonly ShareFieldKey[] = [
+  'altitude',
+  'distance',
+  'duration',
+  'elevationGain',
+  'date',
+  'location',
+  'pace',
+  'mountainName',
+]
+
+function isSameNormalPosterRenderSnapshot(left: ExportSnapshot, right: ExportSnapshot) {
+  return left.checkinId === right.checkinId
+    && left.template === right.template
+    && left.transparent === right.transparent
+    && left.photoDataUrl === right.photoDataUrl
+    && NORMAL_POSTER_RENDER_FIELD_KEYS.every((field) => left.fieldToggles[field] === right.fieldToggles[field])
+}
+
+class NormalPosterBlobCache {
+  private entry: NormalPosterBlobCacheEntry | null = null
+
+  async getOrRender(snapshot: ExportSnapshot, render: () => Promise<Blob>) {
+    if (!snapshot.transparent && this.entry && isSameNormalPosterRenderSnapshot(this.entry.snapshot, snapshot)) {
+      return { blob: this.entry.blob, cacheHit: true }
+    }
+
+    const blob = await render()
+    if (!snapshot.transparent) {
+      this.entry = {
+        snapshot: {
+          ...snapshot,
+          fieldToggles: { ...snapshot.fieldToggles },
+        },
+        blob,
+      }
+    }
+    return { blob, cacheHit: false }
+  }
 }
 
 gsap.registerPlugin(useGSAP)
@@ -3381,6 +3428,7 @@ export default function ShareClient({
   const exportDelayTimerRef = useRef<number | null>(null)
   const mountedRef = useRef(false)
   const exportInFlightRef = useRef(false)
+  const normalPosterBlobCacheRef = useRef(new NormalPosterBlobCache())
   const skipUpdateRelightRef = useRef(true)
   const [motionPending, setMotionPending] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>(initialTemplate)
@@ -3492,6 +3540,7 @@ export default function ShareClient({
   function createExportSnapshot(action: ActiveExportAction, transparent: boolean): ExportSnapshot {
     return {
       action,
+      checkinId: checkinId ?? null,
       template: selectedTemplate,
       fieldToggles: { ...fieldToggles },
       photoDataUrl,
@@ -3707,52 +3756,56 @@ export default function ShareClient({
     }
 
     const startedAt = performance.now()
-    const requestId = crypto.randomUUID()
-    const result = await readShareRenderResult(
-      () => fetch('/api/share/render', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          [SHARE_RENDER_REQUEST_ID_HEADER]: requestId,
-        },
-        body: JSON.stringify({
-          template: snapshot.template,
-          checkinId,
-          fieldVisibility: {
-            duration: snapshot.fieldToggles.duration,
-            elevationGain: snapshot.fieldToggles.elevationGain,
-            date: snapshot.fieldToggles.date,
-            location: snapshot.fieldToggles.location,
-            pace: snapshot.fieldToggles.pace,
-            mountainName: snapshot.fieldToggles.mountainName,
+    const cachedRender = await normalPosterBlobCacheRef.current.getOrRender(snapshot, async () => {
+      const requestId = crypto.randomUUID()
+      const result = await readShareRenderResult(
+        () => fetch('/api/share/render', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            [SHARE_RENDER_REQUEST_ID_HEADER]: requestId,
           },
-          photoBase64: stripDataUrlPrefix(snapshot.photoDataUrl),
-          transparent: snapshot.transparent,
+          body: JSON.stringify({
+            template: snapshot.template,
+            checkinId,
+            fieldVisibility: {
+              duration: snapshot.fieldToggles.duration,
+              elevationGain: snapshot.fieldToggles.elevationGain,
+              date: snapshot.fieldToggles.date,
+              location: snapshot.fieldToggles.location,
+              pace: snapshot.fieldToggles.pace,
+              mountainName: snapshot.fieldToggles.mountainName,
+            },
+            photoBase64: stripDataUrlPrefix(snapshot.photoDataUrl),
+            transparent: snapshot.transparent,
+          }),
         }),
-      }),
-      requestId,
-    )
+        requestId,
+      )
 
-    if (!result.ok) {
-      const { diagnostic } = result
-      trackEvent({
-        event_type: 'business',
-        event_name: 'business.share_template_generate',
-        properties: {
-          template_id: snapshot.template,
-          success: false,
-          generate_duration_ms: Math.round(performance.now() - startedAt),
-          render_error_code: diagnostic.code,
-          render_error_id: diagnostic.errorId,
-          render_error_phase: diagnostic.phase,
-          render_svg_stage: diagnostic.svgStage ?? null,
-          render_http_status: diagnostic.status,
-          render_content_type: diagnostic.contentType,
-          render_response_request_id: diagnostic.responseRequestId,
-        },
-      })
-      throw new ShareRenderResponseError(diagnostic)
-    }
+      if (!result.ok) {
+        const { diagnostic } = result
+        trackEvent({
+          event_type: 'business',
+          event_name: 'business.share_template_generate',
+          properties: {
+            template_id: snapshot.template,
+            success: false,
+            generate_duration_ms: Math.round(performance.now() - startedAt),
+            render_error_code: diagnostic.code,
+            render_error_id: diagnostic.errorId,
+            render_error_phase: diagnostic.phase,
+            render_svg_stage: diagnostic.svgStage ?? null,
+            render_http_status: diagnostic.status,
+            render_content_type: diagnostic.contentType,
+            render_response_request_id: diagnostic.responseRequestId,
+          },
+        })
+        throw new ShareRenderResponseError(diagnostic)
+      }
+
+      return result.blob
+    })
 
     trackEvent({
       event_type: 'business',
@@ -3762,9 +3815,10 @@ export default function ShareClient({
         success: true,
         generate_duration_ms: Math.round(performance.now() - startedAt),
         transparent: snapshot.transparent,
+        cache_hit: cachedRender.cacheHit,
       },
     })
-    return result.blob
+    return cachedRender.blob
   }
 
   async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {

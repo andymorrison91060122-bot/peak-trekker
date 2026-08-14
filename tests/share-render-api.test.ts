@@ -86,6 +86,28 @@ async function loadShareClientDiagnosticParser() {
   )
 }
 
+async function loadShareClientNormalPosterBlobCache() {
+  const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+  const cacheBlock = clientSource.match(
+    /type ExportSnapshot =[\s\S]*?(?=\ngsap\.registerPlugin)/,
+  )?.[0]
+  assert.ok(cacheBlock, 'ShareClient normal poster Blob cache must be extractable')
+
+  return executeCommonJsModule<{
+    NormalPosterBlobCache: new () => {
+      getOrRender: (
+        snapshot: Record<string, unknown>,
+        render: () => Promise<Blob>,
+      ) => Promise<{ blob: Blob; cacheHit: boolean }>
+    }
+  }>(
+    `${cacheBlock}\nexport { NormalPosterBlobCache }\n`,
+    (id) => {
+      throw new Error(`Unexpected ShareClient cache dependency: ${id}`)
+    },
+  )
+}
+
 type ShareRenderDiagnosticResult = {
   code: string
   errorId: string
@@ -1137,6 +1159,93 @@ describe('share render API field policy regression', () => {
     assert.match(clientSource, /disabled=\{disabled \|\| transparentExporting\}/)
     assert.match(clientSource, /disabled=\{unavailable\}/)
     assert.match(clientSource, /data-export-dim="true"/)
+  })
+
+  test('normal poster Blob cache reuses only an unchanged Save-to-Share snapshot', async () => {
+    const clientSource = readSource('../src/app/(flow)/share/ShareClient.tsx')
+    assert.match(clientSource, /const normalPosterBlobCacheRef = useRef\(new NormalPosterBlobCache\(\)\)/)
+    assert.match(clientSource, /const cachedRender = await normalPosterBlobCacheRef\.current\.getOrRender\(snapshot, async \(\) =>/)
+    assert.match(clientSource, /cache_hit: cachedRender\.cacheHit/)
+
+    const { NormalPosterBlobCache } = await loadShareClientNormalPosterBlobCache()
+    const baseToggles = {
+      altitude: true,
+      distance: true,
+      duration: true,
+      elevationGain: true,
+      date: true,
+      location: true,
+      pace: true,
+      mountainName: true,
+    }
+    const createSnapshot = (overrides: Record<string, unknown> = {}) => ({
+      action: 'save',
+      checkinId: 'checkin-1',
+      template: 'base-vertical-classic',
+      fieldToggles: { ...baseToggles },
+      photoDataUrl: 'data:image/png;base64,one',
+      transparent: false,
+      ...overrides,
+    })
+    let renderCalls = 0
+    const render = async () => new Blob([new Uint8Array([++renderCalls, 7, 9])], { type: 'image/png' })
+    const cache = new NormalPosterBlobCache()
+
+    const saved = await cache.getOrRender(createSnapshot({ action: 'save' }), render)
+    const shared = await cache.getOrRender(createSnapshot({ action: 'share' }), render)
+    assert.equal(renderCalls, 1, 'Save followed by unchanged Share must perform one render request')
+    assert.equal(saved.cacheHit, false)
+    assert.equal(shared.cacheHit, true)
+    assert.equal(shared.blob, saved.blob, 'Share must reuse the exact immutable Blob instance downloaded by Save')
+    assert.deepEqual(
+      [...new Uint8Array(await shared.blob.arrayBuffer())],
+      [...new Uint8Array(await saved.blob.arrayBuffer())],
+      'Save and Share must use identical PNG bytes on a cache hit',
+    )
+
+    for (const field of Object.keys(baseToggles)) {
+      const fieldCache = new NormalPosterBlobCache()
+      await fieldCache.getOrRender(createSnapshot(), render)
+      const changed = await fieldCache.getOrRender(createSnapshot({
+        action: 'share',
+        fieldToggles: { ...baseToggles, [field]: false },
+      }), render)
+      assert.equal(changed.cacheHit, false, `${field} must invalidate the normal render cache`)
+    }
+
+    for (const overrides of [
+      { action: 'share', template: 'base-classic' },
+      { action: 'share', photoDataUrl: 'data:image/png;base64,two' },
+      { action: 'share', checkinId: 'checkin-2' },
+    ]) {
+      const changedCache = new NormalPosterBlobCache()
+      await changedCache.getOrRender(createSnapshot(), render)
+      const changed = await changedCache.getOrRender(createSnapshot(overrides), render)
+      assert.equal(changed.cacheHit, false, 'every render-affecting snapshot value must invalidate the cache')
+    }
+
+    const transparentCache = new NormalPosterBlobCache()
+    const transparentSnapshot = createSnapshot({ action: 'transparent', transparent: true })
+    const transparentFirst = await transparentCache.getOrRender(transparentSnapshot, render)
+    const transparentSecond = await transparentCache.getOrRender(transparentSnapshot, render)
+    assert.equal(transparentFirst.cacheHit, false)
+    assert.equal(transparentSecond.cacheHit, false, 'transparent preview retains its existing Blob lifecycle outside this normal cache')
+
+    const failedCache = new NormalPosterBlobCache()
+    let failedRenderCalls = 0
+    await assert.rejects(
+      () => failedCache.getOrRender(createSnapshot(), async () => {
+        failedRenderCalls += 1
+        throw new Error('render failed')
+      }),
+      /render failed/,
+    )
+    const retried = await failedCache.getOrRender(createSnapshot({ action: 'share' }), async () => {
+      failedRenderCalls += 1
+      return new Blob([new Uint8Array([1])], { type: 'image/png' })
+    })
+    assert.equal(retried.cacheHit, false, 'a failed render must never create a cache entry')
+    assert.equal(failedRenderCalls, 2, 'the next unchanged action must retry after a failed render')
   })
 
   test('share render client diagnostics distinguish every safe failure boundary', async () => {

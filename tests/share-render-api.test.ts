@@ -72,8 +72,9 @@ async function loadShareClientDiagnosticParser() {
       request: () => Promise<Response>,
       fallbackErrorId: string,
     ) => Promise<ShareRenderResult>
+    ShareRenderResponseError: new (diagnostic: ShareRenderDiagnosticResult) => Error
   }>(
-    `${diagnosticBlock}\nexport { readShareRenderDiagnostic, readShareRenderResult }\n`,
+    `${diagnosticBlock}\nexport { readShareRenderDiagnostic, readShareRenderResult, ShareRenderResponseError }\n`,
     (id) => {
       throw new Error(`Unexpected ShareClient diagnostic dependency: ${id}`)
     },
@@ -87,6 +88,7 @@ type ShareRenderDiagnosticResult = {
   status: number | null
   contentType: string
   responseRequestId: string
+  svgStage?: string
 }
 
 type ShareRenderResult =
@@ -142,11 +144,17 @@ function validShareRenderBody(overrides: Record<string, unknown> = {}) {
 function loadShareRenderRoute({
   user = { id: 'user-1' },
   workerSvgResponse = async () => null,
+  getShareTemplateComponent = () => (props: unknown) => props,
+  renderShareSvg = async () => '<svg />',
   renderSvgPng = async () => ({ buffer: new Uint8Array([1, 2, 3]) }),
+  applyPhotoGrayscaleSvgFilter = (svg: string) => svg,
 }: {
   user?: { id: string } | null
   workerSvgResponse?: (args: unknown) => Promise<Response | null>
+  getShareTemplateComponent?: () => (props: unknown) => unknown
+  renderShareSvg?: (args: unknown) => Promise<string>
   renderSvgPng?: (args: unknown) => Promise<{ buffer: Uint8Array }>
+  applyPhotoGrayscaleSvgFilter?: (svg: string, photoDataUrl: string) => string
 } = {}) {
   const routeSource = readSource('../src/app/api/share/render/route.ts')
   const checkin = {
@@ -191,11 +199,11 @@ function loadShareRenderRoute({
       case '@/lib/share-templates/shared':
         return { RenderRoot: (props: unknown) => props }
       case '@/lib/share-templates/registry':
-        return { getShareTemplateComponent: () => (props: unknown) => props }
+        return { getShareTemplateComponent }
       case '@/lib/share-templates/transparent-watermark':
         return { TransparentWatermarkTemplate: (props: unknown) => props }
       case '@/lib/share-templates/types':
-        return { SHARE_RENDER_TEMPLATE_IDS: ['base-classic'] }
+        return { SHARE_RENDER_TEMPLATE_IDS: ['base-classic', 'premium-mono-film'] }
       case '@/lib/fonts/load-share-fonts':
         return { loadShareFonts: async () => [] }
       case '@/lib/premium':
@@ -203,7 +211,7 @@ function loadShareRenderRoute({
       case '@/lib/schema-compat':
         return { isSchemaCompatibilityErrorMessage: () => false }
       case '@/lib/share-render-png':
-        return { renderShareSvg: async () => '<svg />', renderSvgPng }
+        return { renderShareSvg, renderSvgPng }
       case '@/lib/share-render-runtime':
         return { createWorkerSvgResponse: workerSvgResponse }
       case '@/lib/share-render-policy':
@@ -212,7 +220,7 @@ function loadShareRenderRoute({
           assertShareRenderPayload: () => undefined,
         }
       case '@/lib/share-svg-filters':
-        return { applyPhotoGrayscaleSvgFilter: (svg: string) => svg }
+        return { applyPhotoGrayscaleSvgFilter }
       case '@/lib/share-track-preview':
         return {
           buildShareTrackPreview: () => null,
@@ -836,7 +844,8 @@ describe('share render API field policy regression', () => {
     assert.match(photoPreprocess, /return `data:\$\{mimeType\};base64,\$\{photoBase64\}`/)
     assert.doesNotMatch(sharedSource, /<feColorMatrix|share-photo-grayscale|grayscale\(1\)/)
     assert.match(routeSource, /'premium-mono-film',[\s\S]*'premium-vertical-story'/)
-    assert.match(routeSource, /GRAYSCALE_PHOTO_TEMPLATES\.has\(payload\.template\)[\s\S]*applyPhotoGrayscaleSvgFilter\(svg, photoDataUrl\)/)
+    assert.match(routeSource, /GRAYSCALE_PHOTO_TEMPLATES\.has\(payload\.template\)\s*&&\s*photoResult\.value/)
+    assert.match(routeSource, /svg = applyPhotoGrayscaleSvgFilter\(svg, photoResult\.value\)/)
     assert.match(filterSource, /href="\$\{photoDataUrl\}"/)
     assert.match(filterSource, /<feColorMatrix type="saturate" values="0"\/>/)
     assert.match(clientSource, /const monoFilm = template === 'premium-mono-film'/)
@@ -1075,7 +1084,7 @@ describe('share render API field policy regression', () => {
   })
 
   test('share render client diagnostics distinguish every safe failure boundary', async () => {
-    const { readShareRenderResult } = await loadShareClientDiagnosticParser()
+    const { readShareRenderResult, ShareRenderResponseError } = await loadShareClientDiagnosticParser()
     const serverErrorId = '11111111-1111-4111-8111-111111111111'
     const clientErrorId = '22222222-2222-4222-8222-222222222222'
     const encoder = new TextEncoder()
@@ -1233,6 +1242,48 @@ describe('share render API field policy regression', () => {
       assertShareRenderFailure(
         await readShareRenderResult(
           () => Promise.resolve(new Response(JSON.stringify({
+            code: 'SR-SVG',
+            errorId: serverErrorId,
+            svgStage: 'satori-render',
+          }), {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+              'x-peak-trekker-render-id': clientErrorId,
+            },
+          })),
+          clientErrorId,
+        ),
+      ),
+      {
+        code: 'SR-SVG',
+        errorId: serverErrorId,
+        phase: 'http-safe-envelope',
+        status: 500,
+        contentType: 'json',
+        responseRequestId: 'match',
+        svgStage: 'satori-render',
+      },
+      'a valid SVG failure stage must remain safe, visible, and correlated to the response ID',
+    )
+    assert.match(
+      new ShareRenderResponseError({
+        code: 'SR-SVG',
+        errorId: serverErrorId,
+        phase: 'http-safe-envelope',
+        status: 500,
+        contentType: 'json',
+        responseRequestId: 'match',
+        svgStage: 'satori-render',
+      }).message,
+      /SR-SVG.*satori-render/,
+      'the user-visible safe diagnostic must include the fixed SVG stage and never an exception message',
+    )
+
+    assert.deepEqual(
+      assertShareRenderFailure(
+        await readShareRenderResult(
+          () => Promise.resolve(new Response(JSON.stringify({
             code: 'SR-UNKNOWN',
             errorId: '11111111----------------------------',
           }), {
@@ -1300,6 +1351,7 @@ describe('share render API field policy regression', () => {
     assert.match(clientSource, /const result = await readShareRenderResult\(/)
     assert.match(clientSource, /super\(`\$\{SHARE_RENDER_FAILURE_MESSAGE\}（\$\{details\.join\(' · '\)\}）`\)/)
     assert.match(clientSource, /render_error_phase:\s*diagnostic\.phase/)
+    assert.match(clientSource, /render_svg_stage:\s*diagnostic\.svgStage \?\? null/)
     assert.match(clientSource, /render_http_status:\s*diagnostic\.status/)
     assert.match(clientSource, /render_content_type:\s*diagnostic\.contentType/)
     assert.match(clientSource, /render_response_request_id:\s*diagnostic\.responseRequestId/)
@@ -1319,7 +1371,13 @@ describe('share render API field policy regression', () => {
       assert.match(routeSource, new RegExp(`shareRenderFailure\\(requestId, '${code}'`), `${code} must map to its route branch`)
     }
 
-    assert.match(routeSource, /function shareRenderFailure\(requestId: string, code: ShareRenderFailureCode, status: number\)/)
+    assert.match(
+      routeSource,
+      /function shareRenderFailure\(\s*requestId: string,\s*code: ShareRenderFailureCode,\s*status: number,\s*svgStage\?: ShareRenderSvgStage,\s*\)/,
+    )
+    for (const stage of ['template-construction', 'satori-render', 'grayscale-postprocess']) {
+      assert.match(routeSource, new RegExp(`shareRenderFailure\\(requestId, 'SR-SVG', 500, '${stage}'`))
+    }
     assert.match(routeSource, /loadShareFonts[\s\S]*?SR-FONT/)
     assert.match(routeSource, /photoDataUrlForTemplate[\s\S]*?SR-PHOTO/)
     assert.match(routeSource, /loadBrandMarkMaskDataUri[\s\S]*?SR-BRAND/)
@@ -1377,6 +1435,63 @@ describe('share render API field policy regression', () => {
     for (const transparent of [false, true]) {
       const response = await successPost(shareRenderRequest(validShareRenderBody({ transparent })))
       assert.equal(response.status, 200)
+      assert.equal(response.headers.get('content-type'), 'image/png')
+      assert.equal(response.headers.get('cache-control'), 'no-store')
+      assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [1, 2, 3])
+    }
+  })
+
+  test('share render maps each SVG substage to a fixed safe envelope without changing PNG success', async () => {
+    const stageCases = [
+      {
+        stage: 'template-construction',
+        route: loadShareRenderRoute({
+          getShareTemplateComponent: () => () => {
+            throw new Error('template construction failed')
+          },
+        }),
+        body: validShareRenderBody(),
+      },
+      {
+        stage: 'satori-render',
+        route: loadShareRenderRoute({
+          renderShareSvg: async () => {
+            throw new Error('satori rendering failed')
+          },
+        }),
+        body: validShareRenderBody(),
+      },
+      {
+        stage: 'grayscale-postprocess',
+        route: loadShareRenderRoute({
+          applyPhotoGrayscaleSvgFilter: () => {
+            throw new Error('grayscale postprocess failed')
+          },
+        }),
+        body: validShareRenderBody({
+          template: 'premium-mono-film',
+          photoBase64: 'YWJjZA==',
+        }),
+      },
+    ] as const
+
+    for (const { stage, route, body } of stageCases) {
+      const response = await route.POST(shareRenderRequest(body))
+      assert.equal(response.status, 500, `${stage} must remain an HTTP 500 safe failure`)
+      assert.deepEqual(await response.json(), {
+        error: 'Unable to render share image',
+        code: 'SR-SVG',
+        errorId: SHARE_RENDER_ERROR_ID,
+        svgStage: stage,
+      })
+      assert.equal(response.headers.get('cache-control'), 'no-store')
+      assert.equal(response.headers.get('x-peak-trekker-render-id'), SHARE_RENDER_ERROR_ID)
+    }
+
+    const successfulRoute = loadShareRenderRoute()
+    for (const transparent of [false, true]) {
+      const response = await successfulRoute.POST(shareRenderRequest(validShareRenderBody({ transparent })))
+      assert.equal(response.status, 200, `${transparent ? 'transparent' : 'normal'} success must remain PNG`)
       assert.equal(response.headers.get('content-type'), 'image/png')
       assert.equal(response.headers.get('cache-control'), 'no-store')
       assert.deepEqual([...new Uint8Array(await response.arrayBuffer())], [1, 2, 3])

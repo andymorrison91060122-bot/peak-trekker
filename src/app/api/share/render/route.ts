@@ -45,6 +45,11 @@ type ShareRenderFailureCode =
   | 'SR-PNG'
   | 'SR-UNKNOWN'
 
+type ShareRenderSvgStage =
+  | 'template-construction'
+  | 'satori-render'
+  | 'grayscale-postprocess'
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
@@ -58,13 +63,26 @@ function requestIdFor(request: Request) {
   return isRequestId(supplied) ? supplied : crypto.randomUUID()
 }
 
-function shareRenderFailure(requestId: string, code: ShareRenderFailureCode, status: number) {
+function shareRenderFailure(
+  requestId: string,
+  code: ShareRenderFailureCode,
+  status: number,
+  svgStage?: ShareRenderSvgStage,
+) {
+  const body: {
+    error: string
+    code: ShareRenderFailureCode
+    errorId: string
+    svgStage?: ShareRenderSvgStage
+  } = {
+    error: 'Unable to render share image',
+    code,
+    errorId: requestId,
+  }
+  if (svgStage) body.svgStage = svgStage
+
   return Response.json(
-    {
-      error: 'Unable to render share image',
-      code,
-      errorId: requestId,
-    },
+    body,
     {
       status,
       headers: {
@@ -486,28 +504,41 @@ export async function POST(request: Request) {
     return shareRenderFailure(requestId, 'SR-DATA', 500)
   }
 
-  let svg: string
+  let element: ReturnType<typeof renderPayload>
   try {
-    const fonts = fontsResult.value
     const photoDataUrl = photoResult.value
     const brandMarkSrc = brandResult.value
     const templateElement = renderPayload(payload, photoDataUrl, brandMarkSrc)
-    const element = access.allowed
+    element = access.allowed
       ? templateElement
       : RenderRoot({
           paywallWatermark: true,
           children: templateElement,
         })
+  } catch {
+    console.error('share render failed at SVG template construction')
+    return shareRenderFailure(requestId, 'SR-SVG', 500, 'template-construction')
+  }
+
+  let svg: string
+  try {
+    const fonts = fontsResult.value
     svg = await renderShareSvg({
       element,
       fonts,
     })
-    if (GRAYSCALE_PHOTO_TEMPLATES.has(payload.template) && photoDataUrl) {
-      svg = applyPhotoGrayscaleSvgFilter(svg, photoDataUrl)
+  } catch {
+    console.error('share render failed at SVG Satori render')
+    return shareRenderFailure(requestId, 'SR-SVG', 500, 'satori-render')
+  }
+
+  if (GRAYSCALE_PHOTO_TEMPLATES.has(payload.template) && photoResult.value) {
+    try {
+      svg = applyPhotoGrayscaleSvgFilter(svg, photoResult.value)
+    } catch {
+      console.error('share render failed at SVG grayscale postprocess')
+      return shareRenderFailure(requestId, 'SR-SVG', 500, 'grayscale-postprocess')
     }
-  } catch (error) {
-    console.error('share render failed to create SVG', error)
-    return shareRenderFailure(requestId, 'SR-SVG', 500)
   }
 
   try {
